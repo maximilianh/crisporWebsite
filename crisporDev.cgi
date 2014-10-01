@@ -23,13 +23,6 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 # directory where already processed batches of offtargets are stored ("cache" of bwa results)
 batchDir = "temp"
 
-cookie = Cookie.SimpleCookie()
-cookie['lastvisit'] = str(time.time())
-cookie['lastvisit']['expires']='Thu, 01 Jan 1970 00:00:00 GMT'
-cookie['lastorg'] = ''
-cookie['lastorg']['expires']='Thu, 01 Jan 1970 00:00:00 GMT'
-print cookie
-
 print "Content-type: text/html\n"
 
 def debug(msg):
@@ -55,8 +48,8 @@ def getVars():
 
     org = form.getfirst("org")
     if org is None:
-        errAbort("CGI var org is required")
-
+        errAbort("CGI var org is required")        
+    
     pam = form.getfirst("pam")
     if pam is None:
         errAbort("CGI var pam is required")
@@ -620,25 +613,7 @@ def printForm():
     " print html input form "
     scriptName = basename(__file__)
     
-    # The returned cookie is available in the os.environ dictionary
-    cookie_string = os.environ.get('HTTP_COOKIE')
-        # The first time the page is run there will be no cookies
-    if not cookie_string:
-       print '<p>First visit or cookies disabled</p>'
-
-    else: # Run the page twice to retrieve the cookie
-        #print '<p>The returned cookie string was "' + cookie_string + '"</p>'
-        # load() parses the cookie string
-        cookie.load(cookie_string)
-        # Use the value attribute of the cookie to get it
-        lastvisit = float(cookie['lastvisit'].value)
-        lastorg   = cookie['lastorg'].value
-
-        print '<p>Your last visit was at',
-        print time.asctime(time.localtime(lastvisit)), '</p>'
-        print '<p>Your last org was: ',
-        print lastorg, '</p>'
-
+    
     print """
 <form method="post" action="%s">
 
@@ -930,8 +905,6 @@ def main():
 
 def printContent():
     seq, org, pam, pamId, batchId = getVars()    
-    cookie = Cookie.SimpleCookie()
-    cookie['lastorg'] = org
 
     if pamId!=None:
         makePrimers(batchId, pamId)
