@@ -23,7 +23,37 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 # directory where already processed batches of offtargets are stored ("cache" of bwa results)
 batchDir = "temp"
 
+formular = cgi.FieldStorage()
+organism = formular.getfirst("org")
+
+if 'HTTP_COOKIE' in os.environ:
+    cookie_string=os.environ.get('HTTP_COOKIE')
+    cookies=Cookie.SimpleCookie()
+    cookies.load(cookie_string)
+
+    try:                        
+        cookies['lastvisit'] = str(time.time())        
+        if organism is not None :
+            cookies['lastorg'] = organism
+
+
+    except KeyError:
+#       print "The cookie was not set or has expired<br>"
+        cookies['lastvisit'] = str(time.time())
+        cookies['lastorg'] = 'None'
+        
+print cookies
+
 print "Content-type: text/html\n"
+
+#print '<p>', cookies, '</p>'
+#for morsel in cookies:
+#   print '<p>', morsel, '=', cookies[morsel].value
+#   print '<div style="margin:-1em auto auto 3em;">'
+#   for key in cookies[morsel]:
+#      print key, '=', cookies[morsel][key], '<br />'
+#   print '</div></p>'
+
 
 def debug(msg):
     if DEBUG:
@@ -613,7 +643,26 @@ def printForm():
     " print html input form "
     scriptName = basename(__file__)
     
-    
+    # The returned cookie is available in the os.environ dictionary
+    cookie_string = os.environ.get('HTTP_COOKIE')
+        # The first time the page is run there will be no cookies
+    if not cookie_string:
+       print '<p>First visit or cookies disabled</p>'
+
+    else: # Run the page twice to retrieve the cookie
+        #print '<p>The returned cookie string was "' + cookie_string + '"</p>'
+        # load() parses the cookie string
+        cookies.load(cookie_string)
+        # Use the value attribute of the cookie to get it
+        lastvisit = float(cookies['lastvisit'].value)
+        lastorg   = cookies['lastorg'].value
+
+        print '<p>Your last visit was at',
+        print time.asctime(time.localtime(lastvisit)), '</p>'
+        print '<p>Your last org was: ',
+        print lastorg, '</p>'        
+        print '<p>Your toto is: ',
+        print cookies['toto'], '</p>' 
     print """
 <form method="post" action="%s">
 
