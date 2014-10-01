@@ -23,8 +23,31 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 # directory where already processed batches of offtargets are stored ("cache" of bwa results)
 batchDir = "temp"
 
-formular = cgi.FieldStorage()
-organism = formular.getfirst("org")
+def getVars():
+    form = cgi.FieldStorage()
+    seq = form.getfirst("seq")
+    if seq == None:
+        #errAbort("CGI var seq is required")
+        pamId = form.getfirst("pamId")
+        batchId = form.getfirst("batchId")
+        if pamId!=None and batchId!=None:
+            return None, None, None, pamId, batchId
+        else:
+            return None, None, None, None, None
+
+    org = form.getfirst("org")
+    if org is None:
+        errAbort("CGI var org is required")        
+    
+    pam = form.getfirst("pam")
+    if pam is None:
+        errAbort("CGI var pam is required")
+    if len(set(pam)-set("ACTGNMK"))!=0:
+        errAbort("Illegal character in PAM-sequence. Only ACTGMK and N allowed.")
+    return seq, org, pam, None, None
+
+
+seq, organism, pam, pamId, batchId = getVars()
 
 cookies=Cookie.SimpleCookie()
 cookies['lastvisit'] = str(time.time())
@@ -64,29 +87,6 @@ def debug(msg):
 def errAbort(msg):
     print(msg+"<p>")
     sys.exit(0)
-
-def getVars():
-    form = cgi.FieldStorage()
-    seq = form.getfirst("seq")
-    if seq == None:
-        #errAbort("CGI var seq is required")
-        pamId = form.getfirst("pamId")
-        batchId = form.getfirst("batchId")
-        if pamId!=None and batchId!=None:
-            return None, None, None, pamId, batchId
-        else:
-            return None, None, None, None, None
-
-    org = form.getfirst("org")
-    if org is None:
-        errAbort("CGI var org is required")        
-    
-    pam = form.getfirst("pam")
-    if pam is None:
-        errAbort("CGI var pam is required")
-    if len(set(pam)-set("ACTGNMK"))!=0:
-        errAbort("Illegal character in PAM-sequence. Only ACTGMK and N allowed.")
-    return seq, org, pam, None, None
 
 def matchNuc(pat, nuc):
     " returns true if pat (single char) matches nuc (single char) "
@@ -614,7 +614,7 @@ def lineFileNext(fh):
         # convert fields to correct data type
         yield rec
 
-def printOrgDropDown():
+def printOrgDropDown(lastorg):
     " print the organism drop down box "
     genomes = {}
 
@@ -637,7 +637,10 @@ def printOrgDropDown():
 
     print '<select name="org">'
     for db, desc in genomes:
-        print '<option value="%s">%s</option>' % (db, desc)
+        print '<option '
+        if db == lastorg :
+            print 'selected '
+        print 'value="%s">%s</option>' % (db, desc)
     print "</select>"
 
 def printForm():
@@ -649,6 +652,7 @@ def printForm():
         # The first time the page is run there will be no cookies
     if not cookie_string:
        print '<p>First visit or cookies disabled</p>'
+       lastorg = 'ensDanRer'
 
     else: # Run the page twice to retrieve the cookie
         #print '<p>The returned cookie string was "' + cookie_string + '"</p>'
@@ -666,16 +670,18 @@ def printForm():
     print """
 <form method="post" action="%s">
 
-<small>
-<i>
+
 <div class="title" style="display:inline;font-size:large;font-style: normal;">CRISPOR</div> is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
 It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
 It searches for off-target sites, shows them in a table and annotates them with flanking genes.<br>
-For troubleshooting and FAQ use our forum <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a>.
-</i>
-</small>
+For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a><br>.
 
-<div class="steps">Step 1:</div> Submit a single sequence for CRISPR design and analysis<br>(fasta or raw sequence as text)<br>
+
+<div class="steps">Step 1:</div> Submit a single sequence for CRISPR design and analysis<br>
+<small>CRISPOR conserves the lowercase and uppercase format of your sequence<br>
+(allowing to highlight sequence features of interest such ATG or STOP codons)</small>
+
+<br>
 <textarea name="seq" placeholder="Enter the sequence of the gene you want to target - example:
 CAACTTTCAGCGGCTCCATCGGCTCCGGCAGGTCTCGAGGAGAAGCTGCG
 TGCTCTTCAGGAGCAACTGTACAGTCTGGAGAAAGAGAACGGAGTTGATG
@@ -692,18 +698,18 @@ TGAGGATTCTAGAGCTCCATGTAAGTTAGTGGTGGTGGCCGG
 
 <div class="steps">Step 2:</div> Choose a species genome<br>"""% scriptName    
 
-    print ("""<small><i>More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.<br>
+    print ("""<small>More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.<br>
 For any modification of the genome list or CRISPR service in zebrafish, drosophila and rat, please contact
-<a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</i></small><br>
+<a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</small><br>
 """)
 
-    printOrgDropDown()
+    printOrgDropDown(lastorg)
 
     print """
 <p>
 
 <div class="steps">Step 3:</div> Choose a Protospacer Adjacent Motif (PAM):<br>
-<i><small>The most commonly used system recognizes the NGG motif</small></i>
+<small>The most commonly system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></small>
 <br>
 <select name="pam" >
 <option value="NGG">NGG - Streptococcus Pyogenes</option>
@@ -762,7 +768,7 @@ def crisprSearch(seq, org, pam):
     showTable(seq, startDict, pam, otMatches, dbInfo, batchId)
 
 
-def printSkeleton():
+def printSkeleton(seq, org, pam, pamId, batchId):
     # add logo
     print "<a href='http://tefor.net/main/'><img class='logo' src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a>"
     # add menu    
@@ -786,7 +792,7 @@ def printSkeleton():
 
     print '<div class="contentcentral">'
     
-    printContent()
+    printContent(seq, org, pam, pamId, batchId)
         
     print '</div>'
             
@@ -945,15 +951,15 @@ def makePrimers(batchId, pamId):
     print '<small>Primer3.2 with default settings, target length 40-100 bp</small>'
     print '</div>'
 
-def main():
+def main(seq, org, pam, pamId, batchId):
     printHeader()
     
-    printSkeleton()    
+    printSkeleton(seq, org, pam, pamId, batchId)    
 
     print("</body></html>")
 
-def printContent():
-    seq, org, pam, pamId, batchId = getVars()    
+def printContent(seq, org, pam, pamId, batchId):
+    #seq, org, pam, pamId, batchId = getVars()    
 
     if pamId!=None:
         makePrimers(batchId, pamId)
@@ -965,4 +971,4 @@ def printContent():
     else:
         errAbort("Unrecognized CGI parameters.")
 
-main()
+main(seq, organism, pam, pamId, batchId)
