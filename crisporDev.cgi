@@ -367,6 +367,7 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
     guideData.sort()
 
     print "<h2>Potential guide sequences for PAMs</h2>"
+    print "(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://www.nature.com/nbt/journal/vaop/ncurrent/full/nbt.3026.html'>Doench et al</a>)<br><br>"
     print '<table id="otTable">'
     print "<tr>"
     #print '''<a href="#" onclick="$('#otTable .hasExonMatch').hide(); alert('testRemovedAll')">hide offtargets with matches in exons</a>'''
@@ -662,10 +663,10 @@ def printForm():
         lastvisit = float(cookies['lastvisit'].value)
         lastorg   = cookies['lastorg'].value
 
-        print '<p>Your last visit was at',
-        print time.asctime(time.localtime(lastvisit)), '</p>'
-        print '<p>Your last org was: ',
-        print lastorg, '</p>'        
+        #print '<p>Your last visit was at',
+        #print time.asctime(time.localtime(lastvisit)), '</p>'
+        #print '<p>Your last org was: ',
+        #print lastorg, '</p>'        
          
     print """
 <form method="post" action="%s">
@@ -688,11 +689,19 @@ TGCTCTTCAGGAGCAACTGTACAGTCTGGAGAAAGAGAACGGAGTTGATG
 TGAAGCAAAAGGAGCAACCAGCAGCAGCCGACACATTCCTTGGATTTGTT
 CCACAGAAGAGAATGGTCGCGTGGCAGCCGATGAAGCGGTCGATGATCAA
 TGAGGATTCTAGAGCTCCATGTAAGTTAGTGGTGGTGGCCGG" rows="20" cols="55">
-CAACTTTCAGCGGCTCCATCGGCTCCGGCAGGTCTCGAGGAGAAGCTGCG
-TGCTCTTCAGGAGCAACTGTACAGTCTGGAGAAAGAGAACGGAGTTGATG
-TGAAGCAAAAGGAGCAACCAGCAGCAGCCGACACATTCCTTGGATTTGTT
-CCACAGAAGAGAATGGTCGCGTGGCAGCCGATGAAGCGGTCGATGATCAA
-TGAGGATTCTAGAGCTCCATGTAAGTTAGTGGTGGTGGCCGG
+CCAATCAGGTCCCTCCCTACCTCAGATCGCAGCTATAATACATAGGAGTA
+AAGAGGCTTCTCGCATTAAGTGGCTGTGGCTTGAAGTAACGTTGTGATTT
+CGAGGTCAGTCTTACCTTTCGCATCCCCGCCGCAAACCTCCGATGCGTTA
+TCAGTCGCACGTTTCCGCACCTGTCACGGTCGGGGCTTGGCGCTGCTGAG
+GGACACGCGTGAACCGAGGAGACGGCAAGGACATCGCCGGAGATCCGCGC
+CTCGACAACGAGAAACCCTGCTAGACAGACCGCTCGAGAACACCGCAGCG
+AGATTCAGCGTGCGGCAAAATGCGGCTTTTGACGAGAGTGCTGCTGGTGT
+CTCTTCTCACTCTGTCCTTGGTGGTGTCCGGACTGGCCTGCGGTCCTGGC
+AGAGGCTACGGCAGAAGAAGACATCCGAAGAAGCTGACACCTCTCGCCTA
+CAAGCAGTTCATACCTAATGTCGCGGAGAAGACCTTAGGGGCCAGCGGCA
+GATACGAGGGCAAGATAACGCGCAATTCGGAGAGATTTAAAGAACTTACT
+CCAAATTATAATCCCGACATTATCTTTAAGGATGAGGAGAACACGGGAGC
+GGACAGGCTCATGACACAG
 </textarea>
 <p>
 
@@ -813,6 +822,10 @@ def printSkeleton(seq, org, pam, pamId, batchId):
     # print '</div>'
 
     # print '</div>'
+
+    proc = subprocess.Popen("php /var/www/crispor/footer.php", shell=True, stdout=subprocess.PIPE)
+    script_response = proc.stdout.read()
+    print script_response
 
     print '</div>'
 

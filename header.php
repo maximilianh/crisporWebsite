@@ -10,7 +10,7 @@
     echo "<meta property='og:description' content='$metadescription'/>";
     echo "<meta property='og:type' content='website' />";
     echo "<meta property='og:url' content='http://tefor.net/crispor/crispor.cgi' />";
-    echo "<meta property='og:image' content='http://tefor.net/main/images/blog/blog/259/20140717172157_Sans_titre.png' />";
+    echo "<meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />";
     
     echo "<script src='//code.jquery.com/jquery-1.11.0.min.js'></script>";   
     echo "<script src='//code.jquery.com/ui/1.11.1/jquery-ui.min.js'></script>";   

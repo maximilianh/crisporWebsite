@@ -19,9 +19,9 @@
             </td>
         </tr>
         
-<!--        <tr>
+        <tr>
             <td>
-                Scientific direction
+                Scientific and conception advisory
             </td>
             
             <td>
@@ -31,8 +31,7 @@
             <td>
                 <a href='mailto:jpconcordet@mnhn.fr'>jpconcordet@mnhn.fr</a>
             </td>
-        </tr>-->
-        
+        </tr>
         <tr>
             <td>
                 Web design
@@ -45,6 +44,36 @@
             <td>
                 <a href='mailto:penigault@gmail.com'>penigault@gmail.com</a>
             </td>
+        </tr>
+        <tr>
+            <td>
+                BWA algorithm
+            </td>
+            
+            <td>
+                ref:
+            </td>
+            
+        </tr>
+        <tr>
+            <td>
+                Specificity score
+            </td>
+            
+            <td>
+                ref:
+            </td>
+            
+        </tr>
+        <tr>
+            <td>
+                Efficiency score
+            </td>
+            
+            <td>
+                ref:
+            </td>
+            
         </tr>
     </table>
     <br>     
