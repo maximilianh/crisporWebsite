@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+# filter fasta file and keep only sequences that end with pattern (if + strand)
+# or start with rev-comp pattern (if - strand)
+# output as a bed file
+
+# first parameter is the pattern, input is read from stdin 
+
+import sys, re
+
+#def revComp(seq):
+    #" rev-comp a string "
+    #revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' }
+    #newSeq = []
+    #for c in reversed(seq):
+        #newSeq.append(revTbl[c])
+    #return "".join(newSeq)
+        
+def patMatch(seq, pat):
+    " return true if pat does not match seq, both have to be same length "
+    assert(len(seq)==len(pat))
+    for x in range(0, len(pat)):
+        patChar = pat[x]
+        nuc = seq[x]
+        if pat[x]=="N":
+            continue
+        if patChar=="M" and nuc in ["A", "C"]:
+            continue
+        if patChar=="K" and nuc in ["T", "G"]:
+            continue
+        if patChar!=nuc:
+            return False
+    return True
+
+# compile a strand and a rev comp pattern
+pat = sys.argv[1] # first parameter is the pattern, e.g. NGG
+
+#pat = patRaw.replace("N", "[ACTG]")
+#fwPatRe = re.compile(pat+"$") # only at end of seq
+
+#rcPat = revComp(patRaw)
+#rcPat = rcPat.replace("N", "[ACTG]")
+#rcPatRe = re.compile("^" + rcPat) # only at start of seq
+
+# example input:
+#>seq1|chrII|16108096|16108116|+|0
+#TCGAAAGTGGTAAGAATTTA
+
+for line in sys.stdin:
+    if line.startswith(">"):
+        seqId, chrom, start, end, strand, editDist = line.rstrip("\n").lstrip(">").split("|")
+        seq = None
+        idLine = line
+    else:
+        assert(seq==None)
+        seq = line.rstrip("\n")
+        seq = seq.upper()
+        seqLine = line
+
+        #print strand, seq
+        #if strand=="+":
+        #patRe = fwPatRe
+        #else:
+            #patRe = rcPatRe
+        #print seqId, strand, patRe.pattern, seq
+            
+        suffix = seq[-len(pat):]
+        if patMatch(suffix, pat):
+            name = seqId+"|"+strand+"|"+editDist+"|"+seq
+            row = [chrom, start, end, name]
+            print "\t".join(row)
+            #print idLine,
+            #print seqLine,
