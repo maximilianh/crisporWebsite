@@ -26,22 +26,23 @@ batchDir = "temp"
 formular = cgi.FieldStorage()
 organism = formular.getfirst("org")
 
+cookies=Cookie.SimpleCookie()
+cookies['lastvisit'] = str(time.time())
+
 if 'HTTP_COOKIE' in os.environ:
-    cookie_string=os.environ.get('HTTP_COOKIE')
-    cookies=Cookie.SimpleCookie()
+    cookie_string=os.environ.get('HTTP_COOKIE')    
     cookies.load(cookie_string)
 
-    try:                        
-        cookies['lastvisit'] = str(time.time())        
+    try:                                
         if organism is not None :
             cookies['lastorg'] = organism
 
-
     except KeyError:
-#       print "The cookie was not set or has expired<br>"
-        cookies['lastvisit'] = str(time.time())
-        cookies['lastorg'] = 'None'
-        
+       print "The cookie was not set or has expired<br>"        
+
+else:    
+    cookies['lastorg'] = 'None'
+
 print cookies
 
 print "Content-type: text/html\n"
@@ -661,8 +662,7 @@ def printForm():
         print time.asctime(time.localtime(lastvisit)), '</p>'
         print '<p>Your last org was: ',
         print lastorg, '</p>'        
-        print '<p>Your toto is: ',
-        print cookies['toto'], '</p>' 
+         
     print """
 <form method="post" action="%s">
 
