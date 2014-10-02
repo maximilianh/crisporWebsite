@@ -1,13 +1,15 @@
 <div class="footer">
     <table class="footertable" align="center">
         <tr>
-            <td colspan="3" style="text-align:center;padding-bottom:20px;">
-                credits:                
+            <td></td>
+            <td style="padding-bottom:20px;text-decoration:underline;">
+                Credits / References:                
             </td>
+            <td></td>
         </tr>
         <tr>
             <td>
-                Algorithm implementation
+                Algorithm Implementation
             </td>
             
             <td>
@@ -21,7 +23,7 @@
         
         <tr>
             <td>
-                Scientific and conception advisory
+                Scientific and Design advisory
             </td>
             
             <td>
@@ -34,7 +36,7 @@
         </tr>
         <tr>
             <td>
-                Web design
+                Web Design
             </td>
             
             <td>
@@ -47,7 +49,23 @@
         </tr>
         <tr>
             <td>
-                BWA algorithm
+                Burrows-Wheeler Aligner
+                <br><a target="_blank" href='https://wiki.gacrc.uga.edu/wiki/Burrows-Wheeler_Aligner_(BWA)'>BWA Algorithm</a>
+            </td>
+            
+            <td>
+                Li H. and Durbin R.
+            </td>
+            <td>                
+                Fast and accurate short read alignment
+                <br>with Burrows-Wheeler Transform.
+                <br>Bioinformatics, 25:1754-60. (2009)
+                <br><a target="_blank" href='http://www.ncbi.nlm.nih.gov/pubmed/19451168'>[PMID: 19451168]</a>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Specificity Score
             </td>
             
             <td>
@@ -57,17 +75,7 @@
         </tr>
         <tr>
             <td>
-                Specificity score
-            </td>
-            
-            <td>
-                ref:
-            </td>
-            
-        </tr>
-        <tr>
-            <td>
-                Efficiency score
+                Efficiency Score
             </td>
             
             <td>

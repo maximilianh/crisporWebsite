@@ -11,13 +11,50 @@ and open the template in the editor.
 {
     width:88%;
 }
-div.title
-{
-    font-family: futura;
-    font-size: xx-large;    
-    display:inline-box;    
+div.introtext
+{   
+    line-height:28px;
+    margin-top:10px;
+    margin-bottom:15px;
 }
-
+div.title
+{    
+    font-family: futura, Helvetica, ColabLig, Helvetica, Arial, sans-serif;
+    font-size: larger;
+    display:inline-box;
+    text-shadow: 2px 2px 1px #ddd;
+}
+div.substep
+{
+    margin-top:   10px;
+    margin-bottom:10px;
+}
+div.substep table td
+{
+    width:100%;
+    text-align: center;
+    border:none;
+}
+div.substep table td.infopoint
+{
+    text-align:right;
+}
+img.infopoint
+{
+    vertical-align: bottom;
+    width:30px;
+}
+img.infopoint:hover
+{
+    cursor:pointer;
+}
+div.helptext
+{
+    display:none;
+    font-size:smaller;
+    font-style:oblique;
+    margin-top:10px;    
+}
 div.networking_panel
 {
     float:left;
@@ -81,3 +118,18 @@ table.footertable td
     padding-left:20px;
     padding-right:20px;
 }
+
+ div.windowstep
+ {
+    height:auto;
+    display:inline-block;
+    width:29%;
+    vertical-align:top;
+    margin:1%;    
+ }
+ div.speciesname
+ {
+     font-style:oblique;
+     text-decoration:underline;
+     display:inline;
+ }

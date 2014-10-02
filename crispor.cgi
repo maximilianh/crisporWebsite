@@ -47,37 +47,60 @@ def getVars():
     return seq, org, pam, None, None
 
 
-seq, organism, pam, pamId, batchId = getVars()
+seq, org, pam, pamId, batchId = getVars()
 
 cookies=Cookie.SimpleCookie()
-cookies['lastvisit'] = str(time.time())
 
+expires = 365 * 24 * 60 * 60
+defaultorg = 'ensDanRer'
+defaultseq = 'CCAATCAGGTCCCTCCCTACCTCAGATCGCAGCTATAATACATAGGAGTAAAGAGGCTTCTCGCATTAAGTGGCTGTGGCTTGAAGTAACGTTGTGATTTCGAGGTCAGTCTTACCTTTCGCATCCCCGCCGCAAACCTCCGATGCGTTATCAGTCGCACGTTTCCGCACCTGTCACGGTCGGGGCTTGGCGCTGCTGAGGGACACGCGTGAACCGAGGAGACGGCAAGGACATCGCCGGAGATCCGCGCCTCGACAACGAGAAACCCTGCTAGACAGACCGCTCGAGAACACCGCAGCGAGATTCAGCGTGCGGCAAAATGCGGCTTTTGACGAGAGTGCTGCTGGTGTCTCTTCTCACTCTGTCCTTGGTGGTGTCCGGACTGGCCTGCGGTCCTGGCAGAGGCTACGGCAGAAGAAGACATCCGAAGAAGCTGACACCTCTCGCCTACAAGCAGTTCATACCTAATGTCGCGGAGAAGACCTTAGGGGCCAGCGGCAGATACGAGGGCAAGATAACGCGCAATTCGGAGAGATTTAAAGAACTTACTCCAAATTATAATCCCGACATTATCTTTAAGGATGAGGAGAACACGGGAGCGGACAGGCTCATGACACAG'
+defaultpam = 'NGG'
+
+try:
+    cookies['lastorg']
+    cookies['lastseq']
+    cookies['lastpam']
+    cookies['lastvisit'] = str(time.time())
+    cookies['lastvisit']['expires'] = expires
+except KeyError:    
+    cookies['lastorg'] = defaultorg
+    cookies['lastorg']['expires'] = expires
+    cookies['lastpam'] = defaultpam
+    cookies['lastpam']['expires'] = expires
+    cookies['lastseq'] = defaultseq
+    cookies['lastseq']['expires'] = expires
+    cookies['lastvisit'] = str(time.time())
+    cookies['lastvisit']['expires'] = expires
+
+    
 if 'HTTP_COOKIE' in os.environ:
     cookie_string=os.environ.get('HTTP_COOKIE')    
     cookies.load(cookie_string)
 
     try:                                
-        if organism is not None :
-            cookies['lastorg'] = organism
-
+        if org is not None :
+            cookies['lastorg'] = org
+            cookies['lastorg']['expires'] = expires
     except KeyError:
-       print "The cookie was not set or has expired<br>"        
+       print "the cookie was not set or has expired<br>"
 
-else:    
-    cookies['lastorg'] = 'None'
+    try:                                
+        if seq is not None :
+            cookies['lastseq'] = seq
+            cookies['lastseq']['expires'] = expires
+    except KeyError:
+       print "the cookie was not set or has expired<br>"
+    
+    try:                                
+        if pam is not None :
+            cookies['lastpam'] = pam
+            cookies['lastpam']['expires'] = expires
+    except KeyError:
+       print "the cookie was not set or has expired<br>"
 
 print cookies
 
 print "Content-type: text/html\n"
-
-#print '<p>', cookies, '</p>'
-#for morsel in cookies:
-#   print '<p>', morsel, '=', cookies[morsel].value
-#   print '<div style="margin:-1em auto auto 3em;">'
-#   for key in cookies[morsel]:
-#      print key, '=', cookies[morsel][key], '<br />'
-#   print '</div></p>'
-
 
 def debug(msg):
     if DEBUG:
@@ -204,11 +227,10 @@ def rulerString(maxLen):
 
 def showSeq(seq, lines, maxY, pam, genomeName):
     " show the sequence and the PAM sites underneath "
-    print "<h2>Sequence with PAMs</h2>"
-    print "Genome: %s" % genomeName
-    print "<br>"
-    print "Click on a PAM match (<div style=\'display:inline;\' class=\'linklike\'>%s</div>) to show potential guide sequences for it" % pam
-    print "<p>"
+    print "<div class='title'>Sequence with PAMs in <div class='speciesname'>%s</div> genome</div>" % genomeName
+    print "<div class='substep'>"
+    print "<br>Click on a PAM match (<div style=\'display:inline;\' class=\'linklike\'>%s</div>) to show potential guide sequences for it" % pam
+    print "</div>"
     print '''<div style="overflow-x:scroll; width:100%; background:#EEEEEE; border-style: solid; border-width: 1px">'''
 
     print "<pre>"+rulerString(len(seq))
@@ -222,7 +244,7 @@ def showSeq(seq, lines, maxY, pam, genomeName):
             lastEnd = end
             texts.append(spacer)
             pamId = "s"+str(start)+strand
-            texts.append('''<a href="#%s">''' % (pamId))
+            texts.append('''<a id="list%s" href="#%s">''' % (pamId,pamId))
             texts.append(name)
             texts.append("</a>")
         print "".join(texts)
@@ -366,12 +388,12 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
 
     guideData.sort()
 
-    print "<h2>Potential guide sequences for PAMs</h2>"
-    print "(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://www.nature.com/nbt/journal/vaop/ncurrent/full/nbt.3026.html'>Doench et al</a>)<br><br>"
+    print "<br><div class='title'>Potential guide sequences for PAMs</div>"
+    print "<div class='substep'>(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://www.nature.com/nbt/journal/vaop/ncurrent/full/nbt.3026.html'>Doench et al</a>)</div>"
     print '<table id="otTable">'
     print "<tr>"
     #print '''<a href="#" onclick="$('#otTable .hasExonMatch').hide(); alert('testRemovedAll')">hide offtargets with matches in exons</a>'''
-    print '<th>Position/ <br>Strand</th><th>Guide Sequence + PAM</th><th style="width:250px;">target and off-target matches for 0,1,2,3,4 mismatches. (<i>In italic: with no mismatches in the 12 bp adjacent to the PAM.</i>)</th><th>Genome Browser links to target and off-targets</th>'
+    print '<th>Position/ <br>Strand</th><th>Guide Sequence + <i>PAM</i></th><th style="width:250px;">target and off-target matches for 0,1,2,3,4 mismatches. (<i>In italic: with no mismatches in the 12 bp adjacent to the PAM.</i>)</th><th>Genome Browser links to target and off-targets</th>'
     #print "</tr>"
 
     #print '''<td><a>%d/%s</a></td>''' % (startPos, strand)
@@ -381,7 +403,9 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
         guideScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc = guideRow 
         print '<tr id="%s" class="hasExonMatch">' % (pamId)
         print "<td>"
+        print '<a href="#list%s">' % (pamId)
         print str(startPos)+"/"+strand
+        print '</a>'
         print "</td>"
 
         # sequence
@@ -636,7 +660,7 @@ def printOrgDropDown(lastorg):
     genomes = genomes.items() 
     genomes.sort(key=operator.itemgetter(1))
 
-    print '<select name="org">'
+    print '<select style="width:100%%;" name="org">'
     for db, desc in genomes:
         print '<option '
         if db == lastorg :
@@ -644,7 +668,23 @@ def printOrgDropDown(lastorg):
         print 'value="%s">%s</option>' % (db, desc)
     print "</select>"
 
-def printForm():
+def printPamDropDown(lastpam):        
+    pams = []
+    pams = [ ('NGG','NGG - Streptococcus Pyogenes'),
+             ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
+             ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
+             ('NNNNACA','NNNNACA - Campylobacter jejuni')
+           ]
+    
+    print '<select style="width:100%%;" name="pam">'
+    for key,value in pams:        
+        print '<option '
+        if key == lastpam :
+            print 'selected '
+        print 'value="%s">%s</option>' % (key, value)
+    print "</select>"           
+
+def printForm(defaultorg,defaultseq,defaultpam):
     " print html input form "
     scriptName = basename(__file__)
     
@@ -652,16 +692,19 @@ def printForm():
     cookie_string = os.environ.get('HTTP_COOKIE')
         # The first time the page is run there will be no cookies
     if not cookie_string:
-       print '<p>First visit or cookies disabled</p>'
-       lastorg = 'ensDanRer'
-
-    else: # Run the page twice to retrieve the cookie
+       #print '<p>First visit or cookies disabled</p>'
+       lastorg = defaultorg
+       lastseq = defaultseq
+       lastpam = defaultpam
+    else:
         #print '<p>The returned cookie string was "' + cookie_string + '"</p>'
         # load() parses the cookie string
         cookies.load(cookie_string)
         # Use the value attribute of the cookie to get it
         lastvisit = float(cookies['lastvisit'].value)
         lastorg   = cookies['lastorg'].value
+        lastseq   = cookies['lastseq'].value
+        lastpam   = cookies['lastpam'].value
 
         #print '<p>Your last visit was at',
         #print time.asctime(time.localtime(lastvisit)), '</p>'
@@ -671,67 +714,84 @@ def printForm():
     print """
 <form method="post" action="%s">
 
+<div class="introtext">
+    <div class="title" style="display:inline;font-size:large;font-style: normal;">CRISPOR</div> is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
+    It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
+    It searches for off-target sites, shows them in a table and annotates them with flanking genes.<br>
+    For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a>.<br>
+</div>
 
-<div class="title" style="display:inline;font-size:large;font-style: normal;">CRISPOR</div> is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
-It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
-It searches for off-target sites, shows them in a table and annotates them with flanking genes.<br>
-For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a><br>.
+<div class="windowstep subpanel">
+    <div class="substep">
+        
+        <div class="title">Step 1</div> 
+        <table align="center">
+        <tr>
+            <td>
+                Submit a single sequence for CRISPR design and analysis
+            </td>
+            <td class="infopoint">
+                <img src="./image/info.png" class="infopoint" onclick="$('#helptext1').toggle('fast')">
+            </td>
+        </tr>
+        </table>
+    </div>
 
+    <textarea style="width:100%%;" name="seq" placeholder="Enter the sequence of the gene you want to target - example: %s
+    " rows="10">%s</textarea>
+    <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such ATG or STOP codons)</div>
 
-<div class="steps">Step 1:</div> Submit a single sequence for CRISPR design and analysis<br>
-<small>CRISPOR conserves the lowercase and uppercase format of your sequence<br>
-(allowing to highlight sequence features of interest such ATG or STOP codons)</small>
-
-<br>
-<textarea name="seq" placeholder="Enter the sequence of the gene you want to target - example:
-CAACTTTCAGCGGCTCCATCGGCTCCGGCAGGTCTCGAGGAGAAGCTGCG
-TGCTCTTCAGGAGCAACTGTACAGTCTGGAGAAAGAGAACGGAGTTGATG
-TGAAGCAAAAGGAGCAACCAGCAGCAGCCGACACATTCCTTGGATTTGTT
-CCACAGAAGAGAATGGTCGCGTGGCAGCCGATGAAGCGGTCGATGATCAA
-TGAGGATTCTAGAGCTCCATGTAAGTTAGTGGTGGTGGCCGG" rows="20" cols="55">
-CCAATCAGGTCCCTCCCTACCTCAGATCGCAGCTATAATACATAGGAGTA
-AAGAGGCTTCTCGCATTAAGTGGCTGTGGCTTGAAGTAACGTTGTGATTT
-CGAGGTCAGTCTTACCTTTCGCATCCCCGCCGCAAACCTCCGATGCGTTA
-TCAGTCGCACGTTTCCGCACCTGTCACGGTCGGGGCTTGGCGCTGCTGAG
-GGACACGCGTGAACCGAGGAGACGGCAAGGACATCGCCGGAGATCCGCGC
-CTCGACAACGAGAAACCCTGCTAGACAGACCGCTCGAGAACACCGCAGCG
-AGATTCAGCGTGCGGCAAAATGCGGCTTTTGACGAGAGTGCTGCTGGTGT
-CTCTTCTCACTCTGTCCTTGGTGGTGTCCGGACTGGCCTGCGGTCCTGGC
-AGAGGCTACGGCAGAAGAAGACATCCGAAGAAGCTGACACCTCTCGCCTA
-CAAGCAGTTCATACCTAATGTCGCGGAGAAGACCTTAGGGGCCAGCGGCA
-GATACGAGGGCAAGATAACGCGCAATTCGGAGAGATTTAAAGAACTTACT
-CCAAATTATAATCCCGACATTATCTTTAAGGATGAGGAGAACACGGGAGC
-GGACAGGCTCATGACACAG
-</textarea>
-<p>
-
-<div class="steps">Step 2:</div> Choose a species genome<br>"""% scriptName    
-
-    print ("""<small>More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.<br>
-For any modification of the genome list or CRISPR service in zebrafish, drosophila and rat, please contact
-<a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</small><br>
-""")
+</div>
+<div class="windowstep subpanel">
+    <div class="substep">
+        <div class="title">
+            Step 2
+        </div>
+        <table align="center">
+        <tr>
+            <td>
+                Choose a species genome 
+            </td>
+            <td class="infopoint">
+                <img src="./image/info.png" class="infopoint" onclick="$('#helpstep2').toggle('fast')">
+            </td>
+        </tr>
+        </table>
+    </div>
+    """% (scriptName,lastseq,lastseq)
 
     printOrgDropDown(lastorg)
 
+    print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
+For any modification of the genome list or CRISPR service in zebrafish, drosophila and rat, please contact
+<a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</div>
+"""
+    print """    
+    <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" />
+</div>
+<div class="windowstep subpanel">
+    <div class="substep">
+        <div class="title">
+            Step 3
+        </div>
+        <table align="center">
+        <tr>
+            <td>
+                Choose a Protospacer Adjacent Motif (PAM)
+            </td>
+            <td class="infopoint">            
+                <img src="./image/info.png" class="infopoint" onclick="$('#helpstep3').toggle('fast')">
+            </td>
+        </tr>
+        </table>
+    </div>
+    """
+    printPamDropDown(lastpam)
     print """
-<p>
-
-<div class="steps">Step 3:</div> Choose a Protospacer Adjacent Motif (PAM):<br>
-<small>The most commonly system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></small>
-<br>
-<select name="pam" >
-<option value="NGG">NGG - Streptococcus Pyogenes</option>
-<option value="NNAGAA">NNAGAA - Streptococcus Thermophilus</option>
-<option value="NNNNGMTT">NNNNG(A/C)TT - Neisseiria Meningitidis </option>
-<option value="NNNNACA">NNNNACA - Campylobacter jejuni</option>
-</select>
-
-
-<input type="submit" name="submit" value="OK" />
-
+    <div id="helpstep3" class="helptext">The most commonly system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
+</div>
 </form>
-    """ 
+    """
 
 def crisprSearch(seq, org, pam):
     " do crispr off target search "
@@ -777,7 +837,7 @@ def crisprSearch(seq, org, pam):
     showTable(seq, startDict, pam, otMatches, dbInfo, batchId)
 
 
-def printSkeleton(seq, org, pam, pamId, batchId):
+def printSkeleton(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
     # add logo
     print "<a href='http://tefor.net/main/'><img class='logo' src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a>"
     # add menu    
@@ -801,27 +861,13 @@ def printSkeleton(seq, org, pam, pamId, batchId):
 
     print '<div class="contentcentral">'
     
-    printContent(seq, org, pam, pamId, batchId)
+    printContent(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam)
         
     print '</div>'
             
             
     print '</div>'
     print '</div>'
-
-    # print '<div class="panelright">'
-    
-    # print '<div class="subpanel">'
-    # print '<div class="content">'
-    # fb button
-    # print '<div class="bottom_button_blog" >'
-    # print '<div class="fb-like"  data-href="http://tefor.net/crispor/crispor.cgi/" data-width="100" data-layout="standard" data-action="like" data-show-faces="true" data-share="true"></div>'
-    # print '</div>'
-    # print '</div>'
-
-    # print '</div>'
-
-    # print '</div>'
 
     proc = subprocess.Popen("php /var/www/crispor/footer.php", shell=True, stdout=subprocess.PIPE)
     script_response = proc.stdout.read()
@@ -964,14 +1010,14 @@ def makePrimers(batchId, pamId):
     print '<small>Primer3.2 with default settings, target length 40-100 bp</small>'
     print '</div>'
 
-def main(seq, org, pam, pamId, batchId):
+def main(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
     printHeader()
     
-    printSkeleton(seq, org, pam, pamId, batchId)    
+    printSkeleton(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam)    
 
     print("</body></html>")
 
-def printContent(seq, org, pam, pamId, batchId):
+def printContent(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
     #seq, org, pam, pamId, batchId = getVars()    
 
     if pamId!=None:
@@ -980,8 +1026,8 @@ def printContent(seq, org, pam, pamId, batchId):
         crisprSearch(seq, org, pam)
         print '<br><br><a class="neutral" href="http://tefor.net/crispor/crispor.cgi"><div class="button" style="margin-left:auto;margin-right:auto;width:70px;">Back</div></a>'
     elif seq==None:
-        printForm()
+        printForm(defaultorg,defaultseq,defaultpam)
     else:
         errAbort("Unrecognized CGI parameters.")
 
-main(seq, organism, pam, pamId, batchId)
+main(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam)
