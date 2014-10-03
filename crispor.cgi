@@ -739,7 +739,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
 
     <textarea style="width:100%%;" name="seq" placeholder="Enter the sequence of the gene you want to target - example: %s
     " rows="10">%s</textarea>
-    <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such ATG or STOP codons)</div>
+    <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such as ATG or STOP codons)</div>
 
 </div>
 <div class="windowstep subpanel">
