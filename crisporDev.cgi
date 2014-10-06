@@ -660,7 +660,7 @@ def printOrgDropDown(lastorg):
     genomes = genomes.items() 
     genomes.sort(key=operator.itemgetter(1))
 
-    print '<select style="width:100%%;" name="org">'
+    print '<select style="width:100%%;max-width:250px;" name="org">'
     for db, desc in genomes:
         print '<option '
         if db == lastorg :
@@ -676,7 +676,7 @@ def printPamDropDown(lastpam):
              ('NNNNACA','NNNNACA - Campylobacter jejuni')
            ]
     
-    print '<select style="width:100%%;" name="pam">'
+    print '<select style="width:100%%;max-width:250px;" name="pam">'
     for key,value in pams:        
         print '<option '
         if key == lastpam :
@@ -721,7 +721,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
     For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a>.<br>
 </div>
 
-<div class="windowstep subpanel">
+<div class="windowstep subpanel" style="width:60%%;">
     <div class="substep">
         
         <div class="title">Step 1</div> 
@@ -740,7 +740,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
     <textarea style="width:100%%;" name="seq" placeholder="Enter the sequence of the gene you want to target - example: %s
     " rows="10">%s</textarea>
     <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such as ATG or STOP codons)</div>
-
+    <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" />
 </div>
 <div class="windowstep subpanel">
     <div class="substep">
@@ -750,7 +750,8 @@ def printForm(defaultorg,defaultseq,defaultpam):
         <table align="center">
         <tr>
             <td>
-                Choose a species genome 
+                Choose a species genome
+                <br>
             </td>
             <td class="infopoint">
                 <img src="./image/info.png" class="infopoint" onclick="$('#helpstep2').toggle('fast')">
@@ -766,8 +767,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
 For any modification of the genome list or CRISPR service in zebrafish, drosophila and rat, please contact
 <a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</div>
 """
-    print """    
-    <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" />
+    print """        
 </div>
 <div class="windowstep subpanel">
     <div class="substep">
