@@ -9,7 +9,7 @@ and open the template in the editor.
 */
 #bd
 {
-    width:88%;
+    width:87%;
 }
 div.introtext
 {   
@@ -64,7 +64,7 @@ div.networking_panel
     
     margin:10px;
     margin-top:-7px;
-    margin-left:-80px;
+    margin-left:-85px;
     
     padding:10px;
     padding-left:5px;
@@ -76,9 +76,11 @@ div.networking_panel
     box-shadow:         0 0 15px 3px rgba(47, 129, 203, 0.1);
     -webkit-box-shadow: 0 0 15px 3px rgba(47, 129, 203, 0.1);
 }
-tr.hasExonMatch:target
+tr.hasExonMatch:target, a:target
 {
     background-color: #ffa;
+    border-radius: 5px;
+    padding: 5px;
 }
 
 div.steps

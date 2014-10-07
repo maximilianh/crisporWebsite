@@ -388,7 +388,7 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
 
     guideData.sort()
 
-    print "<br><div class='title'>Potential guide sequences for PAMs</div>"
+    print "<br><div class='title'>Potential guide sequences for (%s) PAMs</div>" % pam
     print "<div class='substep'>(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://www.nature.com/nbt/journal/vaop/ncurrent/full/nbt.3026.html'>Doench et al</a>)</div>"
     print '<table id="otTable">'
     print "<tr>"
@@ -404,7 +404,11 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
         print '<tr id="%s" class="hasExonMatch">' % (pamId)
         print "<td>"
         print '<a href="#list%s">' % (pamId)
-        print str(startPos)+"/"+strand
+        print str(startPos)+"/"
+        if strand=="+":
+            print 'forward'
+        if strand=="-":
+            print 'reverse'
         print '</a>'
         print "</td>"
 
@@ -717,25 +721,16 @@ def printForm(defaultorg,defaultseq,defaultpam):
 <div class="introtext">
     <div class="title" style="display:inline;font-size:large;font-style: normal;">CRISPOR</div> is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
     It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
-    It searches for off-target sites, shows them in a table and annotates them with flanking genes.<br>
-    For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a>.
-    See <a href="#footer-credits">credits & references</a>.<br>
+    It searches for off-target sites, shows them in a table and annotates them with flanking genes.<br>            
 </div>
 
 <div class="windowstep subpanel" style="width:60%%;">
-    <div class="substep">
-        
-        <div class="title">Step 1</div> 
-        <table align="center">
-        <tr>
-            <td>
-                Submit a single sequence for CRISPR design and analysis
-            </td>
-            <td class="infopoint">
-                <img src="./image/info.png" class="infopoint" onclick="$('#helptext1').toggle('fast')">
-            </td>
-        </tr>
-        </table>
+    <div class="substep">        
+        <div class="title">
+            Step 1
+            <img src="./image/info.png" class="infopoint" onclick="$('#helptext1').toggle('fast')">
+        </div>
+       Submit a single sequence for CRISPR design and analysis                              
     </div>
 
     <textarea style="width:100%%;" name="seq" placeholder="Enter the sequence of the gene you want to target - example: %s
@@ -744,28 +739,20 @@ def printForm(defaultorg,defaultseq,defaultpam):
     <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" />
 </div>
 <div class="windowstep subpanel">
-    <div class="substep">
+    <div class="substep">               
         <div class="title">
             Step 2
-        </div>
-        <table align="center">
-        <tr>
-            <td>
-                Choose a species genome
-                <br>
-            </td>
-            <td class="infopoint">
-                <img src="./image/info.png" class="infopoint" onclick="$('#helpstep2').toggle('fast')">
-            </td>
-        </tr>
-        </table>
+            <img src="./image/info.png" class="infopoint" onclick="$('#helpstep2').toggle('fast')">
+        </div>                                          
+        Choose a species genome
+        
     </div>
     """% (scriptName,lastseq,lastseq)
 
     printOrgDropDown(lastorg)
 
     print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
-For any modification of the genome list or CRISPR service in zebrafish, drosophila and rat, please contact
+For any modification of the genome list or CRISPR services in zebrafish or drosophila, please contact
 <a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</div>
 """
     print """        
@@ -774,17 +761,9 @@ For any modification of the genome list or CRISPR service in zebrafish, drosophi
     <div class="substep">
         <div class="title">
             Step 3
-        </div>
-        <table align="center">
-        <tr>
-            <td>
-                Choose a Protospacer Adjacent Motif (PAM)
-            </td>
-            <td class="infopoint">            
-                <img src="./image/info.png" class="infopoint" onclick="$('#helpstep3').toggle('fast')">
-            </td>
-        </tr>
-        </table>
+            <img src="./image/info.png" class="infopoint" onclick="$('#helpstep3').toggle('fast')">
+        </div>        
+        Choose a Protospacer Adjacent Motif (PAM)        
     </div>
     """
     printPamDropDown(lastpam)
