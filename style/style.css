@@ -42,6 +42,7 @@ div.substep table td.infopoint
 img.infopoint
 {
     vertical-align: bottom;
+    margin-bottom:-2px;
     width:30px;
 }
 img.infopoint:hover
