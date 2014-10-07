@@ -718,7 +718,8 @@ def printForm(defaultorg,defaultseq,defaultpam):
     <div class="title" style="display:inline;font-size:large;font-style: normal;">CRISPOR</div> is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
     It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
     It searches for off-target sites, shows them in a table and annotates them with flanking genes.<br>
-    For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a>.<br>
+    For troubleshooting and FAQ use our <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">forum</a>.
+    See <a href="#footer-credits">credits & references</a>.<br>
 </div>
 
 <div class="windowstep subpanel" style="width:60%%;">

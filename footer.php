@@ -1,4 +1,4 @@
-<div class="footer">
+<div class="footer" id="footer-credits">
     <table class="footertable" align="center">
         <tr>
             <td></td>
@@ -67,9 +67,13 @@
             <td>
                 Specificity Score
             </td>
-            
             <td>
-                ref:
+                Patrick D Hsu et al.
+            </td>
+            <td>
+                DNA targeting specificity of RNA-guided Cas9 nucleases.<br>
+                Nature Biotechnology 31, 827–832 (2013)<br>
+                <a target="_blank" href="http://dx.doi.org/10.1038/nbt.2647"><img style="vertical-align:bottom;width:20px" src="./image/doi.gif">doi:10.1038/nbt.2647</a>
             </td>
             
         </tr>
@@ -77,9 +81,14 @@
             <td>
                 Efficiency Score
             </td>
-            
             <td>
-                ref:
+                John G Doench et al.
+            </td>
+            <td>
+                Rational design of highly active sgRNAs<br>
+                for CRISPR-Cas9–mediated gene inactivation.<br>
+                Nature Biotechnology (2014)<br>
+                <a target="_blank" href="http://dx.doi.org/10.1038/nbt.3026"><img style="vertical-align:bottom;width:20px" src="./image/doi.gif">doi:10.1038/nbt.3026</a>
             </td>
             
         </tr>
