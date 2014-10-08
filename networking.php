@@ -15,7 +15,7 @@
     <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
     <br>
     <br>
-    <a target="_blank" href="https://groups.google.com/forum/?hl=fr#!newtopic/crispor">CRISPOR<br>forum</a>
+    <a target="_blank" href="https://groups.google.com/forum/?hl=en#!forum/crispor">CRISPOR<br>forum</a>
     
     <br>
     <a href="#footer-credits">
