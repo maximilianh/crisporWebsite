@@ -719,7 +719,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
 <form method="post" action="%s">
 
 <div class="introtext">
-    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">About CRISPOR</div><div id="about-us" style="display:none;"> is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
+    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">About CRISPOR</div><div id="about-us" style="display:none;"> CRISPOR - CRISPr selectOR - is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
     It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
     It searches for off-target sites, shows them in a table and annotates them with flanking genes.</div>
 </div>
@@ -728,7 +728,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
     <div class="substep">        
         <div class="title" style="cursor:pointer;" onclick="$('#helptext1').toggle('fast')">
             Step 1
-            <img src="./image/info.png" class="infopoint" >
+            <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
         </div>
        Submit a single sequence for CRISPR design and analysis                              
     </div>
@@ -742,7 +742,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
     <div class="substep">               
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep2').toggle('fast')">
             Step 2
-            <img src="./image/info.png" class="infopoint">
+            <img src="http://tefor.net/crispor/image/info.png" class="infopoint">
         </div>                                          
         Choose a species genome
         
@@ -761,7 +761,7 @@ For any modification of the genome list or CRISPR services in zebrafish or droso
     <div class="substep">
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
             Step 3
-            <img src="./image/info.png" class="infopoint">
+            <img src="http://tefor.net/crispor/image/info.png" class="infopoint">
         </div>        
         Choose a Protospacer Adjacent Motif (PAM)        
     </div>

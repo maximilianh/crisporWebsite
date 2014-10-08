@@ -50,7 +50,10 @@
         <tr>
             <td>
                 Burrows-Wheeler Aligner
-                <br><a target="_blank" href='https://wiki.gacrc.uga.edu/wiki/Burrows-Wheeler_Aligner_(BWA)'>BWA Algorithm</a>
+                <br>
+                <a target="_blank" href='https://wiki.gacrc.uga.edu/wiki/Burrows-Wheeler_Aligner_(BWA)'>
+                    BWA Algorithm
+                </a>
             </td>
             
             <td>
@@ -60,7 +63,10 @@
                 Fast and accurate short read alignment
                 <br>with Burrows-Wheeler Transform.
                 <br>Bioinformatics, 25:1754-60. (2009)
-                <br><a target="_blank" href='http://www.ncbi.nlm.nih.gov/pubmed/19451168'>[PMID: 19451168]</a>
+                <br>
+                <a target="_blank" href='http://www.ncbi.nlm.nih.gov/pubmed/19451168'>
+                    [PMID: 19451168]
+                </a>
             </td>
         </tr>
         <tr>
@@ -73,7 +79,10 @@
             <td>
                 DNA targeting specificity of RNA-guided Cas9 nucleases.<br>
                 Nature Biotechnology 31, 827–832 (2013)<br>
-                <a target="_blank" href="http://dx.doi.org/10.1038/nbt.2647"><img style="vertical-align:bottom;width:20px" src="./image/doi.gif">doi:10.1038/nbt.2647</a>
+                <a target="_blank" href="http://dx.doi.org/10.1038/nbt.2647">
+                    <img style="vertical-align:bottom;width:20px" src="http://tefor.net/crispor/image/doi.gif">
+                    doi:10.1038/nbt.2647
+                </a>
             </td>
             
         </tr>
@@ -88,7 +97,10 @@
                 Rational design of highly active sgRNAs<br>
                 for CRISPR-Cas9–mediated gene inactivation.<br>
                 Nature Biotechnology (2014)<br>
-                <a target="_blank" href="http://dx.doi.org/10.1038/nbt.3026"><img style="vertical-align:bottom;width:20px" src="./image/doi.gif">doi:10.1038/nbt.3026</a>
+                <a target="_blank" href="http://dx.doi.org/10.1038/nbt.3026">
+                    <img style="vertical-align:bottom;width:20px" src="http://tefor.net/crispor/image/doi.gif">
+                    doi:10.1038/nbt.3026
+                </a>
             </td>
             
         </tr>
