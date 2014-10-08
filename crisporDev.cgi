@@ -828,12 +828,12 @@ def printSkeleton(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam
     print '<div id="bd">'
 
     print '<div class="centralpanel">'
-
-    print '<div class="subpanel">'
-
+    
     proc = subprocess.Popen("php /var/www/crispor/networking.php", shell=True, stdout=subprocess.PIPE)
     script_response = proc.stdout.read()
     print script_response
+    
+    print '<div class="subpanel">'
 
     # print '<div class="title">CAS9 OFF-TARGET PARSER</div>'
 
