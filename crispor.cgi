@@ -1025,7 +1025,7 @@ def printContent(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam)
         makePrimers(batchId, pamId)    
     elif batchId!=None or pam!=None:
         crisprSearch(seq, org, pam)
-        print '<br><a href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">download results</a><br>' % (batchId,seq,org,pam,pamId)
+        print '<br><a href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">Download results</a><br>' % (batchId,seq,org,pam,pamId)
         print '<br><br><a class="neutral" href="http://tefor.net/crispor/crispor.cgi"><div class="button" style="margin-left:auto;margin-right:auto;width:70px;">Back</div></a>'    
     elif seq==None:
         printForm(defaultorg,defaultseq,defaultpam)
