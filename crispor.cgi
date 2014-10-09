@@ -400,20 +400,43 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
     #print '''<td><a>%d/%s</a></td>''' % (startPos, strand)
     # print '''<td><a name="%s">%d/%s</a></td>''' % (pamId, startPos, strand)
     
-    count = 0
+    print '''
+    <div id="show-more" class="button" 
+         onclick="$('.hiddenExonMatch').show('fast');$(this).hide();$('#show-less').show()" 
+         style="margin-left:auto;margin-right:auto;width:150px">
+         Show More Results [+]
+    </div>
+    '''
+    print '''
+    <div id="show-less" class="button" 
+         onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();"
+         style="margin-left:auto;margin-right:auto;width:150px;display:none;">
+         Show Less Results [-]
+    </div>
+    '''
+    print '''<a href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">
+                <!--<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">-->
+                    <img style="width:20px;vertical-align:middle;"
+                         src="http://tefor.net/crispor/image/doc.png">
+                    Download results
+                <!--</div>-->
+            </a>
+            <br><br>
+    ''' % (batchId,seq,org,pam,pamId)
+    count = 0    
     for guideRow in guideData:
         guideScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc = guideRow 
-        if count is 0:
-            print '''
-            <tr style="cursor:pointer;font-weight:bold;color:rgb(47, 129, 203);font-size:larger;">
-                <td id="show-more" onclick="$('.hiddenExonMatch').show('fast');$(this).hide();$('#show-less').show()" colspan="4" style="text-align:center;padding:15px;">
-                    < Show More Results ++ >
-                </td>
-                <td id="show-less" onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();" colspan="4" style="text-align:center;display:none;padding:15px;">
-                    < Show Less Results -- >
-                </td>                
-            </tr>
-            '''                        
+        #if count is 0:
+            #print '''
+            #<tr style="cursor:pointer;font-weight:bold;color:rgb(47, 129, 203);font-size:larger;">
+            #    <td id="show-more" onclick="$('.hiddenExonMatch').show('fast');$(this).hide();$('#show-less').show()" colspan="4" style="text-align:center;padding:15px;">
+            #        <div class="button" style="margin-left:auto;margin-right:auto;width:200px"> Show More Results [+] </div>
+            #    </td>
+            #    <td id="show-less" onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();" colspan="4" style="text-align:center;display:none;padding:15px;">
+            #        <div class="button" style="margin-left:auto;margin-right:auto;width:200px"> Show Less Results [-] </div>
+            #    </td>                
+            #</tr>
+            #'''                        
 
         print '<tr id="%s" class="hasExonMatch' % (pamId)
         if count >=10:
@@ -1024,9 +1047,8 @@ def printContent(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam)
     if pamId!=None:
         makePrimers(batchId, pamId)    
     elif batchId!=None or pam!=None:
-        crisprSearch(seq, org, pam)
-        print '<br><a href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">Download results</a><br>' % (batchId,seq,org,pam,pamId)
-        print '<br><br><a class="neutral" href="http://tefor.net/crispor/crispor.cgi"><div class="button" style="margin-left:auto;margin-right:auto;width:70px;">Back</div></a>'    
+        crisprSearch(seq, org, pam)        
+        print '<br><a class="neutral" href="http://tefor.net/crispor/crispor.cgi"><div class="button" style="margin-left:auto;margin-right:auto;width:70px;">Back</div></a>'    
     elif seq==None:
         printForm(defaultorg,defaultseq,defaultpam)
     else:

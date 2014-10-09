@@ -22,6 +22,7 @@
     $include[] = "http://tefor.net/main/specific/style/specific.css";    
     $include[] = "http://tefor.net/main/style/style_general.css";    
     $include[] = "http://tefor.net/main/style/newfont/personnalfont.css";
+    $include[] = "http://tefor.net/main/specific/style/button.css";
     $include[] = "http://tefor.net/crispor/style/style.css";
     $include[] = "./style/style.css";
     
