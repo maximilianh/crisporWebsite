@@ -2,6 +2,7 @@
 import subprocess
 import Cookie, time
 import cgitb
+
 cgitb.enable()
 
 # main script of the tefor crisper tool
@@ -244,7 +245,7 @@ def showSeq(seq, lines, maxY, pam, genomeName):
             lastEnd = end
             texts.append(spacer)
             pamId = "s"+str(start)+strand
-            texts.append('''<a id="list%s" href="#%s">''' % (pamId,pamId))
+            texts.append('''<a id="list%s" href="#%s" onmouseover="$('.hiddenExonMatch').show('fast');$('#show-more').hide();$('#show-less').show()">''' % (pamId,pamId))
             texts.append(name)
             texts.append("</a>")
         print "".join(texts)
@@ -389,7 +390,7 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
     guideData.sort()
 
     print "<br><div class='title'>Potential guide sequences for (%s) PAMs</div>" % pam
-    print "<div class='substep'>(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a>)</div>"
+    print "<div class='substep'>(ranked from highest to lowest specificity score determined as in <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a>)</div>"
     print '<table id="otTable">'
     print "<tr>"
     #print '''<a href="#" onclick="$('#otTable .hasExonMatch').hide(); alert('testRemovedAll')">hide offtargets with matches in exons</a>'''
@@ -410,9 +411,10 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
                 </td>
                 <td id="show-less" onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();" colspan="4" style="text-align:center;display:none;padding:15px;">
                     < Show Less Results -- >
-                </td>
+                </td>                
             </tr>
-            '''
+            '''                        
+
         print '<tr id="%s" class="hasExonMatch' % (pamId)
         if count >=10:
             print ' hiddenExonMatch'
@@ -493,7 +495,7 @@ def printHeader():
     print("</head>")
     print('<body id="wrapper">')
     print "<div id='fb-root'></div>"
-    print('<script src="/crispor/facebooklike.js"></script>')    
+    print('<script src="http://tefor.net/crispor/facebooklike.js"></script>')    
 
 def firstFreeLine(lineMasks, y, start, end):
     " recursively search for first free line to place a feature (start, end) "
@@ -739,7 +741,8 @@ def printForm(defaultorg,defaultseq,defaultpam):
     </div>
     <div id="about-us"> CRISPOR - CRISPr selectOR - is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.<br>
     It uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
-    It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.</div>
+    It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
+    For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </div>
 
 <div class="windowstep subpanel" style="width:60%%;">
@@ -770,7 +773,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
     printOrgDropDown(lastorg)
 
     print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
-For any modification of the genome list please contact
+To add your genome of interest to the list, contact CRISPOR web site manager
 <a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</div>
 """
     print """        
@@ -786,7 +789,7 @@ For any modification of the genome list please contact
     """
     printPamDropDown(lastpam)
     print """
-    <div id="helpstep3" class="helptext">The most commonly system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
+    <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
 </div>
 </form>
     """
@@ -1017,12 +1020,13 @@ def main(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
 
 def printContent(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
     #seq, org, pam, pamId, batchId = getVars()    
-
+        
     if pamId!=None:
-        makePrimers(batchId, pamId)
-    elif pam!=None:
+        makePrimers(batchId, pamId)    
+    elif batchId!=None or pam!=None:
         crisprSearch(seq, org, pam)
-        print '<br><br><a class="neutral" href="http://tefor.net/crispor/crispor.cgi"><div class="button" style="margin-left:auto;margin-right:auto;width:70px;">Back</div></a>'
+        print '<br><a href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">download results</a><br>' % (batchId,seq,org,pam,pamId)
+        print '<br><br><a class="neutral" href="http://tefor.net/crispor/crispor.cgi"><div class="button" style="margin-left:auto;margin-right:auto;width:70px;">Back</div></a>'    
     elif seq==None:
         printForm(defaultorg,defaultseq,defaultpam)
     else:

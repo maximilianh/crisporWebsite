@@ -3,7 +3,7 @@ echo "<div id='navi'>";
         echo "<div id='menu' class='default'>";
             echo "<ul class='navi'>";
     
-//                echo "<li><a href='http://tefor.net/main/index.php'>Home</a></li>";
+                echo "<li><a href='http://tefor.net'>Home</a></li>";
 
 //                echo "<li><a href='http://tefor.net/main/pages/jobs.php'>Jobs</a></li>";
                 echo "<li><a href='./crispor.cgi'>CRISPOR</a></li>";

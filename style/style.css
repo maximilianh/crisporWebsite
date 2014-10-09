@@ -141,8 +141,9 @@ table.footertable td
      margin-top:10px;
      margin-left:auto;
      margin-right:auto;
+     text-align:justify;
      display:none;
-     width:70%;
+     width:40%;
  }
  
  tr.hiddenExonMatch

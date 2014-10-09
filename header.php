@@ -12,8 +12,8 @@
     echo "<meta property='og:url' content='http://tefor.net/crispor/crispor.cgi' />";
     echo "<meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />";
     
-    echo "<script src='//code.jquery.com/jquery-1.11.0.min.js'></script>";   
-    echo "<script src='//code.jquery.com/ui/1.11.1/jquery-ui.min.js'></script>";   
+    echo "<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>";   
+    echo "<script src='http://code.jquery.com/ui/1.11.1/jquery-ui.min.js'></script>";   
     echo "<script src='https://apis.google.com/js/platform.js' async defer></script>";
 
     
