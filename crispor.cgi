@@ -398,10 +398,25 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
 
     #print '''<td><a>%d/%s</a></td>''' % (startPos, strand)
     # print '''<td><a name="%s">%d/%s</a></td>''' % (pamId, startPos, strand)
-
+    
+    count = 0
     for guideRow in guideData:
         guideScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc = guideRow 
-        print '<tr id="%s" class="hasExonMatch">' % (pamId)
+        if count is 0:
+            print '''
+            <tr style="cursor:pointer;font-weight:bold;color:rgb(47, 129, 203);font-size:larger;">
+                <td id="show-more" onclick="$('.hiddenExonMatch').show('fast');$(this).hide();$('#show-less').show()" colspan="4" style="text-align:center;padding:15px;">
+                    < Show More Results ++ >
+                </td>
+                <td id="show-less" onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();" colspan="4" style="text-align:center;display:none;padding:15px;">
+                    < Show Less Results -- >
+                </td>
+            </tr>
+            '''
+        print '<tr id="%s" class="hasExonMatch' % (pamId)
+        if count >=10:
+            print ' hiddenExonMatch'
+        print '">'        
         print "<td>"
         print '<a href="#list%s">' % (pamId)
         print str(startPos)+"/"
@@ -440,7 +455,7 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
         print "</small></td>"
 
         print "</tr>"
-
+        count = count+1
 
     print "</table>"
         

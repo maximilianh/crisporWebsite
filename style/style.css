@@ -144,3 +144,8 @@ table.footertable td
      display:none;
      width:70%;
  }
+ 
+ tr.hiddenExonMatch
+ {
+     display:none;
+ }
