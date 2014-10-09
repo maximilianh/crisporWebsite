@@ -1,4 +1,4 @@
-<div class="footer" id="footer-credits">
+<div class="footer" id="footer-credits" style='display:none;'>
     <table class="footertable" align="center">
         <tr>
             <td></td>

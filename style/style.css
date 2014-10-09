@@ -15,7 +15,7 @@ div.introtext
 {   
     line-height:28px;
     margin-top:10px;
-    margin-bottom:15px;
+    margin-bottom:15px;    
 }
 div.title
 {    
@@ -135,4 +135,12 @@ table.footertable td
      font-style:oblique;
      text-decoration:underline;
      display:inline;
+ }
+ div#about-us
+ {
+     margin-top:10px;
+     margin-left:auto;
+     margin-right:auto;
+     display:none;
+     width:70%;
  }

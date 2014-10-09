@@ -18,7 +18,7 @@
     <a target="_blank" href="https://groups.google.com/forum/?hl=en#!forum/crispor">CRISPOR<br>forum</a>
     
     <br>
-    <a href="#footer-credits">
+    <a href="#footer-credits" onmouseover="$('#footer-credits').show('fast');">
         <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
         <br>
         credits

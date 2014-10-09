@@ -229,7 +229,7 @@ def showSeq(seq, lines, maxY, pam, genomeName):
     " show the sequence and the PAM sites underneath "
     print "<div class='title'>Sequence with PAMs in <div class='speciesname'>%s</div> genome</div>" % genomeName
     print "<div class='substep'>"
-    print "<br>Click on a PAM match (<div style=\'display:inline;\' class=\'linklike\'>%s</div>) to show potential guide sequences for it" % pam
+    print "Click on a PAM match (<div style=\'display:inline;\' class=\'linklike\'>%s</div>) to show potential guide sequences for it" % pam
     print "</div>"
     print '''<div style="overflow-x:scroll; width:100%; background:#EEEEEE; border-style: solid; border-width: 1px">'''
 
@@ -389,7 +389,7 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
     guideData.sort()
 
     print "<br><div class='title'>Potential guide sequences for (%s) PAMs</div>" % pam
-    print "<div class='substep'>(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://www.nature.com/nbt/journal/vaop/ncurrent/full/nbt.3026.html'>Doench et al</a>)</div>"
+    print "<div class='substep'>(ranked from highest to lowest specificity score determined as in J G. <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a>)</div>"
     print '<table id="otTable">'
     print "<tr>"
     #print '''<a href="#" onclick="$('#otTable .hasExonMatch').hide(); alert('testRemovedAll')">hide offtargets with matches in exons</a>'''
@@ -719,9 +719,12 @@ def printForm(defaultorg,defaultseq,defaultpam):
 <form method="post" action="%s">
 
 <div class="introtext">
-    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">About CRISPOR</div><div id="about-us" style="display:none;"> CRISPOR - CRISPr selectOR - is a program that helps design and evaluate target sites for use with the CRISPR system.<br>
-    It uses the BWA algorithm to identify the target sequences for use in CRISPR mediated genome editing.<br>
-    It searches for off-target sites, shows them in a table and annotates them with flanking genes.</div>
+    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">
+        About CRISPOR
+    </div>
+    <div id="about-us"> CRISPOR - CRISPr selectOR - is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.<br>
+    It uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
+    It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.</div>
 </div>
 
 <div class="windowstep subpanel" style="width:60%%;">
@@ -730,7 +733,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
             Step 1
             <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
         </div>
-       Submit a single sequence for CRISPR design and analysis                              
+       Submit a single sequence for guide RNA identification and analysis
     </div>
 
     <textarea style="width:100%%;" name="seq" placeholder="Enter the sequence of the gene you want to target - example: %s
@@ -752,7 +755,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
     printOrgDropDown(lastorg)
 
     print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
-For any modification of the genome list or CRISPR services in zebrafish or drosophila, please contact
+For any modification of the genome list please contact
 <a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</div>
 """
     print """        
@@ -987,7 +990,7 @@ def makePrimers(batchId, pamId):
     print "<strong>Wild-type genomic sequence including primers:</strong><br> <tt>%s</tt><br>" % targetHtml
     print "<strong>Sequence length:</strong> %d<br>" % (rPos-lPos)
     print "<hr>"
-    print '<small>Primer3.2 with default settings, target length 40-100 bp</small>'
+    print '<small>Primer3.2 with default settings, target length 40-600 bp</small>'
     print '</div>'
 
 def main(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
