@@ -5,7 +5,7 @@
         $arguments.=$key."=".$value."&";
     }
     
-    $filename = 'CRISPOR-'.date("Y-m-d H:i:s").'.html'; // of course find the exact filename....        
+    $filename = 'CRISPOR-'.date("Y-m-d-H-is").'.html'; // of course find the exact filename....        
     header('Pragma: public');
     header('Expires: 0');
     header('Cache-Control: must-revalidate, post-check=0, pre-check=0');

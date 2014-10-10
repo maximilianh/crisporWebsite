@@ -5,7 +5,7 @@ import cgitb
 
 cgitb.enable()
 
-# main script of the tefor crisper tool
+# main script of the tefor crispr tool
 
 # cleaning things todo:
 # - maybe: make temp subdirectories instead of many files with same name
@@ -756,7 +756,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
         #print lastorg, '</p>'        
          
     print """
-<form id="main-form" method="get" action="%s">
+<form id="main-form" method="post" action="%s">
 
 <div class="introtext">
     <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">
@@ -1033,7 +1033,7 @@ def makePrimers(batchId, pamId):
     print "<strong>Wild-type genomic sequence including primers:</strong><br> <tt>%s</tt><br>" % targetHtml
     print "<strong>Sequence length:</strong> %d<br>" % (rPos-lPos)
     print "<hr>"
-    print '<small>Primer3.2 with default settings, target length 40-600 bp</small>'
+    print '<small>Primer3.2 with default settings, target length 400-600 bp</small>'
     print '</div>'
 
 def main(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
