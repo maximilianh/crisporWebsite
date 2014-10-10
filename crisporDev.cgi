@@ -403,15 +403,15 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
     print '''
     <div id="show-more" class="button" 
          onclick="$('.hiddenExonMatch').show('fast');$(this).hide();$('#show-less').show()" 
-         style="margin-left:auto;margin-right:auto;width:150px">
-         Show More Results [+]
+         style="margin-left:auto;margin-right:auto;width:100px">
+         Show More [+]
     </div>
     '''
     print '''
     <div id="show-less" class="button" 
          onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();"
-         style="margin-left:auto;margin-right:auto;width:150px;display:none;">
-         Show Less Results [-]
+         style="margin-left:auto;margin-right:auto;width:100px;display:none;">
+         Show Less [-]
     </div>
     '''
     print '''<a href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">
@@ -730,7 +730,7 @@ def printPamDropDown(lastpam):
 
 def printForm(defaultorg,defaultseq,defaultpam):
     " print html input form "
-    scriptName = basename(__file__)
+    scriptName = basename(__file__)        
     
     # The returned cookie is available in the os.environ dictionary
     cookie_string = os.environ.get('HTTP_COOKIE')
@@ -756,7 +756,7 @@ def printForm(defaultorg,defaultseq,defaultpam):
         #print lastorg, '</p>'        
          
     print """
-<form method="post" action="%s">
+<form id="main-form" method="get" action="%s">
 
 <div class="introtext">
     <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">
@@ -777,8 +777,10 @@ def printForm(defaultorg,defaultseq,defaultpam):
        Submit a single sequence for guide RNA identification and analysis
     </div>
 
-    <textarea style="width:100%%;" name="seq" placeholder="Enter the sequence of the gene you want to target - example: %s
-    " rows="10">%s</textarea>
+    <textarea style="width:100%%;" name="seq" rows="10"
+              placeholder="Enter the sequence of the gene you want to target - example: %s">
+    %s
+    </textarea>
     <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such as ATG or STOP codons)</div>
     <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" />
 </div>
