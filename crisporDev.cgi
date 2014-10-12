@@ -47,6 +47,11 @@ def getVars():
         errAbort("Illegal character in PAM-sequence. Only ACTGMK and N allowed.")
     return seq, org, pam, None, None
 
+def makeTempBase(seq, org, pam):
+    "create the base of temp files using a hash function and some prettyfication "
+    hasher = hashlib.sha1(seq+org+pam)
+    batchId = base64.urlsafe_b64encode(hasher.digest()[0:20]).translate(transTab)[:20]
+    return batchId
 
 seq, org, pam, pamId, batchId = getVars()
 
@@ -484,7 +489,7 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId):
 
     print "</table>"
         
-def printHeader():
+def printHeader(seq,org,pam):
     
     print "<html><head>"   
 
@@ -516,7 +521,18 @@ def printHeader():
             }
             </style>""")
     print("</head>")
-    print('<body id="wrapper">')
+    print'<body id="wrapper"'
+    
+    if seq != None and org != None and pam != None:
+        localbatchId = makeTempBase(seq, org, pam)    
+    else :
+        localbatchId = None
+
+    if localbatchId is not None:
+        print '''
+        onload="history.pushState('crispor/crisporDev.cgi', document.title, '?batchId=%s');"
+        ''' % (localbatchId)
+    print'>'
     print "<div id='fb-root'></div>"
     print('<script src="http://tefor.net/crispor/facebooklike.js"></script>')    
 
@@ -650,12 +666,6 @@ def findOfftargets(faFname, genome, pam, bedFname):
 
 transTab = string.maketrans("-=/+_", "abcde")
 
-def makeTempBase(seq, org, pam):
-    "create the base of temp files using a hash function and some prettyfication "
-    hasher = hashlib.sha1(seq+org+pam)
-    batchId = base64.urlsafe_b64encode(hasher.digest()[0:20]).translate(transTab)[:20]
-    return batchId
-
 def lineFileNext(fh):
     """ 
         parses tab-sep file with headers as field names 
@@ -759,8 +769,10 @@ def printForm(defaultorg,defaultseq,defaultpam):
 <form id="main-form" method="post" action="%s">
 
 <div class="introtext">
-    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style: normal;">
-        About CRISPOR
+    Find more about 
+    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
+        CRISPOR
+        <img src="http://tefor.net/crispor/image/info.png" class="infopoint" style="vertical-align:text-top;">
     </div>
     <div id="about-us"> CRISPOR - CRISPr selectOR - is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.<br>
     It uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
@@ -830,7 +842,7 @@ def crisprSearch(seq, org, pam):
     caseSeq, userMsg = cleanSeq(seq)
     seq = caseSeq.upper()
 
-    printHeader()
+    printHeader(seq,org,pam)
 
     # search pams
     startDict, endSet = findPams(seq, pam, "+", {}, set())
@@ -1037,7 +1049,7 @@ def makePrimers(batchId, pamId):
     print '</div>'
 
 def main(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam):
-    printHeader()
+    printHeader(seq,org,pam)
     
     printSkeleton(seq, org, pam, pamId, batchId,defaultorg,defaultseq,defaultpam)    
 
