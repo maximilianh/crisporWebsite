@@ -17,23 +17,25 @@ div.introtext
     line-height:28px;
     margin-top:10px;
     margin-bottom:15px;    
+    text-align: left;
 }
 div.title
 {    
     font-family: futura, Helvetica, ColabLig, Helvetica, Arial, sans-serif;
     font-size: larger;
     display:inline-box;
-    text-shadow: 2px 2px 1px #ddd;
+    /*text-shadow: 1px 2px 1px #ddd;*/
+    text-align: left;
 }
 div.substep
 {
     margin-top:   10px;
     margin-bottom:10px;
+    text-align: left;
 }
 div.substep table td
 {
     width:100%;
-    text-align: center;
     border:none;
 }
 div.substep table td.infopoint
@@ -49,6 +51,12 @@ img.infopoint
 img.infopoint:hover
 {
     cursor:pointer;
+}
+img.help
+{
+    vertical-align: bottom;
+    text-align: right;
+    width:20px;
 }
 div.helptext
 {
@@ -133,8 +141,6 @@ table.footertable td
  }
  div.speciesname
  {
-     font-style:oblique;
-     text-decoration:underline;
      display:inline;
  }
  div#about-us
@@ -151,3 +157,16 @@ table.footertable td
  {
      display:none;
  }
+
+.high-quality {
+  border-left: 5px solid green; 
+  }
+
+.medium-quality {
+  border-left: 5px solid yellow; 
+  }
+
+.low-quality {
+  border-left: 5px solid red; 
+  }
+
