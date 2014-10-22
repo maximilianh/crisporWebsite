@@ -193,27 +193,31 @@ def rulerString(maxLen):
         texts.append(spacer)
     return "".join(texts)
 
-def showSeq(seq, lines, maxY, pam, genomeName):
-    " show the sequence and the PAM sites underneath "
-    print "<div class='title'>Sequence with PAMs in <div class='speciesname'>%s</div> genome</div>" % genomeName
+def showSeqAndPams(seq, lines, maxY, pam, guideScores):
+    " show the sequence and the PAM sites underneath as a sequence viewer "
     print "<div class='substep'>"
     print '<a id="seqStart"></a>'
-    print "Click on a PAM match (%s) to show its guide sequence" % pam
+    print "Cas9 cuts at PAM (%s) sites. Click on a PAM match to show its guide sequence.<br>" % pam
+    print '''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #ddd">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #ddd">yellow</span> and <span style="text-shadow: 1px 1px 1px #ddd; color:#aa0114">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.'''
     print "</div>"
-    print '''<div style="overflow-x:scroll; width:100%; background:#EEEEEE; border-style: solid; border-width: 1px">'''
+    print '''<div style="text-align: left; overflow-x:scroll; width:100%; background:#DDDDDD; border-style: solid; border-width: 1px">'''
 
-    print "<pre>"+rulerString(len(seq))
+    print '<pre style="display:inline; line-height: 0.9em; text-align:left">'+rulerString(len(seq))
     print seq
 
     for y in range(0, maxY+1):
+        #print "y", y, "<br>"
         texts = []
         lastEnd = 0
-        for start, end, name, strand in lines[y]:
+        for start, end, name, strand, pamId  in lines[y]:
             spacer = "".join([" "]*((start-lastEnd)))
             lastEnd = end
             texts.append(spacer)
-            pamId = "s"+str(start)+strand
-            texts.append('''<a id="list%s" href="#%s" onmouseover="$('.hiddenExonMatch').show('fast');$('#show-more').hide();$('#show-less').show()" onfocus="window.location.href = '#seqStart'" >''' % (pamId,pamId))
+            score = guideScores[pamId]
+            color = scoreToColor(score)
+
+            #print score, opacity
+            texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s" onmouseover="$('.hiddenExonMatch').show('fast');$('#show-more').hide();$('#show-less').show()" onfocus="window.location.href = '#seqStart'" >''' % (color, pamId,pamId))
             texts.append(name)
             texts.append("</a>")
         print "".join(texts)
@@ -425,15 +429,15 @@ def calcMitGuideScore(hitSum):
 
 # --- END OF SCORING ROUTINES 
 
-def calcDoenchScoreFromSeqPos(startPos, seq, pam, strand):
+def calcDoenchScoreFromSeqPos(startPos, seq, pamLen, strand):
     " extract 30 mer from seq given beginning of pam at startPos and strand, return Doench score "
     if strand=="+":
         fromPos  = startPos-24
         toPos    = startPos+6
         func     = str
     else: # strand is minus
-        fromPos = startPos+len(pam)-6
-        toPos   = startPos+len(pam)+24
+        fromPos = startPos+pamLen-6
+        toPos   = startPos+pamLen+24
         func    = revComp
 
     if fromPos < 0 or toPos > len(seq):
@@ -446,13 +450,13 @@ def htmlHelp(text):
     " show help text with tooltip or modal dialog "
     print '''<img src="image/info.png" class="help tooltip" title="%s" />''' % text
 
-
-def showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org):
-    " shows table of all PAM motif matches "
-    # one row per guide sequence
+def scoreGuides(seq, startDict, pamPat, otMatches):
+    " for each pam in startDict, retrieve the guide sequence next to it and score it "
     guideData = []
+    guideScores = {}
+    hasNotFound = False
 
-    for startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam)):
+    for startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pamPat)):
         # position with anchor to jump to
         pamId = "s"+str(startPos)+strand
         # flank seq
@@ -462,19 +466,25 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org):
         # matches in genome
         # one desc in last column per OT seq
         if pamId in otMatches:
-            posList, otDesc, guideScore, last12Desc = makePosList(otMatches[pamId], guideSeq, pam)
+            posList, otDesc, guideScore, last12Desc = makePosList(otMatches[pamId], guideSeq, pamPat)
+            effScore = calcDoenchScoreFromSeqPos(startPos, seq, len(pamPat), strand)
             #print otDesc, "<p>"
         else:
-            posList, otDesc, guideScore = None, "No match. Incorrect genome?", [0]
+            posList, otDesc, guideScore = None, "No match. Incorrect genome or cDNA?", 0
             last12Desc = ""
+            effScore = 0
+            hasNotFound = True
             #print "no match"
-        guideData.append(( guideScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc))
+        guideData.append(( guideScore, effScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc))
+        guideScores[pamId] = guideScore
 
     guideData.sort(reverse=True)
+    return guideData, guideScores, hasNotFound
 
-    print "<br><div class='title'>Potential guide sequences for (%s) PAMs</div>" % pam
-    print "<div class='substep'>Ranked from highest to lowest specificity score determined as in <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a> and on crispr.mit.org<br>"
-    print "Colors green, yellow and red indicate high, medium and low specificity</div>"
+def printTableHead():
+    " print guide score table description and columns "
+    # one row per guide sequence
+    print "<div class='substep'>Ranked from highest to lowest specificity score determined as in <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a> and on crispr.mit.org<br></div>"
     print '<table id="otTable">'
     print '<tr style="border-left:5px solid black">'
     
@@ -499,35 +509,30 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org):
 
     print '<th>Genome Browser links to matches</th>'
 
-    #print '''
-    #<div id="show-more" class="button" 
-         #onclick="$('.hiddenExonMatch').show('fast');$(this).hide();$('#show-less').show()" 
-         #style="margin-left:auto;margin-right:auto;width:100px">
-         #Show More [+]
-    #</div>
-    #'''
-    #print '''
-    #<div id="show-less" class="button" 
-         #onclick="$('.hiddenExonMatch').hide('fast');$(this).hide();$('#show-more').show();"
-         #style="margin-left:auto;margin-right:auto;width:100px;display:none;">
-         #Show Less [-]
-    #</div>
-    #'''
+def scoreToColor(guideScore):
+    if guideScore > 50:
+        color = "#32cd32"
+    elif guideScore > 20:
+        color = "#ffff00"
+    else:
+        color = "#aa0114"
+    return color
+
+def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org):
+    " shows table of all PAM motif matches "
+    print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
+    printTableHead()
+
     count = 0
     for guideRow in guideData:
-        guideScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc = guideRow 
+        guideScore, effScore, startPos, strand, pamId, seqStr, guideSeq, posList, otDesc, last12Desc = guideRow
 
-        classes = []
-        if guideScore > 50:
-            classes.append("high-quality")
-        elif guideScore > 20:
-            classes.append("medium-quality")
-        else:
-            classes.append("low-quality")
-        print '<tr id="%s" class="%s">' % (pamId, " ".join(classes))
+        color = scoreToColor(guideScore)
+        print '<tr id="%s" style="border-left: 5px solid %s">' % (pamId, color)
 
         # position and strand
-        print "<td>"
+        #print '<td id="%s">' % pamId
+        print '<td>' 
         print '<a href="#list%s">' % (pamId)
         print str(startPos)+" /"
         if strand=="+":
@@ -556,7 +561,6 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org):
 
         # efficacy score
         print "<td>"
-        effScore = calcDoenchScoreFromSeqPos(startPos, seq, pam, strand)
         if effScore==None:
             print "Too close to end"
         else:
@@ -568,6 +572,9 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org):
         # mismatch description
         print "<td>"
         print otDesc
+        if posList==None:
+            # no genome match
+            htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences<br>This warning also occurs if you have selected the wrong genome.")
         print "</td>"
 
         # mismatch description, last 12 bp
@@ -595,14 +602,14 @@ def showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org):
 
     print "</table>"
 
-    print '''<a style="text-align:right" href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">
-                    <img style="width:20px;vertical-align:middle"
-                         src="http://tefor.net/crispor/image/doc.png">
-                    Download results
-                <!--</div>-->
-            </a>
-            <br><br>
-    ''' % (batchId,seq,org,pam,pamId)
+    #print '''<a style="text-align:right" href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">
+                    #<img style="width:20px;vertical-align:middle"
+                         #src="http://tefor.net/crispor/image/doc.png">
+                    #Download results
+                #<!--</div>-->
+            #</a>
+            #<br><br>
+    #''' % (batchId,seq,org,pam,pamId)
 
 
 def printHeader(batchId):
@@ -630,9 +637,9 @@ def printHeader(batchId):
     print '<script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>'
     # activate tooltipster
     #print (""" <script> $(document).ready(function() { $('.tooltip').tooltipster(); }); </script> """)
+       #theme: 'tooltipster-shadow',
     print (""" <script> $(document).ready(function() { $('.tooltip').tooltipster({ 
         contentAsHTML: true,
-       theme: 'tooltipster-shadow',
        speed : 0
         }); }); </script> """)
 
@@ -675,7 +682,7 @@ def distrOnLines(seq, startDict, featLen):
         the motifs don't overlap on the lines 
     """
     # max number of lines in y direction to draw
-    MAXLINES = 10
+    MAXLINES = 18
     # amount of free space around each feature
     SLOP = 2
 
@@ -688,25 +695,32 @@ def distrOnLines(seq, startDict, featLen):
     ftsByLine = defaultdict(list)
     maxY = 0
     for start in sorted(startDict):
-        strand = startDict[start]
         end = start+featLen
-        y = firstFreeLine(lineMasks, 0, start, end)
+        strand = startDict[start]
 
+        ftSeq = seq[start:end] 
+        if strand=="+":
+            label = '%s..%s'%(seq[start-3].lower(), ftSeq)
+            startFt = start - 3
+            endFt = end
+        else:
+            label = '%s..%s'%(ftSeq, seq[end+2].lower())
+            startFt = start
+            endFt = end + 3
+
+        y = firstFreeLine(lineMasks, 0, startFt, endFt)
         if y==None:
             errAbort("not enough space to plot features")
 
         # fill the current mask
         mask = lineMasks[y]
-        for i in range(max(start-SLOP, 0), min(end+SLOP, len(seq))):
+        for i in range(max(startFt-SLOP, 0), min(endFt+SLOP, len(seq))):
             mask[i]=1
 
         maxY = max(y, maxY)
-        name = seq[start:end] 
-        #if strand=="+":
-            #name = ">"+name
-        #else:
-            #name = name+"<"
-        ft = (start, end, name, strand) 
+
+        pamId = "s%d%s" % (start, strand)
+        ft = (startFt, endFt, label, strand, pamId) 
         ftsByLine[y].append(ft )
     return ftsByLine, maxY
 
@@ -743,7 +757,7 @@ def parseOfftargets(bedFname):
     has two name fields, one with the pam position/strand and one with the
     overlapped segment 
     
-    return as dict pamId -> editDist -> (chrom, start, end, strand, segType, geneNameStr)
+    return as dict pamId -> editDist -> (chrom, start, end, seq, strand, segType, segName)
     segType is "ex" "int" or "ig" (=intergenic)
     if intergenic, geneNameStr is two genes, split by |
     """
@@ -998,13 +1012,22 @@ def crisprSearch(params):
         writePamFlank(seq, startDict, pam, faFname)
         findOfftargets(faFname, org, pam, otBedFname)
 
-    otMatches = parseOfftargets(otBedFname)
+    print "<div class='title'><div class='speciesname'>%s</div> sequence with PAMs</div>" % dbInfo.scientificName
 
+    otMatches = parseOfftargets(otBedFname)
     featLen = len(pam)
     lines, maxY = distrOnLines(seq, startDict, featLen)
 
-    showSeq(caseSeq, lines, maxY, pam, dbInfo.scientificName)
-    showTable(seq, startDict, pam, otMatches, dbInfo, batchId, org)
+    guideData, guideScores, hasNotFound = scoreGuides(seq, startDict, pam, otMatches)
+
+    if hasNotFound:
+        print("<strong>Warning:</strong> At least one of the PAM-flanking sequences was not found in the genome.<br>")
+        print("Did you select the right genome? <br>")
+        print("If you pasted a cDNA sequence, note that sequences with score 0 are not in the genome, only in the cDNA and are not usable as CRISPR guides.<br>")
+
+    showSeqAndPams(caseSeq, lines, maxY, pam, guideScores)
+
+    showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org)
 
     # XX are back buttons necessary in 2014?
     print '<br><a class="neutral" href="http://tefor.net/crispor">'
@@ -1099,35 +1122,35 @@ def parseFasta(fname):
         seqs[seqId]  = "".join(parts)
     return seqs
 
-def findBestMatch(genome, batchId):
-    " find best match for input sequence from batchId in genome and return as (chrom, start, end) "
-
-    batchBase = join(batchDir, batchId)
-    samFname = batchBase+".input.sam"
-    faFname = batchBase+".input.fa"
-
-    cmd = "BIN/bwa bwasw genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
-    runCmd(cmd)
-
-    chrom, start, end = None, None, None
-    for l in open(samFname):
-        if l.startswith("@"):
-            continue
-        l = l.rstrip("\n")
-        fs = l.split("\t")  
-        qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
-        if not re.compile("[0-9]*").match(cigar):
-            continue
-        if cigar=="*":
-            errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
-        matchLen = int(cigar.replace("M","").replace("S", "")) # XX why do we have soft clipped sequences?
-        chrom, start, end =  rName, int(pos), int(pos)+matchLen
-
+#def findBestMatch(genome, batchId):
+    #" find best match for input sequence from batchId in genome and return as (chrom, start, end) "
+#
+    #batchBase = join(batchDir, batchId)
+    #samFname = batchBase+".input.sam"
+    #faFname = batchBase+".input.fa"
+#
+    #cmd = "BIN/bwa bwasw genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    #runCmd(cmd)
+#
+    #chrom, start, end = None, None, None
+    #for l in open(samFname):
+        #if l.startswith("@"):
+            #continue
+        #l = l.rstrip("\n")
+        #fs = l.split("\t")  
+        #qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
+        #if not re.compile("[0-9]*").match(cigar):
+            #continue
+        #if cigar=="*":
+            #errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
+        #matchLen = int(cigar.replace("M","").replace("S", "")) # XX why do we have soft clipped sequences?
+        #chrom, start, end =  rName, int(pos), int(pos)+matchLen
+#
     # possible problem: we do not check if a match is really a 100% match.
-    if chrom==None:
-        errAbort("No perfect match found in genome %s. Are you sure you have selected the right genome?" % genome)
-    else:
-        return chrom, start, end
+    #if chrom==None:
+        #errAbort("No perfect match found in genome %s. Are you sure you have selected the right genome?" % genome)
+    #else:
+        #return chrom, start, end
 
 def designPrimer(genome, chrom, start, end, guideStart, batchId):
     " create primer for region around chrom:start-end, write output to batch "
@@ -1155,9 +1178,10 @@ def makePrimers(params):
     batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
     inSeq, genome, pamSeq = batchParams(batchId)
     seqLen = len(inSeq)
-
-    # find position of guide sequence in inSeq - won't work if guide seq is present twice  XX
     batchBase = join(batchDir, batchId)
+
+    # retrieve guideSeq + PAM sequence from input sequence
+    # XX guide sequence must not appear twice in there
     pamFname = batchBase+".fa"
     pams = parseFasta(pamFname)
     guideSeq = pams[pamId]
@@ -1168,12 +1192,27 @@ def makePrimers(params):
     else:
         guideSeqPlus = revComp(guideSeq)
         guideStart = inSeq.find(guideSeqPlus)
-
     guideSeqWPam = inSeq[guideStart:guideStart+len(guideSeq)+len(pam)]
 
-    chrom, start, end = findBestMatch(genome, batchId)
+    # find position of guide sequence in genome at MM0
+    otBedFname = batchBase+".bed"
+    otMatches = parseOfftargets(otBedFname)
+    if pamId not in otMatches or 0 not in otMatches[pamId]:
+        errAbort("No perfect match found for guide sequence %s in the genome. Are you sure you have selected the right genome? If you have selected the right genome but pasted a cDNA, please note that sequences that overlap a splice site are not part of the genome and cannot be used as guide sequences." % guideSeqWPam)
 
-    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq = designPrimer(genome, chrom, start, end, guideStart, batchId)
+    matchList = otMatches[pamId][0]
+    if len(matchList)!=1:
+        errAbort("Multiple perfect matches for this guide sequence. Cannot design primer. Please select another guide sequences or email penigault@tefor.net to discuss your strategy or modifications to this software.")
+        # XX we could show a dialog: which match do you want to design primers for?
+        # But who would want to use a guide sequence that is not unique?
+
+    chrom, start, end, seq, strand, segType, segName = matchList[0]
+    start = int(start)
+    end = int(end)
+
+    #chrom, start, end = findBestMatch(genome, batchId)
+
+    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq = designPrimer(genome, chrom, start, end, 0, batchId)
 
     guideStart = targetSeq.find(guideSeqPlus)
     guideEnd = guideStart + len(guideSeqPlus)

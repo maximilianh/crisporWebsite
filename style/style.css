@@ -86,11 +86,12 @@ div.networking_panel
     box-shadow:         0 0 15px 3px rgba(47, 129, 203, 0.1);
     -webkit-box-shadow: 0 0 15px 3px rgba(47, 129, 203, 0.1);
 }
-tr.hasExonMatch:target, a:target
+tr:target 
 {
-    background-color: #ffa;
+    background-color: LightYellow;
     border-radius: 5px;
     padding: 5px;
+    outline: solid blue;
 }
 
 div.steps
@@ -157,16 +158,4 @@ table.footertable td
  {
      display:none;
  }
-
-.high-quality {
-  border-left: 5px solid green; 
-  }
-
-.medium-quality {
-  border-left: 5px solid yellow; 
-  }
-
-.low-quality {
-  border-left: 5px solid red; 
-  }
 
