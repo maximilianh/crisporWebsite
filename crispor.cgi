@@ -34,7 +34,7 @@ def getParams():
     form = cgi.FieldStorage()
     params = {}
 
-    for key in ["pamId", "batchId", "pam", "seq", "org"]:
+    for key in ["pamId", "batchId", "pam", "seq", "org", "showAll"]:
         val = form.getfirst(key)
 	if val!=None:
             params[key] = val
@@ -518,7 +518,7 @@ def scoreToColor(guideScore):
         color = "#aa0114"
     return color
 
-def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org):
+def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
     printTableHead()
@@ -590,10 +590,10 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org):
                 print '''%d:''' % (int(editDist))
                 printBrowserLink(dbInfo, pos, gene, alnHtml)
                 i+=1
-                if i==3:
+                if i==3 and not showAll:
                     break
-            if len(posList)>3:
-                 print "... <br>&nbsp;&nbsp;&nbsp;<a href="">- show all offtargets</a>"
+            if not showAll and len(posList)>3:
+                 print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.cgi?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
 
         print "</small></td>"
 
@@ -975,6 +975,8 @@ def crisprSearch(params):
         seq, org, pam = params["seq"], params["org"], params["pam"]
         batchId = makeTempBase(seq, org, pam)
 
+    showAll = (params.get("showAll", 0)=="1")
+
     # read genome info tab file
     myDir = dirname(__file__)
     genomesDir = join(myDir, "genomes")
@@ -1027,7 +1029,7 @@ def crisprSearch(params):
 
     showSeqAndPams(caseSeq, lines, maxY, pam, guideScores)
 
-    showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org)
+    showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll)
 
     # XX are back buttons necessary in 2014?
     print '<br><a class="neutral" href="http://tefor.net/crispor">'
@@ -1046,14 +1048,14 @@ def runPhp(script):
     print script_response
 
 def printTeforBodyStart():
-    print "<a href='http://tefor.net/main/'><img class='logo' src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a>"
+    print "<div class='logo'><a href='http://tefor.net/main/'><img src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a></div>"
     runPhp("menu.php")
 
     print '<div id="bd">'
     print '<div class="centralpanel">'
     runPhp("networking.php")
-    print '<div class="subpanel">'
-    print '<div class="contentcentral">'
+    print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
+    print '<div class="contentcentral" style="background-color:transparent;">'
 
 def printTeforBodyEnd():
     print '</div>'
@@ -1067,8 +1069,9 @@ def printBody(params):
     if len(params)==0:
         printForm(params)
     elif "batchId" in params and "pamId" in params and "pam" in params:
-        makePrimers(params)
-    elif ("seq" in params and "org" in params and "pam" in params) or "batchId" in params:
+        primerDetailsPage(params)
+    elif ("seq" in params and "org" in params and "pam" in params) \
+                or "batchId" in params:
         crisprSearch(params)
     else:
         errAbort("Unrecognized CGI parameters.")
@@ -1122,37 +1125,44 @@ def parseFasta(fname):
         seqs[seqId]  = "".join(parts)
     return seqs
 
-#def findBestMatch(genome, batchId):
-    #" find best match for input sequence from batchId in genome and return as (chrom, start, end) "
-#
-    #batchBase = join(batchDir, batchId)
-    #samFname = batchBase+".input.sam"
-    #faFname = batchBase+".input.fa"
-#
-    #cmd = "BIN/bwa bwasw genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
-    #runCmd(cmd)
-#
-    #chrom, start, end = None, None, None
-    #for l in open(samFname):
-        #if l.startswith("@"):
-            #continue
-        #l = l.rstrip("\n")
-        #fs = l.split("\t")  
-        #qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
-        #if not re.compile("[0-9]*").match(cigar):
-            #continue
-        #if cigar=="*":
-            #errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
-        #matchLen = int(cigar.replace("M","").replace("S", "")) # XX why do we have soft clipped sequences?
-        #chrom, start, end =  rName, int(pos), int(pos)+matchLen
-#
-    # possible problem: we do not check if a match is really a 100% match.
-    #if chrom==None:
-        #errAbort("No perfect match found in genome %s. Are you sure you have selected the right genome?" % genome)
-    #else:
-        #return chrom, start, end
+def findBestMatch(genome, batchId):
+    " find best match for input sequence from batchId in genome and return as (chrom, start, end) "
 
-def designPrimer(genome, chrom, start, end, guideStart, batchId):
+    batchBase = join(batchDir, batchId)
+    samFname = batchBase+".input.sam"
+    faFname = batchBase+".input.fa"
+
+    cmd = "BIN/bwa bwasw genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    runCmd(cmd)
+
+    chrom, start, end = None, None, None
+    for l in open(samFname):
+        if l.startswith("@"):
+            continue
+        l = l.rstrip("\n")
+        fs = l.split("\t")
+        qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
+        if (int(flag) and 2) == 2:
+            strand = "-"
+        else:
+            strand = "+"
+        if not re.compile("[0-9]*").match(cigar):
+            continue
+        if cigar=="*":
+            errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
+        matchLen = int(cigar.replace("M","").replace("S", ""))
+        # XX why do we get soft clipped sequences from BWA? repeats?
+        chrom, start, end =  rName, int(pos), int(pos)+matchLen
+        print chrom, start, end, strand
+
+    # possible problem: we do not check if a match is really a 100% match.
+    if chrom==None:
+        errAbort("No perfect match found in genome %s." \
+            "Are you sure you have selected the right genome?" % genome)
+    else:
+        return chrom, start, end, strand
+
+def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
     " create primer for region around chrom:start-end, write output to batch "
     " returns (leftPrimerSeq, lTm, lPos, rightPrimerSeq, rTm, rPos, amplified sequence)" 
     flankStart = start - 1000
@@ -1173,34 +1183,22 @@ def designPrimer(genome, chrom, start, end, guideStart, batchId):
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq
 
-def makePrimers(params):
-    " create primers with primer3 around site identified by pamId in batch with batchId. Output primers as html "
+def primerDetailsPage(params):
+    """ create primers with primer3 around site identified by pamId in batch
+    with batchId. Output primers as html
+    """
     batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
     inSeq, genome, pamSeq = batchParams(batchId)
     seqLen = len(inSeq)
     batchBase = join(batchDir, batchId)
 
-    # retrieve guideSeq + PAM sequence from input sequence
-    # XX guide sequence must not appear twice in there
-    pamFname = batchBase+".fa"
-    pams = parseFasta(pamFname)
-    guideSeq = pams[pamId]
-    guideStrand = pamId[-1]
-    if pamId.endswith("+"):
-        guideSeqPlus = guideSeq
-        guideStart = inSeq.find(guideSeq)
-    else:
-        guideSeqPlus = revComp(guideSeq)
-        guideStart = inSeq.find(guideSeqPlus)
-    guideSeqWPam = inSeq[guideStart:guideStart+len(guideSeq)+len(pam)]
-
     # find position of guide sequence in genome at MM0
     otBedFname = batchBase+".bed"
     otMatches = parseOfftargets(otBedFname)
     if pamId not in otMatches or 0 not in otMatches[pamId]:
-        errAbort("No perfect match found for guide sequence %s in the genome. Are you sure you have selected the right genome? If you have selected the right genome but pasted a cDNA, please note that sequences that overlap a splice site are not part of the genome and cannot be used as guide sequences." % guideSeqWPam)
+        errAbort("No perfect match found for guide sequence in the genome. Are you sure you have selected the right genome? If you have selected the right genome but pasted a cDNA, please note that sequences that overlap a splice site are not part of the genome and cannot be used as guide sequences.")
 
-    matchList = otMatches[pamId][0]
+    matchList = otMatches[pamId][0] # = get all matches with 0 mismatches
     if len(matchList)!=1:
         errAbort("Multiple perfect matches for this guide sequence. Cannot design primer. Please select another guide sequences or email penigault@tefor.net to discuss your strategy or modifications to this software.")
         # XX we could show a dialog: which match do you want to design primers for?
@@ -1210,37 +1208,73 @@ def makePrimers(params):
     start = int(start)
     end = int(end)
 
-    #chrom, start, end = findBestMatch(genome, batchId)
+    # retrieve guideSeq + PAM sequence from input sequence
+    # XX guide sequence must not appear twice in there
+    pamFname = batchBase+".fa"
+    pams = parseFasta(pamFname)
+    guideSeq = pams[pamId]
+    guideStrand = pamId[-1]
+    guideSeqWPam = seq
 
-    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq = designPrimer(genome, chrom, start, end, 0, batchId)
-
-    guideStart = targetSeq.find(guideSeqPlus)
-    guideEnd = guideStart + len(guideSeqPlus)
-
-    if guideStrand=="+":
-        guideStrand = "forward"
+    if strand=="+":
+        guideStart = inSeq.find(guideSeq)
+        highlightSeq = guideSeqWPam
     else:
-        guideStrand = "reverse"
+        guideStart = inSeq.find(revComp(guideSeq))
+        highlightSeq = revComp(guideSeqWPam)
+
+    # matchChrom, matchStart, matchEnd, matchStrand = findBestMatch(genome, batchId)
+
+    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq = \
+        designPrimer(genome, chrom, start, end, strand, 0, batchId)
+
+    guideStart = targetSeq.find(highlightSeq)
+    guideEnd = guideStart + len(highlightSeq)
+
+    #if guideStrand=="+":
+        #guideStrand = "forward"
+    #else:
+        #guideStrand = "reverse"
 
     if not chrom.startswith("ch"):
         chromLong = "chr"+chrom
     else:
         chromLong = chrom
 
-    targetHtml = "<i><u>%s</u></i>" % targetSeq[:len(lSeq)] + " "+ targetSeq[len(lSeq):guideStart] +"<strong>"+ targetSeq[guideStart:guideEnd] + "</strong>"+ targetSeq[guideEnd:len(targetSeq)-len(rSeq)] + \
-        " <i><u>%s</u></i>" % targetSeq[-len(rSeq):] 
+    seqParts = ["<i><u>%s</u></i>" % targetSeq[:len(lSeq)] ] # primer 1
+    seqParts.append("&nbsp;")
+    seqParts.append(targetSeq[len(lSeq):guideStart]) # sequence before guide
+
+    seqParts.append("<strong>") 
+    seqParts.append(targetSeq[guideStart:guideEnd]) # guide sequence including PAM
+    seqParts.append("</strong>")
+
+    seqParts.append(targetSeq[guideEnd:len(targetSeq)-len(rSeq)])# sequence after guide
+
+    seqParts.append("&nbsp;")
+    seqParts.append("<i><u>%s</u></i>" % targetSeq[-len(rSeq):]) # primer 2
+
+    targetHtml = "".join(seqParts)
+
+    # prettify guideSeqWPam to highlight the PAM
+    guideSeqHtml = "%s %s" % (guideSeqWPam[:-len(pam)], guideSeqWPam[-len(pam):])
+
     print '''<div style='width: 80%; margin-left:10%; margin-right:10%; text-align:left;'>'''
-    print "<h3>Validation primers in genome for guide sequence %s (%s strand)</h3>" % (guideSeqWPam, guideStrand)
+    print "<h3>Genome fragment flanking guide sequence %s</h3>" % (guideSeqHtml)
+
+    if strand=="-":
+        print("Your guide sequence is on the reverse strand relative to the genome sequence, so it is reverse complemented in the sequence below.<p>")
+
     print "<strong>Left primer:</strong> %s (Tm: %s)<br>" % (lSeq, lTm)
     print "<strong>Right primer:</strong> %s (Tm: %s)<br>" % (rSeq, rTm)
     print '''<div style='word-wrap: break-word; word-break: break-all;'>'''
-    print "<strong>Wild-type genomic sequence %s:%d-%d including underlined primers:</strong><br> <tt>%s</tt><br>" % (chromLong, start, end, targetHtml)
+    print "<strong>Genomic sequence %s:%d-%d including primers, forward strand:</strong><br> <tt>%s</tt><br>" % (chromLong, start, end, targetHtml)
     print '''</div>'''
     print "<strong>Sequence length:</strong> %d<br>" % (rPos-lPos)
     print "<hr>"
 
     print "<h4>Expression of guide RNA by in vitro transcription with T7 RNA polymerase from plasmid DNA</h4>"
-    print "To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (addgene.org/crispr/empty-grna-vectors/).<br>"
+    print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
     print "For the guide sequences %s, the following primers should be ordered for cloning into the DR274 plasmid generated by the Joung lab<p>" % guideSeqWPam
     if guideSeq.lower().startswith("gg"):
         guideRnaFw = "TA %s" % guideSeq
