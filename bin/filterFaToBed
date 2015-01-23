@@ -28,6 +28,10 @@ def patMatch(seq, pat):
             continue
         if patChar=="K" and nuc in ["T", "G"]:
             continue
+        if patChar=="R" and nuc in ["A", "G"]:
+            continue
+        if patChar=="Y" and nuc in ["C", "T"]:
+            continue
         if patChar!=nuc:
             return False
     return True

@@ -1,4 +1,4 @@
-<div class="footer" id="footer-credits" style='display:none;'>
+<div class="footer" id="footer-credits" style='display:none;background-color:rgba(300,300,300,0.95);border-radius:5px;'>
     <table class="footertable" align="center">
         <tr>
             <td></td>

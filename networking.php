@@ -11,14 +11,18 @@
     <div class="g-plusone" data-href="http://tefor.net/crispor/crispor.cgi" data-size="tall"></div>
     <br>
     <br>
-    <a href="https://twitter.com/share" class="twitter-share-button" data-count="none" data-dnt="true">Tweet</a>
-    <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+    <a href="https://twitter.com/share" 
+       class="twitter-share-button" 
+       data-count="vertical" data-dnt="true">Tweet</a>
+    <script type="text/javascript">
+    window.twttr=(function(d,s,id){var t,js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return}js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);return window.twttr||(t={_e:[],ready:function(f){t._e.push(f)}})}(document,"script","twitter-wjs"));
+    </script>
     <br>
     <br>
     <a target="_blank" href="https://groups.google.com/forum/?hl=en#!forum/crispor">CRISPOR<br>forum</a>
     
     <br>
-    <a href="#footer-credits" onmouseover="$('#footer-credits').show('fast');">
+    <a href="#footer-credits" onclick="$('#footer-credits').fadeToggle('fast');">
         <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
         <br>
         credits
