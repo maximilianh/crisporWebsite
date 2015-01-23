@@ -1358,15 +1358,17 @@ def findBestMatch(genome, seq):
         if cigar=="*":
             return "?"
             #errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
-        matchLen = int(cigar.replace("M","").replace("S", ""))
         # XX why do we get soft clipped sequences from BWA? repeats?
+        cleanCigar = cigar.replace("M","").replace("S", "")
+        if not cleanCigar.isdigit():
+            return "?"
+        matchLen = int(cleanCigar)
         chrom, start, end =  rName, int(pos), int(pos)+matchLen
         #print chrom, start, end, strand
 
-    # possible problem: we do not check if a match is really a 100% match.
-    if chrom==None:
-        errAbort("No perfect match found in genome %s." \
-            "Are you sure you have selected the right genome?" % genome)
+    #if chrom==None:
+        #errAbort("No perfect match found in genome %s." \
+            #"Are you sure you have selected the right genome?" % genome)
 
     # delete the temp files
     tmpSamFh.close()
