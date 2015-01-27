@@ -779,7 +779,9 @@ def printHeader(batchId):
     print '<link rel="stylesheet" type="text/css" href="style/tooltipster-shadow.css" />'
 
     # the UFD combobox, https://code.google.com/p/ufd/wiki/Usage
-    print '<script type="text/javascript" src="js/jquery.ui.ufd.min.js"></script>'
+    # patched to allow mouse wheel
+    # https://code.google.com/p/ufd/issues/detail?id=86&q=mouse%20wheel
+    print '<script type="text/javascript" src="js/jquery.ui.ufd.js"></script>'
     print '<link rel="stylesheet" type="text/css" href="style/ufd-base.css" />'
     print '<link rel="stylesheet" type="text/css" href="style/plain.css" />'
     print '<link rel="stylesheet" type="text/css"  href="http://code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css" />'
