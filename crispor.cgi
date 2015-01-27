@@ -44,7 +44,7 @@ def getParams():
     form = cgi.FieldStorage()
     params = {}
 
-    for key in ["pamId", "batchId", "pam", "seq", "org", "showAll", "download"]:
+    for key in ["pamId", "batchId", "pam", "seq", "org", "showAll", "download", "reload"]:
         val = form.getfirst(key)
 	if val!=None:
             params[key] = val
@@ -78,7 +78,9 @@ def debug(msg):
         print "<br>"
 
 def errAbort(msg):
+    print('<div style="float:left; text-align:left; width: 800px">')
     print(msg+"<p>")
+    print('</div>')
     sys.exit(0)
 
 def matchNuc(pat, nuc):
@@ -171,19 +173,31 @@ def revComp(seq):
     return "".join(newSeq)
 
 def findPams(seq, pam, strand, startDict, endSet):
-    " return two values: dict with pos -> strand of PAM and set of end positions of PAMs"
+    """ return two values: dict with pos -> strand of PAM and set of end positions of PAMs
+    Makes sure to return only values with at least 20 bp left (if strand "+") or to the 
+    right of the match (if strand "-")
+    >>> findPams("GGGGGGGGGGGGGGGGGGGGGGG", "NGG", "+", {}, set())
+    ({20: '+'}, set([23]))
+    >>> findPams("CCAGCCCCCCCCCCCCCCCCCCC", "CCA", "-", {}, set())
+    ({0: '-'}, set([3]))
 
-    minPos = 20
-    maxPos = len(seq)-(20+len(pam))
+    """
+
+    # -------------------
+    #          OKOKOKOKOK
+    minPosPlus  = 20
+    # -------------------
+    # OKOKOKOKOK
+    maxPosMinus = len(seq)-(20+len(pam))
 
     #print "new search", seq, pam, "<br>"
     for start in findPat(seq, pam):
         # need enough flanking seq on one side
         #print "found", start,"<br>"
-        if strand=="+" and start<=minPos:
+        if strand=="+" and start<minPosPlus:
             #print "no, out of bounds +", "<br>"
             continue
-        if strand=="-" and start>=maxPos:
+        if strand=="-" and start>maxPosMinus:
             #print "no, out of bounds, -<br>"
             continue
             
@@ -713,11 +727,12 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
         print "<td>"
         print otDesc
         #otCount = sum([int(x) for x in otDesc.split("/")])
-        otCount = len(posList)
-        print "<br><small>%d off-targets</small>" % otCount
         if posList==None:
             # no genome match
             htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences<br>This warning also occurs if you have selected the wrong genome.")
+        else:
+            otCount = len(posList)
+            print "<br><small>%d off-targets</small>" % otCount
         print "</td>"
 
         # mismatch description, last 12 bp
@@ -805,6 +820,11 @@ def printHeader(batchId):
             border:1px solid #cccccc;
             }
             </style>""")
+
+    print '<style>'
+    print 'body { text-align: left; float: left} '
+    print '</style>'
+
     print("</head>")
 
     print'<body id="wrapper"'
@@ -857,6 +877,7 @@ def distrOnLines(seq, startDict, featLen):
             startFt = start - 3
             endFt = end
         else:
+            #print seq, end, "<br>"
             label = '%s..%s'%(ftSeq, seq[end+2].lower())
             startFt = start
             endFt = end + 3
@@ -1010,7 +1031,7 @@ def readGenomes():
 def printOrgDropDown(lastorg):
     " print the organism drop down box "
     genomes = readGenomes()
-    print '<select id="genomeDropDown" class style="width:350; max-width:400px; float:left" name="org" tabindex="2">'
+    print '<select id="genomeDropDown" class style="float:left" name="org" tabindex="2">'
     for db, desc in genomes:
         print '<option '
         if db == lastorg :
@@ -1019,7 +1040,7 @@ def printOrgDropDown(lastorg):
     print "</select>"
     print ('''
       <script type="text/javascript">
-      $("#genomeDropDown").ufd();
+      $("#genomeDropDown").ufd({maxWidth:350, listWidthFixed:false});
       </script>''')
     print ('''<br>''')
 
@@ -1135,7 +1156,7 @@ def batchParams(batchId):
 
 def crisprSearch(params):
     " do crispr off target search "
-    if "batchId" in params:
+    if "batchId" in params and not "reload" in params:
         # if we're getting only the batchId, extract the parameters from the batch
         # this allows a stable link to a batch that is done
         seq, org, pam, position = batchParams(params["batchId"])
@@ -1145,7 +1166,10 @@ def crisprSearch(params):
         if position==None:
             position = findBestMatch(org, seq)
     else:
-        seq, org, pam = params["seq"], params["org"], params["pam"]
+        if "reload" in params:
+            seq, org, pam, position = batchParams(params["batchId"])
+        else:
+            seq, org, pam = params["seq"], params["org"], params["pam"]
         batchId = makeTempBase(seq, org, pam)
 
         position = findBestMatch(org, seq)
@@ -1198,7 +1222,7 @@ def crisprSearch(params):
     else:
         print "<div class='title'>Query sequence, not present in the genome of %s</div>" % dbInfo.scientificName
         print "<div class='substep'>"
-        print "<em>Note: The query sequence was not found in the selected genome."
+        print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
         print "This can be a valid query, e.g. a GFP sequence.<br>"
         print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
         print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<p>"
@@ -1212,10 +1236,10 @@ def crisprSearch(params):
 
     guideData, guideScores, hasNotFound = scoreGuides(seq, startDict, pam, otMatches, position)
 
-    if hasNotFound:
-        print("<strong>Warning:</strong> At least one of the PAM-flanking sequences was not found in the genome.<br>")
-        print("Did you select the right genome? <br>")
-        print("If you pasted a cDNA sequence, note that sequences with score 0 are not in the genome, only in the cDNA and are not usable as CRISPR guides.<br>")
+    if hasNotFound and not position=="?":
+        print('<div style="text-align:left"><strong>Warning:</strong> At least one of the PAM-flanking sequences was not found in the genome.<br>')
+        #print("Did you select the right genome? <br>")
+        print("If you pasted a cDNA sequence, note that sequences with score 0 are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
 
     showSeqAndPams(caseSeq, lines, maxY, pam, guideScores)
 
@@ -1257,13 +1281,15 @@ def printTeforBodyEnd():
 
 def downloadFile(params):
     " "
-    #print "Content-type: application/octet-stream\n"
-    print "Content-Disposition: attachment; filename=\"offtargets.xls\""
+    print "Content-type: text/html"
+    #print "Content-Disposition: attachment; filename=\"offtargets.xls\""
     print "" # = end of http headers
     if params["download"]=="offtargets":
         fname = join("temp", params["batchId"]+".bed")
-        for line in open(fname):
-            print line,
+        otMatches = parseOfftargets(fname)
+        seq, org, pam, position = batchParams(params["batchId"])
+        print otMatches
+        #for line in open(fname):
 
 def printBody(params):
     " main dispatcher function "
@@ -1415,7 +1441,7 @@ def primerDetailsPage(params):
     otBedFname = batchBase+".bed"
     otMatches = parseOfftargets(otBedFname)
     if pamId not in otMatches or 0 not in otMatches[pamId]:
-        errAbort("No perfect match found for guide sequence in the genome. Are you sure you have selected the right genome? If you have selected the right genome but pasted a cDNA, please note that sequences that overlap a splice site are not part of the genome and cannot be used as guide sequences.")
+        errAbort("No perfect match found for guide sequence in the genome. Cannot design primers for a non-matching guide sequence.<p>Are you sure you have selected the right genome? <p> If you have selected the right genome and entered a cDNA as the query sequence, please note that sequences that overlap a splice site are not part of the genome and cannot be used as guide sequences.")
 
     matchList = otMatches[pamId][0] # = get all matches with 0 mismatches
     if len(matchList)!=1:
@@ -1693,11 +1719,13 @@ def runTests():
     guideSeq = "GAGTCCGAGCAGAAGAAGAA"
     for seq, expScore in testRes2.iteritems():
         score = calcHitScore(guideSeq, seq)
-        print score, "%0.1f" % score, expScore
+        #print score, "%0.1f" % score, expScore
     
 def main():
     if len(sys.argv)!=1:
         runTests()
+        import doctest
+        doctest.testmod()
         sys.exit(0)
 
     cgitb.enable()
