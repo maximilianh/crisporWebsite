@@ -4,15 +4,18 @@
 # similar to gawk 'BEGIN {OFS="\t"; FS="\t"} {strand="+"; if (and($2,16)==16) {strand="-"}; print $3,$4,$4+20,$1,strand}'
 # but will extend the end or start by pamlen
 
-# one parameter is length of PAM site to extract
+# first arg is length of PAM site to extract
+# second arg is maximum value of the X1 tag
 
 import sys
 pamLen = int(sys.argv[1])
+maxX1 = int(sys.argv[2])
 
 # example input:
 # t5    272 chrIII  12975327    0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5
 # t5  272 chrIII  6585026 0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5
 # t5  256 chrIV   4450550 0   20M *   0   0   TGCTCGATTATGGTGAGTAG    *   NM:i:5
+# s87+    0   chr8    35976504    0   20M *   0   0   TGCTTTTTACTTCACTGTGA    *   XT:A:R  NM:i:0  X0:i:2  X1:i:10622  XM:i:0  XO:i:0  XG:i:0  MD:Z:20
 
 import sys
 
@@ -24,6 +27,20 @@ for line in sys.stdin:
     qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
     pos = int(pos)
 
+    # parse tags: skip line if too many matches and extract mismatch count
+    skipLine = False
+    tags = fs[11:]
+    for t in tags:
+        tagName, dType, val = t.split(":")
+        if tagName=="X1" and int(val)>maxX1:
+            skipLine = True
+            break
+        if tagName=="NM":
+            mmCount = val
+
+    if skipLine:
+        continue
+
     strand = "+"
     if (int(flag) & 16) == 16:
         #print "on neg strand"
@@ -34,21 +51,6 @@ for line in sys.stdin:
     startPos = pos-1
     endPos = startPos+20
 
-    # no idea why
-    #print "strand", strand
-    #if strand=="-":
-        #print "increasing start"
-        #endPos = endPos-1
-    #else:
-        #print "decreasing end"
-        #endPos -= 1
-    # end no idea why
-
-    tags = fs[11:]
-
-    for t in tags:
-        if t.startswith("NM:i:"):
-            editDist = t.split(":")[-1]
             
     if strand=="+":
         endPos += pamLen
@@ -58,10 +60,10 @@ for line in sys.stdin:
     if startPos < 0:
         continue
 
-    nameInfo = [qName, rName, str(startPos), str(endPos), strand, editDist]
+    nameInfo = [qName, rName, str(startPos), str(endPos), strand, mmCount]
     name = "|".join(nameInfo)
 
-    row = [rName, str(startPos), str(endPos), name, editDist, strand]
+    row = [rName, str(startPos), str(endPos), name, mmCount, strand]
     print "\t".join(row)
 
 

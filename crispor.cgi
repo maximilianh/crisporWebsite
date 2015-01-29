@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-import subprocess, tempfile
-import Cookie, time, math
-import cgitb
-
-
 # main script of the tefor crispr tool
 # not broken into submodules to make installation easier
 
 # cleaning things todo:
-# - maybe: make temp subdirectories instead of many files with identical name
+# - not urgent: make temp subdirectories instead of many files with identical name
+
+import subprocess, tempfile, optparse, logging, atexit, glob
+import Cookie, time, math
+import cgitb
+
 
 import sys, cgi, re, array, random, platform, os, hashlib, base64, string, logging, operator, urllib
 from collections import defaultdict, namedtuple
@@ -21,11 +21,17 @@ DEBUG = False
 # the segments.bed files use abbreviated genomic region names
 segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 
-# directory where processed batches of offtargets are stored ("cache" of bwa results)
-batchDir = "temp"
+# directory of crispor.cgi
+baseDir = dirname(__file__)
+# directory for processed batches of offtargets ("cache" of bwa results)
+batchDir = join(baseDir,"temp")
+# directory for platform-independent scripts (e.g. Heng Li's perl SAM parser)
+scriptDir = join(baseDir, "bin")
+# directory for helper binaries (e.g. BWA)
+binDir = join(baseDir, "bin", platform.system())
 
 DEFAULTORG = 'ensDanRer'
-DEFAULTSEQ = 'CCAATCAGGTCCCTCCCTACCTCAGATCGCAGCTATAATACATAGGAGTAAAGAGGCTTCTCGCATTAAGTGGCTGTGGCTTGAAGTAACGTTGTGATTTCGAGGTCAGTCTTACCTTTCGCATCCCCGCCGCAAACCTCCGATGCGTTATCAGTCGCACGTTTCCGCACCTGTCACGGTCGGGGCTTGGCGCTGCTGAGGGACACGCGTGAACCGAGGAGACGGCAAGGACATCGCCGGAGATCCGCGCCTCGACAACGAGAAACCCTGCTAGACAGACCGCTCGAGAACACCGCAGCGAGATTCAGCGTGCGGCAAAATGCGGCTTTTGACGAGAGTGCTGCTGGTGTCTCTTCTCACTCTGTCCTTGGTGGTGTCCGGACTGGCCTGCGGTCCTGGCAGAGGCTACGGCAGAAGAAGACATCCGAAGAAGCTGACACCTCTCGCCTACAAGCAGTTCATACCTAATGTCGCGGAGAAGACCTTAGGGGCCAGCGGCAGATACGAGGGCAAGATAACGCGCAATTCGGAGAGATTTAAAGAACTTACTCCAAATTATAATCCCGACATTATCTTTAAGGATGAGGAGAACACGGGAGCGGACAGGCTCATGACACAG'
+DEFAULTSEQ = 'CCAATCAGGTCCCTCCCtacctcagatcgCAGCTATAATACATAGGAGTaaagaggcttCTCGCATTAAGTGGCTGTGGCTTGAAGTAACGTTGTGATTTCGAGGTCAGTCTTACCTTTCGCATCCCCGCCGCAAACCTCCGATGCGTTATCAGTCGCACGTTTCCGCACCTGTCACGGTCGGGGCTTGGCGCTGCTGAG'
 
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
@@ -39,12 +45,15 @@ DEFAULTPAM = 'NGG'
 # this is done by MIT and eCrisp
 offtargetPams = {"NGG" : "NRG"}
 
+# global flag to indicate if we're run from command line or as a CGI
+isCli = False
+
 def getParams():
     " get CGI parameters and return as dict "
     form = cgi.FieldStorage()
     params = {}
 
-    for key in ["pamId", "batchId", "pam", "seq", "org", "showAll", "download", "reload"]:
+    for key in ["pamId", "batchId", "pam", "seq", "org", "showAll", "download", "sortBy"]:
         val = form.getfirst(key)
 	if val!=None:
             params[key] = val
@@ -73,15 +82,21 @@ def saveSeqOrgPamToCookies(seq, org, pam):
     print cookies
 
 def debug(msg):
-    if DEBUG:
+    if isCli:
+        logging.debug(msg)
+    elif DEBUG:
         print msg
         print "<br>"
 
 def errAbort(msg):
+    " print err msg and exit "
+    if isCli:
+        raise Exception(msg)
+
     print('<div style="float:left; text-align:left; width: 800px">')
     print(msg+"<p>")
     print('</div>')
-    sys.exit(0)
+    sys.exit(0)  # cgi must not exit with 1
 
 def matchNuc(pat, nuc):
     " returns true if pat (single char) matches nuc (single char) "
@@ -217,17 +232,19 @@ def rulerString(maxLen):
         texts.append(spacer)
     return "".join(texts)
 
-def showSeqAndPams(seq, lines, maxY, pam, guideScores):
-    " show the sequence and the PAM sites underneath as a sequence viewer "
+def showSeqAndPams(seq, startDict, pam, guideScores):
+    " show the sequence and the PAM sites underneath in a sequence viewer "
+    lines, maxY = distrOnLines(seq.upper(), startDict, len(pam))
+
     print "<div class='substep'>"
     print '<a id="seqStart"></a>'
-    print "There are %d possible guide sequences. Click on a PAM (%s) match to show its guide sequence.<br>" % (len(guideScores), pam)
-    print "Shown below are the matches and the nucleotide 3' to corresponding cleavage site<br>"
+    print "Found %d possible guide sequences. Query sequence length %d bp. Click on a PAM (%s) match to show its guide sequence.<br>" % (len(guideScores), len(seq), pam)
+    print "Shown below are the matches and the nucleotides 3' of the cleavage sites.<br>"
     print '''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #ddd">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #ddd">yellow</span> and <span style="text-shadow: 1px 1px 1px #ddd; color:#aa0114">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.'''
     print "</div>"
     print '''<div style="text-align: left; overflow-x:scroll; width:100%; background:#DDDDDD; border-style: solid; border-width: 1px">'''
 
-    print '<pre style="display:inline; line-height: 0.9em; text-align:left">'+rulerString(len(seq))
+    print '<pre style="font-size: 80%; display:inline; line-height: 0.95em; text-align:left">'+rulerString(len(seq))
     print seq
 
     for y in range(0, maxY+1):
@@ -306,7 +323,7 @@ def makeAlnStr(seq1, seq2, pam, score):
     lines[1].append(" <i>"+seq2[-len(pam):]+"</i>")
     #lines[1].append("<i>"+seq2[i:i+3]+"</i>")
     lines = ["".join(l) for l in lines]
-    htmlText = "<pre>guide:      %s<br>off-target: %s<br>            %s</pre>Off-target score: %.2f<br>" % (lines[0], lines[1], lines[2], score)
+    htmlText = "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>Off-target score: %.2f<br></small>" % (lines[0], lines[1], lines[2], score)
     hasLast12Mm = last12MmCount>0
     return htmlText, hasLast12Mm
         
@@ -322,7 +339,7 @@ def makeAlnStr(seq1, seq2, pam, score):
 
 def parsePos(text):
     " parse a string of format chr:start-end:strand and return a 4-tuple "
-    if len(text)!=0 and text!="?":
+    if text!=None and len(text)!=0 and text!="?":
         chrom, posRange, strand = text.split(":")
         start, end = posRange.split("-")
         start, end = int(start), int(end)
@@ -340,13 +357,12 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     of the guide sequence (calculated using all offtargets).
     """
     inChrom, inStart, inEnd, inStrand = parsePos(inputPos)
-    # one desc in last column per OT seq
-    #countDict = otMatches[pamId]
     count = 0
     otCounts = []
     posList = []
     scores = []
     last12MmCounts = []
+    ontargetDesc = ""
 
     # for each edit distance, get the off targets and iterate over them
     for editDist in range(0, 5):
@@ -360,20 +376,23 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         otCount = 0
         for chrom, start, end, otSeq, strand, segType, geneNameStr in matches:
             # skip on-targets
-            if editDist==0 and chrom==inChrom and start >= inStart and end <= inEnd:
-                continue
-            otCount += 1
-            posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
             segTypeDesc = segTypeConv[segType]
             geneDesc = segTypeDesc+":"+geneNameStr
             geneDesc = geneDesc.replace("|", "-")
+
+            if editDist==0 and chrom==inChrom and start >= inStart and end <= inEnd:
+                ontargetDesc = geneDesc
+                continue
+
+            otCount += 1
             score = calcHitScore(guideSeq[:20], otSeq[:20])
             scores.append(score)
 
             alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, score)
             if not hasLast12Mm:
                 last12MmOtCount+=1
-            posList.append( (score, editDist, posStr, geneDesc, alnHtml) )
+            posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
+            posList.append( (otSeq, score, editDist, posStr, geneDesc, alnHtml) )
 
         last12MmCounts.append(str(last12MmOtCount))
         # create a list of number of offtargets for this edit dist
@@ -385,7 +404,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     otDescStr = "/".join(otCounts)
     last12DescStr = "/".join(last12MmCounts)
 
-    return posList, otDescStr, guideScore, last12DescStr
+    return posList, otDescStr, guideScore, last12DescStr, ontargetDesc
 
 # --- START OF SCORING ROUTINES 
 
@@ -579,8 +598,10 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
             #print name, seq, restrSite, findSite(seq, restrSite), "<br>"
     return matches
 
-def scoreGuides(seq, startDict, pamPat, otMatches, inputPos):
-    " for each pam in startDict, retrieve the guide sequence next to it and score it "
+def scoreGuides(seq, startDict, pamPat, otMatches, inputPos, sortBy=None):
+    """ for each pam in startDict, retrieve the guide sequence next to it and score it 
+    sortBy can be "effScore" 
+    """
     allEnzymes = readEnzymes()
 
     guideData = []
@@ -598,7 +619,8 @@ def scoreGuides(seq, startDict, pamPat, otMatches, inputPos):
         if pamId in otMatches:
             guideSeqFull = guideSeq + pamSeq
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq)
-            posList, otDesc, guideScore, last12Desc = makePosList(otMatches[pamId], guideSeqFull, pamPat, inputPos)
+            posList, otDesc, guideScore, last12Desc, ontargetDesc =\
+                makePosList(otMatches[pamId], guideSeqFull, pamPat, inputPos)
             effScore = calcDoenchScoreFromSeqPos(startPos, seq, len(pamPat), strand)
         else:
             posList, otDesc, guideScore = None, "No match. Incorrect genome or cDNA?", 0
@@ -606,31 +628,51 @@ def scoreGuides(seq, startDict, pamPat, otMatches, inputPos):
             effScore = 0
             hasNotFound = True
             mutEnzymes = []
-        guideData.append( (guideScore, effScore, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes) )
+            ontargetDesc = ""
+        guideData.append( (guideScore, effScore, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc) )
         guideScores[pamId] = guideScore
 
-    guideData.sort(reverse=True)
+    if sortBy == "effScore":
+        sortCol = 1
+    else:
+        sortCol = 0
+    guideData.sort(reverse=True, key=operator.itemgetter(sortCol))
+
     #guideData.sort(reverse=True, key=lambda row: 3*row[0]+row[1])
     return guideData, guideScores, hasNotFound
 
-def printTableHead():
+def printDownloadTableLinks(batchId):
+    print '<div style="text-align:right">'
+    print '<small>'
+    print "Download tables (TSV): "
+    print '<a href="crispor.cgi?batchId=%s&download=guides">Guides</a>&nbsp;' % batchId
+    print '<a href="crispor.cgi?batchId=%s&download=offtargets">Off-targets</a>' % batchId
+    print '</small>'
+    print '</div>'
+
+def printTableHead(batchId):
     " print guide score table description and columns "
     # one row per guide sequence
-    print '''<div class='substep'>Ranked from highest to lowest specificity score determined as in <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a> and on <a href="http://crispr.mit.org">http://crispr.mit.org</a>. <br>Also provided are efficacy scores, see <a href="http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html">Doench et al.</a> and GC content, see <a href="http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4">Ren et al.</a><br></div>'''
+    print '''<div class='substep'>Ranked by default from highest to lowest specificity score determined as in <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a> and on <a href="http://crispr.mit.org">http://crispr.mit.org</a>.'''
+    print '''<br>Also provided are efficacy scores, see <a href="http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html">Doench et al.</a> and GC content, see <a href="http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4">Ren et al.</a> Click on column title to rank by efficacy score.<br></div>'''
+
+    printDownloadTableLinks(batchId)
+
     print '<table id="otTable">'
     print '<tr style="border-left:5px solid black">'
     
     print '<th>Position/<br>Strand'
+    htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
     print '<th style="width:170px">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
-    htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap the position 3bp 5' to the PAM <br> and will usually be inactivated if the DNA was cut by Cas9.")
+    htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap the position 3bp 5' to the PAM <br> and will usually be inactivated if the DNA was cut by Cas9.<br>The list of enzymes was kindly provided by New England Biolabs France.")
 
-    print '<th>Specificity Score'
+    print '<th><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
     htmlHelp("The specificity score measure the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely are off-target effects. See Hsu et al.")
     print "</th>"
 
-    print '<th>Efficacy Score'
+    print '<th><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
     htmlHelp("The efficacy score predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting. For details see Doench et al.")
     print "</th>"
 
@@ -640,8 +682,8 @@ def printTableHead():
 
     print '<th>Off-targets for 0,1,2,3,4 mismatches</th>'
 
-    print '<th>Off-targets with no mismatches adjacent to PAM</i>'
-    htmlHelp("Off-targets with all mismatches located in the 8 bp at the five-prime end of the guide RNA sequences.<br> Because these potential off-targets have no mismatches in the 12 bp <br>adjacent to the PAM, they are thought to have a higher probability of being cut.")
+    print '<th>Off-targets with no mismatches next to PAM</i>'
+    htmlHelp("These potential off-targets have no mismatches in the 12 bp <br>adjacent to the PAM, they are the most likely off-targets.")
     print "</th>"
 
     print '<th>Genome Browser links to matches sorted by off-target score'
@@ -660,12 +702,12 @@ def scoreToColor(guideScore):
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
-    printTableHead()
+    printTableHead(batchId)
 
     count = 0
     for guideRow in guideData:
-        guideScore, effScore, startPos, strand, pamId, \
-            guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes = guideRow
+        guideScore, effScore, startPos, strand, pamId, guideSeq, \
+            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc = guideRow
 
         color = scoreToColor(guideScore)
         print '<tr id="%s" style="border-left: 5px solid %s">' % (pamId, color)
@@ -694,7 +736,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
         print "<br>"
 
         scriptName = basename(__file__)
-        if posList!=None:
+        if otData!=None:
             print '<a href="%s?batchId=%s&pamId=%s&pam=%s">Primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
         print "</small>"
         print "</td>"
@@ -727,11 +769,11 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
         print "<td>"
         print otDesc
         #otCount = sum([int(x) for x in otDesc.split("/")])
-        if posList==None:
+        if otData==None:
             # no genome match
             htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences<br>This warning also occurs if you have selected the wrong genome.")
         else:
-            otCount = len(posList)
+            otCount = len(otData)
             print "<br><small>%d off-targets</small>" % otCount
         print "</td>"
 
@@ -742,15 +784,15 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
 
         # links to offtargets
         print "<td><small>"
-        if posList!=None:
+        if otData!=None:
             i = 0
-            for score, editDist, pos, gene, alnHtml in posList:
+            for otSeq, score, editDist, pos, gene, alnHtml in otData:
                 print '''%d:''' % (int(editDist))
                 printBrowserLink(dbInfo, pos, gene, alnHtml)
                 i+=1
                 if i==3 and not showAll:
                     break
-            if not showAll and len(posList)>3:
+            if not showAll and len(otData)>3:
                  print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.cgi?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
 
         print "</small></td>"
@@ -759,6 +801,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
         count = count+1
 
     print "</table>"
+    printDownloadTableLinks(batchId)
 
     #print '''<a style="text-align:right" href="http://tefor.net/crispor/download.php?batchId=%s&amp;seq=%s&amp;org=%s&amp;pam=%s&amp;pamId=%s">
                     #<img style="width:20px;vertical-align:middle"
@@ -783,6 +826,7 @@ def printHeader(batchId):
                $(function () {
                   $(document).tooltip({
                   relative : true,
+                  tooltipClass : "alignStyle",
                   content: function () {
                   return $(this).prop('title');
                   }
@@ -809,16 +853,17 @@ def printHeader(batchId):
        speed : 0
         }); }); </script> """)
 
-    # activate Jquery UI tooltips
+    # style of Jquery UI tooltips, default style is div.ui-tooltip
     print("""<style>
-        .ui-tooltip {
+        .alignStyle {
             background-color: #FFFFFF;
-            width: 400;
-            height: 110;
+            width: 350px;
+            max-width: 400px;
+            height: 110px;
             position : absolute;
             text-align: left;
             border:1px solid #cccccc;
-            }
+        }
             </style>""")
 
     print '<style>'
@@ -827,13 +872,8 @@ def printHeader(batchId):
 
     print("</head>")
 
-    print'<body id="wrapper"'
+    print'<body id="wrapper">'
     
-    if batchId is not None:
-        print '''
-        onload="history.pushState('crispor/crisporDev.cgi', document.title, '?batchId=%s');"
-        ''' % (batchId)
-    print'>'
     print "<div id='fb-root'></div>"
     print('<script src="http://tefor.net/crispor/facebooklike.js"></script>')    
 
@@ -908,18 +948,10 @@ def writePamFlank(seq, startDict, pam, faFname):
 
 def runCmd(cmd):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
-    sysId = platform.system()
-    binDir = "bin/"+sysId
-    scriptDir = "bin"
-    if __file__.endswith("Dev.cgi"):
-        scriptDir = "binDev"
-
     cmd = cmd.replace("BIN", binDir)
     cmd = cmd.replace("SCRIPT", scriptDir)
     cmd = "set -o pipefail; " + cmd
     debug("Running %s" % cmd)
-    #print cmd
-    #ret = os.system(cmd)
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
     if ret!=0:
         print "Server error: could not run command %s.<p>" % cmd
@@ -967,14 +999,24 @@ def parseOfftargets(bedFname):
 
     return indexedOts
 
-def findOfftargets(faFname, genome, pam, bedFname):
+def runBwa(faFname, genome, pam, bedFname, batchBase):
     " search fasta file against genome, filter for pam matches and write to bedFName "
+    maxOcc = 200000
+
     pamLen = len(pam)
     # potentially use a PAM for OTs that is different from the guide PAM
     pam = offtargetPams.get(pam, pam)
 
-    cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 -m 1000000000 genomes/%(genome)s/%(genome)s.fa %(faFname)s | BIN/bwa samse -n 100000000000 genomes/%(genome)s/%(genome)s.fa /dev/stdin %(faFname)s  | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | BIN/bedClip stdin genomes/%(genome)s/%(genome)s.sizes stdout | BIN/twoBitToFa genomes/%(genome)s/%(genome)s.2bit stdout -bed=stdin | SCRIPT/filterFaToBed %(pam)s | BIN/overlapSelect genomes/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> /tmp/log > %(bedFname)s " % locals()
-    #cmd = "echo mainScript > /tmp/log"
+    saFname = batchBase+".sa"
+
+    cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+    runCmd(cmd)
+
+    matchesBedFname = batchBase+".matches.bed"
+    cmd = "BIN/bwa samse -n %(maxOcc)d genomes/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)s | BIN/bedClip stdin genomes/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
+    runCmd(cmd)
+
+    cmd = "BIN/twoBitToFa genomes/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(pam)s | BIN/overlapSelect genomes/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
     runCmd(cmd)
 
 transTab = string.maketrans("-=/+_", "abcde")
@@ -1031,17 +1073,17 @@ def readGenomes():
 def printOrgDropDown(lastorg):
     " print the organism drop down box "
     genomes = readGenomes()
-    print '<select id="genomeDropDown" class style="float:left" name="org" tabindex="2">'
+    print '<select id="genomeDropDown" class style="float:left; max-width:350px" name="org" tabindex="2">'
     for db, desc in genomes:
         print '<option '
         if db == lastorg :
             print 'selected '
         print 'value="%s">%s</option>' % (db, desc)
     print "</select>"
-    print ('''
-      <script type="text/javascript">
-      $("#genomeDropDown").ufd({maxWidth:350, listWidthFixed:false});
-      </script>''')
+    #print ('''
+      #<script type="text/javascript">
+      #$("#genomeDropDown").ufd({maxWidth:350, listWidthFixed:false});
+      #</script>''')
     print ('''<br>''')
 
 def printPamDropDown(lastpam):        
@@ -1093,10 +1135,11 @@ def printForm(params):
        Submit a single sequence for guide RNA identification and analysis
     </div>
 
-    <textarea tabindex="1" style="width:100%%;" name="seq" rows="10"
+    <textarea tabindex="1" style="width:100%%" name="seq" rows="10"
               placeholder="Enter the sequence of the gene you want to target - example: %s">
     %s
     </textarea>
+    <div style="text-align:left"><small>Text case is preserved, e.g. you can mark ATGs with lowercase letters.</small></div>
     <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such as ATG or STOP codons)</div>
 
     <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" tabindex="4"/>
@@ -1113,7 +1156,7 @@ def printForm(params):
     """% (scriptName,lastseq,lastseq)
 
     printOrgDropDown(lastorg)
-    print '<small style="float:left">Type a species name to search for it</small>'
+    #print '<small style="float:left">Type a species name to search for it</small>'
 
     print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
 To add your genome of interest to the list, contact CRISPOR web site manager
@@ -1137,12 +1180,17 @@ To add your genome of interest to the list, contact CRISPOR web site manager
 </form>
     """
 
-def batchParams(batchId):
+def readBatchParams(batchId):
     """ given a batchId, return the genome, the pam, the input sequence and the
     chrom pos. Returns None for pos if not found. """
 
     batchBase = join(batchDir, batchId)
     faFname = batchBase+".input.fa"
+    if not isfile(faFname):
+        errAbort('Could not find the batch %s. We cannot keep Crispor runs for more than '
+                'a few months. Please resubmit your input sequence via'
+            ' <a href="crispor.cgi">the query input form</a>' % batchId)
+            
     ifh = open(faFname)
     ifhFields = ifh.readline().replace(">","").strip().split()
     if len(ifhFields)==2:
@@ -1150,57 +1198,58 @@ def batchParams(batchId):
         position = None
     else:
         genome, pamSeq, position = ifhFields
+
     inSeq = ifh.readline().strip()
     ifh.close()
+
+    # some older batch files don't include a position
+    if position==None:
+        position = findBestMatch(genome, inSeq)
+
     return inSeq, genome, pamSeq, position
 
-def crisprSearch(params):
-    " do crispr off target search "
-    if "batchId" in params and not "reload" in params:
-        # if we're getting only the batchId, extract the parameters from the batch
-        # this allows a stable link to a batch that is done
-        seq, org, pam, position = batchParams(params["batchId"])
-        batchId = params["batchId"]
-        batchBase = join(batchDir, batchId)
-        # older batch files don't include the position
-        if position==None:
-            position = findBestMatch(org, seq)
-    else:
-        if "reload" in params:
-            seq, org, pam, position = batchParams(params["batchId"])
-        else:
-            seq, org, pam = params["seq"], params["org"], params["pam"]
-        batchId = makeTempBase(seq, org, pam)
+def findAllPams(seq, pam):
+    """ find all matches for PAM and return as dict startPos -> strand and a set
+    of end positions 
+    """
+    startDict, endSet = findPams(seq, pam, "+", {}, set())
+    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
+    return startDict, endSet
 
-        position = findBestMatch(org, seq)
+def newBatch(seq, org, pam):
+    " obtain a batch ID and write seq/org/pam to their files "
+    batchId = makeTempBase(seq, org, pam)
+    position = findBestMatch(org, seq)
+    # define temp file names
+    batchBase = join(batchDir, batchId)
+    # save input seq, pamSeq, genome, position for primer design later
+    inputFaFname = batchBase+".input.fa"
+    open(inputFaFname, "w").write(">%s %s %s\n%s\n" % (org, pam, position, seq))
+    print inputFaFname
+    return batchId, position
 
-        # define temp file names
-        batchBase = join(batchDir, batchId)
-        #print "<!-- BATCH ID %s -->" % batchId
-
-        # save input seq, pamSeq, genome, position for primer design later
-        inputFaFname = batchBase+".input.fa"
-        open(inputFaFname, "w").write(">%s %s %s\n%s\n" % (org, pam, position, seq))
-
-    showAll = (params.get("showAll", 0)=="1")
-
-    # read genome info tab file
+def readDbInfo(org):
+    " return a dbInfo object with the columsn in the genomeInfo.tab file "
     myDir = dirname(__file__)
     genomesDir = join(myDir, "genomes")
     infoFname = join(genomesDir, org, "genomeInfo.tab")
     dbInfo = lineFileNext(open(infoFname)).next()
+    return dbInfo
 
-    caseSeq, userMsg = cleanSeq(seq)
-    seq = caseSeq.upper()
-    if len(userMsg)!=0:
-        print userMsg
+def printQueryNotFoundNote(dbInfo):
+    print "<div class='title'>Query sequence, not present in the genome of %s</div>" % dbInfo.scientificName
+    print "<div class='substep'>"
+    print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
+    print "This can be a valid query, e.g. a GFP sequence.<br>"
+    print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
+    print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<p>"
+    print "</em></div>"
 
-    # search pams
-    startDict, endSet = findPams(seq, pam, "+", {}, set())
-    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
-
-    # write guides to fasta and run bwa
-    faFname = batchBase+".fa"
+def getOfftargets(seq, org, pam, batchId, startDict):
+    """ write guides to fasta and run bwa or use older cached results.
+    Return name of the BED file with the matches.
+    """
+    batchBase = join(batchDir, batchId)
     otBedFname = batchBase+".bed"
     flagFile = batchBase+".running"
 
@@ -1209,46 +1258,68 @@ def crisprSearch(params):
            "and try again, e.g. by reloading this page. If you see this message for "
            "more than 1-2 minutes, please email penigault@tefor.net")
 
-    if not isfile(otBedFname):
-        # write potential PAM sites to file
+    if not isfile(otBedFname) or isCli:
+        # write potential PAM sites to file and run BWA
+        faFname = batchBase+".fa"
         writePamFlank(seq, startDict, pam, faFname)
-        findOfftargets(faFname, org, pam, otBedFname)
+        runBwa(faFname, org, pam, otBedFname, batchBase)
+    return otBedFname
 
-    if position!='?':
+def crisprSearch(params):
+    " do crispr off target search "
+    if "batchId" in params:
+        # if we're getting only the batchId, extract the parameters from the batch
+        # this allows a stable link to a batch that is done
+        batchId = params["batchId"]
+        seq, org, pam, position = readBatchParams(batchId)
+        seq, warnMsg = cleanSeq(seq)
+    else:
+        #if "reload" in params:
+            #seq, org, pam, position = readBatchParams(params["batchId"])
+        #else:
+        seq, org, pam = params["seq"], params["org"], params["pam"]
+        seq, warnMsg = cleanSeq(seq)
+        batchId, position = newBatch(seq, org, pam)
+        print ("<script>")
+        print ('''history.replaceState('crispor.cgi', document.title, '?batchId=%s');''' % (batchId))
+        print ("</script>")
+
+    if len(warnMsg)!=0:
+        print warnMsg
+
+    batchBase = join(batchDir, batchId)
+
+    # read genome info tab file
+    dbInfo = readDbInfo(org)
+
+    # search PAMs
+    uppSeq = seq.upper()
+    startDict, endSet = findAllPams(uppSeq, pam)
+    otBedFname = getOfftargets(uppSeq, org, pam, batchId, startDict)
+
+    if position=='?':
+        printQueryNotFoundNote(dbInfo)
+    else:
         genomePosStr = ":".join(position.split(":")[:2])
         print "<div class='title'><em>%s</em> sequence at " % (dbInfo.scientificName)
         printBrowserLink(dbInfo, genomePosStr, genomePosStr, "")
         print "</div>"
-    else:
-        print "<div class='title'>Query sequence, not present in the genome of %s</div>" % dbInfo.scientificName
-        print "<div class='substep'>"
-        print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
-        print "This can be a valid query, e.g. a GFP sequence.<br>"
-        print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
-        print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<p>"
-        print "</em></div>"
 
     otMatches = parseOfftargets(otBedFname)
-
-
-    featLen = len(pam)
-    lines, maxY = distrOnLines(seq, startDict, featLen)
-
-    guideData, guideScores, hasNotFound = scoreGuides(seq, startDict, pam, otMatches, position)
+    sortBy = (params.get("sortBy", None))
+    guideData, guideScores, hasNotFound = scoreGuides(uppSeq, startDict, pam, otMatches, position, sortBy)
 
     if hasNotFound and not position=="?":
-        print('<div style="text-align:left"><strong>Warning:</strong> At least one of the PAM-flanking sequences was not found in the genome.<br>')
-        #print("Did you select the right genome? <br>")
+        print('<div style="text-align:left"><strong>Note:</strong> At least one of the PAM-flanking sequences was not found in the genome.<br>')
         print("If you pasted a cDNA sequence, note that sequences with score 0 are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
 
-    showSeqAndPams(caseSeq, lines, maxY, pam, guideScores)
+    showSeqAndPams(seq, startDict, pam, guideScores)
 
+    showAll = (params.get("showAll", 0)=="1")
     showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll)
 
-    # XX are back buttons necessary in 2014?
-    print '<a style="float:right" href="crispor.cgi?batchId=%s&download=offtargets">Download off-targets</a>' % batchId
     print '<br><a class="neutral" href="crispor.cgi">'
-    print '<div class="button" style="margin-left:auto;margin-right:auto;width:90;">New Query</div></a>'
+    print '<div class="button" style="margin-left:auto;margin-right:auto;width:80;">New Query</div></a>'
 
 def runPhp(script):
     " run a file through php, write result to stdout. accepts a full or a relative path "
@@ -1279,17 +1350,75 @@ def printTeforBodyEnd():
     runPhp("footer.php")
     print '</div>'
 
+def iterGuideRows(guideData):
+    "yield rows from guide data "
+    headers = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+    yield headers
+    #print "\t".join(headers)
+
+    for guideRow in guideData:
+        guideScore, effScore, startPos, strand, pamId, \
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc = guideRow
+
+        otCount = 0
+        otDescs = []
+
+        if otData!=None:
+            otCount = len(otData)
+            #for otSeq, score, editDist, pos, gene, alnHtml in otData:
+                #gene = gene.replace(",", "_").replace(";","-")
+                #otDescs.append("%s,%0.03f,%dMM,%s,%s" % (otSeq, score, editDist, pos, gene))
+
+        row = [pamId, guideSeq+pamSeq, guideScore, effScore, otCount, ontargetDesc]
+        row = [str(x) for x in row]
+        yield row
+
 def downloadFile(params):
     " "
-    print "Content-type: text/html"
-    #print "Content-Disposition: attachment; filename=\"offtargets.xls\""
-    print "" # = end of http headers
-    if params["download"]=="offtargets":
-        fname = join("temp", params["batchId"]+".bed")
-        otMatches = parseOfftargets(fname)
-        seq, org, pam, position = batchParams(params["batchId"])
-        print otMatches
-        #for line in open(fname):
+    #print "Content-type: text/html"
+    seq, org, pam, position = readBatchParams(params["batchId"])
+    uppSeq = seq.upper()
+
+    startDict, endSet = findAllPams(uppSeq, pam)
+
+    otBedFname = join("temp", params["batchId"]+".bed")
+    otMatches = parseOfftargets(otBedFname)
+    guideData, guideScores, hasNotFound = scoreGuides(uppSeq, startDict, pam, otMatches, position)
+
+    if position=="?":
+        queryDesc = org+"_unknownLoc"
+    else:
+        queryDesc = org+"_"+position.strip(":+-").replace(":","_")
+        print org, position, queryDesc
+
+    if params["download"]=="guides":
+        print "Content-Disposition: attachment; filename=\"guides_%s.xls\"" % queryDesc
+        print "" # = end of http headers
+        for row in iterGuideRows(guideData):
+            print "\t".join(row)
+
+    elif params["download"]=="offtargets":
+        print "Content-Disposition: attachment; filename=\"offtargets-%s.xls\"" % queryDesc
+        print "" # = end of http headers
+        headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chromPos", "locusDesc"]
+        print "\t".join(headers)
+
+        for guideRow in guideData:
+            guideScore, effScore, startPos, strand, pamId, \
+                guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc = guideRow
+
+            otCount = 0
+            otDescs = []
+
+            if otData!=None:
+                otCount = len(otData)
+                for otSeq, score, editDist, pos, gene, alnHtml in otData:
+                    gene = gene.replace(",", "_").replace(";","-")
+                    otDescs.append("%s,%0.03f,%dMM,%s,%s" % (otSeq, score, editDist, pos, gene))
+
+                    row = [pamId, guideSeq+pamSeq, otSeq, editDist, score, pos, gene]
+                    row = [str(x) for x in row]
+                    print "\t".join(row)
 
 def printBody(params):
     " main dispatcher function "
@@ -1384,11 +1513,13 @@ def findBestMatch(genome, seq):
         if not re.compile("[0-9]*").match(cigar):
             continue
         if cigar=="*":
+            logging.debug("No best match found")
             return "?"
             #errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
         # XX why do we get soft clipped sequences from BWA? repeats?
         cleanCigar = cigar.replace("M","").replace("S", "")
         if not cleanCigar.isdigit():
+            logging.debug("Best match found, but cigar string was %s" % cigar)
             return "?"
         matchLen = int(cleanCigar)
         chrom, start, end =  rName, int(pos), int(pos)+matchLen
@@ -1401,7 +1532,9 @@ def findBestMatch(genome, seq):
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
-    return "%s:%d-%d:%s" % (chrom, start, end, strand)
+    locStr = "%s:%d-%d:%s" % (chrom, start, end, strand)
+    logging.debug("Found best match at %s" % locStr)
+    return locStr
 
 def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
     " create primer for region around chrom:start-end, write output to batch "
@@ -1433,7 +1566,7 @@ def primerDetailsPage(params):
     with batchId. Output primers as html
     """
     batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
-    inSeq, genome, pamSeq, position = batchParams(batchId)
+    inSeq, genome, pamSeq, position = readBatchParams(batchId)
     seqLen = len(inSeq)
     batchBase = join(batchDir, batchId)
 
@@ -1721,13 +1854,101 @@ def runTests():
         score = calcHitScore(guideSeq, seq)
         #print score, "%0.1f" % score, expScore
     
+def parseArgs():
+    " parse command line options into args and options "
+    parser = optparse.OptionParser("""usage: %prog [options] org fastaInFile guideOutFile 
+
+Command line interface for the Crispor tool.
+
+    org          = genome identifier, like hg19 or ensHumSap
+    fastaInFile  = Fasta file with one sequence
+    guideOutFile = tab-sep file, one row per guide
+    """) 
+
+    parser.add_option("-d", "--debug", dest="debug", \
+        action="store_true", help="show debug messages, do not delete temp directory") 
+    parser.add_option("-t", "--test", dest="test", \
+        action="store_true", help="run internal tests") 
+    parser.add_option("-p", "--pam", dest="pam", \
+        action="store", help="PAM-motif to use, default %default", default="NGG") 
+    #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+    (options, args) = parser.parse_args()
+
+    if len(args)==0:
+        parser.print_help()
+        sys.exit(0)
+
+    if options.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+    return args, options
+
 def main():
-    if len(sys.argv)!=1:
+    # detect if running under apache or not
+    if 'REQUEST_METHOD' in os.environ:
+        mainCgi()
+    else:
+        mainCli()
+    
+def delBatchDir():
+    " called at program exit, in command line mode "
+    logging.debug("Deleting dir %s" % batchDir)
+    fnames = glob.glob(join(batchDir, "*"))
+    if len(fnames)>10:
+        raise Exception("cowardly refusing to remove many temp files")
+    for fname in fnames:
+        os.remove(fname)
+    os.removedirs(batchDir)
+
+def mainCli():
+    " main entry if called from command line "
+    global isCli
+    isCli = True
+
+    args, options = parseArgs()
+
+    if options.test:
         runTests()
         import doctest
         doctest.testmod()
         sys.exit(0)
 
+    org, inSeqFname, outGuideFname = args
+
+    # get sequence
+    seqs = parseFasta(inSeqFname)
+    if len(seqs)!=1:
+        raise Exception("input fasta file can only contain a single sequence")
+    seq = seqs.values()[0]
+
+    # get the other parameters and write to a new batch
+    pam = options.pam
+    global batchDir
+    batchDir = tempfile.mkdtemp(dir="/tmp", prefix="crispor")
+    if options.debug:
+        logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+    else:
+        atexit.register(delBatchDir)
+
+    batchId, position = newBatch(seq, org, pam)
+    logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
+
+    if position=="?":
+        raise Exception("no match found for sequence %s in genome %s" % (inSeqFname, org))
+
+    startDict, endSet = findAllPams(seq, pam)
+    otBedFname = getOfftargets(seq, org, pam, batchId, startDict)
+    otMatches = parseOfftargets(otBedFname)
+    guideData, guideScores, hasNotFound = scoreGuides(seq, startDict, pam, otMatches, position)
+
+    ofh = open(outGuideFname, "w")
+    for row in iterGuideRows(guideData):
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+
+def mainCgi():
+    " main entry if called from apache "
     cgitb.enable()
     # parse incoming parameters
     params = getParams()
@@ -1742,7 +1963,7 @@ def main():
     if "seq" in params and "org" in params and "pam" in params:
         seq, org, pam = params["seq"], params["org"], params["pam"]
         saveSeqOrgPamToCookies(seq, org, pam)
-        batchId = makeTempBase(seq, org, pam)
+        #batchId = makeTempBase(seq, org, pam)
 
     print "Content-type: text/html\n"
     print "" # = end of http headers
