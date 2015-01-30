@@ -3,6 +3,13 @@
 # filter fasta file and keep only sequences that end with pattern (if + strand)
 # or start with rev-comp pattern (if - strand)
 # output as a bed file
+# CAREFUL: input sequences have to be on a single line. This is different from normal Fasta.
+
+# arguments: pattern passScore
+# all sequences that have a field no 6 (0-based) which is > passScore will 
+# pass no matter what. This is to allow X1-exceeding matches to get through, 
+# even if they don't end with the pattern, so signal that a sequence
+# exceeded the X1 cutoff.
 
 # first parameter is the pattern, input is read from stdin 
 
@@ -16,13 +23,17 @@ import sys, re
         #newSeq.append(revTbl[c])
     #return "".join(newSeq)
         
+# compile a strand and a rev comp pattern
+pat = sys.argv[1] # first parameter is the pattern, e.g. NGG
+passScore = int(sys.argv[2]) # 2nd parameter is the score at which any seq will pass
+
 def patMatch(seq, pat):
     " return true if pat does not match seq, both have to be same length "
     assert(len(seq)==len(pat))
     for x in range(0, len(pat)):
         patChar = pat[x]
         nuc = seq[x]
-        if pat[x]=="N":
+        if patChar=="N":
             continue
         if patChar=="M" and nuc in ["A", "C"]:
             continue
@@ -35,9 +46,6 @@ def patMatch(seq, pat):
         if patChar!=nuc:
             return False
     return True
-
-# compile a strand and a rev comp pattern
-pat = sys.argv[1] # first parameter is the pattern, e.g. NGG
 
 #pat = patRaw.replace("N", "[ACTG]")
 #fwPatRe = re.compile(pat+"$") # only at end of seq
@@ -52,7 +60,7 @@ pat = sys.argv[1] # first parameter is the pattern, e.g. NGG
 
 for line in sys.stdin:
     if line.startswith(">"):
-        seqId, chrom, start, end, strand, editDist = line.rstrip("\n").lstrip(">").split("|")
+        seqId, chrom, start, end, strand, editDist, x1Score = line.rstrip("\n").lstrip(">").split("|")
         seq = None
         idLine = line
     else:
@@ -61,6 +69,12 @@ for line in sys.stdin:
         seq = seq.upper()
         seqLine = line
 
+        if int(x1Score)>passScore:
+            # this part is in here twice
+            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+x1Score
+            row = [chrom, start, end, name]
+            print "\t".join(row)
+            
         #print strand, seq
         #if strand=="+":
         #patRe = fwPatRe
@@ -70,7 +84,8 @@ for line in sys.stdin:
             
         suffix = seq[-len(pat):]
         if patMatch(suffix, pat):
-            name = seqId+"|"+strand+"|"+editDist+"|"+seq
+            # this part is in here twice
+            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+x1Score
             row = [chrom, start, end, name]
             print "\t".join(row)
             #print idLine,

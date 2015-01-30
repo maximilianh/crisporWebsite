@@ -41,6 +41,11 @@ pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
 
 DEFAULTPAM = 'NGG'
 
+# maximum number of occurences in the genome 
+# to get flagged. This is used in bwa samse, when converting the same file
+# and for warnings in the table output.
+MAXOCC = 200000
+
 # for some PAMs, we change the motif when searching for offtargets
 # this is done by MIT and eCrisp
 offtargetPams = {"NGG" : "NRG"}
@@ -348,8 +353,8 @@ def parsePos(text):
     return chrom, start, end, strand
 
 def makePosList(countDict, guideSeq, pam, inputPos):
-    """ for a given guide sequence, return a list of (score, posStr, geneDesc,
-    otSeq) sorted by score and a string to describe the offtargets in the
+    """ for a given guide sequence, return a list of tuples that 
+    describes the offtargets sorted by score and a string to describe the offtargets in the
     format x/y/z/w of mismatch counts
     inputPos has format "chrom:start-end:strand". All 0MM matches in this range
     are ignored from scoring ("ontargets")
@@ -363,6 +368,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     scores = []
     last12MmCounts = []
     ontargetDesc = ""
+    subOptMatchCount = 0
 
     # for each edit distance, get the off targets and iterate over them
     for editDist in range(0, 5):
@@ -374,7 +380,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
         # create html and score for every offtarget
         otCount = 0
-        for chrom, start, end, otSeq, strand, segType, geneNameStr in matches:
+        for chrom, start, end, otSeq, strand, segType, geneNameStr, x1Count in matches:
             # skip on-targets
             segTypeDesc = segTypeConv[segType]
             geneDesc = segTypeDesc+":"+geneNameStr
@@ -393,18 +399,27 @@ def makePosList(countDict, guideSeq, pam, inputPos):
                 last12MmOtCount+=1
             posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
             posList.append( (otSeq, score, editDist, posStr, geneDesc, alnHtml) )
+            # taking the maximum is probably not necessary, 
+            # there should be only one offtarget for X1-exceeding matches
+            subOptMatchCount = max(int(x1Count), subOptMatchCount)
 
         last12MmCounts.append(str(last12MmOtCount))
         # create a list of number of offtargets for this edit dist
         otCounts.append( str(otCount) )
 
-    guideScore = calcMitGuideScore(sum(scores))
+    if subOptMatchCount > MAXOCC:
+        guideScore = 0
+        posList = []
+        ontargetDesc = ""
+        last12DescStr = ""
+        otDescStr = ""
+    else:
+        guideScore = calcMitGuideScore(sum(scores))
+        otDescStr = "/".join(otCounts)
+        last12DescStr = "/".join(last12MmCounts)
+        posList.sort(reverse=True)
 
-    posList.sort(reverse=True)
-    otDescStr = "/".join(otCounts)
-    last12DescStr = "/".join(last12MmCounts)
-
-    return posList, otDescStr, guideScore, last12DescStr, ontargetDesc
+    return posList, otDescStr, guideScore, last12DescStr, ontargetDesc, subOptMatchCount
 
 # --- START OF SCORING ROUTINES 
 
@@ -617,19 +632,21 @@ def scoreGuides(seq, startDict, pamPat, otMatches, inputPos, sortBy=None):
         # matches in genome
         # one desc in last column per OT seq
         if pamId in otMatches:
+            pamMatches = otMatches[pamId]
             guideSeqFull = guideSeq + pamSeq
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq)
-            posList, otDesc, guideScore, last12Desc, ontargetDesc =\
-                makePosList(otMatches[pamId], guideSeqFull, pamPat, inputPos)
+            posList, otDesc, guideScore, last12Desc, ontargetDesc, subOptMatchCount =\
+                makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
             effScore = calcDoenchScoreFromSeqPos(startPos, seq, len(pamPat), strand)
         else:
-            posList, otDesc, guideScore = None, "No match. Incorrect genome or cDNA?", 0
+            posList, otDesc, guideScore = None, "No match. Genome, cDNA?", 0
             last12Desc = ""
             effScore = 0
             hasNotFound = True
             mutEnzymes = []
             ontargetDesc = ""
-        guideData.append( (guideScore, effScore, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc) )
+            subOptMatchCount = False
+        guideData.append( (guideScore, effScore, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount) )
         guideScores[pamId] = guideScore
 
     if sortBy == "effScore":
@@ -707,7 +724,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
     count = 0
     for guideRow in guideData:
         guideScore, effScore, startPos, strand, pamId, guideSeq, \
-            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc = guideRow
+            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         color = scoreToColor(guideScore)
         print '<tr id="%s" style="border-left: 5px solid %s">' % (pamId, color)
@@ -767,12 +784,16 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll):
 
         # mismatch description
         print "<td>"
-        print otDesc
         #otCount = sum([int(x) for x in otDesc.split("/")])
         if otData==None:
             # no genome match
+            print otDesc
             htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences<br>This warning also occurs if you have selected the wrong genome.")
+        elif subOptMatchCount > MAXOCC:
+            print ("Repeat?")
+            htmlHelp("At <= 4 mismatches, %d hits were found in the genome for this sequence. <br>This guide is similar to a repeat and too unspecific.<br>CRISPR cannot be used to target repeats." % subOptMatchCount)
         else:
+            print otDesc
             otCount = len(otData)
             print "<br><small>%d off-targets</small>" % otCount
         print "</td>"
@@ -968,41 +989,46 @@ def parseOfftargets(bedFname):
     if intergenic, geneNameStr is two genes, split by |
     """
     # example input:
-    # chrIV 9864393 9864410 s41-|-|5    chrIV   9864303 9864408 ex:K07F5.16
-    # chrIV   9864393 9864410 s41-|-|5    chrIV   9864408 9864470 in:K07F5.16
+    # chrIV 9864393 9864410 s41-|-|5|ACTTGACTG|0    chrIV   9864303 9864408 ex:K07F5.16
+    # chrIV   9864393 9864410 s41-|-|5|ACTGTAGCTAGCT|9999    chrIV   9864408 9864470 in:K07F5.16
     debug("reading %s" % bedFname)
 
-    # if a offtarget overlaps an intron/exon or ig/exon boundary it will appear twice
-    # in this case, we only keep the exon offtarget
-    # first sort into dict (pamId,chrom,start,end,editDist,strand) -> (segType, segName)
-    #pamData = defaultdict(dict)
+    # first sort into dict (pamId,chrom,start,end,editDist,strand) 
+    # -> (segType, segName) 
     pamData = {}
     for line in open(bedFname):
         fields = line.rstrip("\n").split("\t")
         chrom, start, end, name, segment = fields
-        pamId, strand, editDist, seq = name.split("|")
+        nameFields = name.split("|")
+        pamId, strand, editDist, seq = nameFields[:4]
+        if len(nameFields)>4:
+            x1Count = int(nameFields[4])
+        else:
+            x1Count = 0
         editDist = int(editDist)
         # some gene models include colons
         segType, segName = string.split(segment, ":", maxsplit=1)
-        #pamData[(pamId].setdefault(editDist, []).append( (chrom, start, end, strand, segType, segName) )
         start, end = int(start), int(end)
-        otKey = (pamId, chrom, start, end, editDist, seq, strand)
+        otKey = (pamId, chrom, start, end, editDist, seq, strand, x1Count)
+
+        # if a offtarget overlaps an intron/exon or ig/exon boundary it will
+        # appear twice; in this case, we only keep the exon offtarget
         if otKey in pamData and segType!="ex":
             continue
         pamData[otKey] = (segType, segName)
 
+    # index by pamId and edit distance
     indexedOts = defaultdict(dict)
     for otKey, otVal in pamData.iteritems():
-        pamId, chrom, start, end, editDist, seq, strand = otKey
+        pamId, chrom, start, end, editDist, seq, strand, x1Score = otKey
         segType, segName = otVal
-        indexedOts[pamId].setdefault(editDist, []).append( (chrom, start, end, seq, strand, segType, segName) )
+        otTuple = (chrom, start, end, seq, strand, segType, segName, x1Score)
+        indexedOts[pamId].setdefault(editDist, []).append( otTuple )
 
     return indexedOts
 
 def runBwa(faFname, genome, pam, bedFname, batchBase):
     " search fasta file against genome, filter for pam matches and write to bedFName "
-    maxOcc = 200000
-
     pamLen = len(pam)
     # potentially use a PAM for OTs that is different from the guide PAM
     pam = offtargetPams.get(pam, pam)
@@ -1012,11 +1038,12 @@ def runBwa(faFname, genome, pam, bedFname, batchBase):
     cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
     runCmd(cmd)
 
+    maxOcc = MAXOCC # make local
     matchesBedFname = batchBase+".matches.bed"
-    cmd = "BIN/bwa samse -n %(maxOcc)d genomes/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)s | BIN/bedClip stdin genomes/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
+    cmd = "BIN/bwa samse -n %(maxOcc)d genomes/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)d | BIN/bedClip stdin genomes/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
-    cmd = "BIN/twoBitToFa genomes/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(pam)s | BIN/overlapSelect genomes/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
+    cmd = "BIN/twoBitToFa genomes/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(pam)s %(maxOcc)d | BIN/overlapSelect genomes/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
     runCmd(cmd)
 
 transTab = string.maketrans("-=/+_", "abcde")
@@ -1225,7 +1252,6 @@ def newBatch(seq, org, pam):
     # save input seq, pamSeq, genome, position for primer design later
     inputFaFname = batchBase+".input.fa"
     open(inputFaFname, "w").write(">%s %s %s\n%s\n" % (org, pam, position, seq))
-    print inputFaFname
     return batchId, position
 
 def readDbInfo(org):
@@ -1310,7 +1336,7 @@ def crisprSearch(params):
     guideData, guideScores, hasNotFound = scoreGuides(uppSeq, startDict, pam, otMatches, position, sortBy)
 
     if hasNotFound and not position=="?":
-        print('<div style="text-align:left"><strong>Note:</strong> At least one of the PAM-flanking sequences was not found in the genome.<br>')
+        print('<div style="text-align:left"><strong>Note:</strong> At least one of the possible guide sequences was not found in the genome. ')
         print("If you pasted a cDNA sequence, note that sequences with score 0 are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
 
     showSeqAndPams(seq, startDict, pam, guideScores)
@@ -1358,7 +1384,7 @@ def iterGuideRows(guideData):
 
     for guideRow in guideData:
         guideScore, effScore, startPos, strand, pamId, \
-            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc = guideRow
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
         otDescs = []
@@ -1405,7 +1431,7 @@ def downloadFile(params):
 
         for guideRow in guideData:
             guideScore, effScore, startPos, strand, pamId, \
-                guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc = guideRow
+                guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
             otCount = 0
             otDescs = []
@@ -1582,7 +1608,7 @@ def primerDetailsPage(params):
         # XX we could show a dialog: which match do you want to design primers for?
         # But who would want to use a guide sequence that is not unique?
 
-    chrom, start, end, seq, strand, segType, segName = matchList[0]
+    chrom, start, end, seq, strand, segType, segName, x1Count = matchList[0]
     start = int(start)
     end = int(end)
 

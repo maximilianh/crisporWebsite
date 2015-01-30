@@ -9,7 +9,7 @@
 
 import sys
 pamLen = int(sys.argv[1])
-maxX1 = int(sys.argv[2])
+#maxX1 = int(sys.argv[2])
 
 # example input:
 # t5    272 chrIII  12975327    0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5
@@ -28,18 +28,19 @@ for line in sys.stdin:
     pos = int(pos)
 
     # parse tags: skip line if too many matches and extract mismatch count
-    skipLine = False
+    #skipLine = False
+    x1Score = "0"
     tags = fs[11:]
     for t in tags:
         tagName, dType, val = t.split(":")
-        if tagName=="X1" and int(val)>maxX1:
-            skipLine = True
-            break
+        if tagName=="X1":
+            #skipLine = True
+            x1Score = val
         if tagName=="NM":
             mmCount = val
 
-    if skipLine:
-        continue
+    #if skipLine:
+        #continue
 
     strand = "+"
     if (int(flag) & 16) == 16:
@@ -51,7 +52,6 @@ for line in sys.stdin:
     startPos = pos-1
     endPos = startPos+20
 
-            
     if strand=="+":
         endPos += pamLen
     else:
@@ -60,7 +60,7 @@ for line in sys.stdin:
     if startPos < 0:
         continue
 
-    nameInfo = [qName, rName, str(startPos), str(endPos), strand, mmCount]
+    nameInfo = [qName, rName, str(startPos), str(endPos), strand, mmCount, x1Score]
     name = "|".join(nameInfo)
 
     row = [rName, str(startPos), str(endPos), name, mmCount, strand]
