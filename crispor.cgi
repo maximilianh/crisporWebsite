@@ -1164,8 +1164,7 @@ def printForm(params):
     </textarea>
     <div style="text-align:left"><small>Text case is preserved, e.g. you can mark ATGs with lowercase letters.</small></div>
     <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such as ATG or STOP codons)</div>
-
-    <input style="margin-top:20px;" type="submit" name="submit" value="SUBMIT" tabindex="4"/>
+    
 </div>
 <div class="windowstep subpanel" style="width:40%%">
     <div class="substep">
@@ -1200,6 +1199,56 @@ To add your genome of interest to the list, contact CRISPOR web site manager
     print """
     <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
 </div>
+
+<div class="windowstep">
+    <input type="submit" name="submit" value="SUBMIT" tabindex="4"/>
+    """    
+    runPhp("sponsors.php")
+    print """
+</div>
+
+
+<style>
+      
+   div.sponsors:hover
+   {
+        -webkit-animation-play-state: paused;
+        opacity:1;
+   }
+   div.sponsors
+   {
+       -webkit-animation:           mymove 2s infinite; /* Chrome, Safari, Opera */
+       -webkit-animation-direction: alternate; /* Chrome, Safari, Opera */
+
+       animation:           mymove 2s infinite;        
+       animation-direction: alternate;
+   }
+   /* Chrome, Safari, Opera */
+   @-webkit-keyframes mymove
+   {
+       from
+       {                
+           opacity: 0.7;
+       }
+       to   
+       {             
+           opacity: 1;
+       }
+   }
+   /* Standard syntax */
+   @keyframes mymove
+   {
+       from
+       {                
+           opacity: 0.7;
+       }
+       to   
+       {             
+           opacity: 1;
+       }
+   }
+
+</style>
 </form>
     """
 
