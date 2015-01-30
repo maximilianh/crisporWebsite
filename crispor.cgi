@@ -887,10 +887,6 @@ def printHeader(batchId):
         }
             </style>""")
 
-    print '<style>'
-    print 'body { text-align: left; float: left} '
-    print '</style>'
-
     print("</head>")
 
     print'<body id="wrapper">'
