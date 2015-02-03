@@ -29,6 +29,8 @@ batchDir = join(baseDir,"temp")
 scriptDir = join(baseDir, "bin")
 # directory for helper binaries (e.g. BWA)
 binDir = join(baseDir, "bin", platform.system())
+# directory for genomes
+genomesDir = join(baseDir, "genomes")
 
 DEFAULTORG = 'ensDanRer'
 DEFAULTSEQ = 'CCAATCAGGTCCCTCCCtacctcagatcgCAGCTATAATACATAGGAGTaaagaggcttCTCGCATTAAGTGGCTGTGGCTTGAAGTAACGTTGTGATTTCGAGGTCAGTCTTACCTTTCGCATCCCCGCCGCAAACCTCCGATGCGTTATCAGTCGCACGTTTCCGCACCTGTCACGGTCGGGGCTTGGCGCTGCTGAG'
@@ -345,7 +347,12 @@ def makeAlnStr(seq1, seq2, pam, score):
 def parsePos(text):
     " parse a string of format chr:start-end:strand and return a 4-tuple "
     if text!=None and len(text)!=0 and text!="?":
-        chrom, posRange, strand = text.split(":")
+        fields = text.split(":")
+        if len(fields)==2:
+            chrom, posRange = fields
+            strand = "+"
+        else:
+            chrom, posRange, strand = fields
         start, end = posRange.split("-")
         start, end = int(start), int(end)
     else:
@@ -537,7 +544,7 @@ def readEnzymes():
     " parse restrSites.txt and return as dict length -> list of (name, seq) "
     fname = "restrSites.txt"
     enzList = {}
-    for line in open(fname):
+    for line in open(join(baseDir, fname)):
         name, seq1, seq2 = line.split()
         seq = seq1+seq2
         enzList.setdefault(len(seq), []).append( (name, seq) )
@@ -683,7 +690,7 @@ def printTableHead(batchId):
     print '</th>'
 
     print '<th style="width:170px">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
-    htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap the position 3bp 5' to the PAM <br> and will usually be inactivated if the DNA was cut by Cas9.<br>The list of enzymes was kindly provided by New England Biolabs France.")
+    htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap the position 3bp 5' to the PAM <br> and will usually be inactivated if the DNA was cut by Cas9")
 
     print '<th><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
     htmlHelp("The specificity score measure the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely are off-target effects. See Hsu et al.")
@@ -1025,21 +1032,22 @@ def parseOfftargets(bedFname):
 
 def runBwa(faFname, genome, pam, bedFname, batchBase):
     " search fasta file against genome, filter for pam matches and write to bedFName "
+    genomeDir = genomesDir # make var local, see below
     pamLen = len(pam)
     # potentially use a PAM for OTs that is different from the guide PAM
     pam = offtargetPams.get(pam, pam)
 
     saFname = batchBase+".sa"
 
-    cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+    cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
     runCmd(cmd)
 
     maxOcc = MAXOCC # make local
     matchesBedFname = batchBase+".matches.bed"
-    cmd = "BIN/bwa samse -n %(maxOcc)d genomes/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)d | BIN/bedClip stdin genomes/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
+    cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)d | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
-    cmd = "BIN/twoBitToFa genomes/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(pam)s %(maxOcc)d | BIN/overlapSelect genomes/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
+    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(pam)s %(maxOcc)d | BIN/overlapSelect %(genomeDir)s/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
     runCmd(cmd)
 
 transTab = string.maketrans("-=/+_", "abcde")
@@ -1432,17 +1440,33 @@ def iterGuideRows(guideData):
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
-        otDescs = []
-
         if otData!=None:
             otCount = len(otData)
-            #for otSeq, score, editDist, pos, gene, alnHtml in otData:
-                #gene = gene.replace(",", "_").replace(";","-")
-                #otDescs.append("%s,%0.03f,%dMM,%s,%s" % (otSeq, score, editDist, pos, gene))
 
         row = [pamId, guideSeq+pamSeq, guideScore, effScore, otCount, ontargetDesc]
         row = [str(x) for x in row]
         yield row
+
+def iterOfftargetRows(guideData):
+    " yield bulk offtarget rows for the tab-sep download file "
+    headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
+    yield headers
+
+    for guideRow in guideData:
+        guideScore, effScore, startPos, strand, pamId, \
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+
+        otCount = 0
+
+        if otData!=None:
+            otCount = len(otData)
+            for otSeq, score, editDist, pos, gene, alnHtml in otData:
+                gene = gene.replace(",", "_").replace(";","-")
+
+                chrom, start, end, strand = parsePos(pos)
+                row = [pamId, guideSeq+pamSeq, otSeq, editDist, score, chrom, start, end, gene]
+                row = [str(x) for x in row]
+                yield row
 
 def downloadFile(params):
     " "
@@ -1471,25 +1495,8 @@ def downloadFile(params):
     elif params["download"]=="offtargets":
         print "Content-Disposition: attachment; filename=\"offtargets-%s.xls\"" % queryDesc
         print "" # = end of http headers
-        headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chromPos", "locusDesc"]
-        print "\t".join(headers)
-
-        for guideRow in guideData:
-            guideScore, effScore, startPos, strand, pamId, \
-                guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
-
-            otCount = 0
-            otDescs = []
-
-            if otData!=None:
-                otCount = len(otData)
-                for otSeq, score, editDist, pos, gene, alnHtml in otData:
-                    gene = gene.replace(",", "_").replace(";","-")
-                    otDescs.append("%s,%0.03f,%dMM,%s,%s" % (otSeq, score, editDist, pos, gene))
-
-                    row = [pamId, guideSeq+pamSeq, otSeq, editDist, score, pos, gene]
-                    row = [str(x) for x in row]
-                    print "\t".join(row)
+        for row in iterOfftargetRows(guideData):
+            print "\t".join(row)
 
 def printBody(params):
     " main dispatcher function "
@@ -1561,19 +1568,22 @@ def findBestMatch(genome, seq):
     tmpFaFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".fa")
     tmpFaFh.write(">tmp\n%s" % seq)
     tmpFaFh.flush()
+    logging.debug("seq: %s" % open(tmpFaFh.name).read())
     faFname = tmpFaFh.name
 
     # create temp SAM file
     tmpSamFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".sam")
     samFname = tmpSamFh.name
 
-    cmd = "BIN/bwa bwasw genomes/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    genomeDir = genomesDir # make local var
+    cmd = "BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
     for l in open(samFname):
         if l.startswith("@"):
             continue
+        logging.debug("%s" % l)
         l = l.rstrip("\n")
         fs = l.split("\t")
         qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
@@ -1624,13 +1634,77 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
     tmpFname = join(batchDir, batchId+".primer3.in")
     tmpOutFname = join(batchDir, batchId+".primer3.out")
     # the guide seq has to be at least 150bp away from the left PCR primer for agarose gels
-    lSeq, lTm, lPos, rSeq, rTm, rPos = runPrimer3(flankSeq, tmpFname, tmpOutFname, 1000+guideStart-150, 330, "300-600")
+    lSeq, lTm, lPos, rSeq, rTm, rPos = \
+        runPrimer3(flankSeq, tmpFname, tmpOutFname, 1000+guideStart-150, 330, "300-600")
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq
 
 def markupSeq(seq, start, end):
     " print seq with start-end in bold "
     return seq[:start]+"<u>"+seq[start:end]+"</u>"+seq[end:]
+
+def makeHelperPrimers(guideName, guideSeq):
+    " return dict with various names -> primer for primer page "
+    primers = defaultdict(list)
+    guideRnaFw = "guideRna%sT7sense" % guideName
+    guideRnaRv = "guideRna%sT7antisense" % guideName
+
+    # T7 plasmids
+    if guideSeq.lower().startswith("gg"):
+        primers["T7"].append((guideRnaFw, "TA<b>%s</b>" % guideSeq))
+        primers["T7"].append((guideRnaRv, "AAAC<b>%s</b>" % revComp(guideSeq[2:])))
+    else:
+        primers["T7"].append((guideRnaFw, "TAGG<b>%s</b>" % guideSeq))
+        primers["T7"].append((guideRnaRv, "AAAC<b>%s</b>" % revComp(guideSeq)))
+
+    # T7 in-vitro
+    prefix = ""
+    if not guideSeq.lower().startswith("gg"):
+        prefix = "GG"
+    specPrimer = "TAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
+
+    primers["T7iv"].append(("guideRNA%sT7PromSense" % guideName, specPrimer))
+    primers["T7iv"].append(("guideRNAallT7PromAntisense (constant primer used for all guide RNAs)", "AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC"))
+
+    # mammalian cells
+    fwName = "guideRNA%sU6sense" % guideName
+    revName = "guideRNA%sU6antisense" % guideName
+    if guideSeq.lower().startswith("g"):
+        primers["mammCells"].append((fwName, "ACACC<b>%s</b>G" % guideSeq))
+        primers["mammCells"].append((revName, "AAAAC<b>%s</b>G" % revComp(guideSeq)))
+    else:
+        primers["mammCells"].append((fwName, "ACACC<u>G</u><b>%s</b>G" % guideSeq))
+        primers["mammCells"].append((revName, "AAAAC<b>%s</b><u>C</u>G" % revComp(guideSeq)))
+        primers["mammCellsNote"] = True
+
+    return primers
+
+def printPrimerTableAll(primers):
+    print '<table class="primerTable">'
+    for key, primerList in primers.iteritems():
+        if key.endswith("Note"):
+            continue
+        for name, seq in primerList:
+            name = name.split()[0]
+            print '<tr>'
+            print "<td>%s</td>" % name
+            print "<td><tt>%s</tt></td>" % seq
+            print "</tr>"
+    print "</table>"
+
+def printPrimerTable(primerList, onRows=False):
+    " given a list of (name, seq) tuples, print a table "
+    print '<table class="primerTable">'
+    for name, seq in primerList:
+        if onRows:
+            print "<tr><td>%s</td></tr>" % name
+            print "<tr><td><tt>%s</tt></td></tr>" % seq
+        else:
+            print '<tr>'
+            print "<td>%s</td>" % name
+            print "<td><tt>%s</tt></td>" % seq
+            print "</tr>"
+    print "</table>"
 
 def primerDetailsPage(params):
     """ create primers with primer3 around site identified by pamId in batch
@@ -1711,16 +1785,16 @@ def primerDetailsPage(params):
     print '''<div style='width: 80%; margin-left:10%; margin-right:10%; text-align:left;'>'''
     print "<h2>Guide sequence: %s</h2>" % (guideSeqHtml)
 
-    print "<h3>Validation primers</h3>"
+    print "<h3>Validation Primers</h3>"
+    primerGuideName = pamId.replace("s", "").replace("-", "rev").replace("+","fw")
 
-    primerName = pamId.replace("s", "").replace("-", "rev").replace("+","fw")
     print '<table class="primerTable">'
     print '<tr>'
-    print "<td>guideRna%sLeft</td>" % primerName
+    print "<td>guideRna%sLeft</td>" % primerGuideName
     print "<td>%s</td>" % (lSeq)
     print "<td>Tm %s</td>" % (lTm)
     print "</tr><tr>"
-    print "<td>guideRna%sRight</td>" % primerName
+    print "<td>guideRna%sRight</td>" % primerGuideName
     print "<td>%s</td>" % (rSeq)
     print "<td>Tm %s</td>" % (rTm)
     print '</tr></table>'
@@ -1746,7 +1820,6 @@ def primerDetailsPage(params):
         print "If a mutation is induced, then it is very likely that one of the followingenzymes no longer cuts your PCR product amplified from the mutant sequence."
         print "For each restriction enzyme, the guide sequence with the restriction site underlined is shown below.<p>"
 
-
         for enzName, posList in mutEnzymes.iteritems():
             print "<strong>%s</strong>:" % enzName
             for start, end in posList:
@@ -1769,53 +1842,29 @@ def primerDetailsPage(params):
         }
     </style>
     """
+
     print "<hr>"
     print "<h2>Expression of guide RNA</h2>"
-    print "Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
 
-    #print "<h4>Summary of primers</h4>"
-    #print '<table class="primerTable">'
-    #print '<tr>'
-    #print "<td>guideRna%sT7sense</td>" % primerName
-    #print "<td><tt>%s</tt></td>" % guideRnaFw
-    #print "</tr><tr>"
-    #print "<td>guideRna%sT7antisense</td>" % (primerName)
-    #print "<td><tt>%s</tt></td>" % (guideRnaRv)
-    #print "</tr></table>"
+    print "<h4>Summary of all primers explained below</h4>"
+    primers = makeHelperPrimers(primerGuideName, guideSeq)
+    printPrimerTableAll(primers)
+
+    print "<p>Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
+
 
     # T7 from plasmids
     print "<h3>In vitro with T7 RNA polymerase from plasmid DNA</h3>"
     print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
     print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid DR274 generated by the Joung lab<p>" % guideSeqWPam
-    if guideSeq.lower().startswith("gg"):
-        guideRnaFw = "TA<b>%s</b>" % guideSeq
-        guideRnaRv = "AAAC<b>%s</b>" % revComp(guideSeq[2:])
-    else:
-        guideRnaFw = "TAGG<b>%s</b>" % guideSeq
-        guideRnaRv = "AAAC<b>%s</b>" % revComp(guideSeq)
 
+    printPrimerTable(primers["T7"])
 
-    print '<table class="primerTable">'
-    print '<tr>'
-    print "<td>guideRna%sT7sense</td>" % primerName
-    print "<td><tt>%s</tt></td>" % guideRnaFw
-    print "</tr><tr>"
-    print "<td>guideRna%sT7antisense</td>" % (primerName)
-    print "<td><tt>%s</tt></td>" % (guideRnaRv)
-    print "</tr></table>"
-
-    # T7 from primers
+    # T7 from primers, in vitro
     print "<h3>In vitro with T7 polymerase using overlapping oligonucleotides</h3>"
     print "Template for in vitro synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
-    prefix = ""
-    if not guideSeq.lower().startswith("gg"):
-        prefix = "GG"
-    specPrimer = "TAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
 
-    print "guideRNA%sT7PromSense:<br><tt>%s</tt><br>" % (primerName, specPrimer)
-
-    print "guideRNAallT7PromAntisense: <tt>AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC</tt><br>"
-    print "(constant primer used for all guide RNAs)<p>"
+    printPrimerTable(primers["T7iv"], onRows=True)
 
     print 'The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.'
 
@@ -1826,22 +1875,13 @@ def primerDetailsPage(params):
     else:
         print "The guide sequence %s does not contain the motif TTTT, which terminates RNA polymerase. This guide sequence can be transcribed in mammalian cells." % guideSeq
 
-    print "<br>"
-    print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence in the plasmid pM3636, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
-    print "<br>"
-    if guideSeq.lower().startswith("g"):
-        guideRnaFw = "ACACC<b>%s</b>G" % guideSeq
-        guideRnaRv = "AAAAC<b>%s</b>G" % revComp(guideSeq)
-    else:
-        guideRnaFw = "ACACC<u>G</u><b>%s</b>G" % guideSeq
-        guideRnaRv = "AAAAC<b>%s</b><u>C</u>G" % revComp(guideSeq)
-        print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added to the sequence below.<br>")
-    print '<table class="primerTable"><tr>'
-    print "<td>guideRNA%sU6sense</td> <td><tt>%s</tt></td>" % (primerName, guideRnaFw)
-    print "</tr><tr>"
-    print "<td>guideRNA%sU6antisense</td> <td><tt>%s</tt></td>" % (primerName, guideRnaRv)
-    print "</tr></table>"
+        print "<br>"
+        print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence in the plasmid pM3636, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+        print "<br>"
+        if "mammCellsNote" in primers:
+            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added to the sequence below, where it is underlined.<br>")
 
+        printPrimerTable(primers["mammCells"])
     print "<hr>"
     print '</div>'
 
@@ -1942,6 +1982,8 @@ Command line interface for the Crispor tool.
         action="store_true", help="run internal tests") 
     parser.add_option("-p", "--pam", dest="pam", \
         action="store", help="PAM-motif to use, default %default", default="NGG") 
+    parser.add_option("-o", "--offtargets", dest="offtargetFname", \
+        action="store", help="write offtarget info to this filename") 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
 
@@ -2017,6 +2059,12 @@ def mainCli():
     for row in iterGuideRows(guideData):
         ofh.write("\t".join(row))
         ofh.write("\n")
+
+    if options.offtargetFname:
+        ofh = open(options.offtargetFname, "w")
+        for row in iterOfftargetRows(guideData):
+            ofh.write("\t".join(row))
+            ofh.write("\n")
 
 def mainCgi():
     " main entry if called from apache "
