@@ -1211,12 +1211,12 @@ To add your genome of interest to the list, contact CRISPOR web site manager
     <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
 </div>
 
-<div class="windowstep">
+
     <input type="submit" name="submit" value="SUBMIT" tabindex="4"/>
     """    
     runPhp("sponsors.php")
     print """
-</div>
+
 
 
 <style>
