@@ -46,11 +46,12 @@ DEFAULTPAM = 'NGG'
 # maximum number of occurences in the genome 
 # to get flagged. This is used in bwa samse, when converting the same file
 # and for warnings in the table output.
-MAXOCC = 200000
+MAXOCC = 100000
 
 # for some PAMs, we change the motif when searching for offtargets
-# this is done by MIT and eCrisp
-offtargetPams = {"NGG" : "NRG"}
+# MIT and eCrisp use the motif NRG, ours is a bit more specific, based on the 
+# guideSeq results in Tsai et al, Nat Biot 2014
+offtargetPams = {"NGG" : "NAG,NGA"}
 
 # global flag to indicate if we're run from command line or as a CGI
 isCli = False
@@ -476,10 +477,12 @@ def calcDoenchScore(seq):
 
 # MIT offtarget scoring
 
+# aka Matrix "M"
+hitScoreM = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.732,0.828,0.615,0.804,0.685,0.583]
+
 def calcHitScore(string1,string2):
     " see 'Scores of single hits' on http://crispr.mit.edu/about "
     # The Patrick Hsu weighting scheme
-    M = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.732,0.828,0.615,0.804,0.685,0.583]
     assert(len(string1)==len(string2)==20)
 
     dists = [] # distances between mismatches, for part 2
@@ -492,7 +495,7 @@ def calcHitScore(string1,string2):
             mmCount+=1
             if lastMmPos!=None:
                 dists.append(pos-lastMmPos)
-            score1 *= 1-M[pos]
+            score1 *= 1-hitScoreM[pos]
             lastMmPos = pos
     # 2nd part of the score
     if mmCount<2: # special case, not shown in the paper
@@ -1034,8 +1037,6 @@ def runBwa(faFname, genome, pam, bedFname, batchBase):
     " search fasta file against genome, filter for pam matches and write to bedFName "
     genomeDir = genomesDir # make var local, see below
     pamLen = len(pam)
-    # potentially use a PAM for OTs that is different from the guide PAM
-    pam = offtargetPams.get(pam, pam)
 
     saFname = batchBase+".sa"
 
@@ -1047,7 +1048,9 @@ def runBwa(faFname, genome, pam, bedFname, batchBase):
     cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)d | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
-    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(pam)s %(maxOcc)d | BIN/overlapSelect %(genomeDir)s/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
+    # guideSeq, mainPat, altPats, altScore, passX1Score
+    altPats = offtargetPams.get(pam, "na")
+    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s 1.0 %(maxOcc)d | BIN/overlapSelect %(genomeDir)s/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFname)s " % locals()
     runCmd(cmd)
 
 transTab = string.maketrans("-=/+_", "abcde")
@@ -1984,6 +1987,8 @@ Command line interface for the Crispor tool.
         action="store", help="PAM-motif to use, default %default", default="NGG") 
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename") 
+    parser.add_option("-m", "--maxOcc", dest="maxOcc", \
+        action="store", type="int", help="MAXOCC parameter, 20mers with more matches are excluded") 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
 
@@ -2028,6 +2033,10 @@ def mainCli():
         sys.exit(0)
 
     org, inSeqFname, outGuideFname = args
+
+    if options.maxOcc:
+        global MAXOCC
+        MAXOCC=options.maxOcc
 
     # get sequence
     seqs = parseFasta(inSeqFname)
