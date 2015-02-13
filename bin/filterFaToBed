@@ -96,11 +96,13 @@ def parseFasta(ifh):
             assert(seq==None)
             seq = line.rstrip("\n").upper()
             yield seqId, seq
+            seq = None
     if seq!=None:
         yield seqId, seq
 
 def main():
     guideSeqFname, mainPat, altPats, altScore, passX1Score = sys.argv[1:] 
+    passX1Score = int(passX1Score)
 
     altPats = altPats.split(",") # convert to list
 

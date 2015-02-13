@@ -54,6 +54,9 @@ DEFAULTPAM = 'NGG'
 # and for warnings in the table output.
 MAXOCC = 100000
 
+# minimum off-target score of standard off-targets (those that end with NGG)
+MINSCORE = 1.0
+
 # for some PAMs, we change the motif when searching for offtargets
 # MIT and eCrisp to that, they use the motif NGG -> NRG, ours is a bit more specific, based on the 
 # guideSeq results in Tsai et al, Nat Biot 2014
@@ -123,6 +126,14 @@ def matchNuc(pat, nuc):
     else:
         return False
 
+def gcContent(seq):
+    " return GC content as a float "
+    c = 0
+    for x in seq:
+        if x in ["G","C"]:
+            c+= 1
+    return (float(c)/len(seq))
+            
 def findPat(seq, pat):
     """ yield positions where pat matches seq, stupid brute force search 
     """
@@ -253,7 +264,7 @@ def showSeqAndPams(seq, startDict, pam, guideScores):
     print "<div class='substep'>"
     print '<a id="seqStart"></a>'
     print "Found %d possible guide sequences in input (%d bp). Click on a PAM %s match to show its guide sequence.<br>" % (len(guideScores), len(seq), pam)
-    print "Shown below are the match and the nucleotide at position -2 relative to the cleavage site.<br>"
+    print "Shown below are the PAM site and the nucleotide at position -3 5' of it.<br>"
     print '''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.'''
     print "</div>"
     print '''<div style="text-align: left; overflow-x:scroll; width:100%; background:#DDDDDD; border-style: solid; border-width: 1px">'''
@@ -298,7 +309,7 @@ def flankSeqIter(seq, startDict, pamLen):
 
         yield startPos, strand, flankSeq, pamSeq
 
-def printBrowserLink(dbInfo, pos, text, alnStr, cssClasses=[]):
+def makeBrowserLink(dbInfo, pos, text, alnStr, cssClasses=[]):
     " print link to genome browser (ucsc or ensembl) at pos, with given text "
     if dbInfo.server.startswith("Ensembl"):
         baseUrl = "www.ensembl.org"
@@ -313,13 +324,13 @@ def printBrowserLink(dbInfo, pos, text, alnStr, cssClasses=[]):
             pos = "chr"+pos
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
     else:
-        print "unknown genome browser server %s, please email penigault@tefor.net" % dbInfo.server
+        return "unknown genome browser server %s, please email penigault@tefor.net" % dbInfo.server
 
     classStr = ""
     if len(cssClasses)!=0:
         classStr = ' class="%s"' % (" ".join(cssClasses))
         
-    print '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (alnStr, classStr, url, text)
+    return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (alnStr, classStr, url, text)
 
 def makeAlnStr(seq1, seq2, pam, score, posStr):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
@@ -544,14 +555,18 @@ def calcDoenchScoreFromSeqPos(startPos, seq, pamLen, strand):
         func    = revComp
 
     if fromPos < 0 or toPos > len(seq):
-        return 0
+        return None
     else:
         seq30Mer = func(seq[fromPos:toPos]) 
         return int(round(100*calcDoenchScore(seq30Mer)))
 
 def htmlHelp(text):
     " show help text with tooltip or modal dialog "
-    print '''<img src="image/info.png" class="help tooltip" title="%s" />''' % text
+    print '''<img style="height:1.1em; width:1.0em" src="image/info-small.png" class="help tooltip" title="%s" />''' % text
+
+def htmlWarn(text):
+    " show help text with tooltip "
+    print '''<img style="height:1.1em; width:1.0em" src="image/warning-32.png" class="help tooltip" title="%s" />''' % text
 
 def readEnzymes():
     " parse restrSites.txt and return as dict length -> list of (name, seq) "
@@ -615,27 +630,27 @@ def findSite(seq, restrSite):
     return posList
 
 def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
-    """ return list of enzymes that overlap the -3 position in guideSeq 
+    """ return list of enzymes that overlap the -3 position in guideSeq
     returns dict name -> list of matching positions
     """
     matches = {}
+    #print guideSeq, pamSeq, "<br>"
+    fullSeq = guideSeq+pamSeq
     for siteLen, sites in allEnzymes.iteritems():
-        # sequence of +/-siteLen around the position -3 in guideSeq
-        # the sequence goes into the PAM site
-        startSeq = -3-siteLen+1
-        seq = guideSeq[startSeq:]+pamSeq[:siteLen-3]
+        startSeq = len(fullSeq)-len(pamSeq)-3-(siteLen)+1
+        seq = fullSeq[startSeq:]
+        #print "restrEnz with len %d"% siteLen, seq, "<br>"
         for name, restrSite in sites:
             posList = findSite(seq, restrSite)
             if len(posList)!=0:
                 liftOffset = startSeq+len(guideSeq)
                 posList = [(liftOffset+x, liftOffset+y) for x,y in posList]
                 matches.setdefault(name, []).extend(posList)
-            #print name, seq, restrSite, findSite(seq, restrSite), "<br>"
     return matches
 
 def scoreGuides(seq, startDict, pamPat, otMatches, inputPos, sortBy=None):
-    """ for each pam in startDict, retrieve the guide sequence next to it and score it 
-    sortBy can be "effScore" 
+    """ for each pam in startDict, retrieve the guide sequence next to it and score it
+    sortBy can be "effScore"
     """
     allEnzymes = readEnzymes()
 
@@ -657,7 +672,7 @@ def scoreGuides(seq, startDict, pamPat, otMatches, inputPos, sortBy=None):
                 makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
             effScore = calcDoenchScoreFromSeqPos(startPos, seq, len(pamPat), strand)
         else:
-            posList, otDesc, guideScore = None, "No match. Genome, cDNA?", 0
+            posList, otDesc, guideScore = None, "Not found", 0
             last12Desc = ""
             effScore = 0
             hasNotFound = True
@@ -697,6 +712,9 @@ def printTableHead(batchId, chrom):
     <script type="text/javascript">
     function onlyExons() {
         if ($("#onlyExonBox").prop("checked")) { 
+            $(".otMoreLink").hide();
+            $(".otLessLink").hide();
+            $(".otMore").hide();
             $(".notExon").hide();
             }
         else {
@@ -705,12 +723,16 @@ def printTableHead(batchId, chrom):
             }
             else {
                 $(".notExon").show();
+                $(".otMoreLink").show();
             }
         }
     }
     function onlySameChrom() {
         if ($("#onlySameChromBox").prop("checked"))
             { 
+            $(".otMoreLink").hide();
+            $(".otLessLink").hide();
+            $(".otMore").hide();
             $(".diffChrom").hide();
             }
         else {
@@ -719,8 +741,20 @@ def printTableHead(batchId, chrom):
             }
             else {
                 $(".diffChrom").show();
+                $(".otMoreLink").show();
             }
         }
+    }
+
+    function showAllOts(classId) {
+        $("#"+classId).show();
+        $("#"+classId+"MoreLink").hide();
+        $("#"+classId+"LessLink").show();
+    }
+    function showLessOts(classId) {
+        $("#"+classId).hide();
+        $("#"+classId+"MoreLink").show();
+        $("#"+classId+"LessLink").hide();
     }
     </script>
     """
@@ -735,19 +769,21 @@ def printTableHead(batchId, chrom):
     print '<th style="width:170px">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap the position 3bp 5' to the PAM <br> and will usually be inactivated if the DNA was cut by Cas9")
 
-    print '<th style="width:60px"><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
-    htmlHelp("The specificity score measure the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely are off-target effects. See Hsu et al.")
+    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
+    htmlHelp("The specificity score measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
     print "</th>"
 
-    print '<th style="width:60px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
-    htmlHelp("The efficacy score predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting. For details see Doench et al.")
+    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
+    htmlHelp("The efficacy score predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting at this position. See Doench et al.")
     print "</th>"
 
     print '<th style="width:80px">high G/C content next to PAM'
     htmlHelp("Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that GC content in the 6 bp <br>adjacent to the PAM site is correlated with activity (P=0.625). <br>When >=4, the guide RNA tested in Drosophila usually induced a heritable mutation rate over 60%.")
     print '</th>'
 
-    print '<th style="width:120px">Off-targets for 0,1,2,3,4 mismatches</th>'
+    print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches'
+    htmlHelp("The number of off-targets is given for each number of mismatches.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 3 mismatches, etc.<br>Off-targets are considered if they are flanked by one of the motifs NGG, NAG or NGA.")
+    print "</th>"
 
     print '<th style="width:120">Off-targets with no mismatches next to PAM</i>'
     htmlHelp("These potential off-targets have no mismatches in the 12 bp <br>adjacent to the PAM, they are the most likely off-targets.")
@@ -777,6 +813,43 @@ def scoreToColor(guideScore):
         color = "#aa0114"
     return color
 
+def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
+    " return a list with the html texts of the offtarget links "
+    links = []
+
+    i = 0
+    for otSeq, score, editDist, pos, gene, alnHtml in otData:
+        cssClasses = []
+        if not gene.startswith("exon:"):
+            cssClasses.append("notExon")
+        if pos.split(":")[0]!=chrom:
+            cssClasses.append("diffChrom")
+
+        classStr =  ""
+        if len(cssClasses)!=0:
+            classStr = ' class="%s"' % " ".join(cssClasses)
+
+        link = makeBrowserLink(dbInfo, pos, gene, alnHtml, cssClasses)
+        editDist = str(editDist)
+        links.append( '''<div%(classStr)s>%(editDist)s:%(link)s</div>''' % locals() )
+
+        #i+=1
+        #if i>=3:
+            #break
+
+    #if not showAll and len(otData)>3:
+         #print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.cgi?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
+    return links
+
+def filterOts(otDatas, minScore):
+    " remove all offtargets with score < minScore "
+    newList = []
+    for otData in otDatas:
+        score = otData[1]
+        if score > minScore:
+            newList.append(otData)
+    return newList
+    
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
@@ -817,6 +890,11 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
             print '<a href="%s?batchId=%s&pamId=%s&pam=%s">Primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
+        if gcContent(guideSeq)>0.75:
+            text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had more off-targets than all other sequences combined.<br> We do not recommend using guide sequences with such a high GC content."
+            print "<br>"
+            htmlWarn(text)
+            print ' High GC content<br>' 
         print "</small>"
         print "</td>"
 
@@ -829,6 +907,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print "<td>"
         if effScore==None:
             print "Too close to end"
+            htmlHelp("The efficacy score is calculated from a 30-mer.<br>This guide does not have enough flanking sequence in your input.<br>")
         else:
             print '''%d''' % effScore
         #print '''<a href="#" onclick="alert('%s')">%0.2f</a>''' % (effScore)
@@ -868,26 +947,26 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         # links to offtargets
         print "<td><small>"
         if otData!=None:
-            i = 0
-            for otSeq, score, editDist, pos, gene, alnHtml in otData:
-                cssClasses = []
-                if not gene.startswith("exon:"):
-                    cssClasses.append("notExon")
-                if pos.split(":")[0]!=chrom:
-                    cssClasses.append("diffChrom")
+            if len(otData)>500 and len(guideData)>1:
+                print "Too many off-targets. Showing only those with score &gt;3.0 "
+                htmlHelp("This guide sequence has a high number of off-targets, <br>its use is discouraged.<br>To show all off-targets, run the guide sequence itself alone.")
+                otData = filterOts(otData, 3.0)
 
-                classStr =  ""
-                if len(cssClasses)!=0:
-                    classStr = ' class="%s"' % " ".join(cssClasses)
-                print '''<div%s>%d:''' % (classStr, int(editDist))
+            otLinks = makeOtBrowserLinks(otData, chrom, dbInfo, pamId)
 
-                printBrowserLink(dbInfo, pos, gene, alnHtml, cssClasses)
-                print '</div>'
-                i+=1
-                if i>=3 and not showAll:
-                    break
-            if not showAll and len(otData)>3:
-                 print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.cgi?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
+            print "\n".join(otLinks[:3])
+            if len(otLinks)>3:
+                cssPamId = pamId.replace("-","minus").replace("+","plus") # +/-: not valid in css
+                cssPamId = cssPamId+"More"
+                print '<div id="%s" class="otMore" style="display:none">' % cssPamId
+                print "\n".join(otLinks[3:])
+                print "</div>"
+
+                print '''<a id="%sMoreLink" class="otMoreLink" onclick="showAllOts('%s')">''' % (cssPamId, cssPamId)
+                print 'show all...</a>'
+
+                print '''<a id="%sLessLink" class="otLessLink" style="display:none" onclick="showLessOts('%s')">''' % (cssPamId, cssPamId)
+                print 'show less...</a>'
 
         print "</small></td>"
 
@@ -1108,7 +1187,8 @@ def runBwa(faFname, genome, pam, bedFname, batchBase):
 
     maxOcc = MAXOCC # make local
     matchesBedFname = batchBase+".matches.bed"
-    cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s %(maxOcc)d | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
+    # sorting should improve the twoBitToFa runtime
+    cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | bedSort stdin stdout | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -1447,7 +1527,7 @@ def crisprSearch(params):
     else:
         genomePosStr = ":".join(position.split(":")[:2])
         print "<div class='title'><em>%s</em> sequence at " % (dbInfo.scientificName)
-        printBrowserLink(dbInfo, genomePosStr, genomePosStr, "")
+        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, "")
         print "</div>"
 
     otMatches = parseOfftargets(otBedFname)
@@ -1456,7 +1536,7 @@ def crisprSearch(params):
 
     if hasNotFound and not position=="?":
         print('<div style="text-align:left"><strong>Note:</strong> At least one of the possible guide sequences was not found in the genome. ')
-        print("If you pasted a cDNA sequence, note that sequences with score 0 are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
+        print("If you pasted a cDNA sequence, note that sequences with score 0, e.g. splice junctions, are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
 
     showSeqAndPams(seq, startDict, pam, guideScores)
 
@@ -1485,10 +1565,10 @@ def printTeforBodyStart():
     runPhp("menu.php")
 
     print '<div id="bd">'
-    print '<div class="centralpanel">'
+    print '<div class="centralpanel" style="margin-left:0px">'
     runPhp("networking.php")
     print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
-    print '<div class="contentcentral" style="background-color:transparent;">'
+    print '<div class="contentcentral" style="background-color:white; margin-left:0px; width:100%">'
 
 def printTeforBodyEnd():
     print '</div>'
