@@ -10,7 +10,7 @@ import cgitb
 import sys, cgi, re, array, random, platform, os, hashlib, base64, string, logging, operator, urllib
 from collections import defaultdict, namedtuple
 from sys import stdout
-from os.path import join, isfile, basename, dirname
+from os.path import join, isfile, basename, dirname, getmtime
 
 # optional module for Excel export as native .xls files
 # install with 'apt-get install python-xlwt' or 'pip install xlwt'
@@ -25,8 +25,10 @@ except:
 DEBUG = False
 #DEBUG = True
 
-# prefix before the directories "image/", "style/" and "js/" 
-HTMLDIR =  ""
+# prefix in html statements before the directories "image/", "style/" and "js/" 
+HTMLPREFIX =  "/crispor/"
+# directory on local disk where image/, style/ and js/ are located
+HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
 # the segments.bed files use abbreviated genomic region names
 segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
@@ -566,11 +568,11 @@ def calcDoenchScoreFromSeqPos(startPos, seq, pamLen, strand):
 
 def htmlHelp(text):
     " show help text with tooltip or modal dialog "
-    print '''<img style="height:1.1em; width:1.0em" src="%simage/info-small.png" class="help tooltip" title="%s" />''' % (HTMLDIR, text)
+    print '''<img style="height:1.1em; width:1.0em" src="%simage/info-small.png" class="help tooltip" title="%s" />''' % (HTMLPREFIX, text)
 
 def htmlWarn(text):
     " show help text with tooltip "
-    print '''<img style="height:1.1em; width:1.0em" src="%simage/warning-32.png" class="help tooltip" title="%s" />''' % (HTMLDIR, text)
+    print '''<img style="height:1.1em; width:1.0em" src="%simage/warning-32.png" class="help tooltip" title="%s" />''' % (HTMLPREFIX, text)
 
 def readEnzymes():
     " parse restrSites.txt and return as dict length -> list of (name, seq) "
@@ -990,13 +992,28 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
     #''' % (batchId,seq,org,pam,pamId)
 
 
+def linkLocalFiles(listFname):
+    """ write a <link> statement for each filename in listFname. Version them via mtime
+    (-> browser cache)
+    """
+    for fname in open(listFname):
+        if not isfile(fname):
+            fname = join(HTMLDIR, fname)
+            if not isfile(fname):
+                print "missing: %s<br>" % fname
+                continue
+        mTime = os.path.getmtime(fname)
+        if fname.endswith(".css"):
+            print "<link rel='stylesheet' media='screen' type='text/css' href='%s?%s'/>" % (listFname, mtime)
+
 def printHeader(batchId):
     " print the html header "
 
-    print "<html><head>"   
+    print "<html><head>"
 
     printFile("header.inc")
-    printFile("/var/www/main/specific/googleanalytics/script.php")
+    linkLocalFiles("includes.txt")
+    printFile("../main/specific/googleanalytics/script.php")
 
     # activate jqueryUI tooltips
     print ("""  <script>
@@ -1011,15 +1028,15 @@ def printHeader(batchId):
               });
               </script>""")
 
-    print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLDIR
-    print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster-shadow.css" />' % HTMLDIR
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLPREFIX
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster-shadow.css" />' % HTMLPREFIX
 
     # the UFD combobox, https://code.google.com/p/ufd/wiki/Usage
     # patched to allow mouse wheel
     # https://code.google.com/p/ufd/issues/detail?id=86&q=mouse%20wheel
-    print '<script type="text/javascript" src="%sjs/jquery.ui.ufd.js"></script>' % HTMLDIR
-    print '<link rel="stylesheet" type="text/css" href="%sstyle/ufd-base.css" />' % HTMLDIR
-    print '<link rel="stylesheet" type="text/css" href="%sstyle/plain.css" />' % HTMLDIR
+    print '<script type="text/javascript" src="%sjs/jquery.ui.ufd.js"></script>' % HTMLPREFIX
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/ufd-base.css" />' % HTMLPREFIX
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/plain.css" />' % HTMLPREFIX
     print '<link rel="stylesheet" type="text/css"  href="http://code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css" />'
     print '<script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>'
 
@@ -1333,7 +1350,7 @@ def printForm(params):
         Choose a species genome
 
     </div>
-    """% (HTMLDIR, HTMLDIR, scriptName,lastseq,lastseq)
+    """% (HTMLPREFIX, HTMLPREFIX, scriptName,lastseq,lastseq)
 
     printOrgDropDown(lastorg)
     #print '<small style="float:left">Type a species name to search for it</small>'
@@ -1352,7 +1369,7 @@ To add your genome of interest to the list, contact CRISPOR web site manager
         </div>
         Choose a Protospacer Adjacent Motif (PAM)
     </div>
-    """ % HTMLDIR
+    """ % HTMLPREFIX
     printPamDropDown(lastpam)
     print """
     <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>

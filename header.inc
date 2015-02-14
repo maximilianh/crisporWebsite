@@ -7,16 +7,8 @@
 <meta property='og:type' content='website' />
 <meta property='og:url' content='http://tefor.net/crispor/crispor.cgi' />
 <meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />
+
 <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
-<script src='http://code.jquery.com/ui/1.11.1/jquery-ui.min.js'></script>
 <script src='https://apis.google.com/js/platform.js' async defer></script>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/style/style_general.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/specific/style/squeleton.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/style/menu.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/specific/style/menu.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/specific/style/logo.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/specific/style/specific.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/style/newfont/personnalfont.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='http://tefor.net/main/specific/style/button.css?v=2'/>
-<link rel='stylesheet' media='screen' type='text/css' href='style/style.css?v=21423209972'/>
-<link rel='stylesheet' media='screen' type='text/css' href='./style/style.css?v=21423209972'/>
+<script src='http://code.jquery.com/ui/1.11.1/jquery-ui.min.js'></script>
+
