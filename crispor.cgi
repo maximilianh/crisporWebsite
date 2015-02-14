@@ -21,8 +21,12 @@ except:
     sys.stderr.write("crispor.cgi - warning - the python xlwt module is not available")
     xlwtLoaded = False
 
+# write debug output to stdout
 DEBUG = False
 #DEBUG = True
+
+# prefix before the directories "image/", "style/" and "js/" 
+HTMLDIR =  ""
 
 # the segments.bed files use abbreviated genomic region names
 segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
@@ -562,11 +566,11 @@ def calcDoenchScoreFromSeqPos(startPos, seq, pamLen, strand):
 
 def htmlHelp(text):
     " show help text with tooltip or modal dialog "
-    print '''<img style="height:1.1em; width:1.0em" src="image/info-small.png" class="help tooltip" title="%s" />''' % text
+    print '''<img style="height:1.1em; width:1.0em" src="%simage/info-small.png" class="help tooltip" title="%s" />''' % (HTMLDIR, text)
 
 def htmlWarn(text):
     " show help text with tooltip "
-    print '''<img style="height:1.1em; width:1.0em" src="image/warning-32.png" class="help tooltip" title="%s" />''' % text
+    print '''<img style="height:1.1em; width:1.0em" src="%simage/warning-32.png" class="help tooltip" title="%s" />''' % (HTMLDIR, text)
 
 def readEnzymes():
     " parse restrSites.txt and return as dict length -> list of (name, seq) "
@@ -991,8 +995,8 @@ def printHeader(batchId):
 
     print "<html><head>"   
 
-    runPhp("header.php")
-    runPhp("/var/www/main/specific/googleanalytics/script.php")
+    printFile("header.inc")
+    printFile("/var/www/main/specific/googleanalytics/script.php")
 
     # activate jqueryUI tooltips
     print ("""  <script>
@@ -1007,15 +1011,15 @@ def printHeader(batchId):
               });
               </script>""")
 
-    print '<link rel="stylesheet" type="text/css" href="style/tooltipster.css" />'
-    print '<link rel="stylesheet" type="text/css" href="style/tooltipster-shadow.css" />'
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLDIR
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster-shadow.css" />' % HTMLDIR
 
     # the UFD combobox, https://code.google.com/p/ufd/wiki/Usage
     # patched to allow mouse wheel
     # https://code.google.com/p/ufd/issues/detail?id=86&q=mouse%20wheel
-    print '<script type="text/javascript" src="js/jquery.ui.ufd.js"></script>'
-    print '<link rel="stylesheet" type="text/css" href="style/ufd-base.css" />'
-    print '<link rel="stylesheet" type="text/css" href="style/plain.css" />'
+    print '<script type="text/javascript" src="%sjs/jquery.ui.ufd.js"></script>' % HTMLDIR
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/ufd-base.css" />' % HTMLDIR
+    print '<link rel="stylesheet" type="text/css" href="%sstyle/plain.css" />' % HTMLDIR
     print '<link rel="stylesheet" type="text/css"  href="http://code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css" />'
     print '<script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>'
 
@@ -1295,7 +1299,7 @@ def printForm(params):
 <div class="introtext">
  CRISPOR (CRISPr selectOR) is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.
     <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
-        <img src="http://tefor.net/crispor/image/info.png" class="infopoint" style="vertical-align:text-top;">
+        <img src="%simage/info.png" class="infopoint" style="vertical-align:text-top;">
     </div>
     <div id="about-us"><br>
     CRISPOR uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
@@ -1307,7 +1311,7 @@ def printForm(params):
     <div class="substep">
         <div class="title" style="cursor:pointer;" onclick="$('#helptext1').toggle('fast')">
             Step 1
-            <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
+            <img src="%simage/info.png" class="infopoint" >
         </div>
        Submit a single sequence for guide RNA identification and analysis
     </div>
@@ -1329,7 +1333,7 @@ def printForm(params):
         Choose a species genome
 
     </div>
-    """% (scriptName,lastseq,lastseq)
+    """% (HTMLDIR, HTMLDIR, scriptName,lastseq,lastseq)
 
     printOrgDropDown(lastorg)
     #print '<small style="float:left">Type a species name to search for it</small>'
@@ -1344,11 +1348,11 @@ To add your genome of interest to the list, contact CRISPOR web site manager
     <div class="substep">
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
             Step 3
-            <img src="http://tefor.net/crispor/image/info.png" class="infopoint">
+            <img src="%simage/info.png" class="infopoint">
         </div>
         Choose a Protospacer Adjacent Motif (PAM)
     </div>
-    """
+    """ % HTMLDIR
     printPamDropDown(lastpam)
     print """
     <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
@@ -1357,7 +1361,7 @@ To add your genome of interest to the list, contact CRISPOR web site manager
 
     <input type="submit" name="submit" value="SUBMIT" tabindex="4"/>
     """    
-    runPhp("sponsors.php")
+    printFile("sponsors.inc")
     print """
 
 
@@ -1548,25 +1552,39 @@ def crisprSearch(params):
     print '<br><a class="neutral" href="crispor.cgi">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:80;">New Query</div></a>'
 
-def runPhp(script):
-    " run a file through php, write result to stdout. accepts a full or a relative path "
-    if "/" in script:
-        path = script
+#def runPhp(script):
+    #" run a file through php, write result to stdout. accepts a full or a relative path "
+    #if "/" in script:
+        #path = script
+    #else:
+        #myDir = dirname(__file__)
+        #path = "%s/%s" % (myDir, script)
+#
+    ##if not isfile(path):
+        ##return
+    #proc = subprocess.Popen("php "+path, shell=True, stdout=subprocess.PIPE)
+    #script_response = proc.stdout.read()
+    #print script_response
+
+def printFile(fname):
+    if "/" in fname:
+        path = fname
     else:
         myDir = dirname(__file__)
-        path = "%s/%s" % (myDir, script)
-
-    proc = subprocess.Popen("php "+path, shell=True, stdout=subprocess.PIPE)
-    script_response = proc.stdout.read()
-    print script_response
+        path = "%s/%s" % (myDir, fname)
+#
+    if not isfile(path):
+        print "missing: %s" % path
+        return
+    print open(path).read()
 
 def printTeforBodyStart():
     print "<div class='logo'><a href='http://tefor.net/main/'><img src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a></div>"
-    runPhp("menu.php")
+    printFile("menu.inc")
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
-    runPhp("networking.php")
+    printFile("networking.inc")
     print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
     print '<div class="contentcentral" style="background-color:white; margin-left:0px; width:100%">'
 
@@ -1574,7 +1592,7 @@ def printTeforBodyEnd():
     print '</div>'
     print '</div>'
     print '</div>'
-    runPhp("footer.php")
+    printFile("footer.inc")
     print '</div>'
 
 def iterGuideRows(guideData):
