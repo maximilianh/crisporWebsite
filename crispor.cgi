@@ -1207,13 +1207,14 @@ To add your genome of interest to the list, contact CRISPOR web site manager
     print """
     <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
 </div>
-
-
-    <input type="submit" name="submit" value="SUBMIT" tabindex="4"/>
+<div class="windowstep" >    
+    <input style='margin-top:8px;' type="submit" name="submit" value="SUBMIT" tabindex="4"/>
+</div>
+<div class="windowstep" style="display:inline;width:40%%;">
     """    
     runPhp("sponsors.php")
     print """
-
+</div>
 
 
 <style>
@@ -1380,7 +1381,7 @@ def crisprSearch(params):
         printQueryNotFoundNote(dbInfo)
     else:
         genomePosStr = ":".join(position.split(":")[:2])
-        print "<div class='title'><em>%s</em> sequence at " % (dbInfo.scientificName)
+        print "<div class='title' style='margin-top:20px;' ><em>%s</em> sequence at " % (dbInfo.scientificName)
         printBrowserLink(dbInfo, genomePosStr, genomePosStr, "")
         print "</div>"
 
@@ -1418,9 +1419,9 @@ def printTeforBodyStart():
 
     print '<div id="bd">'
     print '<div class="centralpanel">'
-    runPhp("networking.php")
     print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
     print '<div class="contentcentral" style="background-color:transparent;">'
+    runPhp("networking.php")
 
 def printTeforBodyEnd():
     print '</div>'
