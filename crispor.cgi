@@ -35,8 +35,8 @@ DEBUG = False
 THREADS = 4
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
-HTMLPREFIX =  "/crispor/"
-# directory on local disk where image/, style/ and js/ are located
+HTMLPREFIX =  ""
+# alternative directory on local disk where image/, style/ and js/ are located
 HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
 # directory of crispor.cgi
@@ -496,7 +496,7 @@ def flankSeqIter(seq, startDict, pamLen):
 
         yield startPos, strand, flankSeq, pamSeq
 
-def makeBrowserLink(dbInfo, pos, text, alnStr, cssClasses=[]):
+def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
     " return link to genome browser (ucsc or ensembl) at pos, with given text "
     if dbInfo.server.startswith("Ensembl"):
         baseUrl = "www.ensembl.org"
@@ -517,7 +517,7 @@ def makeBrowserLink(dbInfo, pos, text, alnStr, cssClasses=[]):
     if len(cssClasses)!=0:
         classStr = ' class="%s"' % (" ".join(cssClasses))
         
-    return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (alnStr, classStr, url, text)
+    return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
 
 def makeAlnStr(seq1, seq2, pam, score, posStr):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
@@ -783,7 +783,7 @@ def calcMicroHomolScore(seq, left):
 
         mhScore = sum_score_3+sum_score_not_3
         oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
-    return mhScore, oofScore
+    return int(mhScore), int(oofScore)
 
 # --- END OF SCORING ROUTINES 
 
@@ -821,7 +821,7 @@ def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
     faFile = StringIO(seqStr)
     seqs = parseFasta(faFile)
     assert(len(seqs)==1)
-    seq = seqs.values()[0]
+    seq = seqs.values()[0].upper()
     if strand=="-":
         seq = revComp(seq)
     return seq
@@ -845,8 +845,11 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
     """
     assert(start>=0)
     assert(end<=len(seq))
-    if extSeq:
-        assert(seq in extSeq)
+    # check if the extended sequence really contains the whole input seq 
+    # e.g. when user has added nucleotides to a otherwise matching sequence
+    if (seq not in extSeq):
+        debug("seq is not in extSeq")
+        extSeq = None
 
     # extend
     if strand=="+":
@@ -880,28 +883,6 @@ def pamStartToGuideRange(startPos, strand, pamLen):
         return (startPos-20, startPos)
     else: # strand is minus
         return (startPos+pamLen, startPos+pamLen+20)
-
-def calcDoenchScoreFromSeqPosOld(startPos, seq, pamLen, strand):
-    """ extract 30 mer from seq given beginning of pam at startPos and strand,
-    return Doench score
-    >>> calcDoenchScoreFromSeqPosOld(27, "AAAAAAACCCCCCCCCCCCCCCCCCCCTGGAAAAAAA", 3, "+")
-    2
-    """
-    if strand=="+":
-        fromPos  = startPos-24
-        toPos    = startPos+6
-        func     = str
-    else: # strand is minus
-        fromPos = startPos+pamLen-6
-        toPos   = startPos+pamLen+24
-        func    = revComp
-
-    if fromPos < 0 or toPos > len(seq):
-        return None
-    else:
-        seq30Mer = func(seq[fromPos:toPos])
-        #seq30Mer = func(getExtSeq(seq, fromPos, 5, 25, extSeq))
-        return int(round(100*calcDoenchScore(seq30Mer)))
 
 def htmlHelp(text):
     " show help text with tooltip or modal dialog "
@@ -1016,16 +997,20 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
 
             # get 30mer and calc Doench
             gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
-            seq30Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 6, extSeq).upper()
-            effScore = int(round(100*calcDoenchScore(seq30Mer)))
+            seq30Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 6, extSeq)
+            if seq30Mer==None:
+                effScore = "Too close to end"
+            else:
+                effScore = int(round(100*calcDoenchScore(seq30Mer)))
 
             # get 60mer and calc oof-score
             seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
             if seq60Mer == None:
-                mhScore, oofScore = 0, 0
+                mhScore, oofScore = "Too close to end", ""
             else:
                 assert(len(seq60Mer)==60)
                 mhScore, oofScore = calcMicroHomolScore(seq60Mer, 30)
+                oofScore = str(oofScore)+" %"
         else:
             posList, otDesc, guideScore = None, "Not found", 0
             last12Desc = ""
@@ -1132,13 +1117,13 @@ def printTableHead(batchId, chrom):
     htmlHelp("The specificity score measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
     print "</th>"
 
-    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
+    print '<th style="width:90px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
     htmlHelp("The efficacy score predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting at this position. See Doench et al.")
     htmlHelp("Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that GC content in the 6 bp <br>adjacent to the PAM site is correlated with activity (P=0.625). <br>When >=4, the guide RNA tested in Drosophila usually induced a heritable mutation rate over 60%. When this is the case, we show 'prox. GC OK' in this column.")
     print '</th>'
 
-    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Microhomology Score</a>' % batchId
-    htmlHelp("The Out-of-Frame Score predicts if a guide is likely to lead to out-of-frame deletions.")
+    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Micro- homology Score</a>' % batchId
+    htmlHelp("The microhomology score indicates the proposenity of the sequence for deletions, the higher the more deletions. <br>The Out-of-Frame Score (in grey) predicts the percentage of clones that will carry out-of-frame deletions.")
     print '</th>'
 
     print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches'
@@ -1150,13 +1135,18 @@ def printTableHead(batchId, chrom):
     print "</th>"
 
     print '<th style="width:*">Genome Browser links to matches sorted by off-target score'
-    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br> Matches can be filtered to show only those in exons or on the same chromosome.<br>This can be useful in model organisms where subsequent crossing can remove off-target mutations.")
+    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br> Matches can be filtered to show only those in exons or on the same chromosome.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
     #print '<form id="filter-form" method="get" action="crispor.cgi#otTable">'
     print '<input type="hidden" name="batchId" value="%s">' % batchId
     print '''<input type="checkbox" id="onlyExonBox" onchange="onlyExons()">exons only'''
-    print '''<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only''' % chrom
+    if chrom!="":
+        if chrom[0].isdigit():
+            chrom = "chrom "+chrom
+        print '''<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only''' % chrom
+    else:
+        print '<small style="color:grey">&nbsp;No chromosome for filter</small>'
     # a hidden submit button
     # print '<input  type="submit" name="submit" value="submit">'
     #print '<input  type="submit" name="submit" value="1" style="position: absolute; height: 0px; width: 0px; border: none; padding: 0px;" hidefocus="true" tabindex="-1"/>'
@@ -1209,7 +1199,14 @@ def filterOts(otDatas, minScore):
         if score > minScore:
             newList.append(otData)
     return newList
-    
+
+def findOtCutoff(otData):
+    " try cutoffs 0.5, 1.0, 2.0, 3.0 until not more than 20 offtargets left "
+    for cutoff in [0.3, 0.5, 1.0, 2.0, 3.0]:
+        otData = filterOts(otData, cutoff)
+        if len(otData)<30:
+            return otData, cutoff
+
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
@@ -1242,10 +1239,6 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print "<tt>"+guideSeq + " <i>" + pamSeq+"</i></tt>"
         print "<br>"
 
-        if len(mutEnzymes)!=0:
-            print "Restr. Enzymes:"
-            print ",".join(mutEnzymes)
-        print "<br>"
 
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
@@ -1255,6 +1248,11 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "<br>"
             htmlWarn(text)
             print ' High GC content<br>'
+
+        print "<br>"
+        if len(mutEnzymes)!=0:
+            print "Restr. Enzymes:"
+            print ",".join(mutEnzymes)
         print "</small>"
         print "</td>"
 
@@ -1269,7 +1267,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "Too close to end"
             htmlHelp("The efficacy score is calculated from a 30-mer.<br>This guide does not have enough flanking sequence in your input.<br>")
         else:
-            print '''%d''' % effScore
+            print '''%s''' % str(effScore)
         #print '''<a href="#" onclick="alert('%s')">%0.2f</a>''' % (effScore)
         #print "<!-- %s -->" % seq30Mer
         print "<br>"
@@ -1277,16 +1275,16 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         # close GC > 4
         gcCount = guideSeq[-6:].count("G")+guideSeq[-6:].count("C")
         if gcCount >= 4:
-            print "prox. GC"
+            print "prox. GC OK"
         else:
             print ""
 
         # microhomolgy score and out of frame score
         print "<td>"
-        print int(mhScore)
-        print "<br>"
-        print int(oofScore)
-        print "</td>"
+        print mhScore
+        print '<br><span style="color:grey">'
+        print oofScore
+        print "</span></td>"
 
         # mismatch description
         print "<td>"
@@ -1312,9 +1310,9 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print "<td><small>"
         if otData!=None:
             if len(otData)>500 and len(guideData)>1:
-                print "Too many off-targets. Showing only those with score &gt;3.0 "
-                htmlHelp("This guide sequence has a high number of off-targets, <br>its use is discouraged.<br>To show all off-targets, run the guide sequence itself alone.")
-                otData = filterOts(otData, 3.0)
+                otData, cutoff = findOtCutoff(otData)
+                print "Too many off-targets. Showing only those with score &gt;%0.1f " % cutoff
+                htmlHelp("This guide sequence has a high number of off-targets, <br>its use is discouraged.<br>To show all off-targets, paste the guide sequence itself alone into the input sequence box.")
 
             otLinks = makeOtBrowserLinks(otData, chrom, dbInfo, pamId)
 
@@ -1344,7 +1342,8 @@ def linkLocalFiles(listFname):
     """ write a <link> statement for each filename in listFname. Version them via mtime
     (-> browser cache)
     """
-    for fname in open(listFname):
+    for fname in open(listFname).read().splitlines():
+        fname = fname.strip()
         if not isfile(fname):
             fname = join(HTMLDIR, fname)
             if not isfile(fname):
@@ -1352,7 +1351,7 @@ def linkLocalFiles(listFname):
                 continue
         mTime = str(os.path.getmtime(fname)).split(".")[0] # seconds is enough
         if fname.endswith(".css"):
-            print "<link rel='stylesheet' media='screen' type='text/css' href='%s?%s'/>" % (listFname, mTime)
+            print "<link rel='stylesheet' media='screen' type='text/css' href='%s?%s'/>" % (fname, mTime)
 
 def printHeader(batchId):
     " print the html header "
@@ -1677,7 +1676,7 @@ def printForm(params):
 <form id="main-form" method="post" action="%s">
 
 <div class="introtext">
- CRISPOR (CRISPr selectOR) is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.
+ CRISPOR (CRISPr selectOR, http://crispor.tefor.net) is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.
     <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
         <img src="%simage/info.png" class="infopoint" style="vertical-align:text-top;">
     </div>
@@ -1899,9 +1898,7 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue=None):
             ip = os.environ["REMOTE_ADDR"]
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pam))
             if not wasOk:
-                print "batch %s is already running" % batchId
-            else:
-                print "added to job db, batchId is %s" % batchId
+                print "Job is running"
             return None
 
     return otBedFname
@@ -1912,7 +1909,7 @@ def startAjaxWait(batchId):
     #$.ajax({ url: "server", success: function(data){
     #//$.getJSON( "%(scriptName)s?batchId=%(batchId)s&ajaxStatus=1", gotStatus);
     print """
-    <div id="statusEl">Waiting for status</div>
+    Status: <div id="statusEl">Waiting</div>
     <script>
     function gotStatus( data ) {
       status = data["status"];
@@ -1974,9 +1971,11 @@ def crisprSearch(params):
         printQueryNotFoundNote(dbInfo)
     else:
         genomePosStr = ":".join(position.split(":")[:2])
-        print "<div class='title'><em>%s</em> sequence at " % (dbInfo.scientificName)
-        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, "")
-        print " (link to Genome Browser)</div>"
+        print "<div class='title'><em>%s</em> sequence found at " % (dbInfo.scientificName)
+        print '<span style="text-decoration:underline">'
+        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, "link to UCSC or Ensembl Genome Browser")
+        print "</span></div>"
+        #print " (link to Genome Browser)</div>"
 
     otMatches = parseOfftargets(otBedFname)
     sortBy = (params.get("sortBy", None))
@@ -2140,7 +2139,9 @@ def downloadFile(params):
     elif params["download"]=="offtargets":
         print "Content-Disposition: attachment; filename=\"offtargets-%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        xlsWrite(iterOfftargetRows(guideData), "offtargets", sys.stdout, [6,28,28,5], fileFormat)
+        otRows = list(iterOfftargetRows(guideData))
+        otRows.sort(key=operator.itemgetter(4), reverse=True)
+        xlsWrite(otRows, "offtargets", sys.stdout, [6,28,28,5], fileFormat)
 
 def printBody(params):
     " main dispatcher function "
