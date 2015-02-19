@@ -1,6 +1,6 @@
 <div class="networking_panel">
     <div class="fb-like"
-         data-href="http://tefor.net/crispor/crispor.cgi"
+         data-href="crispor.cgi"
          data-layout="box_count"
          data-action="like"
          data-show-faces="false"
@@ -8,7 +8,7 @@
     </div>
     <br>
     <br>
-    <div class="g-plusone" data-href="http://tefor.net/crispor/crispor.cgi" data-size="tall"></div>
+    <div class="g-plusone" data-href="crispor.cgi" data-size="tall"></div>
     <br>
     <br>
     <a href="https://twitter.com/share" 
@@ -23,7 +23,7 @@
     
     <br>
     <a href="#footer-credits" onclick="$('#footer-credits').fadeToggle('fast');">
-        <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
+        <img src="image/info.png" class="infopoint" >
         <br>
         credits
     </a>    

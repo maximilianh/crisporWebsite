@@ -7,11 +7,11 @@
         
     <!--<a onmouseenter="$('#nebtext').show();" target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">-->
     <a target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">
-        <img style="width:225px;margin-right:50px;" src="http://tefor.net/crispor/image/NEBlogo.png">
+        <img style="width:225px;margin-right:50px;" src="image/NEBlogo.png">
     </a>
 
     <a target="_blank" href="http://www.idtdna.com/crispr">
-        <img style="width:225px;margin-top:25px;" src="http://tefor.net/crispor/image/IDTlogo.png">
+        <img style="width:225px;margin-top:25px;" src="image/IDTlogo.png">
     </a>
     
 </div>
