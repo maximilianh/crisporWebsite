@@ -8,7 +8,7 @@
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
 import Cookie, time, math, sys, cgi, re, array, random, platform, os
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
-import traceback, json
+import traceback, json, pwd
 
 from collections import defaultdict, namedtuple
 from sys import stdout
@@ -2631,6 +2631,8 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="MAXOCC parameter, 20mers with more matches are excluded") 
     parser.add_option("", "--worker", dest="worker", \
         action="store_true", help="Run as worker process: watches job queue and runs jobs") 
+    parser.add_option("", "--user", dest="user", \
+        action="store", help="for the --worker option: switch to this user at program start") 
     parser.add_option("", "--clear", dest="clear", \
         action="store_true", help="clear the worker job table and exit") 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
@@ -2663,9 +2665,25 @@ def delBatchDir():
         os.remove(fname)
     os.removedirs(batchDir)
 
-def runQueueWorker():
+def runQueueWorker(userName):
     " in an infinite loop, take jobs from the job queue in jobs.db and finish them "
-    print("Worker startup, waiting for jobs...")
+    if userName!=None:
+        uid =  pwd.getpwnam(userName)[2]
+        os.setuid(uid)
+
+    try:
+       # Store the Fork PID
+       pid = os.fork()
+
+       if pid > 0:
+         print 'PID: %d' % pid
+         os._exit(0)
+
+    except OSError, error:
+      print 'Unable to fork. Error: %d (%s)' % (error.errno, error.strerror)
+      os._exit(1)
+
+    print("Worker running as daemon. Waiting for jobs.")
     q = JobQueue(JOBQUEUEDB)
     while True:
         if q.waitCount()==0:
@@ -2744,7 +2762,7 @@ def mainCommandLine():
         sys.exit(0)
 
     if options.worker:
-        runQueueWorker()
+        runQueueWorker(options.user)
         sys.exit(0)
 
     if options.clear:
