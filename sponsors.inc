@@ -6,7 +6,6 @@
 <div class="sponsors">
     
     <!--<a onmouseenter="$('#nebtext').show();" target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">-->
-<<<<<<< HEAD:sponsors.php
     <div class='sponsor'>
         <a target="_blank" href="http://www.idtdna.com/crispr">
             <img style="width:200px;margin-right:50px;margin-top:27px;" src="http://tefor.net/crispor/image/IDTlogo.png">
@@ -18,15 +17,6 @@
             <img style="width:200px;" src="http://tefor.net/crispor/image/NEBlogo.png">
         </a>
     </div>
-=======
-    <a target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">
-        <img style="width:225px;margin-right:50px;" src="image/NEBlogo.png">
-    </a>
-
-    <a target="_blank" href="http://www.idtdna.com/crispr">
-        <img style="width:225px;margin-top:25px;" src="image/IDTlogo.png">
-    </a>
->>>>>>> 8e52924beb8045c896933d6f3ed1d8a710cc020f:sponsors.inc
     
 <!--    <div class='sponsor' style='color:gray;font-size:medium;margin-top:32px;'>
         Sponsored by:
