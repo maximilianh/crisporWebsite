@@ -1699,7 +1699,7 @@ def printForm(params):
 
 <div class="introtext">
  CRISPOR (CRISPr selectOR, http://crispor.tefor.net) is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system.
-    <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
+    <div onclick="$('.about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
         <img src="%simage/info.png" class="infopoint" style="vertical-align:text-top;">
     </div>
     <div class="about-us"><br>
