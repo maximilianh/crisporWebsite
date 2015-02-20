@@ -70,7 +70,7 @@ DEFAULTPAM = 'NGG'
 # maximum number of occurences in the genome to get flagged as repeats. 
 # This is used in bwa samse, when converting the same file
 # and for warnings in the table output.
-MAXOCC = 50000
+MAXOCC = 40000
 
 # MAXOCC is increased in runBwa() and in the html UI if only one guide seq
 # is run
@@ -517,7 +517,7 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
     if len(cssClasses)!=0:
         classStr = ' class="%s"' % (" ".join(cssClasses))
         
-    return '''<a class="tooltip" title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
+    return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
 
 def makeAlnStr(seq1, seq2, pam, score, posStr):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
@@ -886,11 +886,11 @@ def pamStartToGuideRange(startPos, strand, pamLen):
 
 def htmlHelp(text):
     " show help text with tooltip or modal dialog "
-    print '''<img style="height:1.1em; width:1.0em" src="%simage/info-small.png" class="help tooltip" title="%s" />''' % (HTMLPREFIX, text)
+    print '''<img style="height:1.1em; width:1.0em" src="%simage/info-small.png" class="help tooltipster" title="%s" />''' % (HTMLPREFIX, text)
 
 def htmlWarn(text):
     " show help text with tooltip "
-    print '''<img style="height:1.1em; width:1.0em" src="%simage/warning-32.png" class="help tooltip" title="%s" />''' % (HTMLPREFIX, text)
+    print '''<img style="height:1.1em; width:1.0em" src="%simage/warning-32.png" class="help tooltipster" title="%s" />''' % (HTMLPREFIX, text)
 
 def readEnzymes():
     " parse restrSites.txt and return as dict length -> list of (name, seq) "
@@ -1124,8 +1124,8 @@ def printTableHead(batchId, chrom):
     htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
     print '</th>'
 
-    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Micro- homology Score</a>' % batchId
-    htmlHelp("The microhomology score indicates the proposenity of the sequence for deletions, the higher the more deletions. <br>The Out-of-Frame Score (in grey) predicts the percentage of clones that will carry out-of-frame deletions.")
+    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Out-of- Frame Score</a>' % batchId
+    htmlHelp("The Out-of-Frame Score (in grey) predicts the percentage of clones that will carry out-of-frame deletions.")
     print '</th>'
 
     print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
@@ -1170,7 +1170,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
 
     i = 0
     for otSeq, score, editDist, pos, gene, alnHtml in otData:
-        cssClasses = []
+        cssClasses = ["tooltip"]
         if not gene.startswith("exon:"):
             cssClasses.append("notExon")
         if pos.split(":")[0]!=chrom:
@@ -1203,10 +1203,15 @@ def filterOts(otDatas, minScore):
 
 def findOtCutoff(otData):
     " try cutoffs 0.5, 1.0, 2.0, 3.0 until not more than 20 offtargets left "
-    for cutoff in [0.3, 0.5, 1.0, 2.0, 3.0]:
+    for cutoff in [0.3, 0.5, 1.0, 2.0, 3.0, 10.0, 99.9]:
         otData = filterOts(otData, cutoff)
-        if len(otData)<30:
+        if len(otData)<=30:
             return otData, cutoff
+
+    if len(otData)>30:
+        return otData[:30], 9999
+
+    return otData, 1000
 
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom):
     " shows table of all PAM motif matches "
@@ -1284,8 +1289,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
 
         # microhomolgy score and out of frame score
         print "<td>"
-        print mhScore
-        print '<br><span style="color:grey">'
+        #print mhScore
+        #print '<br><span style="color:grey">'
         print oofScore
         print "</span></td>"
 
@@ -1365,19 +1370,6 @@ def printHeader(batchId):
     linkLocalFiles("includes.txt")
     printFile("../main/specific/googleanalytics/script.php")
 
-    # activate jqueryUI tooltips
-    print ("""  <script>
-               $(function () {
-                  $(document).tooltip({
-                  relative : true,
-                  tooltipClass : "alignStyle",
-                  content: function () {
-                  return '<div style="width:100px">'+$(this).prop('title')+"</div>";
-                  }
-                 });
-              });
-              </script>""")
-
     print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLPREFIX
     print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster-shadow.css" />' % HTMLPREFIX
 
@@ -1392,11 +1384,29 @@ def printHeader(batchId):
 
     # activate tooltipster
    #theme: 'tooltipster-shadow',
-    print (""" <script> $(document).ready(function() { $('.tooltip').tooltipster({ 
-        contentAsHTML: true,
-        speed : 0
+    print ("""
+    <script> 
+    $(document).ready(function() { 
+        $('.tooltipster').tooltipster({ 
+            contentAsHTML: true,
+            speed : 0
         }); });
-        </script> """)
+    </script> """)
+
+    # activate jqueryUI tooltips
+    print ("""
+    <script>
+    $(function () {
+       $(".tooltip").tooltip({
+       relative : true,
+       tooltipClass : "alignStyle",
+       content: function () {
+       return '<div style="width:300px">'+$(this).prop('title')+"</div>";
+       }
+      });
+    });
+    </script>""")
+
 
     # style of Jquery UI tooltips, default style is div.ui-tooltip
     print("""<style>
@@ -1547,35 +1557,43 @@ def parseOfftargets(bedFname):
 
     return indexedOts
 
-def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue=None):
+class ConsQueue:
+    """ a pseudo job queue that does nothing but report progress to the console """
+    def startStep(self, batchId, desc, label):
+        logging.info("Progress %s - %s - %s" % (batchId, desc, label))
+
+def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     """ search fasta file against genome, filter for pam matches and write to bedFName 
     optionally write status updates to work queue. 
     """
     genomeDir = genomesDir # make var local, see below
     pamLen = len(pam)
 
-    # increase MAXOCC if seq contains only a single guide seq
-    if len(parseFasta(faFname))==1:
+    # increase MAXOCC if there is only a single query
+    if len(parseFasta(open(faFname)))==1:
         global MAXOCC
         MAXOCC=HIGH_MAXOCC
 
     saFname = batchBase+".sa"
 
     queue.startStep(batchId, "bwa", "Alignment of potential guides")
+    # ALIGNMENT
     cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
     runCmd(cmd)
 
     queue.startStep(batchId, "saiToBed", "Converting alignments")
     maxOcc = MAXOCC # make local
     matchesBedFname = batchBase+".matches.bed"
+    # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
     # sorting should improve the twoBitToFa runtime
     cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
-    queue.startStep(batchId, "filter", "Removing locations without PAM motif")
+    queue.startStep(batchId, "filter", "Removing matches without a PAM motif")
     altPats = offtargetPams.get(pam, "na")
     bedFnameTmp = bedFname+".tmp"
+    # EXTRACTION OF SEQUENCES + ANNOTATION
     cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s 1.0 %(maxOcc)d | BIN/overlapSelect %(genomeDir)s/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
     runCmd(cmd)
 
@@ -1877,10 +1895,10 @@ def printQueryNotFoundNote(dbInfo):
     print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<p>"
     print "</em></div>"
 
-def getOfftargets(seq, org, pam, batchId, startDict, queue=None):
+def getOfftargets(seq, org, pam, batchId, startDict, queue):
     """ write guides to fasta and run bwa or use older cached results.
     Return name of the BED file with the matches.
-    optinally write status updates to queue object.
+    Write progress status updates to queue object.
     """
     batchBase = join(batchDir, batchId)
     otBedFname = batchBase+".bed"
@@ -1949,7 +1967,7 @@ def crisprSearch(params):
         print ("</script>")
 
     if len(warnMsg)!=0:
-        print warnMsg
+        print warnMsg+"<p>"
 
     batchBase = join(batchDir, batchId)
 
@@ -1959,7 +1977,7 @@ def crisprSearch(params):
     # search PAMs
     uppSeq = seq.upper()
     startDict, endSet = findAllPams(uppSeq, pam)
-    otBedFname = getOfftargets(uppSeq, org, pam, batchId, startDict)
+    otBedFname = getOfftargets(uppSeq, org, pam, batchId, startDict, None)
 
     if otBedFname is None:
         # this can happen only in CGI mode. Job has been added to the queue or is not done yet. 
@@ -2802,7 +2820,7 @@ def mainCommandLine():
         raise Exception("no match found for sequence %s in genome %s" % (inSeqFname, org))
 
     startDict, endSet = findAllPams(seq, pam)
-    otBedFname = getOfftargets(seq, org, pam, batchId, startDict)
+    otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
     otMatches = parseOfftargets(otBedFname)
     guideData, guideScores, hasNotFound = scoreGuides(seq, extSeq, startDict, pam, otMatches, position)
 
