@@ -1,38 +1,48 @@
-<div style='margin-top:20px;margin-bottom:10px;color:gray;font-size:medium;border-bottom:solid thin grey;'>
-    Sponsored by:
+<div style='margin-top:5px;margin-bottom:5px;color:gray;'>
+    Sponsored by:    
 </div>
 
 <!--title="Buy Cas9 Nuclease protein, S. pyogenes"--> 
 <div class="sponsors">
-        
-    <!--<a onmouseenter="$('#nebtext').show();" target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">-->
-    <a target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">
-        <img style="width:225px;margin-right:50px;" src="image/NEBlogo.png">
-    </a>
-
-    <a target="_blank" href="http://www.idtdna.com/crispr">
-        <img style="width:225px;margin-top:25px;" src="image/IDTlogo.png">
-    </a>
     
+    <!--<a onmouseenter="$('#nebtext').show();" target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">-->
+    <div class='sponsor'>
+        <a target="_blank" href="http://www.idtdna.com/crispr">
+            <img style="width:200px;margin-right:50px;margin-top:27px;" src="http://tefor.net/crispor/image/IDTlogo.png">
+        </a>
+    </div>
+    
+    <div class='sponsor'>
+        <a target="_blank" href="http://international.neb.com/products/m0386-cas9-nuclease-s-pyogenes">
+            <img style="width:200px;" src="http://tefor.net/crispor/image/NEBlogo.png">
+        </a>
+    </div>
+    
+<!--    <div class='sponsor' style='color:gray;font-size:medium;margin-top:32px;'>
+        Sponsored by:
+    </div>-->
+
 </div>
 
 <style>
       
+   div.sponsor
+   {
+       float:right;
+       margin-right:50px;       
+   }
+   
    div.sponsors:hover
    {
         -webkit-animation-play-state: paused;
         opacity:1;
-   }   
-   div.sponsors a
-   {
-       float:right;
-       margin-right:50px;
-   }
+   }      
    
    div.sponsors
    {          
        /*border: solid thin red;*/
-       /*display:inline-block;*/
+       display:inline;
+       
        -webkit-animation:           mymove 2s infinite; /* Chrome, Safari, Opera */
        -webkit-animation-direction: alternate; /* Chrome, Safari, Opera */
 
