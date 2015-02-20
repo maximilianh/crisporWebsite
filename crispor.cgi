@@ -2025,7 +2025,7 @@ def runPhp(script):
         myDir = dirname(__file__)
         path = "%s/%s" % (myDir, script)
 
-    #if not isfile(path):
+    if not isfile(path):
         return
     proc = subprocess.Popen("php "+path, shell=True, stdout=subprocess.PIPE)
     script_response = proc.stdout.read()
