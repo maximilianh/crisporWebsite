@@ -1,31 +1,70 @@
 #!/usr/bin/env python
 
 # filter fasta file and keep only sequences that end with pattern (if + strand)
-# or start with rev-comp pattern (if - strand)
 # output as a bed file
-# CAREFUL: input sequences have to be on a single line. This is different from normal Fasta.
+# CAREFUL: for speed, input sequences have to be on a single line. This is different from normal Fasta.
 
-# arguments: pattern passScore
-# all sequences that have a field no 6 (0-based) which is > passScore will 
-# pass no matter what. This is to allow X1-exceeding matches to get through, 
-# even if they don't end with the pattern, so signal that a sequence
-# exceeded the X1 cutoff.
+# example input:
+#>seq1|chrII|16108096|16108116|+|0|12345
+#TCGAAAGTGGTAAGAATTTA
 
-# first parameter is the pattern, input is read from stdin 
+# example output:
+# format: (seqId, strand, mismatchCount, seq, x1Score, hitScore (or 0, if it was a mainPat match or X1score) 
+#
+
+# arguments: guideSeq mainPat altPats altMaxScore passX1Score
+# mainPat: 
+# mainPattern, all sequences that end with this pattern get through
+# altPats: comma-sep list of patterns, all sequences with this pattern get only through
+#          if they have >altMaxScore. The score is the hitScore as defined in Hsu et al 2013, 
+#          see below
+#          Can be "na" if not altPat search needed
+# passX1Score: all sequences that have a field X1Score name field (no 6, 0-based count, |-separated) 
+#          and where the X1Score is > passX1Score will 
+#          pass no matter what. This is to allow X1-exceeding matches to get through, 
+#          even if they don't end with the pattern. These matches are a signal from BWA that a sequence
+#          exceeded the X1 cutoff, so these are repetitive sequences we filter out.
+#          This is needed, as otherwise we couldn't distinguish non-matching from too-repetitive 
+#          sequences.
 
 import sys, re
 
-#def revComp(seq):
-    #" rev-comp a string "
-    #revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' }
-    #newSeq = []
-    #for c in reversed(seq):
-        #newSeq.append(revTbl[c])
-    #return "".join(newSeq)
-        
-# compile a strand and a rev comp pattern
-pat = sys.argv[1] # first parameter is the pattern, e.g. NGG
-passScore = int(sys.argv[2]) # 2nd parameter is the score at which any seq will pass
+# MIT offtarget scoring
+# aka Matrix "M"
+hitScoreM = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.732,0.828,0.615,0.804,0.685,0.583]
+
+def calcHitScore(string1,string2):
+    " see 'Scores of single hits' on http://crispr.mit.edu/about "
+    # The Patrick Hsu weighting scheme
+    assert(len(string1)==len(string2)==20)
+
+    dists = [] # distances between mismatches, for part 2
+    mmCount = 0 # number of mismatches, for part 3
+    lastMmPos = None # position of last mismatch, used to calculate distance
+
+    score1 = 1.0
+    for pos in range(0, len(string1)):
+        if string1[pos]!=string2[pos]:
+            mmCount+=1
+            if lastMmPos!=None:
+                dists.append(pos-lastMmPos)
+            score1 *= 1-hitScoreM[pos]
+            lastMmPos = pos
+    # 2nd part of the score
+    if mmCount<2: # special case, not shown in the paper
+        score2 = 1.0
+    else:
+        avgDist = sum(dists)/len(dists)
+        score2 = 1.0 / (((19-avgDist)/19.0) * 4 + 1)
+    # 3rd part of the score
+    if mmCount==0: # special case, not shown in the paper
+        score3 = 1.0
+    else:
+        score3 = 1.0 / (mmCount**2)
+
+    score = score1 * score2 * score3 * 100
+    return score
+# END ---- MIT offtarget scoring
 
 def patMatch(seq, pat):
     " return true if pat does not match seq, both have to be same length "
@@ -47,46 +86,53 @@ def patMatch(seq, pat):
             return False
     return True
 
-#pat = patRaw.replace("N", "[ACTG]")
-#fwPatRe = re.compile(pat+"$") # only at end of seq
+def parseFasta(ifh):
+    seq = None
+    for line in ifh:
+        if line.startswith(">"):
+            seq = None
+            seqId = line.rstrip("\n").lstrip(">")
+        else:
+            assert(seq==None)
+            seq = line.rstrip("\n").upper()
+            yield seqId, seq
+            seq = None
+    if seq!=None:
+        yield seqId, seq
 
-#rcPat = revComp(patRaw)
-#rcPat = rcPat.replace("N", "[ACTG]")
-#rcPatRe = re.compile("^" + rcPat) # only at start of seq
+def main():
+    guideSeqFname, mainPat, altPats, altScore, passX1Score = sys.argv[1:] 
+    passX1Score = int(passX1Score)
 
-# example input:
-#>seq1|chrII|16108096|16108116|+|0
-#TCGAAAGTGGTAAGAATTTA
+    altPats = altPats.split(",") # convert to list
 
-for line in sys.stdin:
-    if line.startswith(">"):
-        seqId, chrom, start, end, strand, editDist, x1Score = line.rstrip("\n").lstrip(">").split("|")
-        seq = None
-        idLine = line
-    else:
-        assert(seq==None)
-        seq = line.rstrip("\n")
-        seq = seq.upper()
-        seqLine = line
+    guideSeqs = dict(parseFasta(open(guideSeqFname)))
 
-        if int(x1Score)>passScore:
-            # this part is in here twice
-            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+x1Score
+    for seqIdLine, seq in parseFasta(sys.stdin):
+        #print seqIdLine, seq
+        seqId, chrom, start, end, strand, editDist, x1Score = seqIdLine.split("|")
+        doesPass = False
+        hitScore = 0
+        if int(x1Score)>passX1Score:
+            doesPass = True
+        else:
+            suffix = seq[-len(mainPat):]
+            #print suffix, mainPat, seq
+            if patMatch(suffix, mainPat):
+                doesPass = True
+            else:
+                if altPats!="na":
+                    for altPat in altPats:
+                        guideSeq = guideSeqs[seqId]
+                        if patMatch(suffix, altPat):
+                            hitScore = calcHitScore(guideSeq, seq[:20])
+                            if hitScore > 1.00:
+                                doesPass = True
+                                break
+
+        if doesPass:
+            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+x1Score+"|"+str(hitScore)
             row = [chrom, start, end, name]
             print "\t".join(row)
-            
-        #print strand, seq
-        #if strand=="+":
-        #patRe = fwPatRe
-        #else:
-            #patRe = rcPatRe
-        #print seqId, strand, patRe.pattern, seq
-            
-        suffix = seq[-len(pat):]
-        if patMatch(suffix, pat):
-            # this part is in here twice
-            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+x1Score
-            row = [chrom, start, end, name]
-            print "\t".join(row)
-            #print idLine,
-            #print seqLine,
+
+main()

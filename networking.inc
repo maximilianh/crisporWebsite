@@ -1,6 +1,6 @@
 <div class="networking_panel">
     <div class="fb-like"
-         data-href="http://tefor.net/crispor/crispor.cgi"
+         data-href="crispor.cgi"
          data-layout="box_count"
          data-action="like"
          data-show-faces="false"
@@ -8,7 +8,7 @@
     </div>
     <br>
     <br>
-    <div class="g-plusone" data-href="http://tefor.net/crispor/crispor.cgi" data-size="tall"></div>
+    <div class="g-plusone" data-href="crispor.cgi" data-size="tall"></div>
     <br>
     <br>
     <a href="https://twitter.com/share" 
@@ -22,13 +22,19 @@
     <a target="_blank" href="https://groups.google.com/forum/?hl=en#!forum/crispor">CRISPOR<br>forum</a>
     
     <br>
+<<<<<<< HEAD:networking.php
     <a href="#footer-credits" onclick="$('.credits').fadeToggle('fast');$('#footer-credits').fadeToggle('fast');">
         <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
+=======
+    <a href="#footer-credits" onclick="$('#footer-credits').fadeToggle('fast');">
+        <img src="image/info.png" class="infopoint" >
+>>>>>>> 8e52924beb8045c896933d6f3ed1d8a710cc020f:networking.inc
         <br>
         credits
     </a>    
     <br>
 </div>
+<<<<<<< HEAD:networking.php
 
 <div class="networking_panel_horizontal">
     <div class="fb-like"
@@ -72,3 +78,5 @@
     
     <?php include("./credits.php"); ?>
 </div>
+=======
+>>>>>>> 8e52924beb8045c896933d6f3ed1d8a710cc020f:networking.inc
