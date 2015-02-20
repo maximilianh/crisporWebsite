@@ -22,7 +22,7 @@
     <a target="_blank" href="https://groups.google.com/forum/?hl=en#!forum/crispor">CRISPOR<br>forum</a>
     
     <br>
-    <a href="#footer-credits" onclick="$('#footer-credits').fadeToggle('fast');">
+    <a href="#footer-credits" onclick="$('.credits').fadeToggle('fast');$('#footer-credits').fadeToggle('fast');">
         <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
         <br>
         credits
@@ -57,10 +57,10 @@
         CRISPOR forum
     </a>
 
-    <a href="#footer-credits" onclick="$('#footer-credits').fadeToggle('fast');">        
+    <div class="linklike" style="display:inline;" onclick="$('.credits').fadeToggle('fast');">        
         credits
         <img src="http://tefor.net/crispor/image/info.png" class="infopoint" >
-    </a>            
+    </div>            
     <div style="margin-top:5px;font-size:medium;">
         CRISPOR (CRISPr selectOR) is a program that helps design and evaluate target sites for use with the CRISPR/Cas9 system
         <div class="about-us">
@@ -69,4 +69,6 @@
         For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.
         </div>
     </div>
+    
+    <?php include("./credits.php"); ?>
 </div>
