@@ -847,7 +847,7 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
     assert(end<=len(seq))
     # check if the extended sequence really contains the whole input seq 
     # e.g. when user has added nucleotides to a otherwise matching sequence
-    if (seq not in extSeq):
+    if extSeq!=None and (seq not in extSeq):
         debug("seq is not in extSeq")
         extSeq = None
 
