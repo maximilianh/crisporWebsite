@@ -2017,19 +2017,19 @@ def crisprSearch(params):
     print '<br><a class="neutral" href="crispor.cgi">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:80;">New Query</div></a>'
 
-#def runPhp(script):
-    #" run a file through php, write result to stdout. accepts a full or a relative path "
-    #if "/" in script:
-        #path = script
-    #else:
-        #myDir = dirname(__file__)
-        #path = "%s/%s" % (myDir, script)
-#
-    ##if not isfile(path):
-        ##return
-    #proc = subprocess.Popen("php "+path, shell=True, stdout=subprocess.PIPE)
-    #script_response = proc.stdout.read()
-    #print script_response
+def runPhp(script):
+    " run a file through php, write result to stdout. accepts a full or a relative path "
+    if "/" in script:
+        path = script
+    else:
+        myDir = dirname(__file__)
+        path = "%s/%s" % (myDir, script)
+
+    #if not isfile(path):
+        return
+    proc = subprocess.Popen("php "+path, shell=True, stdout=subprocess.PIPE)
+    script_response = proc.stdout.read()
+    print script_response
 
 def printFile(fname):
     if "/" in fname:
@@ -2049,7 +2049,7 @@ def printTeforBodyStart():
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
-    printFile("networking.inc")
+    runPhp("networking.php")
     print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
     print '<div class="contentcentral" style="background-color:white; margin-left:0px; width:100%">'
 
@@ -2057,7 +2057,7 @@ def printTeforBodyEnd():
     print '</div>'
     print '</div>'
     print '</div>'
-    printFile("footer.inc")
+    runPhp("footer.php")
     print '</div>'
 
 def iterGuideRows(guideData):
