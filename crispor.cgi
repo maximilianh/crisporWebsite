@@ -1702,7 +1702,7 @@ def printForm(params):
     <div onclick="$('#about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
         <img src="%simage/info.png" class="infopoint" style="vertical-align:text-top;">
     </div>
-    <div id="about-us"><br>
+    <div class="about-us"><br>
     CRISPOR uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
     It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
@@ -2051,7 +2051,7 @@ def printTeforBodyStart():
     print '<div class="centralpanel" style="margin-left:0px">'
     runPhp("networking.php")
     print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
-    print '<div class="contentcentral" style="background-color:white; margin-left:0px; width:100%">'
+    print '<div class="contentcentral" style="margin-left:0px; width:100%">'
 
 def printTeforBodyEnd():
     print '</div>'
