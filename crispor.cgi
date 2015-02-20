@@ -517,7 +517,7 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
     if len(cssClasses)!=0:
         classStr = ' class="%s"' % (" ".join(cssClasses))
         
-    return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
+    return '''<a class="tooltip" title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
 
 def makeAlnStr(seq1, seq2, pam, score, posStr):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
@@ -1104,7 +1104,7 @@ def printTableHead(batchId, chrom):
     """
 
     print '<table id="otTable" style="table-layout:fixed; overflow:scroll; width:100%">'
-    print '<tr style="border-left:5px solid black">'
+    print '<tr style="border-left:5px solid black; background-color:#F0F0F0">'
     
     print '<th style="width:80px">Position/<br>Strand'
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
@@ -1114,28 +1114,29 @@ def printTableHead(batchId, chrom):
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9.")
 
     print '<th style="width:70px"><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
-    htmlHelp("The specificity score measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
+    htmlHelp("The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
     print "</th>"
 
     print '<th style="width:90px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
-    htmlHelp("The efficacy score predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting at this position. See Doench et al.")
-    htmlHelp("Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that GC content in the 6 bp <br>adjacent to the PAM site is correlated with activity (P=0.625). <br>When >=4, the guide RNA tested in Drosophila usually induced a heritable mutation rate over 60%. When this is the case, we show 'prox. GC OK' in this column.")
+    htmlHelp("The efficacy score ranges from 0-100 and predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting at this position. <br>See Doench et al. for details. We multiply Doench et al's score by 100 for easier reading.")
+
+    print '<th style="width:50">Prox. GC'
+    htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
     print '</th>'
 
     print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Micro- homology Score</a>' % batchId
     htmlHelp("The microhomology score indicates the proposenity of the sequence for deletions, the higher the more deletions. <br>The Out-of-Frame Score (in grey) predicts the percentage of clones that will carry out-of-frame deletions.")
     print '</th>'
 
-    print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches'
-    htmlHelp("The number of off-targets is given for each number of mismatches.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 3 mismatches, etc.<br>Off-targets are considered if they are flanked by one of the motifs NGG, NAG or NGA.")
-    htmlHelp("Shown in grey are the off-targets that have no mismatches in the 12 bp <br>adjacent to the PAM. These are the most likely off-targets.")
+    print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
+    htmlHelp("For each number of mismatches, the number of off-targets is indicated.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 3 mismatches, etc.<br>Off-targets are considered if they are flanked by one of the motifs NGG, NAG or NGA.<br>Shown in grey are the off-targets that have no mismatches in the 12 bp <br>adjacent to the PAM. These are the most likely off-targets.")
     #print "</th>"
 
     #print '<th style="width:120">Off-targets with no mismatches next to PAM</i>'
     print "</th>"
 
     print '<th style="width:*">Genome Browser links to matches sorted by off-target score'
-    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br> Matches can be filtered to show only those in exons or on the same chromosome.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
+    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
     #print '<form id="filter-form" method="get" action="crispor.cgi#otTable">'
@@ -1270,14 +1271,16 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print '''%s''' % str(effScore)
         #print '''<a href="#" onclick="alert('%s')">%0.2f</a>''' % (effScore)
         #print "<!-- %s -->" % seq30Mer
-        print "<br>"
+        print "</td>"
 
         # close GC > 4
+        print "<td>"
         gcCount = guideSeq[-6:].count("G")+guideSeq[-6:].count("C")
         if gcCount >= 4:
-            print "prox. GC OK"
+            print "+"
         else:
-            print ""
+            print "-"
+        print "</td>"
 
         # microhomolgy score and out of frame score
         print "<td>"
@@ -1369,7 +1372,7 @@ def printHeader(batchId):
                   relative : true,
                   tooltipClass : "alignStyle",
                   content: function () {
-                  return $(this).prop('title');
+                  return '<div style="width:100px">'+$(this).prop('title')+"</div>";
                   }
                  });
               });
@@ -1391,8 +1394,9 @@ def printHeader(batchId):
    #theme: 'tooltipster-shadow',
     print (""" <script> $(document).ready(function() { $('.tooltip').tooltipster({ 
         contentAsHTML: true,
-       speed : 0
-        }); }); </script> """)
+        speed : 0
+        }); });
+        </script> """)
 
     # style of Jquery UI tooltips, default style is div.ui-tooltip
     print("""<style>
