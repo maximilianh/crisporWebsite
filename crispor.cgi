@@ -1047,8 +1047,9 @@ def printDownloadTableLinks(batchId):
 def printTableHead(batchId, chrom):
     " print guide score table description and columns "
     # one row per guide sequence
-    print '''<div class='substep'>Ranked by default from highest to lowest specificity score determined as in <a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al.</a> and on <a href="http://crispr.mit.org">http://crispr.mit.org</a>.'''
-    print '''<br>Also provided are efficacy scores, see <a href="http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html">Doench et al.</a> and GC content, see <a href="http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4">Ren et al.</a> Click on column title to rank by efficacy score.<br></div>'''
+    print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>.'''
+    print '''Also provided are efficacy scores (<a target="_blank" href="http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html">Doench et al., Nat Biot 2014</a>), proximal GC content (<a target="_blank" href="http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4">Ren et al., Cell Rep 2014</a>) and out-of-frame scores (<a target="_blank" href="http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html">Bae et al Nat Meth 2014</a>).<br>'''
+    print '''Click on a column title to rank by its score.<br></div>'''
 
     printDownloadTableLinks(batchId)
 
@@ -1103,7 +1104,7 @@ def printTableHead(batchId, chrom):
     </script>
     """
 
-    print '<table id="otTable" style="table-layout:fixed; overflow:scroll; width:100%">'
+    print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
     print '<tr style="border-left:5px solid black; background-color:#F0F0F0">'
     
     print '<th style="width:80px">Position/<br>Strand'
@@ -1125,7 +1126,7 @@ def printTableHead(batchId, chrom):
     print '</th>'
 
     print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Out-of- Frame Score</a>' % batchId
-    htmlHelp("The Out-of-Frame Score (in grey) predicts the percentage of clones that will carry out-of-frame deletions.")
+    htmlHelp("The Out-of-Frame Score predicts the percentage of clones that will carry out-of-frame deletions. For details see Bae et al, Nat Met 2014.")
     print '</th>'
 
     print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
@@ -1995,7 +1996,7 @@ def crisprSearch(params):
         genomePosStr = ":".join(position.split(":")[:2])
         print "<div class='title'><em>%s</em> sequence found at " % (dbInfo.scientificName)
         print '<span style="text-decoration:underline">'
-        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, "link to UCSC or Ensembl Genome Browser")
+        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, "link to UCSC or Ensembl Genome Browser", ["tooltipster"])
         print "</span></div>"
         #print " (link to Genome Browser)</div>"
 
