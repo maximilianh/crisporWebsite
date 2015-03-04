@@ -121,8 +121,8 @@ def main():
             if patMatch(suffix, mainPat):
                 doesPass = True
             else:
-                if altPats!="na":
-                    for altPat in altPats:
+                for altPat in altPats:
+                    if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(suffix, altPat):
                             hitScore = calcHitScore(guideSeq, seq[:20])
