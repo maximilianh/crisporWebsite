@@ -1060,9 +1060,9 @@ def printTableHead(batchId, chrom):
     <script type="text/javascript">
     function onlyExons() {
         if ($("#onlyExonBox").prop("checked")) { 
+            $(".otMore").show();
             $(".otMoreLink").hide();
             $(".otLessLink").hide();
-            $(".otMore").hide();
             $(".notExon").hide();
             }
         else {
@@ -1072,15 +1072,16 @@ def printTableHead(batchId, chrom):
             else {
                 $(".notExon").show();
                 $(".otMoreLink").show();
+                $(".otMore").hide();
             }
         }
     }
     function onlySameChrom() {
         if ($("#onlySameChromBox").prop("checked"))
             { 
+            $(".otMore").show();
             $(".otMoreLink").hide();
             $(".otLessLink").hide();
-            $(".otMore").hide();
             $(".diffChrom").hide();
             }
         else {
@@ -1090,6 +1091,7 @@ def printTableHead(batchId, chrom):
             else {
                 $(".diffChrom").show();
                 $(".otMoreLink").show();
+                $(".otMore").hide();
             }
         }
     }
