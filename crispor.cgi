@@ -535,11 +535,13 @@ def makeAlnStr(seq1, seq2, pam, score, posStr):
             lines[2].append("*")
             if i>7:
                 last12MmCount += 1
-    #lines[0].append("<i>"+seq1[i:i+3]+"</i>")
     lines[0].append(" <i>"+seq1[-len(pam):]+"</i>")
     lines[1].append(" <i>"+seq2[-len(pam):]+"</i>")
-    #lines[1].append("<i>"+seq2[i:i+3]+"</i>")
     lines = ["".join(l) for l in lines]
+
+    if len(posStr)>1 and posStr[0].isdigit():
+        posStr = "chr"+posStr
+
     htmlText = "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>Off-target score: %.2f<br>Position: %s</small>" % (lines[0], lines[1], lines[2], score, posStr)
     hasLast12Mm = last12MmCount>0
     return htmlText, hasLast12Mm
