@@ -471,7 +471,8 @@ def showSeqAndPams(seq, startDict, pam, guideScores):
             color = scoreToColor(score)
 
             #print score, opacity
-            texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s" onmouseover="$('.hiddenExonMatch').show('fast');$('#show-more').hide();$('#show-less').show()" onfocus="window.location.href = '#seqStart'" >''' % (color, pamId,pamId))
+            #texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s" onmouseover="$('.hiddenExonMatch').show('fast');$('#show-more').hide();$('#show-less').show()" onfocus="window.location.href = '#seqStart'" >''' % (color, pamId,pamId))
+            texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (color, pamId,pamId))
             texts.append(name)
             texts.append("</a>")
         print "".join(texts)
@@ -1027,6 +1028,8 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
         sortCol = 1
     elif sortBy == "mhScore":
         sortCol = 2
+    elif sortBy == "oofScore":
+        sortCol = 3
     else:
         sortCol = 0
 
@@ -1125,7 +1128,7 @@ def printTableHead(batchId, chrom):
     htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
     print '</th>'
 
-    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=mhScore">Out-of- Frame Score</a>' % batchId
+    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame Score</a>' % batchId
     htmlHelp("The Out-of-Frame Score predicts the percentage of clones that will carry out-of-frame deletions. For details see Bae et al, Nat Met 2014.")
     print '</th>'
 
