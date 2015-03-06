@@ -1233,6 +1233,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
 
+    showPamWarning(pam)
     printTableHead(batchId, chrom)
 
     count = 0
@@ -1967,6 +1968,13 @@ def startAjaxWait(batchId):
     </script>
     """ % locals()
 
+def showPamWarning(pam):
+    if pam!="NGG":
+        print '<div style="text-align:left">'
+        print "<strong>Note:</strong> Your query involves a Cas9 that is not from S. Pyogenes. "
+        print "Please bear in mind that specificity end efficacy scores were designed using data with S. Pyogenes Cas9 and might not be applicable to this particular Cas9.<br>"
+        print '</div>'
+
 def crisprSearch(params):
     " do crispr off target search "
     if "batchId" in params:
@@ -2029,6 +2037,7 @@ def crisprSearch(params):
     showAll = (params.get("showAll", 0)=="1")
 
     chrom, start, end, strand = parsePos(position)
+
     showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom)
 
     print '<br><a class="neutral" href="crispor.cgi">'
