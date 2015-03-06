@@ -2032,7 +2032,7 @@ def crisprSearch(params):
     showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom)
 
     print '<br><a class="neutral" href="crispor.cgi">'
-    print '<div class="button" style="margin-left:auto;margin-right:auto;width:80;">New Query</div></a>'
+    print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
 
 def runPhp(script):
     " run a file through php, write result to stdout. accepts a full or a relative path "
