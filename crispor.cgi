@@ -10,6 +10,7 @@ import Cookie, time, math, sys, cgi, re, array, random, platform, os
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
 import traceback, json, pwd
 
+from datetime import datetime
 from collections import defaultdict, namedtuple
 from sys import stdout
 from os.path import join, isfile, basename, dirname, getmtime
@@ -41,18 +42,22 @@ HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
 # directory of crispor.cgi
 baseDir = dirname(__file__)
+
 # the segments.bed files use abbreviated genomic region names
 segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 
 # directory for processed batches of offtargets ("cache" of bwa results)
 batchDir = join(baseDir,"temp")
+
 # the file where the job queue is stored
-JOBQUEUEDB = join(batchDir, "jobs.db")
+JOBQUEUEDB = join(baseDir, "jobs.db")
 
 # directory for platform-independent scripts (e.g. Heng Li's perl SAM parser)
 scriptDir = join(baseDir, "bin")
+
 # directory for helper binaries (e.g. BWA)
 binDir = join(baseDir, "bin", platform.system())
+
 # directory for genomes
 genomesDir = join(baseDir, "genomes")
 
@@ -1178,7 +1183,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
 
     i = 0
     for otSeq, score, editDist, pos, gene, alnHtml in otData:
-        cssClasses = ["tooltip"]
+        cssClasses = ["tooltipster"]
         if not gene.startswith("exon:"):
             cssClasses.append("notExon")
         if pos.split(":")[0]!=chrom:
@@ -2714,7 +2719,7 @@ def runQueueWorker(userName):
       print 'Unable to fork. Error: %d (%s)' % (error.errno, error.strerror)
       os._exit(1)
 
-    print("Worker running as daemon. Waiting for jobs.")
+    print("%s Worker running as daemon. Waiting for jobs." % datetime.ctime(datetime.now()))
     q = JobQueue(JOBQUEUEDB)
     while True:
         if q.waitCount()==0:
@@ -2752,7 +2757,7 @@ def clearQueue():
     q.clearJobs()
     print("Worker queue now empty")
 
-# this won't work
+# this won't work, it's very hard to spawn from CGIs
 #def spawnWorkers(minCount):
 #    #" check if we're running minCount worker threads, if not, start them up "
 #    workerCount = 0
