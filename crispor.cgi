@@ -2719,11 +2719,12 @@ def runQueueWorker(userName):
       print 'Unable to fork. Error: %d (%s)' % (error.errno, error.strerror)
       os._exit(1)
 
-    print("%s Worker running as daemon. Waiting for jobs." % datetime.ctime(datetime.now()))
+    print("%s: Worker daemon started. Waiting for jobs." % datetime.ctime(datetime.now()))
+    sys.stdout.flush()
+
     q = JobQueue(JOBQUEUEDB)
     while True:
         if q.waitCount()==0:
-            #print "active wait"
             #q.dump()
             time.sleep(1)
             continue
