@@ -149,6 +149,7 @@ class JobQueue:
     ')')
 
     def __init__(self, dbName):
+        self.dbName = dbName
         self.conn = sqlite3.Connection(dbName)
         self.conn.execute(self._queueDef % ("queue", "PRIMARY KEY"))
         self.conn.execute(self._queueDef % ("doneJobs", ""))
@@ -165,6 +166,8 @@ class JobQueue:
             return True
         except sqlite3.IntegrityError:
             return False
+        except sqlite3.OperationalError:
+            errAbort("Cannot open DB file %s. Please contact penigault@tefor.net" % self.dbName)
 
     def getStatus(self, jobId):
         " return current job status label or None if job is not in queue"
@@ -1372,7 +1375,8 @@ def linkLocalFiles(listFname):
                 continue
         mTime = str(os.path.getmtime(fname)).split(".")[0] # seconds is enough
         if fname.endswith(".css"):
-            print "<link rel='stylesheet' media='screen' type='text/css' href='%s?%s'/>" % (fname, mTime)
+            url = fname.replace("/var/www/", "http://tefor.net/")
+            print "<link rel='stylesheet' media='screen' type='text/css' href='%s?%s'/>" % (url, mTime)
 
 def printHeader(batchId):
     " print the html header "
@@ -1381,7 +1385,7 @@ def printHeader(batchId):
 
     printFile("header.inc")
     linkLocalFiles("includes.txt")
-    printFile("../main/specific/googleanalytics/script.php")
+    printFile("/var/www/main/specific/googleanalytics/script.php")
 
     print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLPREFIX
     print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster-shadow.css" />' % HTMLPREFIX
@@ -2057,7 +2061,7 @@ def printFile(fname):
     print open(path).read()
 
 def printTeforBodyStart():
-    print "<div class='logo'><a href='http://tefor.net/main/'><img src='../main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a></div>"
+    print "<div class='logo'><a href='http://tefor.net/main/'><img src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a></div>"
     printFile("menu.inc")
 
     print '<div id="bd">'

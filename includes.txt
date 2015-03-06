@@ -1,8 +1,8 @@
-../main/style/style_general.css    
-../main/specific/style/squeleton.css    
-../main/style/menu.css
-../main/specific/style/menu.css
-../main/specific/style/logo.css
-../main/style/newfont/personnalfont.css
-../main/specific/style/button.css
+/var/www/main/style/style_general.css    
+/var/www/main/specific/style/squeleton.css    
+/var/www/main/style/menu.css
+/var/www/main/specific/style/menu.css
+/var/www/main/specific/style/logo.css
+/var/www/main/style/newfont/personnalfont.css
+/var/www/main/specific/style/button.css
 style/style.css
