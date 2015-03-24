@@ -82,7 +82,10 @@ MAXOCC = 40000
 HIGH_MAXOCC=600000
 
 # minimum off-target score of standard off-targets (those that end with NGG)
-MINSCORE = 1.0
+# MINSCORE = 1.0
+
+# minimum off-target score for alternative PAM off-target
+ALTPAMMINSCORE = 2.0
 
 # for some PAMs, we change the motif when searching for offtargets
 # MIT and eCrisp to that, they use the motif NGG -> NRG, ours is a bit more specific, based on the 
@@ -390,9 +393,9 @@ def cleanSeq(seq):
     seq = "".join(newSeq)
 
     msgs = []
-    if len(seq)>2000:
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than 2kbp</strong><br>Below you find the results for the first 2000 bp of your input sequence.<br>")
-        seq = seq[:2000]
+    if len(seq)>1000:
+        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than 1kbp</strong><br>Below you find the results for the first 1000 bp of your input sequence.<br>")
+        seq = seq[:1000]
 
     if nCount!=0:
         msgs.append("Sequence contained %d non-ACTG letters. They were removed." % nCount)
@@ -520,7 +523,8 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
             pos = "chr"+pos
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
     else:
-        return "unknown genome browser server %s, please email penigault@tefor.net" % dbInfo.server
+        #return "unknown genome browser server %s, please email penigault@tefor.net" % dbInfo.server
+        url = "javascript:void(0)"
 
     classStr = ""
     if len(cssClasses)!=0:
@@ -599,9 +603,12 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         otCount = 0
         for chrom, start, end, otSeq, strand, segType, geneNameStr, x1Count in matches:
             # skip on-targets
-            segTypeDesc = segTypeConv[segType]
-            geneDesc = segTypeDesc+":"+geneNameStr
-            geneDesc = geneDesc.replace("|", "-")
+            if ":" in segType:
+                segTypeDesc = segTypeConv[segType]
+                geneDesc = segTypeDesc+":"+geneNameStr
+                geneDesc = geneDesc.replace("|", "-")
+            else:
+                geneDesc = geneNameStr
 
             if editDist==0 and chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC:
                 ontargetDesc = geneDesc
@@ -1163,7 +1170,7 @@ def printTableHead(batchId, chrom):
             chrom = "chrom "+chrom
         print '''<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only''' % chrom
     else:
-        print '<small style="color:grey">&nbsp;No chromosome for filter</small>'
+        print '<small style="color:grey">&nbsp;No match, no chrom filter</small>'
     # a hidden submit button
     # print '<input  type="submit" name="submit" value="submit">'
     #print '<input  type="submit" name="submit" value="1" style="position: absolute; height: 0px; width: 0px; border: none; padding: 0px;" hidefocus="true" tabindex="-1"/>'
@@ -1225,7 +1232,7 @@ def findOtCutoff(otData):
             return otData, cutoff
 
     if len(otData)>30:
-        return otData[:30], 9999
+        return otData[:30], None
 
     return otData, 1000
 
@@ -1336,8 +1343,12 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         if otData!=None:
             if len(otData)>500 and len(guideData)>1:
                 otData, cutoff = findOtCutoff(otData)
-                print "Too many off-targets. Showing only those with score &gt;%0.1f " % cutoff
-                htmlHelp("This guide sequence has a high number of off-targets, <br>its use is discouraged.<br>To show all off-targets, paste the guide sequence itself alone into the input sequence box.")
+                if cutoff!=None:
+                    print "Too many off-targets. Showing those with score &gt;%0.1f " % cutoff
+                else:
+                    print "Too man off-targets. Showing "+str(len(otData))
+
+                htmlHelp("This guide sequence has a high number of off-targets, its use is discouraged.<br>To show all off-targets, paste only the guide sequence into the input sequence box.")
 
             otLinks = makeOtBrowserLinks(otData, chrom, dbInfo, pamId)
 
@@ -1555,7 +1566,10 @@ def parseOfftargets(bedFname):
             x1Count = 0
         editDist = int(editDist)
         # some gene models include colons
-        segType, segName = string.split(segment, ":", maxsplit=1)
+        if ":" in segment:
+            segType, segName = string.split(segment, ":", maxsplit=1)
+        else:
+            segType, segName = "", segment
         start, end = int(start), int(end)
         otKey = (pamId, chrom, start, end, editDist, seq, strand, x1Count)
 
@@ -1579,6 +1593,28 @@ class ConsQueue:
     """ a pseudo job queue that does nothing but report progress to the console """
     def startStep(self, batchId, desc, label):
         logging.info("Progress %s - %s - %s" % (batchId, desc, label))
+
+def annotateBedWithPos(inBed, outBed):
+    """
+    given an input bed4 and an output bed filename, add an additional column 5 to the bed file
+    that is a descriptive text of the chromosome pos (e.g. chr1:1.23 Mbp).
+    """
+    ofh = open(outBed, "w")
+    for line in open(inBed):
+        chrom, start = line.split("\t")[:2]
+        start = int(start)
+
+        if start>1000000:
+            startStr = "%.2f Mbp" % (float(start)/1000000)
+        else:
+            startStr = "%.2f Kbp" % (float(start)/1000)
+        desc = "%s %s" % (chrom, startStr)
+
+        ofh.write(line.rstrip("\n"))
+        ofh.write("\t")
+        ofh.write(desc)
+        ofh.write("\n")
+    ofh.close()
 
 def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     """ search fasta file against genome, filter for pam matches and write to bedFName 
@@ -1608,12 +1644,25 @@ def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
+    filtMatchesBedFname = batchBase+".filtMatches.bed"
     queue.startStep(batchId, "filter", "Removing matches without a PAM motif")
     altPats = offtargetPams.get(pam, "na")
     bedFnameTmp = bedFname+".tmp"
+    altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
-    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s 1.0 %(maxOcc)d | BIN/overlapSelect %(genomeDir)s/%(genome)s/%(genome)s.segments.bed stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
+
+    segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
+
+    # if we have gene model segments, annotate with them, otherwise just use the chrom position
+    if isfile(segFname):
+        queue.startStep(batchId, "genes", "Annotating matches with genes")
+        cmd = "cat %(filtMatchesBedFname)s | BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+        runCmd(cmd)
+    else:
+        queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
+        annotateBedWithPos(filtMatchesBedFname, bedFnameTmp)
 
     # make sure the final bed file is never in a half-written state, it is our signal if the job is complete
     shutil.move(bedFnameTmp, bedFname)
@@ -1666,7 +1715,7 @@ def readGenomes():
             genomes[row.name] = row.scientificName+" - "+row.genome+" - "+addStr+row.description
             #genomes[row.name] = row.genome+" - "+row.scientificName+" - "+row.description
 
-    genomes = genomes.items() 
+    genomes = genomes.items()
     genomes.sort(key=operator.itemgetter(1))
     return genomes
 
@@ -2020,7 +2069,10 @@ def crisprSearch(params):
         genomePosStr = ":".join(position.split(":")[:2])
         print "<div class='title'><em>%s</em> sequence found at " % (dbInfo.scientificName)
         print '<span style="text-decoration:underline">'
-        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, "link to UCSC or Ensembl Genome Browser", ["tooltipster"])
+        mouseOver = "link to UCSC or Ensembl Genome Browser"
+        if dbInfo.server=="manual":
+            mouseOver = "no genome browser link available for this organism"
+        print makeBrowserLink(dbInfo, genomePosStr, genomePosStr, mouseOver, ["tooltipster"])
         print "</span></div>"
         #print " (link to Genome Browser)</div>"
 
@@ -2666,18 +2718,21 @@ Command line interface for the Crispor tool.
     org          = genome identifier, like hg19 or ensHumSap
     fastaInFile  = Fasta file with one sequence
     guideOutFile = tab-sep file, one row per guide
-    """) 
+    """)
 
     parser.add_option("-d", "--debug", dest="debug", \
-        action="store_true", help="show debug messages, do not delete temp directory") 
+        action="store_true", help="show debug messages, do not delete temp directory")
     parser.add_option("-t", "--test", dest="test", \
-        action="store_true", help="run internal tests") 
+        action="store_true", help="run internal tests")
     parser.add_option("-p", "--pam", dest="pam", \
-        action="store", help="PAM-motif to use, default %default", default="NGG") 
+        action="store", help="PAM-motif to use, default %default", default="NGG")
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
-        action="store", help="write offtarget info to this filename") 
+        action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
-        action="store", type="int", help="MAXOCC parameter, 20mers with more matches are excluded") 
+        action="store", type="int", help="MAXOCC parameter, 20mers with more matches are excluded")
+    parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
+        action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
+        default=2.0)
     parser.add_option("", "--worker", dest="worker", \
         action="store_true", help="Run as worker process: watches job queue and runs jobs") 
     parser.add_option("", "--user", dest="user", \
@@ -2828,6 +2883,10 @@ def mainCommandLine():
     if options.maxOcc:
         global MAXOCC
         MAXOCC=options.maxOcc
+
+    if options.minAltPamScore:
+        global ALTPAMMINSCORE
+        ALTPAMMINSCORE = options.minAltPamScore
 
     # get sequence
     seqs = parseFasta(open(inSeqFname))
