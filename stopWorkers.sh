@@ -1,3 +1,6 @@
 #!/bin/bash
 echo killing all current workers in current directory
-sudo kill `ps aux | grep $(pwd) | grep -v grep | tr -s ' ' | cut -f2 -d ' '`
+dirName=`pwd`
+dirName=`basename $dirName`
+echo directory: $dirName
+sudo kill `ps aux | grep $dirName | grep -v grep | tr -s ' ' | cut -f2 -d ' '`
