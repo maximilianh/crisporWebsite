@@ -603,7 +603,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         otCount = 0
         for chrom, start, end, otSeq, strand, segType, geneNameStr, x1Count in matches:
             # skip on-targets
-            if ":" in segType:
+            if segType!="":
                 segTypeDesc = segTypeConv[segType]
                 geneDesc = segTypeDesc+":"+geneNameStr
                 geneDesc = geneDesc.replace("|", "-")
