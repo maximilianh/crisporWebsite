@@ -85,7 +85,7 @@ HIGH_MAXOCC=600000
 # MINSCORE = 1.0
 
 # minimum off-target score for alternative PAM off-target
-ALTPAMMINSCORE = 2.0
+ALTPAMMINSCORE = 1.0
 
 # for some PAMs, we change the motif when searching for offtargets
 # MIT and eCrisp to that, they use the motif NGG -> NRG, ours is a bit more specific, based on the 
@@ -1272,7 +1272,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
 
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
-            print '<a href="%s?batchId=%s&pamId=%s&pam=%s">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
+            print '<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
         if gcContent(guideSeq)>0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had more off-targets than all other sequences combined.<br> We do not recommend using guide sequences with such a high GC content."
             print "<br>"
