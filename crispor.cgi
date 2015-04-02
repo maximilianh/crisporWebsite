@@ -72,6 +72,9 @@ pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
 
 DEFAULTPAM = 'NGG'
 
+# maximum size of an input sequence 
+MAXSEQLEN = 1000
+
 # maximum number of occurences in the genome to get flagged as repeats. 
 # This is used in bwa samse, when converting the same file
 # and for warnings in the table output.
@@ -393,9 +396,9 @@ def cleanSeq(seq):
     seq = "".join(newSeq)
 
     msgs = []
-    if len(seq)>1000:
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than 1kbp</strong><br>Below you find the results for the first 1000 bp of your input sequence.<br>")
-        seq = seq[:1000]
+    if len(seq)>MAXSEQLEN:
+        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than 1kbp</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % MAXSEQLEN)
+        seq = seq[:MAXSEQLEN]
 
     if nCount!=0:
         msgs.append("Sequence contained %d non-ACTG letters. They were removed." % nCount)
@@ -1273,6 +1276,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
             print '<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
+
         if gcContent(guideSeq)>0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had more off-targets than all other sequences combined.<br> We do not recommend using guide sequences with such a high GC content."
             print "<br>"
@@ -1747,7 +1751,6 @@ def printPamDropDown(lastpam):
 
 def printForm(params):
     " print html input form "
-    #seq, org, pam = params["seq"], params["org"], params["pam"]
     scriptName = basename(__file__)
 
     # The returned cookie is available in the os.environ dictionary
@@ -2024,8 +2027,31 @@ def showPamWarning(pam):
         print "Please bear in mind that specificity end efficacy scores were designed using data with S. Pyogenes Cas9 and might not be applicable to this particular Cas9.<br>"
         print '</div>'
 
+def getSeq(db, posStr):
+    """
+    given a database name and a string with the position as chrom:start-end, return the sequence as
+    a string.
+    """
+    chrom, start, end, strand =  parsePos(posStr)
+    if end-start > MAXSEQLEN:
+        errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
+    genomeDir = genomesDir # pull in global var
+    twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
+    cmd = ["twoBitToFa", twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    seqStr = proc.stdout.read()
+    # remove fasta header line
+    lines = seqStr.splitlines()
+    lines.pop(0)
+    seq = "".join(lines)
+    return seq
+
 def crisprSearch(params):
     " do crispr off target search "
+    # retrieve sequence if not provided
+    if "pos" in params and not "seq" in params:
+        params["seq"] = getSeq(params["org"], params["pos"])
+
     if "batchId" in params:
         # if we're getting only the batchId, extract the parameters from the batch
         # this allows a stable link to a batch that is done
@@ -2249,8 +2275,8 @@ def printBody(params):
         printForm(params)
     elif "batchId" in params and "pamId" in params and "pam" in params:
         primerDetailsPage(params)
-    elif ("seq" in params and "org" in params and "pam" in params) \
-                or "batchId" in params:
+    elif (("seq" in params or "pos" in params) and "org" in params and "pam" in params) or \
+         "batchId" in params:
         crisprSearch(params)
     else:
         errAbort("Unrecognized CGI parameters.")
