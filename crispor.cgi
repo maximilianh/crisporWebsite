@@ -1791,7 +1791,7 @@ def printForm(params):
               placeholder="Enter the sequence of the gene you want to target - example: %s">
     %s
     </textarea>
-    <div style="text-align:left"><small>Text case is preserved, e.g. you can mark ATGs with lowercase letters.</small></div>
+    <div style="text-align:left"><small>Text case is preserved, e.g. you can mark ATGs with lowercase letters.<br>Instead of a sequence, you can also paste a chromosome range, e.g. "chr4:111539573-111539808"</small></div>
     <div id="helptext1" class="helptext">CRISPOR conserves the lowercase and uppercase format of your sequence (allowing to highlight sequence features of interest such as ATG or STOP codons)</div>
     
 </div>
@@ -2060,6 +2060,10 @@ def crisprSearch(params):
         seq, warnMsg = cleanSeq(seq)
     else:
         seq, org, pam = params["seq"], params["org"], params["pam"]
+        # the "seq" parameter can contain a chrom:start-end position instead of the sequence.
+        if re.match(" *[a-zA-Z0-9_-]+: *[0-9, ]+ *- *[0-9,]+ *", seq):
+            seq = getSeq(params["org"], seq.replace(" ",""))
+
         seq, warnMsg = cleanSeq(seq)
         batchId, position, extSeq = newBatch(seq, org, pam)
         print ("<script>")
