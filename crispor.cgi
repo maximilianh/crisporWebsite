@@ -2062,7 +2062,7 @@ def crisprSearch(params):
         seq, org, pam = params["seq"], params["org"], params["pam"]
         # the "seq" parameter can contain a chrom:start-end position instead of the sequence.
         if re.match(" *[a-zA-Z0-9_-]+: *[0-9, ]+ *- *[0-9,]+ *", seq):
-            seq = getSeq(params["org"], seq.replace(" ",""))
+            seq = getSeq(params["org"], seq.replace(" ","").replace(",",""))
 
         seq, warnMsg = cleanSeq(seq)
         batchId, position, extSeq = newBatch(seq, org, pam)
