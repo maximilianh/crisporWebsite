@@ -173,7 +173,7 @@ class JobQueue:
         except sqlite3.IntegrityError:
             return False
         except sqlite3.OperationalError:
-            errAbort("Cannot open DB file %s. Please contact penigault@tefor.net" % self.dbName)
+            errAbort("Cannot open DB file %s. Please contact services@tefor.net" % self.dbName)
 
     def getStatus(self, jobId):
         " return current job status label or None if job is not in queue"
@@ -526,7 +526,7 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
             pos = "chr"+pos
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
     else:
-        #return "unknown genome browser server %s, please email penigault@tefor.net" % dbInfo.server
+        #return "unknown genome browser server %s, please email services@tefor.net" % dbInfo.server
         url = "javascript:void(0)"
 
     classStr = ""
@@ -1539,7 +1539,7 @@ def runCmd(cmd):
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
     if ret!=0:
         print "Server error: could not run command %s.<p>" % cmd
-        print "please send us an email, we will fix this error as quickly as possible. penigault@tefor.net "
+        print "please send us an email, we will fix this error as quickly as possible. services@tefor.net "
         sys.exit(0)
 
 def parseOfftargets(bedFname):
@@ -1810,8 +1810,8 @@ def printForm(params):
     #print '<small style="float:left">Type a species name to search for it</small>'
 
     print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
-To add your genome of interest to the list, contact CRISPOR web site manager
-<a href="mailto:penigault@tefor.net">Jean-Baptiste Penigault</a>.</div>
+To add your genome of interest to the list, send us 
+<a href="mailto:services@tefor.net">an email</a>.</div>
 """
     print """
 </div>
@@ -1977,7 +1977,7 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
     if isfile(flagFile):
        errAbort("This sequence is still being processed. Please wait for ~20 seconds "
            "and try again, e.g. by reloading this page. If you see this message for "
-           "more than 1-2 minutes, please email penigault@tefor.net")
+           "more than 1-2 minutes, please email services@tefor.net")
 
     if not isfile(otBedFname) or commandLineMode:
         faFname = batchBase+".fa"
@@ -2499,7 +2499,7 @@ def primerDetailsPage(params):
 
     matchList = otMatches[pamId][0] # = get all matches with 0 mismatches
     if len(matchList)!=1:
-        errAbort("Multiple perfect matches for this guide sequence. Cannot design primer. Please select another guide sequences or email penigault@tefor.net to discuss your strategy or modifications to this software.")
+        errAbort("Multiple perfect matches for this guide sequence. Cannot design primer. Please select another guide sequences or email services@tefor.net to discuss your strategy or modifications to this software.")
         # XX we could show a dialog: which match do you want to design primers for?
         # But who would want to use a guide sequence that is not unique?
 
