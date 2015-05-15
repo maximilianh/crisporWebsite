@@ -2,24 +2,36 @@
 
 # filter fasta file and keep only sequences that end with pattern (if + strand)
 # output as a bed file
-# CAREFUL: for speed, input sequences have to be on a single line. This is different from normal Fasta.
+# CAREFUL: input sequences have to be on a single line. This is different from normal fasta files.
 
-# example input:
+# arguments: guideSeqFaFname mainPat altPats altMinScore passX1Score
+
+# 2nd input fasta is fasta read from stdin, with |-separated fields in the ID line:
+# 0 = sequence ID
+# 1 = chromosome
+# 2 = start pos
+# 3 = end pos
+# 4 = strand
+# 5 = BWA editDist
+# 6 = BWA x1Score 
+
+# example input ( with field numbers above the ID line):
+# 0     1      2       3       4 5  6
 #>seq1|chrII|16108096|16108116|+|0|12345
 #TCGAAAGTGGTAAGAATTTA
 
 # example output:
 # format: (seqId, strand, mismatchCount, seq, x1Score, hitScore (or 0, if it was a mainPat match or X1score) 
-#
 
-# arguments: guideSeq mainPat altPats altMaxScore passX1Score
 # mainPat: 
 # mainPattern, all sequences that end with this pattern get through
 # altPats: comma-sep list of patterns, all sequences with this pattern get only through
 #          if they have >altMaxScore. The score is the hitScore as defined in Hsu et al 2013, 
 #          see below
 #          Can be "na" if not altPat search needed
-# passX1Score: all sequences that have a field X1Score name field (no 6, 0-based count, |-separated) 
+# altMinScore: hits ending with one of altPats have to exceed this threshold, otherwise 
+#          they are skipped
+# passX1Score: all sequences that have a field X1Score (field no 6 (0-based count), |-separated) 
 #          and where the X1Score is > passX1Score will 
 #          pass no matter what. This is to allow X1-exceeding matches to get through, 
 #          even if they don't end with the pattern. These matches are a signal from BWA that a sequence
@@ -103,6 +115,7 @@ def parseFasta(ifh):
 def main():
     guideSeqFname, mainPat, altPats, altScore, passX1Score = sys.argv[1:] 
     passX1Score = int(passX1Score)
+    altScore = float(altScore)
 
     altPats = altPats.split(",") # convert to list
 
@@ -126,7 +139,7 @@ def main():
                         guideSeq = guideSeqs[seqId]
                         if patMatch(suffix, altPat):
                             hitScore = calcHitScore(guideSeq, seq[:20])
-                            if hitScore > 1.00:
+                            if hitScore > altScore:
                                 doesPass = True
                                 break
 

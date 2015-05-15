@@ -91,7 +91,7 @@ HIGH_MAXOCC=600000
 ALTPAMMINSCORE = 1.0
 
 # for some PAMs, we change the motif when searching for offtargets
-# MIT and eCrisp to that, they use the motif NGG -> NRG, ours is a bit more specific, based on the 
+# MIT and eCrisp do that, they use the motif NGG -> NRG, ours is a bit more specific, based on the 
 # guideSeq results in Tsai et al, Nat Biot 2014
 offtargetPams = {"NGG" : "NAG,NGA"}
 
@@ -2762,7 +2762,7 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="MAXOCC parameter, 20mers with more matches are excluded")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
         action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
-        default=2.0)
+        default=ALTPAMMINSCORE)
     parser.add_option("", "--worker", dest="worker", \
         action="store_true", help="Run as worker process: watches job queue and runs jobs") 
     parser.add_option("", "--user", dest="user", \
@@ -2910,11 +2910,12 @@ def mainCommandLine():
 
     org, inSeqFname, outGuideFname = args
 
-    if options.maxOcc:
+    if options.maxOcc != None:
         global MAXOCC
-        MAXOCC=options.maxOcc
+        MAXOCC = options.maxOcc
+        HIGH_MAXOCC = options.maxOcc
 
-    if options.minAltPamScore:
+    if options.minAltPamScore!=None:
         global ALTPAMMINSCORE
         ALTPAMMINSCORE = options.minAltPamScore
 
