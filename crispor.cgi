@@ -2384,7 +2384,7 @@ def findBestMatch(genome, seq):
             logging.debug("Best match found, but cigar string was %s" % cigar)
             return None, None, None, None
         matchLen = int(cleanCigar)
-        chrom, start, end =  rName, int(pos), int(pos)+matchLen
+        chrom, start, end =  rName, int(pos)-1, int(pos)+matchLen # SAM is 1-based
         #print chrom, start, end, strand
 
     # delete the temp files
@@ -2824,7 +2824,7 @@ def runQueueWorker(userName):
     while True:
         if q.waitCount()==0:
             #q.dump()
-            time.sleep(1)
+            time.sleep(1+random.random()/10)
             continue
 
         jobType, batchId, paramStr = q.popJob()
@@ -2847,8 +2847,12 @@ def runQueueWorker(userName):
 
             if not jobError:
                 q.jobDone(batchId)
+        elif jobType is None:
+            logging.error("No job")
         else:
-            raise Exception()
+            #raise Exception()
+            logging.error("Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId))
+            q.jobDone(batchId)
 
 def clearQueue():
     " empty the job queue "
@@ -3001,9 +3005,5 @@ def mainCgi():
 
     printTeforBodyEnd()
     print("</body></html>")
-
-    #spawnWorkers(THREADS)
-
-    
 
 main()
