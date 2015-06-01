@@ -2384,7 +2384,7 @@ def findBestMatch(genome, seq):
             logging.debug("Best match found, but cigar string was %s" % cigar)
             return None, None, None, None
         matchLen = int(cleanCigar)
-        chrom, start, end =  rName, int(pos)-1, int(pos)+matchLen # SAM is 1-based
+        chrom, start, end =  rName, int(pos)-1, int(pos)-1+matchLen # SAM is 1-based
         #print chrom, start, end, strand
 
     # delete the temp files
