@@ -66,8 +66,9 @@ DEFAULTSEQ = 'cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccgg
 
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
+         ('NNGRRT','NNGRRT - Streptococcus Aureus'),
          ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
-         ('NNNNACA','NNNNACA - Campylobacter jejuni')
+         ('NNNNACA','NNNNACA - Campylobacter jejuni'),
        ]
 
 DEFAULTPAM = 'NGG'
@@ -75,19 +76,25 @@ DEFAULTPAM = 'NGG'
 # maximum size of an input sequence 
 MAXSEQLEN = 1000
 
+# BWA: allow up to X mismatches
+maxMMs=4
+
+# BWA: allow a single gap in the alignment?
+allowGap = False
+
 # maximum number of occurences in the genome to get flagged as repeats. 
 # This is used in bwa samse, when converting the same file
 # and for warnings in the table output.
 MAXOCC = 40000
 
-# MAXOCC is increased in runBwa() and in the html UI if only one guide seq
+# Highly-sensitive mode: MAXOCC is increased in runBwa() and in the html UI if only one guide seq
 # is run
 HIGH_MAXOCC=600000
 
 # minimum off-target score of standard off-targets (those that end with NGG)
 # MINSCORE = 1.0
 
-# minimum off-target score for alternative PAM off-target
+# minimum off-target score for alternative PAM off-targets
 ALTPAMMINSCORE = 1.0
 
 # for some PAMs, we change the motif when searching for offtargets
@@ -277,8 +284,8 @@ def getParams():
             params[key] = val
 
     if "pam" in params:
-        if len(set(params["pam"])-set("ACTGNMK"))!=0:
-            errAbort("Illegal character in PAM-sequence. Only ACTGMK and N allowed.")
+        if len(set(params["pam"])-set("ACTGNMKRY"))!=0:
+            errAbort("Illegal character in PAM-sequence. Only ACTGMKRY and N allowed.")
     return params
 
 def makeTempBase(seq, org, pam):
@@ -323,6 +330,10 @@ def matchNuc(pat, nuc):
     elif pat=="M" and nuc in ["A", "C"]:
         return True
     elif pat=="K" and nuc in ["T", "G"]:
+        return True
+    elif pat=="R" and nuc in ["A", "G"]:
+        return True
+    elif pat=="Y" and nuc in ["C", "T"]:
         return True
     else:
         return False
@@ -407,7 +418,8 @@ def cleanSeq(seq):
 
 def revComp(seq):
     " rev-comp a dna sequence with UIPAC characters "
-    revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' , 'M' : 'K', 'K':'M'}
+    revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' , 'M' : 'K', 'K' : 'M', 
+        "R" : "Y" , "Y":"R" }
     newSeq = []
     for c in reversed(seq):
         newSeq.append(revTbl[c])
@@ -1033,7 +1045,7 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
                 mhScore, oofScore = calcMicroHomolScore(seq60Mer, 30)
                 oofScore = str(oofScore)+" %"
         else:
-            posList, otDesc, guideScore = None, "Not found", 0
+            posList, otDesc, guideScore = None, "Not found", None
             last12Desc = ""
             effScore = 0
             hasNotFound = True
@@ -1283,6 +1295,12 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             htmlWarn(text)
             print ' High GC content<br>'
 
+        if gcContent(guideSeq)<0.25:
+            text = "This sequence has a GC content lower than 25%.<br>In the data of Wang/Sabatini/Lander Science 2014, guides with a very low GC content had low cleavage efficiency."
+            print "<br>"
+            htmlWarn(text)
+            print ' Low GC content<br>'
+
         print "<br>"
         if len(mutEnzymes)!=0:
             print "Restr. Enzymes:"
@@ -1292,7 +1310,10 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
 
         # off-target score, aka specificity score aka MIT score
         print "<td>"
-        print "%d" % guideScore
+        if guideScore==None:
+            print "No matches"
+        else:
+            print "%d" % guideScore
         print "</td>"
 
         # efficacy score
@@ -1313,6 +1334,11 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "+"
         else:
             print "-"
+        # main motif is "NGG" and last nucleotides are GGNGG
+        if pam=="NGG" and patMatch(guideSeq[-2:], "GG"):
+            print "<br>"
+            print "GG"
+            htmlHelp("Farboud/Meyer 2015 (Genetics 199(4)) obtained the highest cleavage in <i>C. elegans</i> with guides that end with <tt>GG</tt>. ")
         print "</td>"
 
         # microhomolgy score and out of frame score
@@ -1635,8 +1661,16 @@ def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     saFname = batchBase+".sa"
 
     queue.startStep(batchId, "bwa", "Alignment of potential guides")
+    maxDiff = maxMMs
+    if allowGap:
+        maxGapCount = 1
+        maxGapLen = 1
+    else:
+        maxGapCount = 0
+        maxGapLen = 0
+
     # ALIGNMENT
-    cmd = "BIN/bwa aln -n 4 -o 0 -k 4 -N -l 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+    cmd = "BIN/bwa aln -n %(maxDiff)d -k %(maxDiff)d -o %(maxGapCount)d -e %(maxGapLen)d -N -l 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
     runCmd(cmd)
 
     queue.startStep(batchId, "saiToBed", "Converting alignments")
@@ -2157,7 +2191,7 @@ def printTeforBodyStart():
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
-    runPhp("networking.php")
+    #runPhp("networking.php")
     print '<div class="subpanel" style="background:transparent;box-shadow:none;">'
     print '<div class="contentcentral" style="margin-left:0px; width:100%">'
 
@@ -2760,6 +2794,10 @@ Command line interface for the Crispor tool.
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
         action="store", type="int", help="MAXOCC parameter, 20mers with more matches are excluded")
+    parser.add_option("", "--mm", dest="mismatches", \
+        action="store", type="int", help="maximum number of mismatches, default %default", default=4)
+    parser.add_option("", "--gap", dest="allowGap", \
+        action="store_true", help="allow a gap in the match")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
         action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
@@ -2914,6 +2952,7 @@ def mainCommandLine():
 
     org, inSeqFname, outGuideFname = args
 
+    # handle the alignment/filtering options
     if options.maxOcc != None:
         global MAXOCC
         MAXOCC = options.maxOcc
@@ -2922,6 +2961,14 @@ def mainCommandLine():
     if options.minAltPamScore!=None:
         global ALTPAMMINSCORE
         ALTPAMMINSCORE = options.minAltPamScore
+
+    if options.mismatches:
+        global maxMMs
+        maxMMs = options.mismatches
+
+    if options.allowGap:
+        global allowGap
+        allowGap = True
 
     # get sequence
     seqs = parseFasta(open(inSeqFname))
@@ -2942,7 +2989,7 @@ def mainCommandLine():
     logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
     if position=="?":
-        raise Exception("no match found for sequence %s in genome %s" % (inSeqFname, org))
+        logging.error("no match found for sequence %s in genome %s" % (inSeqFname, org))
 
     startDict, endSet = findAllPams(seq, pam)
     otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
