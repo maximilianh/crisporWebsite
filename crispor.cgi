@@ -92,8 +92,7 @@ MAXOCC = 40000
 HIGH_MAXOCC=600000
 
 # minimum off-target score of standard off-targets (those that end with NGG)
-# MINSCORE = 1.0
-
+#MINSCORE = 1.0
 # minimum off-target score for alternative PAM off-targets
 ALTPAMMINSCORE = 1.0
 
@@ -531,6 +530,8 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
             baseUrl = "plants.ensembl.org"
         elif dbInfo.server=="EnsemblMetazoa":
             baseUrl = "metazoa.ensembl.org"
+        elif dbInfo.server=="EnsemblProtists":
+            baseUrl = "protists.ensembl.org"
         org = dbInfo.scientificName.replace(" ", "_")
         url = "http://%s/%s/Location/View?r=%s" % (baseUrl, org, pos)
     elif dbInfo.server=="ucsc":
@@ -1564,9 +1565,14 @@ def runCmd(cmd):
     debug("Running %s" % cmd)
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
     if ret!=0:
-        print "Server error: could not run command %s.<p>" % cmd
-        print "please send us an email, we will fix this error as quickly as possible. services@tefor.net "
-        sys.exit(0)
+        if commandLineMode:
+            logging.error("Error: could not run command %s." % cmd)
+            sys.exit(1)
+        else:
+            print "Server error: could not run command %s.<p>" % cmd
+            print "please send us an email, we will fix this error as quickly as possible. services@tefor.net "
+            sys.exit(0)
+
 
 def parseOfftargets(bedFname):
     """ parse a bed file with annotataed off target matches from overlapSelect,
@@ -2807,6 +2813,8 @@ Command line interface for the Crispor tool.
         action="store", help="for the --worker option: switch to this user at program start") 
     parser.add_option("", "--clear", dest="clear", \
         action="store_true", help="clear the worker job table and exit") 
+    parser.add_option("-g", "--genomeDir", dest="genomeDir", \
+        action="store", help="directory with genomes, default %default", default=genomesDir) 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
 
@@ -2951,6 +2959,11 @@ def mainCommandLine():
         sys.exit(0)
 
     org, inSeqFname, outGuideFname = args
+
+    # different genomes directory?
+    if options.genomeDir != None:
+        global genomesDir
+        genomesDir = options.genomeDir
 
     # handle the alignment/filtering options
     if options.maxOcc != None:
