@@ -7,7 +7,7 @@ set -e
 
 workCount=4
 echo `pwd`
-if [ `pwd` == "/var/www/crisporTest" -o `pwd` == "/var/www/crisporMax" ] ; then
+if [ `pwd` == "/home/www/crisporTest" -o `pwd` == "/home/www/crisporMax" -o `pwd` == "/var/www/crisporMax" ] ; then
     workCount=1
 fi
 echo $workCount
