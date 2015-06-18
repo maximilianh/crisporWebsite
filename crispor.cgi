@@ -520,7 +520,19 @@ def flankSeqIter(seq, startDict, pamLen):
             flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+20])
             pamSeq = revComp(seq[startPos:startPos+pamLen])
 
-        yield startPos, strand, flankSeq, pamSeq
+        yield "s%d%s" % (startPos, strand), startPos, strand, flankSeq, pamSeq
+
+        if allowGap:
+            # construct 20 sequences, each one with one nucleotide deleted
+            # but always adding one more nucleotide 5' of the whole guide
+            # if the sequence is not long enough, adding an "A", not elegant,
+            # but this keeps the length at 20 bp which makes everything easier
+            if startPos>20:
+                firstNucl = seq[startPos-21]
+            else:
+                firstNucl = "A"
+            for i in range(0, 20):
+                yield "s%d%sg%d" % (startPos, strand, i), startPos, strand, firstNucl+flankSeq[:i]+flankSeq[i+1:], pamSeq
 
 def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
     " return link to genome browser (ucsc or ensembl) at pos, with given text "
@@ -1008,7 +1020,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
 
 def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None):
     """ for each pam in startDict, retrieve the guide sequence next to it and score it
-    sortBy can be "effScore"
+    sortBy can be "effScore" or "mhScore" or "oofScore"
     """
     allEnzymes = readEnzymes()
 
@@ -1016,9 +1028,8 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
     guideScores = {}
     hasNotFound = False
 
-    for startPos, strand, guideSeq, pamSeq in flankSeqIter(seq, startDict, len(pamPat)):
+    for pamId, startPos, strand, guideSeq, pamSeq in flankSeqIter(seq, startDict, len(pamPat)):
         # position with anchor to jump to
-        pamId = "s"+str(startPos)+strand
 
         # matches in genome
         # one desc in last column per OT seq
@@ -1553,8 +1564,8 @@ def writePamFlank(seq, startDict, pam, faFname):
     " write pam flanking sequences to fasta file "
     #print "writing pams to %s<br>" % faFname
     faFh = open(faFname, "w")
-    for startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam)):
-        faFh.write(">s%d%s\n%s\n" % (startPos, strand, flankSeq))
+    for pamId, startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam)):
+        faFh.write(">%s\n%s\n" % (pamId, flankSeq))
     faFh.close()
 
 def runCmd(cmd):
@@ -1662,7 +1673,7 @@ def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     # increase MAXOCC if there is only a single query
     if len(parseFasta(open(faFname)))==1:
         global MAXOCC
-        MAXOCC=HIGH_MAXOCC
+        MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
     saFname = batchBase+".sa"
 
@@ -2131,7 +2142,7 @@ def crisprSearch(params):
     # more sensitive if only a single guide seq is run
     if len(startDict)==1:
         global MAXOCC
-        MAXOCC=HIGH_MAXOCC
+        MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
     if position=='?':
         printQueryNotFoundNote(dbInfo)
@@ -2229,7 +2240,6 @@ def iterGuideRows(guideData):
         else:
             strDesc = 'rev'
         guideDesc = str(pamPos)+strDesc
-
 
         row = [guideDesc, guideSeq+pamSeq, guideScore, effScore, otCount, ontargetDesc]
         row = [str(x) for x in row]
