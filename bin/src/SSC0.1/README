@@ -1,0 +1,70 @@
+SSC - Spacer Scoring for CRISPR
+Version 0.1
+Author: Han Xu
+Email: xh1974@gmail.com
+Date: Jan 10, 2015
+
+1. System Requirement
+
+        Linux/Unix
+        gcc compiler
+
+2. Compilation
+
+        a. go to the project directory with MakeFile and this README
+        b. run "make" command. This will generate two command line executables, Fasta2Spacer and SSC, in ./bin/
+
+3. Fasta2Spacer command
+
+		This command line searches for "NGG" PAM motif in DNA sequences in fasta format, and output fixed-length sequences aligned in relative to the PAM. 
+		a. Input: DNA sequences in fasta format
+		b. Output: Extracted sequence file in format
+			<extracted sequence> <start index> <end index> <strand> <name of input sequence>
+			The start, end, and strand are measured in relative to the input sequence.
+		c. Options:
+		-5 <length of sequence to the 5' of the PAM>, default: 20
+		-3 <length of sequence to the 3' of the PAM, including PAM>, default: 10
+		-i <input fasta file>. 
+		-o <output spacer file>
+		d. Notes:
+			i) maximum length of a single DNA sequence in the input file: 10000
+			ii) maximum number of DNA sequences in the input file: 1000000
+
+4. SSC command
+		This command line read fixed-length DNA sequences, and output sgRNA efficiency scores for each input sequence.
+		a. Input: fixed-length DNA sequences aligned in relative to the PAM, in format
+			<input DNA sequence> <any additional information of the input ...>
+		b. Output: a column of efficiency score appended to the input, in format
+			<input DNA sequence> <any additional information of the input ...> <sgRNA efficiency score> 
+		c. Options:
+		-l <length of input sequence>. 
+		-m <matrix file>. 
+		-b <mode>. 0:linear; 1:logistic. Default:0
+		-i <input sequence file>. One sequence per line. 
+		-o <output scoring file>
+		d. Notes:
+			i) Maximum sequence length: 100.
+			ii) The number of rows in the matrix defined in "-m" should match the length of sequence defined in "-l".
+			
+4. Scoring matrices
+
+        The scoring matrices are under ./matrix/
+        
+        human_mouse_CRISPR_KO_30bp.matrix: matrix for CRISPR/Cas9 knockout, spacer length <=20 (optimized for 19 and 20). This matrix is used for scanning sequences that contain 20bp upstream of the PAM, and 10bp downstream of the PAM (including PAM).
+        human_CRISPRi_19bp.matrix: matrix for CRISPRi/a, spacer length =19. This matrix is used for scanning sequences of 19-bp spacer upstream of the PAM.
+        human_CRISPRi_20bp.matrix: matrix for CRISPRi/a, spacer length =20. This matrix is used for scanning sequences of 20-bp spacer upstream of the PAM.
+        human_CRISPRi_21bp.matrix: matrix for CRISPRi/a, spacer length =21. This matrix is used for scanning sequences of 21-bp spacer upstream of the PAM.
+
+5. Examples
+		
+		a) Example 1: extract and score 20bp spacers designed to target MYC coding region for CRISPR/Cas9 knockout. 
+       	$ cd ./example/
+		$ ../bin/Fasta2Spacer -5 20 -3 10 -i MYC_ccds.fasta -o MYC_ccds.spacer.seq 
+		$ ../bin/SSC -l 30 -m ../matrix/human_mouse_CRISPR_KO_30bp.matrix -i MYC_ccds.spacer.seq -o MYC_ccds.spacer.out
+
+		b) Example 2: extract and score 19bp spacers designed to target MYC promoter for CRISPRi/a
+		$ cd ./example/
+		$ ../bin/Fasta2Spacer -5 19 -3 0 -i MYC_promoter.fasta -o MYC_promoter.spacer.seq 
+		$ ../bin/SSC -l 19 -m ../matrix/human_CRISPRi_19bp.matrix -i MYC_promoter.spacer.seq -o MYC_promoter.spacer.out
+		
+		Note: the sequences in the output files might contain the nucleotides in flanking regions of the spacer, which are considered for efficiency prediction. The EXACT spacer sequences are N bps upstream of the aligned PAM, where N is the spacer length. In example 1, the spacer sequences are from positions 1 to 20 within the 30-bp seqeunce in the output file.
