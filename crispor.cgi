@@ -104,6 +104,10 @@ offtargetPams = {"NGG" : "NAG,NGA"}
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
 
+# use Doench or ssc efficiency score?
+effScoreType = "ssc"
+
+
 # ====== END GLOBALS ============
 
 
@@ -676,6 +680,36 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
 # --- START OF SCORING ROUTINES 
 
+def calcSscScores(seqs):
+    """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
+    >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
+    {'AGCAGGATAGTCCTTCCGAGTGGAGGGAGG': 0.182006}
+    """
+    strList = []
+    for s in seqs:
+        assert(len(s)==30)
+        strList.append("%s 0 0 + dummy" % s)
+    sscIn = "\n".join(strList)
+
+    # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix 
+    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19
+    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  0 0 -   t
+    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19  0.182006
+    sscPath = join(binDir, "SSC")
+    matPath = join(baseDir, "bin", "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
+    cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
+    stdout, stderr = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(sscIn)
+    scores = {}
+    i = 0
+    for lineIdx, line in enumerate(stdout.split("\n")):
+        fs = line.split()
+        seq, score = fs[0], float(fs[-1])
+        scores[seq] = score
+        lineIdx += 1
+        if lineIdx==len(seqs):
+            break
+    return scores
+
 # DOENCH SCORING 
 params = [
 # pasted/typed table from PDF and converted to zero-based positions
@@ -758,7 +792,9 @@ def calcHitScore(string1,string2):
     return score
 
 def calcMitGuideScore(hitSum):
-    " Sguide defined on http://crispr.mit.edu/about "
+    """ Sguide defined on http://crispr.mit.edu/about 
+    Input is the sum of all off-target hit scores. Returns the specificity of the guide.
+    """
     score = 100 / (100+hitSum)
     score = int(round(score*100))
     return score
@@ -1046,7 +1082,10 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
             if seq30Mer==None:
                 effScore = "Too close to end"
             else:
-                effScore = int(round(100*calcDoenchScore(seq30Mer)))
+                if effScoreType=="doench":
+                    effScore = int(round(100*calcDoenchScore(seq30Mer)))
+                else:
+                    effScore = int(round(100*calcSscScores([seq30Mer]).values()[0]))
 
             # get 60mer and calc oof-score
             seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
@@ -3050,6 +3089,10 @@ def mainCgi():
     params = getParams()
     batchId = None
 
+    if "useSsc" in params:
+        global effScoreType
+        effScoreType = "ssc"
+        
     if "batchId" in params and "download" in params:
         downloadFile(params)
         return
