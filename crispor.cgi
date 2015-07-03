@@ -32,9 +32,6 @@ except:
 DEBUG = False
 #DEBUG = True
 
-# number of worker threads to spawn in CGI mode, they do the actual work
-THREADS = 4
-
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
 # alternative directory on local disk where image/, style/ and js/ are located
@@ -78,6 +75,8 @@ MAXSEQLEN = 1000
 
 # BWA: allow up to X mismatches
 maxMMs=4
+# for guides that have a gap, allow fewer mismatches
+maxGapMMs=2
 
 # BWA: allow a single gap in the alignment?
 allowGap = False
@@ -86,6 +85,9 @@ allowGap = False
 # This is used in bwa samse, when converting the same file
 # and for warnings in the table output.
 MAXOCC = 40000
+
+# the BWA queue size is 2M by default. We derive the queue size from MAXOCC
+MFAC = 2000000/MAXOCC
 
 # Highly-sensitive mode: MAXOCC is increased in runBwa() and in the html UI if only one guide seq
 # is run
@@ -96,9 +98,9 @@ HIGH_MAXOCC=600000
 # minimum off-target score for alternative PAM off-targets
 ALTPAMMINSCORE = 1.0
 
-# for some PAMs, we change the motif when searching for offtargets
-# MIT and eCrisp do that, they use the motif NGG -> NRG, ours is a bit more specific, based on the 
-# guideSeq results in Tsai et al, Nat Biot 2014
+# for some PAMs, we allow other alternative motifs when searching for offtargets
+# MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
+# on the guideSeq results in Tsai et al, Nat Biot 2014
 offtargetPams = {"NGG" : "NAG,NGA"}
 
 # global flag to indicate if we're run from command line or as a CGI
@@ -287,8 +289,10 @@ def getParams():
             errAbort("Illegal character in PAM-sequence. Only ACTGMKRY and N allowed.")
     return params
 
+transTab = string.maketrans("-=/+_", "abcde")
+
 def makeTempBase(seq, org, pam):
-    "create the base of temp files using a hash function and some prettyfication "
+    "create the base name of temp files using a hash function and some prettyfication "
     hasher = hashlib.sha1(seq+org+pam)
     batchId = base64.urlsafe_b64encode(hasher.digest()[0:20]).translate(transTab)[:20]
     return batchId
@@ -505,9 +509,22 @@ def showSeqAndPams(seq, startDict, pam, guideScores):
 
     print '''</div>'''
     
-def flankSeqIter(seq, startDict, pamLen):
+def iterOneDelSeqs(seq):
+    """ given a seq, create versions with each bp removed. Avoid duplicates 
+    yields (delPos, seq)
+    >>> list(iterOneDelSeqs("AATGG"))
+    [(0, 'ATGG'), (2, 'AAGG'), (3, 'AATG')]
+    """
+    doneSeqs = set()
+    for i in range(0, len(seq)):
+        delSeq = seq[:i]+seq[i+1:]
+        if delSeq not in doneSeqs:
+            yield i, delSeq
+        doneSeqs.add(delSeq)
+
+def flankSeqIter(seq, startDict, pamLen, gapped=False):
     """ given a seq and dictionary of pos -> strand and the length of the pamSite
-    yield 20mers flanking the sites sorted by pos
+    yield tuples of (name, startPos, strand, flankSeq, pamSeq)
     """
     startList = sorted(startDict.keys())
     for startPos in startList:
@@ -520,19 +537,21 @@ def flankSeqIter(seq, startDict, pamLen):
             flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+20])
             pamSeq = revComp(seq[startPos:startPos+pamLen])
 
-        yield "s%d%s" % (startPos, strand), startPos, strand, flankSeq, pamSeq
-
-        if allowGap:
+        if not gapped:
+            yield "s%d%s" % (startPos, strand), startPos, strand, flankSeq, pamSeq
+        else:
             # construct 20 sequences, each one with one nucleotide deleted
             # but always adding one more nucleotide 5' of the whole guide
             # if the sequence is not long enough, adding an "A", not elegant,
             # but this keeps the length at 20 bp which makes everything easier
-            if startPos>20:
-                firstNucl = seq[startPos-21]
-            else:
-                firstNucl = "A"
-            for i in range(0, 20):
-                yield "s%d%sg%d" % (startPos, strand, i), startPos, strand, firstNucl+flankSeq[:i]+flankSeq[i+1:], pamSeq
+            #if startPos>20:
+                #firstNucl = seq[startPos-21]
+            #else:
+                #firstNucl = "A"
+            for i, gapSeq in iterOneDelSeqs(flankSeq):
+                pamId = "s%d%sg%d" % (startPos, strand, i)
+                #yield pamId, startPos, strand, firstNucl+flankSeq[:i]+flankSeq[i+1:], pamSeq
+                yield pamId, startPos, strand, gapSeq, pamSeq
 
 def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
     " return link to genome browser (ucsc or ensembl) at pos, with given text "
@@ -557,7 +576,7 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
     classStr = ""
     if len(cssClasses)!=0:
         classStr = ' class="%s"' % (" ".join(cssClasses))
-        
+
     return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
 
 def makeAlnStr(seq1, seq2, pam, score, posStr):
@@ -620,7 +639,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     subOptMatchCount = 0
 
     # for each edit distance, get the off targets and iterate over them
-    for editDist in range(0, 5):
+    for editDist in range(0, maxMMs+1):
         #print countDict,"<p>"
         matches = countDict.get(editDist, [])
 
@@ -629,7 +648,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
         # create html and score for every offtarget
         otCount = 0
-        for chrom, start, end, otSeq, strand, segType, geneNameStr, x1Count in matches:
+        for chrom, start, end, otSeq, strand, segType, geneNameStr, x1Count, gapPos in matches:
             # skip on-targets
             if segType!="":
                 segTypeDesc = segTypeConv[segType]
@@ -643,14 +662,18 @@ def makePosList(countDict, guideSeq, pam, inputPos):
                 continue
 
             otCount += 1
-            score = calcHitScore(guideSeq[:20], otSeq[:20])
+            guideNoPam = guideSeq[:len(guideSeq)-len(pam)]
+            otSeqNoPam = otSeq[:len(otSeq)-len(pam)]
+            if len(otSeqNoPam)==19:
+                otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
+            score = calcHitScore(guideNoPam, otSeqNoPam)
             scores.append(score)
 
             posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
             alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, score, posStr)
             if not hasLast12Mm:
                 last12MmOtCount+=1
-            posList.append( (otSeq, score, editDist, posStr, geneDesc, alnHtml) )
+            posList.append( (otSeq, score, editDist, posStr, geneDesc, alnHtml, gapPos) )
             # taking the maximum is probably not necessary, 
             # there should be only one offtarget for X1-exceeding matches
             subOptMatchCount = max(int(x1Count), subOptMatchCount)
@@ -1028,9 +1051,12 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
     guideScores = {}
     hasNotFound = False
 
-    for pamId, startPos, strand, guideSeq, pamSeq in flankSeqIter(seq, startDict, len(pamPat)):
-        # position with anchor to jump to
+    pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat)))
+    # make gapped and ungapped versions of the pam sequences
+    #if allowGap:
+        #pamSeqs.extend( flankSeqIter(seq, startDict, len(pamPat), gapped=True) )
 
+    for pamId, startPos, strand, guideSeq, pamSeq in pamSeqs:
         # matches in genome
         # one desc in last column per OT seq
         if pamId in otMatches:
@@ -1056,6 +1082,8 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
                 assert(len(seq60Mer)==60)
                 mhScore, oofScore = calcMicroHomolScore(seq60Mer, 30)
                 oofScore = str(oofScore)+" %"
+
+        # no off-targets found?
         else:
             posList, otDesc, guideScore = None, "Not found", None
             last12Desc = ""
@@ -1065,6 +1093,7 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
             ontargetDesc = ""
             mhScore, oofScore = 0, 0
             subOptMatchCount = False
+
         guideData.append( (guideScore, effScore, mhScore, oofScore, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount) )
         guideScores[pamId] = guideScore
 
@@ -1091,7 +1120,12 @@ def printDownloadTableLinks(batchId):
     print '</small>'
     print '</div>'
 
-def printTableHead(batchId, chrom):
+def hasGeneModels(org):
+    " return true if this organism has gene model information "
+    geneFname = join(genomesDir, org, org+".segments.bed")
+    return isfile(geneFname)
+
+def printTableHead(batchId, chrom, org):
     " print guide score table description and columns "
     # one row per guide sequence
     print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>.'''
@@ -1191,7 +1225,12 @@ def printTableHead(batchId, chrom):
     print '<br><small>'
     #print '<form id="filter-form" method="get" action="crispor.cgi#otTable">'
     print '<input type="hidden" name="batchId" value="%s">' % batchId
-    print '''<input type="checkbox" id="onlyExonBox" onchange="onlyExons()">exons only'''
+
+    if hasGeneModels(org):
+        print '''<input type="checkbox" id="onlyExonBox" onchange="onlyExons()">exons only'''
+    else:
+        print '<small style="color:grey">No exons.</small>'
+
     if chrom!="":
         if chrom[0].isdigit():
             chrom = "chrom "+chrom
@@ -1219,7 +1258,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
     links = []
 
     i = 0
-    for otSeq, score, editDist, pos, gene, alnHtml in otData:
+    for otSeq, score, editDist, pos, gene, alnHtml, gapPos in otData:
         cssClasses = ["tooltipster"]
         if not gene.startswith("exon:"):
             cssClasses.append("notExon")
@@ -1268,7 +1307,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
 
     showPamWarning(pam)
-    printTableHead(batchId, chrom)
+    printTableHead(batchId, chrom, org)
 
     count = 0
     for guideRow in guideData:
@@ -1560,11 +1599,11 @@ def distrOnLines(seq, startDict, featLen):
         ftsByLine[y].append(ft )
     return ftsByLine, maxY
 
-def writePamFlank(seq, startDict, pam, faFname):
-    " write pam flanking sequences to fasta file "
+def writePamFlank(seq, startDict, pam, faFname, gapped=False):
+    " write pam flanking sequences to fasta file, optionally with versions where each nucl is removed "
     #print "writing pams to %s<br>" % faFname
     faFh = open(faFname, "w")
-    for pamId, startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam)):
+    for pamId, startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam), gapped):
         faFh.write(">%s\n%s\n" % (pamId, flankSeq))
     faFh.close()
 
@@ -1607,6 +1646,11 @@ def parseOfftargets(bedFname):
         chrom, start, end, name, segment = fields
         nameFields = name.split("|")
         pamId, strand, editDist, seq = nameFields[:4]
+        # strip the gap info from the pamId
+        gapPos = None
+        if "g" in pamId:
+            pamId, gapPos = pamId.split('g')
+
         if len(nameFields)>4:
             x1Count = int(nameFields[4])
         else:
@@ -1618,7 +1662,7 @@ def parseOfftargets(bedFname):
         else:
             segType, segName = "", segment
         start, end = int(start), int(end)
-        otKey = (pamId, chrom, start, end, editDist, seq, strand, x1Count)
+        otKey = (pamId, chrom, start, end, editDist, seq, strand, x1Count, gapPos)
 
         # if a offtarget overlaps an intron/exon or ig/exon boundary it will
         # appear twice; in this case, we only keep the exon offtarget
@@ -1629,9 +1673,9 @@ def parseOfftargets(bedFname):
     # index by pamId and edit distance
     indexedOts = defaultdict(dict)
     for otKey, otVal in pamData.iteritems():
-        pamId, chrom, start, end, editDist, seq, strand, x1Score = otKey
+        pamId, chrom, start, end, editDist, seq, strand, x1Score, gapPos = otKey
         segType, segName = otVal
-        otTuple = (chrom, start, end, seq, strand, segType, segName, x1Score)
+        otTuple = (chrom, start, end, seq, strand, segType, segName, x1Score, gapPos)
         indexedOts[pamId].setdefault(editDist, []).append( otTuple )
 
     return indexedOts
@@ -1663,40 +1707,48 @@ def annotateBedWithPos(inBed, outBed):
         ofh.write("\n")
     ofh.close()
 
-def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
+def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     """ search fasta file against genome, filter for pam matches and write to bedFName 
-    optionally write status updates to work queue. 
+    optionally write status updates to work queue.
     """
     genomeDir = genomesDir # make var local, see below
     pamLen = len(pam)
 
     # increase MAXOCC if there is only a single query
-    if len(parseFasta(open(faFname)))==1:
+    if len(parseFasta(open(faFnames[0])))==1:
         global MAXOCC
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
     saFname = batchBase+".sa"
 
-    queue.startStep(batchId, "bwa", "Alignment of potential guides")
-    maxDiff = maxMMs
-    if allowGap:
-        maxGapCount = 1
-        maxGapLen = 1
-    else:
-        maxGapCount = 0
-        maxGapLen = 0
-
-    # ALIGNMENT
-    cmd = "BIN/bwa aln -n %(maxDiff)d -k %(maxDiff)d -o %(maxGapCount)d -e %(maxGapLen)d -N -l 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
-    runCmd(cmd)
-
-    queue.startStep(batchId, "saiToBed", "Converting alignments")
-    maxOcc = MAXOCC # make local
     matchesBedFname = batchBase+".matches.bed"
-    # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
-    # sorting should improve the twoBitToFa runtime
-    cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes %(matchesBedFname)s " % locals()
-    runCmd(cmd)
+    open(matchesBedFname, "w") # truncate to 0 size
+    assert(len(faFnames) <= 2)
+
+    # 2nd fa filename is optional and if present, are sequences with gaps
+    for i, faFname in enumerate(faFnames):
+        # ALIGNMENT
+        if i==0:
+            maxDiff = maxMMs
+            queue.startStep(batchId, "bwa", "Alignment of potential guides, mismatches <= %d" % maxDiff)
+            convertMsg = "Converting alignments"
+            seqLen = 20
+        elif i==1:
+            maxDiff = maxGapMMs
+            queue.startStep(batchId, "bwa", "Alignment of potential gapped guides, mismatches <= %d" % maxDiff)
+            convertMsg = "Converting gapped alignments"
+            seqLen = 19
+
+        bwaM = MFAC*MAXOCC # -m is queue size in bwa
+        cmd = "BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+        runCmd(cmd)
+
+        queue.startStep(batchId, "saiToBed", convertMsg)
+        maxOcc = MAXOCC # create local var from global
+        # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
+        # the sorting should improve the twoBitToFa runtime
+        cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+        runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
     filtMatchesBedFname = batchBase+".filtMatches.bed"
@@ -1705,12 +1757,13 @@ def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     bedFnameTmp = bedFname+".tmp"
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
-    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    faFnameStr = ",".join(faFnames)
+    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
     segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
 
-    # if we have gene model segments, annotate with them, otherwise just use the chrom position
+    # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
         cmd = "cat %(filtMatchesBedFname)s | BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
@@ -1719,11 +1772,10 @@ def runBwa(faFname, genome, pam, bedFname, batchBase, batchId, queue):
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
         annotateBedWithPos(filtMatchesBedFname, bedFnameTmp)
 
-    # make sure the final bed file is never in a half-written state, it is our signal if the job is complete
+    # make sure the final bed file is never in a half-written state, it is our signal that the job is complete
     shutil.move(bedFnameTmp, bedFname)
     queue.startStep(batchId, "done", "Job completed")
 
-transTab = string.maketrans("-=/+_", "abcde")
 
 def lineFileNext(fh):
     """ 
@@ -1790,15 +1842,15 @@ def printOrgDropDown(lastorg):
       #</script>''')
     print ('''<br>''')
 
-def printPamDropDown(lastpam):        
+def printPamDropDown(lastpam):
     
     print '<select style="float:left" name="pam" tabindex="3">'
-    for key,value in pamDesc:        
+    for key,value in pamDesc:
         print '<option '
         if key == lastpam :
             print 'selected '
         print 'value="%s">%s</option>' % (key, value)
-    print "</select>"           
+    print "</select>"
 
 def printForm(params):
     " print html input form "
@@ -1938,13 +1990,13 @@ def readBatchParams(batchId):
     Returns None for pos if not found. """
 
     batchBase = join(batchDir, batchId)
-    faFname = batchBase+".input.fa"
-    if not isfile(faFname):
+    inputFaFname = batchBase+".input.fa"
+    if not isfile(inputFaFname):
         errAbort('Could not find the batch %s. We cannot keep Crispor runs for more than '
                 'a few months. Please resubmit your input sequence via'
             ' <a href="crispor.cgi">the query input form</a>' % batchId)
-            
-    ifh = open(faFname)
+
+    ifh = open(inputFaFname)
     ifhFields = ifh.readline().replace(">","").strip().split()
     if len(ifhFields)==2:
         genome, pamSeq = ifhFields
@@ -1970,7 +2022,7 @@ def readBatchParams(batchId):
 
 def findAllPams(seq, pam):
     """ find all matches for PAM and return as dict startPos -> strand and a set
-    of end positions 
+    of end positions
     """
     startDict, endSet = findPams(seq, pam, "+", {}, set())
     startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
@@ -2031,11 +2083,16 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
            "more than 1-2 minutes, please email services@tefor.net")
 
     if not isfile(otBedFname) or commandLineMode:
-        faFname = batchBase+".fa"
         # write potential PAM sites to file 
-        writePamFlank(seq, startDict, pam, faFname)
+        faFnames = [batchBase+".fa"]
+        writePamFlank(seq, startDict, pam, faFnames[0])
+        if allowGap:
+            # add a 2nd fasta file with gapped sequences
+            faFnames.append(batchBase+".gap.fa")
+            writePamFlank(seq, startDict, pam, faFnames[1], gapped=True)
+
         if commandLineMode:
-            runBwa(faFname, org, pam, otBedFname, batchBase, batchId, queue)
+            runBwa(faFnames, org, pam, otBedFname, batchBase, batchId, queue)
         else:
             q = JobQueue(JOBQUEUEDB)
             ip = os.environ["REMOTE_ADDR"]
@@ -2066,7 +2123,7 @@ def startAjaxWait(batchId):
        setTimeout(function(){
             $.getJSON( "%(scriptName)s?batchId=%(batchId)s&ajaxStatus=1", gotStatus);
             poll();
-          } , 1000)})();
+          } , 2000)})();
 
     </script>
     """ % locals()
@@ -2139,7 +2196,7 @@ def crisprSearch(params):
         startAjaxWait(batchId)
         return
 
-    # more sensitive if only a single guide seq is run
+    # be more sensitive if only a single guide seq is run
     if len(startDict)==1:
         global MAXOCC
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
@@ -2225,6 +2282,7 @@ def iterGuideRows(guideData):
     yield headers
     #print "\t".join(headers)
 
+    pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
     for guideRow in guideData:
         guideScore, effScore, mhScore, oofScore, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
@@ -2233,8 +2291,10 @@ def iterGuideRows(guideData):
         if otData!=None:
             otCount = len(otData)
 
-        pamPos = int(pamId[1:-1])+1
-        strand = pamId[-1]
+        # s20+ or s20+g0 if gapped
+        #pamPos = int(pamId[1:-1])+1
+        #strand = pamId[-1]
+        pamPos, strand, rest = pamIdRe.match(pamId).groups()
         if strand=="+":
             strDesc = 'fw'
         else:
@@ -2248,6 +2308,8 @@ def iterGuideRows(guideData):
 def iterOfftargetRows(guideData):
     " yield bulk offtarget rows for the tab-sep download file "
     headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
+    if allowGap:
+        headers.append("gapPos")
     yield headers
 
     for guideRow in guideData:
@@ -2258,11 +2320,13 @@ def iterOfftargetRows(guideData):
 
         if otData!=None:
             otCount = len(otData)
-            for otSeq, score, editDist, pos, gene, alnHtml in otData:
+            for otSeq, score, editDist, pos, gene, alnHtml, gapPos in otData:
                 gene = gene.replace(",", "_").replace(";","-")
 
                 chrom, start, end, strand = parsePos(pos)
                 row = [pamId, guideSeq+pamSeq, otSeq, editDist, score, chrom, start, end, gene]
+                if allowGap:
+                    row.append(gapPos)
                 row = [str(x) for x in row]
                 yield row
 
@@ -2825,6 +2889,8 @@ Command line interface for the Crispor tool.
         action="store_true", help="clear the worker job table and exit") 
     parser.add_option("-g", "--genomeDir", dest="genomeDir", \
         action="store", help="directory with genomes, default %default", default=genomesDir) 
+    parser.add_option("", "--ajax", dest="ajax", \
+        action="store", help="try to get ajax status for a batchId") 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
 
@@ -2891,7 +2957,7 @@ def runQueueWorker(userName):
                 seq, org, pam, position, extSeq = readBatchParams(batchId)
                 uppSeq = seq.upper()
                 startDict, endSet = findAllPams(uppSeq, pam)
-                print "now running ", seq, org, pam, position
+                print "searching for offtargets:  ", seq, org, pam, position
                 otBedFname = getOfftargets(uppSeq, org, pam, batchId, startDict, q)
             except:
                 exStr = traceback.format_exc()
@@ -2960,6 +3026,9 @@ def mainCommandLine():
         doctest.testmod()
         sys.exit(0)
 
+    if options.ajax:
+        sendStatus(options.ajax)
+
     if options.worker:
         runQueueWorker(options.user)
         sys.exit(0)
@@ -3023,12 +3092,14 @@ def mainCommandLine():
     for row in iterGuideRows(guideData):
         ofh.write("\t".join(row))
         ofh.write("\n")
+    logging.info("guide info written to %s" % outGuideFname)
 
     if options.offtargetFname:
         ofh = open(options.offtargetFname, "w")
         for row in iterOfftargetRows(guideData):
             ofh.write("\t".join(row))
             ofh.write("\n")
+        logging.info("off-target info written to %s" % options.offtargetFname)
 
 def sendStatus(batchId):
     " send batch status as json "

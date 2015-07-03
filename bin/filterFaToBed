@@ -14,10 +14,11 @@
 # 4 = strand
 # 5 = BWA editDist
 # 6 = BWA x1Score 
+# 7 = position of gap, -1 if not used. Usually not used.
 
 # example input ( with field numbers above the ID line):
-# 0     1      2       3       4 5  6
-#>seq1|chrII|16108096|16108116|+|0|12345
+# 0     1      2       3       4 5  6    7
+#>seq1|chrII|16108096|16108116|+|0|12345|-1
 #TCGAAAGTGGTAAGAATTTA
 
 # example output:
@@ -113,13 +114,19 @@ def parseFasta(ifh):
         yield seqId, seq
 
 def main():
-    guideSeqFname, mainPat, altPats, altScore, passX1Score = sys.argv[1:] 
+    guideSeqFnames, mainPat, altPats, altScore, passX1Score = sys.argv[1:]
     passX1Score = int(passX1Score)
     altScore = float(altScore)
 
     altPats = altPats.split(",") # convert to list
+    patLen = len(mainPat)
 
-    guideSeqs = dict(parseFasta(open(guideSeqFname)))
+    if len(altPats)>0:
+        assert(len(mainPat)==len(altPats[0]))
+
+    guideSeqs = dict()
+    for guideSeqFname in guideSeqFnames.split(","):
+        guideSeqs.update(dict(parseFasta(open(guideSeqFname))))
 
     for seqIdLine, seq in parseFasta(sys.stdin):
         #print seqIdLine, seq
@@ -138,6 +145,12 @@ def main():
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(suffix, altPat):
+                            # gapped sequences cannot be scored, assign pseudo-score of 9999
+                            if len(guideSeq)==19:
+                                doesPass = True
+                                hitScore = 9999
+                                break
+
                             hitScore = calcHitScore(guideSeq, seq[:20])
                             if hitScore > altScore:
                                 doesPass = True
