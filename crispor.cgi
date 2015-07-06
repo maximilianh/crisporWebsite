@@ -62,6 +62,8 @@ DEFAULTORG = 'hg19'
 DEFAULTSEQ = 'cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccggaagtggccagggcgggggcgacctcggctcacagcgcgcccggctattctcgcagctcaccatgGATGATGATATCGCCGCGCTCGTCGTCGACAACGGCTCCGGCATGTGCAAGGCCGGCTTCGCGGGCGACGATGCCCCCCGGGCCGTCTTCCCCTCCATCGTGGGGCGCC'
 
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
+         ('NGA','NGA - S. Pyogenes mutant VQR'),
+         ('NGCG','NGCG - S. Pyogenes mutant VRER'),
          ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
          ('NNGRRT','NNGRRT - Streptococcus Aureus'),
          ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
@@ -1253,38 +1255,51 @@ def printTableHead(batchId, chrom, org):
     """
 
     print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
-    print '<tr style="border-left:5px solid black; background-color:#F0F0F0">'
+    print '<colgroup span="1"><col></colgroup>'
+    print '<colgroup span="1"><col></colgroup>'
+    print '<colgroup span="1"><col></colgroup>'
+    print '<colgroup span="3"><col><col><col></colgroup>'
+    print '<colgroup span="1"><col></colgroup>'
+    print '<colgroup span="1"><col></colgroup>'
+    print '<colgroup span="1"><col></colgroup>'
+
+    print '<thead>'
+    print '<tr style="border-bottom:none; border-left:5px solid black; background-color:#F0F0F0">'
     
-    print '<th style="width:80px">Position/<br>Strand'
+    print '<th style="width:80px; border-bottom:none">Position/<br>Strand'
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
-    print '<th style="width:170px">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
+    print '<th style="width:170px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9.")
 
-    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
+    print '<th style="width:70px; border-bottom:none"><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
     htmlHelp("The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
     print "</th>"
 
-    print '<th style="width:90px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Scores</a>' % batchId
-    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;Two efficacy scores are given, Doench et al and the SSC score, from Xu et al.<br>The Doench score ranges from 0-100. &lt;br&gt;The SSC score can be negative, higher, positive values are better.")
+    print '<th style="width:90px; border-bottom:none" colspan="3"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Predicted Efficacy</a>' % batchId
+    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;Two efficacy scores are given, Doench et al and the SSC score, from Xu et al.<br>The Doench score ranges from 0-100. &lt;br&gt;The SSC score usually is in the range -2 to +2. 50-60% of inefficient guides have negative scores, see Xu et al.<br>The last sub-column, prox. GC, indicates if the 6bp next to the PAM contain at least 4 Gs or Cs.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
+    #print '<table><tr>'
+    #print '<th>Doench</th>'
+    #print '<th>SSC</th>'
+    #print '<th>Prox. GC</th>'
+    #print '</tr></table>'
 
-    print '<th style="width:50">Prox. GC'
-    htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
-    print '</th>'
+    #print '<th style="width:50">Prox. GC'
+    #htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
+    #print '</th>'
 
-    print '<th style="width:70px"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame Score</a>' % batchId
+    print '<th style="width:50px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame Score</a>' % batchId
     htmlHelp("The Out-of-Frame Score predicts the percentage of clones that will carry out-of-frame deletions. For details see Bae et al, Nat Met 2014.")
     print '</th>'
 
-    print '<th style="width:120px">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
+    print '<th style="width:120px; border-bottom:none">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
     htmlHelp("For each number of mismatches, the number of off-targets is indicated.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 3 mismatches, etc.<br>Off-targets are considered if they are flanked by one of the motifs NGG, NAG or NGA.<br>Shown in grey are the off-targets that have no mismatches in the 12 bp <br>adjacent to the PAM. These are the most likely off-targets.")
     #print "</th>"
 
     #print '<th style="width:120">Off-targets with no mismatches next to PAM</i>'
     print "</th>"
-
-    print '<th style="width:*">Genome Browser links to matches sorted by off-target score'
+    print '<th style="width:*; border-bottom:none">Genome Browser links to matches sorted by off-target score'
     htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
@@ -1308,6 +1323,20 @@ def printTableHead(batchId, chrom, org):
     #print '</form></small>'
     print "</small>"
     print "</th>"
+    print "</tr>"
+
+    print '<tr style="border-top:none; background-color:#F0F0F0">'
+    print '<th style="border-top:none"></th>'
+    print '<th style="border-top:none"></th>'
+    print '<th style="border-top:none"></th>'
+    print '<th style="border-top:none; border-right: none" class="rotate"><div><span><a href="crispor.cgi?batchId=%s&sortBy=effScore">Doench</a></span></div></th>' % batchId
+    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
+    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none">Prox GC</span></div></th>'
+    print '<th style="border-top:none"></th>'
+    print '<th style="border-top:none"></th>'
+    print '<th style="border-top:none"></th>'
+    print "</tr>"
+    print '</thead>'
 
 def scoreToColor(guideScore):
     if guideScore > 50:
@@ -1432,17 +1461,16 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "%d" % guideScore
         print "</td>"
 
-        # efficacy score
-        print "<td>"
+        # efficacy scores
         if effScore==None:
-            print "Too close to end"
-            htmlHelp("The efficacy score is calculated from a 30-mer.<br>This guide does not have enough flanking sequence in your input.<br>")
+            print '<td colspan="2">Too close to end</td>'
+            htmlHelp("The efficacy scores are calculated from a 30-mer.<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
         else:
-            print '''%s<br>%0.2f''' % (str(effScore), sscScore)
-        #print '''<a href="#" onclick="alert('%s')">%0.2f</a>''' % (effScore)
-        #print "<!-- %s -->" % seq30Mer
-        print "</td>"
-
+            # Doench score
+            print '''<td>%s</td>''' % (str(effScore))
+            # Xu score
+            print '''<td>%0.1f</td>''' % (sscScore)
+            #print "<!-- %s -->" % seq30Mer
         # close GC > 4
         print "<td>"
         gcCount = guideSeq[-6:].count("G")+guideSeq[-6:].count("C")
@@ -1453,7 +1481,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         # main motif is "NGG" and last nucleotides are GGNGG
         if pam=="NGG" and patMatch(guideSeq[-2:], "GG"):
             print "<br>"
-            print "GG"
+            print "<small>GG</small>"
             htmlHelp("Farboud/Meyer 2015 (Genetics 199(4)) obtained the highest cleavage in <i>C. elegans</i> with guides that end with <tt>GG</tt>. ")
         print "</td>"
 
@@ -1595,6 +1623,29 @@ def printHeader(batchId):
             border:1px solid #cccccc;
         }
             </style>""")
+
+    # style from https://css-tricks.com/rotated-table-column-headers/ to rotate table headers
+    print("""<style>
+       th.rotate {
+         /* Something you can count on */
+         height: 10;
+         white-space: nowrap;
+       }
+       
+       th.rotate > div {
+         transform: 
+           /* Magic Numbers */
+           /* translate(25px, 51px) */
+           /* 45 is really 360 - 45 */
+           rotate(270deg);
+         width: 30;
+       }
+       th.rotate > div > span {
+         border-bottom: 1px solid #ccc;
+         padding: 5px 5px;
+       }
+    </style>""")
+
 
     print("</head>")
 
@@ -1994,7 +2045,7 @@ To add your genome of interest to the list, send us
     """ % HTMLPREFIX
     printPamDropDown(lastpam)
     print """
-    <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i></div>
+    <div id="helpstep3" class="helptext">The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href="http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html" target="_blank">Kleinstiver et al</a>, Nature 2015</div>
 </div>
 
 
