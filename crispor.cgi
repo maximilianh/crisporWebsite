@@ -106,9 +106,6 @@ offtargetPams = {"NGG" : "NAG,NGA"}
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
 
-# use Doench or ssc efficiency score?
-effScoreType = "ssc"
-
 
 # ====== END GLOBALS ============
 
@@ -705,6 +702,10 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
 def calcSscScores(seqs):
     """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
+    Pipes the sequences to the binary to get the scores.
+    Warning: if a lot of data is piped, this implementation might block. split
+    the data, increase the python buffer or rewrite the communication to a line-based
+    protocol to allow bigger datasets.
     >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
     {'AGCAGGATAGTCCTTCCGAGTGGAGGGAGG': 0.182006}
     """
@@ -714,6 +715,7 @@ def calcSscScores(seqs):
         strList.append("%s 0 0 + dummy" % s)
     sscIn = "\n".join(strList)
 
+    # example data:
     # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix 
     # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19
     # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  0 0 -   t
@@ -1077,6 +1079,27 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
                 matches.setdefault(name, []).extend(posList)
     return matches
 
+def addSscScores(guideData, seqFieldIdx, scoreFieldIdx):
+    """ given a list of guide sequences and info about them, add them SSC efficiency scores.
+        Assumes that the last field of the list is the 30mer context sequence.
+        Also removes the 30mer field from the row, as it's not needed anymore.
+    """
+    seq30Mers = []
+    for guide in guideData:
+        seq30Mer = guide[seqFieldIdx]
+        if seq30Mer!=None:
+            seq30Mers.append(seq30Mer)
+
+    scores = calcSscScores(seq30Mers)
+
+    for guide in guideData:
+        seq30Mer = guide[seqFieldIdx]
+        del guide[seqFieldIdx]
+        if seq30Mer!=None:
+            guide[scoreFieldIdx] = scores[seq30Mer]
+
+    return guideData
+
 def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None):
     """ for each pam in startDict, retrieve the guide sequence next to it and score it
     sortBy can be "effScore" or "mhScore" or "oofScore"
@@ -1108,10 +1131,7 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
             if seq30Mer==None:
                 effScore = "Too close to end"
             else:
-                if effScoreType=="doench":
-                    effScore = int(round(100*calcDoenchScore(seq30Mer)))
-                else:
-                    effScore = int(round(100*calcSscScores([seq30Mer]).values()[0]))
+                effScore = int(round(100*calcDoenchScore(seq30Mer)))
 
             # get 60mer and calc oof-score
             seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
@@ -1132,9 +1152,13 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
             ontargetDesc = ""
             mhScore, oofScore = 0, 0
             subOptMatchCount = False
+            seq30Mer = None
 
-        guideData.append( (guideScore, effScore, mhScore, oofScore, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount) )
+        # replace sscScore with None, will be added below
+        guideData.append( [guideScore, effScore, mhScore, oofScore, None, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount, seq30Mer] )
         guideScores[pamId] = guideScore
+
+    guideData = addSscScores(guideData, seqFieldIdx=-1, scoreFieldIdx=4)
 
     if sortBy == "effScore":
         sortCol = 1
@@ -1142,6 +1166,8 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
         sortCol = 2
     elif sortBy == "oofScore":
         sortCol = 3
+    elif sortBy == "sscScore":
+        sortCol = 4
     else:
         sortCol = 0
 
@@ -1168,7 +1194,7 @@ def printTableHead(batchId, chrom, org):
     " print guide score table description and columns "
     # one row per guide sequence
     print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>.'''
-    print '''Also provided are efficacy scores (<a target="_blank" href="http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html">Doench et al., Nat Biot 2014</a>), proximal GC content (<a target="_blank" href="http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4">Ren et al., Cell Rep 2014</a>) and out-of-frame scores (<a target="_blank" href="http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html">Bae et al Nat Meth 2014</a>).<br>'''
+    print '''Also provided are efficacy scores (<a target="_blank" href="http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html">Doench et al., Nat Biot 2014</a>, <a href="http://www.broadinstitute.org/rnai/public/analysis-tools/sgrna-design" target="_blank">tool</a> and <a target="_blank" href="http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115">Xu et al, Gen Res 2014</a>, <a href="http://crispr.dfci.harvard.edu/SSC/" target="_blank">tool</a>), proximal GC content (<a target="_blank" href="http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4">Ren et al., Cell Rep 2014</a>) and out-of-frame scores (<a target="_blank" href="http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html">Bae et al Nat Meth 2014</a>).<br>'''
     print '''Click on a column title to rank by its score.<br></div>'''
 
     printDownloadTableLinks(batchId)
@@ -1240,8 +1266,8 @@ def printTableHead(batchId, chrom, org):
     htmlHelp("The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
     print "</th>"
 
-    print '<th style="width:90px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Score</a>' % batchId
-    htmlHelp("The efficacy score ranges from 0-100 and predicts the cutting efficiency of the nuclease on a sequence. &lt;br&gt; The higher the efficacy score, the more likely is cutting at this position. <br>See Doench et al. for details. We multiply Doench et al's score by 100 for easier reading.")
+    print '<th style="width:90px"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Efficacy Scores</a>' % batchId
+    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;Two efficacy scores are given, Doench et al and the SSC score, from Xu et al.<br>The Doench score ranges from 0-100. &lt;br&gt;The SSC score can be negative, higher, positive values are better.")
 
     print '<th style="width:50">Prox. GC'
     htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
@@ -1350,7 +1376,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
 
     count = 0
     for guideRow in guideData:
-        guideScore, effScore, mhScore, oofScore, startPos, strand, pamId, guideSeq, \
+        guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         color = scoreToColor(guideScore)
@@ -1412,7 +1438,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "Too close to end"
             htmlHelp("The efficacy score is calculated from a 30-mer.<br>This guide does not have enough flanking sequence in your input.<br>")
         else:
-            print '''%s''' % str(effScore)
+            print '''%s<br>%0.2f''' % (str(effScore), sscScore)
         #print '''<a href="#" onclick="alert('%s')">%0.2f</a>''' % (effScore)
         #print "<!-- %s -->" % seq30Mer
         print "</td>"
@@ -2323,7 +2349,7 @@ def iterGuideRows(guideData):
 
     pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
     for guideRow in guideData:
-        guideScore, effScore, mhScore, oofScore, startPos, strand, pamId, \
+        guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
@@ -2352,7 +2378,7 @@ def iterOfftargetRows(guideData):
     yield headers
 
     for guideRow in guideData:
-        guideScore, effScore, mhScore, oofScore, startPos, strand, pamId, \
+        guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
@@ -3160,10 +3186,6 @@ def mainCgi():
     params = getParams()
     batchId = None
 
-    if "useSsc" in params:
-        global effScoreType
-        effScoreType = "ssc"
-        
     if "batchId" in params and "download" in params:
         downloadFile(params)
         return
