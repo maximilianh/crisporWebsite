@@ -1277,7 +1277,7 @@ def printTableHead(batchId, chrom, org):
     htmlHelp("The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
     print "</th>"
 
-    print '<th style="width:90px; border-bottom:none" colspan="3"><a href="crispor.cgi?batchId=%s&sortBy=effScore">Predicted Efficacy</a>' % batchId
+    print '<th style="width:90px; border-bottom:none" colspan="3">Predicted Efficacy'
     htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;Two efficacy scores are given, Doench et al and the SSC score, from Xu et al.<br>The Doench score ranges from 0-100. &lt;br&gt;The SSC score usually is in the range -2 to +2. 50-60% of inefficient guides have negative scores, see Xu et al.<br>The last sub-column, prox. GC, indicates if the 6bp next to the PAM contain at least 4 Gs or Cs.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
     #print '<table><tr>'
     #print '<th>Doench</th>'
@@ -1287,7 +1287,7 @@ def printTableHead(batchId, chrom, org):
 
     #print '<th style="width:50">Prox. GC'
     #htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
-    #print '</th>'
+    print '</th>'
 
     print '<th style="width:50px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame Score</a>' % batchId
     htmlHelp("The Out-of-Frame Score predicts the percentage of clones that will carry out-of-frame deletions. For details see Bae et al, Nat Met 2014.")
