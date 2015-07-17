@@ -108,6 +108,8 @@ offtargetPams = {"NGG" : "NAG,NGA"}
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
 
+# use the SSC score?
+USESSC = True
 
 # ====== END GLOBALS ============
 
@@ -711,6 +713,9 @@ def calcSscScores(seqs):
     >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
     {'AGCAGGATAGTCCTTCCGAGTGGAGGGAGG': 0.182006}
     """
+    if len(seqs)==0:
+        return dict()
+
     strList = []
     for s in seqs:
         assert(len(s)==30)
@@ -725,11 +730,13 @@ def calcSscScores(seqs):
     sscPath = join(binDir, "SSC")
     matPath = join(baseDir, "bin", "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
     cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
+    logging.debug("running cmd %s, stdin %s" % (cmd, sscIn))
     stdout, stderr = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(sscIn)
     scores = {}
     i = 0
     for lineIdx, line in enumerate(stdout.split("\n")):
         fs = line.split()
+        print fs
         seq, score = fs[0], float(fs[-1])
         scores[seq] = score
         lineIdx += 1
@@ -1160,7 +1167,11 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
         guideData.append( [guideScore, effScore, mhScore, oofScore, None, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount, seq30Mer] )
         guideScores[pamId] = guideScore
 
-    guideData = addSscScores(guideData, seqFieldIdx=-1, scoreFieldIdx=4)
+    if USESSC:
+        guideData = addSscScores(guideData, seqFieldIdx=-1, scoreFieldIdx=4)
+    else:
+        # just remove the last field (=34mer)
+        guideData = [x[:-1] for x in guideData]
 
     if sortBy == "effScore":
         sortCol = 1
@@ -2202,8 +2213,8 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
         # write potential PAM sites to file 
         faFnames = [batchBase+".fa"]
         writePamFlank(seq, startDict, pam, faFnames[0])
+        # if needed: add a 2nd fasta file with gapped sequences
         if allowGap:
-            # add a 2nd fasta file with gapped sequences
             faFnames.append(batchBase+".gap.fa")
             writePamFlank(seq, startDict, pam, faFnames[1], gapped=True)
 
@@ -2998,15 +3009,16 @@ Command line interface for the Crispor tool.
         action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
     parser.add_option("", "--worker", dest="worker", \
-        action="store_true", help="Run as worker process: watches job queue and runs jobs") 
+        action="store_true", help="Run as worker process: watches job queue and runs jobs")
     parser.add_option("", "--user", dest="user", \
-        action="store", help="for the --worker option: switch to this user at program start") 
+        action="store", help="for the --worker option: switch to this user at program start")
     parser.add_option("", "--clear", dest="clear", \
-        action="store_true", help="clear the worker job table and exit") 
+        action="store_true", help="clear the worker job table and exit")
     parser.add_option("-g", "--genomeDir", dest="genomeDir", \
-        action="store", help="directory with genomes, default %default", default=genomesDir) 
-    parser.add_option("", "--ajax", dest="ajax", \
-        action="store", help="try to get ajax status for a batchId") 
+        action="store", help="directory with genomes, default %default", default=genomesDir)
+    parser.add_option("", "--noSsc", dest="noSsc", \
+        action="store_true", help="do not run the SSC scorer, just use Doench score")
+
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
 
@@ -3142,8 +3154,12 @@ def mainCommandLine():
         doctest.testmod()
         sys.exit(0)
 
-    if options.ajax:
-        sendStatus(options.ajax)
+    #if options.ajax:
+        #sendStatus(options.ajax)
+
+    if options.noSsc:
+        global USESSC
+        USESSC = False
 
     if options.worker:
         runQueueWorker(options.user)
