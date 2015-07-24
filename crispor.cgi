@@ -545,6 +545,9 @@ def flankSeqIter(seq, startDict, pamLen, gapped=False):
             flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+20])
             pamSeq = revComp(seq[startPos:startPos+pamLen])
 
+        if "N" in flankSeq:
+            continue
+
         if not gapped:
             yield "s%d%s" % (startPos, strand), startPos, strand, flankSeq, pamSeq
         else:
