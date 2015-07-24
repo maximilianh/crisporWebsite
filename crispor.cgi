@@ -32,6 +32,9 @@ except:
 DEBUG = False
 #DEBUG = True
 
+# system-wide temporary directory
+TEMPDIR = os.environ.get("TMPDIR", "/tmp")
+
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
 # alternative directory on local disk where image/, style/ and js/ are located
@@ -3195,42 +3198,44 @@ def mainCommandLine():
 
     # get sequence
     seqs = parseFasta(open(inSeqFname))
-    if len(seqs)!=1:
-        raise Exception("input fasta file can only contain a single sequence")
-    seq = seqs.values()[0]
 
-    # get the other parameters and write to a new batch
-    pam = options.pam
-    global batchDir
-    batchDir = tempfile.mkdtemp(dir="/tmp", prefix="crispor")
-    if options.debug:
-        logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
-    else:
-        atexit.register(delBatchDir)
+    for seqId, seq in seqs.iteritems():
+        logging.info("running on sequence ID '%s'" % seqId)
+        # get the other parameters and write to a new batch
+        pam = options.pam
+        global batchDir
+        batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
+        if options.debug:
+            logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+        else:
+            atexit.register(delBatchDir)
 
-    batchId, position, extSeq = newBatch(seq, org, pam)
-    logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
+        batchId, position, extSeq = newBatch(seq, org, pam)
+        logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
-    if position=="?":
-        logging.error("no match found for sequence %s in genome %s" % (inSeqFname, org))
+        if position=="?":
+            logging.error("no match found for sequence %s in genome %s" % (inSeqFname, org))
 
-    startDict, endSet = findAllPams(seq, pam)
-    otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
-    otMatches = parseOfftargets(otBedFname)
-    guideData, guideScores, hasNotFound = scoreGuides(seq, extSeq, startDict, pam, otMatches, position)
+        startDict, endSet = findAllPams(seq, pam)
+        otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
+        otMatches = parseOfftargets(otBedFname)
+        guideData, guideScores, hasNotFound = scoreGuides(seq, extSeq, startDict, pam, otMatches, position)
 
-    ofh = open(outGuideFname, "w")
-    for row in iterGuideRows(guideData):
-        ofh.write("\t".join(row))
-        ofh.write("\n")
-    logging.info("guide info written to %s" % outGuideFname)
-
-    if options.offtargetFname:
-        ofh = open(options.offtargetFname, "w")
-        for row in iterOfftargetRows(guideData):
+        ofh = open(outGuideFname, "w")
+        for row in iterGuideRows(guideData):
             ofh.write("\t".join(row))
             ofh.write("\n")
-        logging.info("off-target info written to %s" % options.offtargetFname)
+        logging.info("guide info written to %s" % outGuideFname)
+
+        if options.offtargetFname:
+            ofh = open(options.offtargetFname, "w")
+            for row in iterOfftargetRows(guideData):
+                ofh.write("\t".join(row))
+                ofh.write("\n")
+            logging.info("off-target info written to %s" % options.offtargetFname)
+
+        if not options.debug:
+            os.removedirs(batchDir)
 
 def sendStatus(batchId):
     " send batch status as json "
