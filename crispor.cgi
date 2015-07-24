@@ -13,7 +13,7 @@ import traceback, json, pwd
 from datetime import datetime
 from collections import defaultdict, namedtuple
 from sys import stdout
-from os.path import join, isfile, basename, dirname, getmtime
+from os.path import join, isfile, basename, dirname, getmtime, isdir
 from StringIO import StringIO
 
 # don't report print as an error
@@ -34,6 +34,7 @@ DEBUG = False
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
+#TEMPDIR = "/dev/shm/"
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
@@ -114,6 +115,9 @@ commandLineMode = False
 # use the SSC score?
 USESSC = True
 
+# the headers for the guide and offtarget output files
+guideHeaders = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
 # ====== END GLOBALS ============
 
 
@@ -124,8 +128,6 @@ class JobQueue:
     jobs have different types and status. status can be updated while they run
     job running times are kept and old job info is kept in a separate table
     
-    >>> os.system("rm /tmp/tempCrisporTest.db")
-    0
     >>> q = JobQueue("/tmp/tempCrisporTest.db")
     >>> q.clearJobs()
     >>> q.waitCount()
@@ -154,6 +156,8 @@ class JobQueue:
     can't pop from an empty queue
     >>> q.popJob()
     (None, None, None)
+    >>> os.system("rm /tmp/tempCrisporTest.db")
+    0
     """
 
     _queueDef = (
@@ -738,8 +742,9 @@ def calcSscScores(seqs):
     scores = {}
     i = 0
     for lineIdx, line in enumerate(stdout.split("\n")):
+        if "Processing failed" in line:
+            return dict()
         fs = line.split()
-        print fs
         seq, score = fs[0], float(fs[-1])
         scores[seq] = score
         lineIdx += 1
@@ -918,8 +923,8 @@ def parseChromSizes(fname):
 def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
     """ extend (start, end) by flank and get sequence for it using twoBitTwoFa.
     Return None if not possible to extend.
-    >>> extendAndGetSeq("ce10", "chrI", 1000, 1002, flank=3)
-    'ACATTTTT'
+    >>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
+    'AAGGAATGTAG'
     """
     genomeDir = genomesDir
     sizeFname = "%(genomeDir)s/%(db)s/%(db)s.sizes" % locals()
@@ -2406,10 +2411,10 @@ def printTeforBodyEnd():
     runPhp("footer.php")
     print '</div>'
 
-def iterGuideRows(guideData):
+def iterGuideRows(guideData, addHeaders=False):
     "yield rows from guide data "
-    headers = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
-    yield headers
+    if addHeaders:
+        yield guideHeaders
     #print "\t".join(headers)
 
     pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
@@ -2435,12 +2440,13 @@ def iterGuideRows(guideData):
         row = [str(x) for x in row]
         yield row
 
-def iterOfftargetRows(guideData):
+def iterOfftargetRows(guideData, addHeaders=False):
     " yield bulk offtarget rows for the tab-sep download file "
-    headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
-    if allowGap:
-        headers.append("gapPos")
-    yield headers
+    if addHeaders:
+        headers = list(offtargetHeaders) # clone list
+        if allowGap:
+            headers.append("gapPos")
+        yield headers
 
     for guideRow in guideData:
         guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, \
@@ -2508,12 +2514,12 @@ def downloadFile(params):
     if params["download"]=="guides":
         print "Content-Disposition: attachment; filename=\"guides_%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        xlsWrite(iterGuideRows(guideData), "guides", sys.stdout, [6,28,10,10], fileFormat)
+        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [6,28,10,10], fileFormat)
 
     elif params["download"]=="offtargets":
         print "Content-Disposition: attachment; filename=\"offtargets-%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        otRows = list(iterOfftargetRows(guideData))
+        otRows = list(iterOfftargetRows(guideData, addHeaders=True))
         otRows.sort(key=operator.itemgetter(4), reverse=True)
         xlsWrite(otRows, "offtargets", sys.stdout, [6,28,28,5], fileFormat)
 
@@ -3044,9 +3050,11 @@ def main():
     
 def delBatchDir():
     " called at program exit, in command line mode "
+    if not isdir(batchDir):
+        return
     logging.debug("Deleting dir %s" % batchDir)
     fnames = glob.glob(join(batchDir, "*"))
-    if len(fnames)>10:
+    if len(fnames)>50:
         raise Exception("cowardly refusing to remove many temp files")
     for fname in fnames:
         os.remove(fname)
@@ -3200,17 +3208,26 @@ def mainCommandLine():
     # get sequence
     seqs = parseFasta(open(inSeqFname))
 
+    # make a directory for the temp files
+    # and put it into the global variable, so all functions will use it
+    global batchDir
+    batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
+    if options.debug:
+        logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+    else:
+        atexit.register(delBatchDir)
+
+    # prepare output files
+    guideFh = open(join(batchDir, "guideInfo.tab"), "w")
+    guideFh.write("\t".join(guideHeaders)+"\n")
+    if options.offtargetFname:
+        offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
+        offtargetFh.write("\t".join(offtargetHeaders)+"\n")
+
     for seqId, seq in seqs.iteritems():
         logging.info("running on sequence ID '%s'" % seqId)
         # get the other parameters and write to a new batch
         pam = options.pam
-        global batchDir
-        batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
-        if options.debug:
-            logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
-        else:
-            atexit.register(delBatchDir)
-
         batchId, position, extSeq = newBatch(seq, org, pam)
         logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
@@ -3222,21 +3239,26 @@ def mainCommandLine():
         otMatches = parseOfftargets(otBedFname)
         guideData, guideScores, hasNotFound = scoreGuides(seq, extSeq, startDict, pam, otMatches, position)
 
-        ofh = open(outGuideFname, "w")
         for row in iterGuideRows(guideData):
-            ofh.write("\t".join(row))
-            ofh.write("\n")
-        logging.info("guide info written to %s" % outGuideFname)
+            guideFh.write("\t".join(row))
+            guideFh.write("\n")
 
         if options.offtargetFname:
-            ofh = open(options.offtargetFname, "w")
             for row in iterOfftargetRows(guideData):
-                ofh.write("\t".join(row))
-                ofh.write("\n")
-            logging.info("off-target info written to %s" % options.offtargetFname)
+                offtargetFh.write("\t".join(row))
+                offtargetFh.write("\n")
 
-        if not options.debug:
-            os.removedirs(batchDir)
+    guideFh.close()
+    shutil.move(guideFh.name, outGuideFname)
+    logging.info("guide info written to %s" % outGuideFname)
+
+    if options.offtargetFname:
+        offtargetFh.close()
+        shutil.move(offtargetFh.name, options.offtargetFname)
+        logging.info("off-target info written to %s" % options.offtargetFname)
+
+    if not options.debug:
+       shutil.rmtree(batchDir)
 
 def sendStatus(batchId):
     " send batch status as json "
