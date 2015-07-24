@@ -736,7 +736,6 @@ def calcSscScores(seqs):
     i = 0
     for lineIdx, line in enumerate(stdout.split("\n")):
         fs = line.split()
-        print fs
         seq, score = fs[0], float(fs[-1])
         scores[seq] = score
         lineIdx += 1
