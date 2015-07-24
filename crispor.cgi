@@ -69,7 +69,7 @@ pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NGA','NGA - S. Pyogenes mutant VQR'),
          ('NGCG','NGCG - S. Pyogenes mutant VRER'),
          ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
-         ('NNGRRT','NNGRRT - Streptococcus Aureus'),
+         ('NNGRRT','NNG(A/G)(A/G)T - Streptococcus Aureus'),
          ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
          ('NNNNACA','NNNNACA - Campylobacter jejuni'),
        ]
@@ -548,6 +548,9 @@ def flankSeqIter(seq, startDict, pamLen, gapped=False):
         else: # strand is minus
             flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+20])
             pamSeq = revComp(seq[startPos:startPos+pamLen])
+
+        if "N" in flankSeq:
+            continue
 
         if not gapped:
             yield "s%d%s" % (startPos, strand), startPos, strand, flankSeq, pamSeq
