@@ -106,7 +106,8 @@ ALTPAMMINSCORE = 1.0
 # for some PAMs, we allow other alternative motifs when searching for offtargets
 # MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
 # on the guideSeq results in Tsai et al, Nat Biot 2014
-offtargetPams = {"NGG" : "NAG,NGA"}
+# The NGA -> NGG rule was described by Kleinstiver...Young 2015 "Improved Cas9 Specificity..."
+offtargetPams = {"NGG" : "NAG,NGA", "NGA" : "NGG" }
 
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
