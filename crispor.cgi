@@ -1351,8 +1351,8 @@ def printTableHead(batchId, chrom, org):
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
-    print '<th style="border-top:none; border-right: none" class="rotate"><div><span><a href="crispor.cgi?batchId=%s&sortBy=effScore">Doench</a></span></div></th>' % batchId
-    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
+    print '<th style="border-top:none; border-right: none" class="rotate"><div><span><a title="Doench et al score. Ranges from 0-100, higher values are better" href="crispor.cgi?batchId=%s&sortBy=effScore">Doench</a></span></div></th>' % batchId
+    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a title="Xu et al. score. Ranges mostly -2 to +2. Should be positive." href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
     print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none">Prox GC</span></div></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
