@@ -654,6 +654,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     subOptMatchCount = 0
 
     # for each edit distance, get the off targets and iterate over them
+    foundOneOntarget = False
     for editDist in range(0, maxMMs+1):
         #print countDict,"<p>"
         matches = countDict.get(editDist, [])
@@ -672,7 +673,13 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             else:
                 geneDesc = geneNameStr
 
-            if editDist==0 and chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC:
+            # is this the on-target?
+            # if we got a genome position, use it. Otherwise use a random off-target with 0MMs
+            # as the on-target
+            if editDist==0 and \
+                ((chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC) \
+                or (inChrom=='' and foundOneOntarget==False and x1Count < MAXOCC)):
+                foundOneOntarget = True
                 ontargetDesc = geneDesc
                 continue
 
@@ -1747,8 +1754,8 @@ def writePamFlank(seq, startDict, pam, faFname, gapped=False):
 
 def runCmd(cmd):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
-    cmd = cmd.replace("BIN", binDir)
-    cmd = cmd.replace("SCRIPT", scriptDir)
+    cmd = cmd.replace("$BIN", binDir)
+    cmd = cmd.replace("$SCRIPT", scriptDir)
     cmd = "set -o pipefail; " + cmd
     debug("Running %s" % cmd)
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
@@ -1878,14 +1885,14 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
             seqLen = 19
 
         bwaM = MFAC*MAXOCC # -m is queue size in bwa
-        cmd = "BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+        cmd = "$BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
         runCmd(cmd)
 
         queue.startStep(batchId, "saiToBed", convertMsg)
         maxOcc = MAXOCC # create local var from global
         # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
         # the sorting should improve the twoBitToFa runtime
-        cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+        cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
         runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -1896,7 +1903,7 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
     faFnameStr = ",".join(faFnames)
-    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
     segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
@@ -1904,7 +1911,7 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -2166,12 +2173,15 @@ def findAllPams(seq, pam):
     startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
     return startDict, endSet
 
-def newBatch(seq, org, pam):
+def newBatch(seq, org, pam, skipAlign=False):
     """ obtain a batch ID and write seq/org/pam to their files. 
     Return batchId, position string and a 100bp-extended seq, if possible.
     """
     batchId = makeTempBase(seq, org, pam)
-    chrom, start, end, strand = findBestMatch(org, seq)
+    if skipAlign:
+        chrom, start, end, strand = None, None, None, None
+    else:
+        chrom, start, end, strand = findBestMatch(org, seq)
     # define temp file names
     batchBase = join(batchDir, batchId)
     # save input seq, pamSeq, genome, position for primer design later
@@ -2320,6 +2330,7 @@ def crisprSearch(params):
         print warnMsg+"<p>"
 
     batchBase = join(batchDir, batchId)
+    print "XX", batchBase
 
     # read genome info tab file into memory
     dbInfo = readDbInfo(org)
@@ -2610,7 +2621,7 @@ def findBestMatch(genome, seq):
     samFname = tmpSamFh.name
 
     genomeDir = genomesDir # make local var
-    cmd = "BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    cmd = "$BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
@@ -2734,6 +2745,25 @@ def printPrimerTable(primerList, onRows=False):
             print "<td><tt>%s</tt></td>" % seq
             print "</tr>"
     print "</table>"
+
+def printDropboxLink():
+    print """
+    <a id="dropbox-link"></a>
+    <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="lp7njij87kjrcxv"></script>");
+    <script type="text/javascript">
+    options = {
+        success: function(files) {
+           $('textarea[name=hgct_customText]').val(files[0].link);
+           alert('Here is the file link: ' + files[0].link);
+        },
+        cancel: function() {},
+        linkType: 'direct',
+        multiselect: true,
+    };
+    var button = Dropbox.createChooseButton(options);
+    document.getElementById('dropbox-link').appendChild(button);
+    </script>
+    """
 
 def primerDetailsPage(params):
     """ create primers with primer3 around site identified by pamId in batch
@@ -2999,8 +3029,12 @@ def parseArgs():
 Command line interface for the Crispor tool.
 
     org          = genome identifier, like hg19 or ensHumSap
-    fastaInFile  = Fasta file with one sequence
+    fastaInFile  = Fasta file
     guideOutFile = tab-sep file, one row per guide
+
+    If many guides have to scored in batch: Add GGG to them to make them valid
+    guides, separate these sequences by N characters and supply as a single
+    fasta sequence, a few dozen to ~100 per file.
     """)
 
     parser.add_option("-d", "--debug", dest="debug", \
@@ -3017,6 +3051,8 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
     parser.add_option("", "--gap", dest="allowGap", \
         action="store_true", help="allow a gap in the match")
+    parser.add_option("", "--skipAlign", dest="skipAlign", \
+        action="store_true", help="do not align the input sequence. The on-target will be a random match with 0 mismatches.")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
         action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
@@ -3208,6 +3244,10 @@ def mainCommandLine():
         global allowGap
         allowGap = True
 
+    skipAlign = False
+    if options.skipAlign:
+        skipAlign = True
+
     # get sequence
     seqs = parseFasta(open(inSeqFname))
 
@@ -3215,6 +3255,7 @@ def mainCommandLine():
     # and put it into the global variable, so all functions will use it
     global batchDir
     batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
+    logging.debug("Created directory %s" % batchDir)
     if options.debug:
         logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
     else:
@@ -3230,8 +3271,9 @@ def mainCommandLine():
     for seqId, seq in seqs.iteritems():
         logging.info("running on sequence ID '%s'" % seqId)
         # get the other parameters and write to a new batch
+        seq = seq.upper()
         pam = options.pam
-        batchId, position, extSeq = newBatch(seq, org, pam)
+        batchId, position, extSeq = newBatch(seq, org, pam, skipAlign)
         logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
         if position=="?":
