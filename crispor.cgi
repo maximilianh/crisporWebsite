@@ -13,7 +13,7 @@ import traceback, json, pwd, types
 from datetime import datetime
 from collections import defaultdict, namedtuple
 from sys import stdout
-from os.path import join, isfile, basename, dirname, getmtime
+from os.path import join, isfile, basename, dirname, getmtime, isdir
 from StringIO import StringIO
 
 # out own eff scoring library
@@ -37,6 +37,7 @@ DEBUG = False
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
+#TEMPDIR = "/dev/shm/"
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
@@ -132,6 +133,9 @@ scoreDescs = {
     "oof" : ("Out-of-Frame", "Bae et al. Out-of-Frame score, range: 0-100")
 }
 
+# the headers for the guide and offtarget output files
+guideHeaders = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
 # ====== END GLOBALS ============
 
 
@@ -142,8 +146,6 @@ class JobQueue:
     jobs have different types and status. status can be updated while they run
     job running times are kept and old job info is kept in a separate table
     
-    >>> os.system("rm /tmp/tempCrisporTest.db")
-    0
     >>> q = JobQueue("/tmp/tempCrisporTest.db")
     >>> q.clearJobs()
     >>> q.waitCount()
@@ -172,6 +174,8 @@ class JobQueue:
     can't pop from an empty queue
     >>> q.popJob()
     (None, None, None)
+    >>> os.system("rm /tmp/tempCrisporTest.db")
+    0
     """
 
     _queueDef = (
@@ -668,6 +672,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     subOptMatchCount = 0
 
     # for each edit distance, get the off targets and iterate over them
+    foundOneOntarget = False
     for editDist in range(0, maxMMs+1):
         #print countDict,"<p>"
         matches = countDict.get(editDist, [])
@@ -686,7 +691,13 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             else:
                 geneDesc = geneNameStr
 
-            if editDist==0 and chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC:
+            # is this the on-target?
+            # if we got a genome position, use it. Otherwise use a random off-target with 0MMs
+            # as the on-target
+            if editDist==0 and \
+                ((chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC) \
+                or (inChrom=='' and foundOneOntarget==False and x1Count < MAXOCC)):
+                foundOneOntarget = True
                 ontargetDesc = geneDesc
                 continue
 
@@ -759,6 +770,8 @@ def calcSscScores(seqs):
     scores = {}
     i = 0
     for lineIdx, line in enumerate(stdout.split("\n")):
+        if "Processing failed" in line:
+            return dict()
         fs = line.split()
         seq, score = fs[0], float(fs[-1])
         scores[seq] = score
@@ -826,8 +839,8 @@ def parseChromSizes(fname):
 def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
     """ extend (start, end) by flank and get sequence for it using twoBitTwoFa.
     Return None if not possible to extend.
-    >>> extendAndGetSeq("ce10", "chrI", 1000, 1002, flank=3)
-    'ACATTTTT'
+    >>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
+    'AAGGAATGTAG'
     """
     genomeDir = genomesDir
     sizeFname = "%(genomeDir)s/%(db)s/%(db)s.sizes" % locals()
@@ -1622,8 +1635,8 @@ def writePamFlank(seq, startDict, pam, faFname, gapped=False):
 
 def runCmd(cmd):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
-    cmd = cmd.replace("BIN", binDir)
-    cmd = cmd.replace("SCRIPT", scriptDir)
+    cmd = cmd.replace("$BIN", binDir)
+    cmd = cmd.replace("$SCRIPT", scriptDir)
     cmd = "set -o pipefail; " + cmd
     debug("Running %s" % cmd)
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
@@ -1830,14 +1843,14 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
             seqLen = 19
 
         bwaM = MFAC*MAXOCC # -m is queue size in bwa
-        cmd = "BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+        cmd = "$BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
         runCmd(cmd)
 
         queue.startStep(batchId, "saiToBed", convertMsg)
         maxOcc = MAXOCC # create local var from global
         # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
         # the sorting should improve the twoBitToFa runtime
-        cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+        cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
         runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -1848,7 +1861,7 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
     faFnameStr = ",".join(faFnames)
-    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
     segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
@@ -1856,7 +1869,7 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -2118,12 +2131,15 @@ def findAllPams(seq, pam):
     startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
     return startDict, endSet
 
-def newBatch(seq, org, pam):
+def newBatch(seq, org, pam, skipAlign=False):
     """ obtain a batch ID and write seq/org/pam to their files. 
     Return batchId, position string and a 100bp-extended seq, if possible.
     """
     batchId = makeTempBase(seq, org, pam)
-    chrom, start, end, strand = findBestMatch(org, seq)
+    if skipAlign:
+        chrom, start, end, strand = None, None, None, None
+    else:
+        chrom, start, end, strand = findBestMatch(org, seq)
     # define temp file names
     batchBase = join(batchDir, batchId)
     # save input seq, pamSeq, genome, position for primer design later
@@ -2272,6 +2288,7 @@ def crisprSearch(params):
         print warnMsg+"<p>"
 
     batchBase = join(batchDir, batchId)
+    print "XX", batchBase
 
     # read genome info tab file into memory
     dbInfo = readDbInfo(org)
@@ -2367,12 +2384,14 @@ def printTeforBodyEnd():
     runPhp("footer.php")
     print '</div>'
 
-def iterGuideRows(guideData):
+def iterGuideRows(guideData, addHeaders=False):
     "yield rows from guide data "
     headers = ["guideId", "guideSeq", "specScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
     for scoreName in scoreNames:
         headers.append(scoreName+"EffScore")
-    yield headers
+    if addHeaders:
+        yield guideHeaders
+
     #print "\t".join(headers)
 
     pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
@@ -2400,12 +2419,13 @@ def iterGuideRows(guideData):
         row = [str(x) for x in row]
         yield row
 
-def iterOfftargetRows(guideData):
+def iterOfftargetRows(guideData, addHeaders=False):
     " yield bulk offtarget rows for the tab-sep download file "
-    headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
-    if allowGap:
-        headers.append("gapPos")
-    yield headers
+    if addHeaders:
+        headers = list(offtargetHeaders) # clone list
+        if allowGap:
+            headers.append("gapPos")
+        yield headers
 
     for guideRow in guideData:
         guideScore, effScores, startPos, strand, pamId, \
@@ -2476,12 +2496,12 @@ def downloadFile(params):
     if params["download"]=="guides":
         print "Content-Disposition: attachment; filename=\"guides_%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        xlsWrite(iterGuideRows(guideData), "guides", sys.stdout, [6,28,10,10], fileFormat)
+        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [6,28,10,10], fileFormat)
 
     elif params["download"]=="offtargets":
         print "Content-Disposition: attachment; filename=\"offtargets-%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        otRows = list(iterOfftargetRows(guideData))
+        otRows = list(iterOfftargetRows(guideData, addHeaders=True))
         otRows.sort(key=operator.itemgetter(4), reverse=True)
         xlsWrite(otRows, "offtargets", sys.stdout, [6,28,28,5], fileFormat)
 
@@ -2587,7 +2607,7 @@ def findBestMatch(genome, seq):
     samFname = tmpSamFh.name
 
     genomeDir = genomesDir # make local var
-    cmd = "BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    cmd = "$BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
@@ -2711,6 +2731,25 @@ def printPrimerTable(primerList, onRows=False):
             print "<td><tt>%s</tt></td>" % seq
             print "</tr>"
     print "</table>"
+
+def printDropboxLink():
+    print """
+    <a id="dropbox-link"></a>
+    <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="lp7njij87kjrcxv"></script>");
+    <script type="text/javascript">
+    options = {
+        success: function(files) {
+           $('textarea[name=hgct_customText]').val(files[0].link);
+           alert('Here is the file link: ' + files[0].link);
+        },
+        cancel: function() {},
+        linkType: 'direct',
+        multiselect: true,
+    };
+    var button = Dropbox.createChooseButton(options);
+    document.getElementById('dropbox-link').appendChild(button);
+    </script>
+    """
 
 def primerDetailsPage(params):
     """ create primers with primer3 around site identified by pamId in batch
@@ -2976,8 +3015,12 @@ def parseArgs():
 Command line interface for the Crispor tool.
 
     org          = genome identifier, like hg19 or ensHumSap
-    fastaInFile  = Fasta file with one sequence
+    fastaInFile  = Fasta file
     guideOutFile = tab-sep file, one row per guide
+
+    If many guides have to scored in batch: Add GGG to them to make them valid
+    guides, separate these sequences by N characters and supply as a single
+    fasta sequence, a few dozen to ~100 per file.
     """)
 
     parser.add_option("-d", "--debug", dest="debug", \
@@ -2994,6 +3037,8 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
     parser.add_option("", "--gap", dest="allowGap", \
         action="store_true", help="allow a gap in the match")
+    parser.add_option("", "--skipAlign", dest="skipAlign", \
+        action="store_true", help="do not align the input sequence. The on-target will be a random match with 0 mismatches.")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
         action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
@@ -3028,9 +3073,11 @@ def main():
     
 def delBatchDir():
     " called at program exit, in command line mode "
+    if not isdir(batchDir):
+        return
     logging.debug("Deleting dir %s" % batchDir)
     fnames = glob.glob(join(batchDir, "*"))
-    if len(fnames)>10:
+    if len(fnames)>50:
         raise Exception("cowardly refusing to remove many temp files")
     for fname in fnames:
         os.remove(fname)
@@ -3177,22 +3224,37 @@ def mainCommandLine():
         global allowGap
         allowGap = True
 
+    skipAlign = False
+    if options.skipAlign:
+        skipAlign = True
+
     # get sequence
     seqs = parseFasta(open(inSeqFname))
+
+    # make a directory for the temp files
+    # and put it into the global variable, so all functions will use it
+    global batchDir
+    batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
+    logging.debug("Created directory %s" % batchDir)
+    if options.debug:
+        logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+    else:
+        atexit.register(delBatchDir)
+
+    # prepare output files
+    guideFh = open(join(batchDir, "guideInfo.tab"), "w")
+    guideFh.write("\t".join(guideHeaders)+"\n")
+    if options.offtargetFname:
+        offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
+        offtargetFh.write("\t".join(offtargetHeaders)+"\n")
 
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
         logging.info("running on sequence ID '%s'" % seqId)
         # get the other parameters and write to a new batch
+        seq = seq.upper()
         pam = options.pam
-        global batchDir
-        batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
-        if options.debug:
-            logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
-        else:
-            atexit.register(delBatchDir)
-
-        batchId, position, extSeq = newBatch(seq, org, pam)
+        batchId, position, extSeq = newBatch(seq, org, pam, skipAlign)
         logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
         if position=="?":
@@ -3207,21 +3269,26 @@ def mainCommandLine():
 
         guideData, guideScores, hasNotFound = mergeGuideInfo(seq, startDict, pam, otMatches, position, effScores)
 
-        ofh = open(outGuideFname, "w")
         for row in iterGuideRows(guideData):
-            ofh.write("\t".join(row))
-            ofh.write("\n")
-        logging.info("guide info written to %s" % outGuideFname)
+            guideFh.write("\t".join(row))
+            guideFh.write("\n")
 
         if options.offtargetFname:
-            ofh = open(options.offtargetFname, "w")
             for row in iterOfftargetRows(guideData):
-                ofh.write("\t".join(row))
-                ofh.write("\n")
-            logging.info("off-target info written to %s" % options.offtargetFname)
+                offtargetFh.write("\t".join(row))
+                offtargetFh.write("\n")
 
-        if not options.debug:
-            os.removedirs(batchDir)
+    guideFh.close()
+    shutil.move(guideFh.name, outGuideFname)
+    logging.info("guide info written to %s" % outGuideFname)
+
+    if options.offtargetFname:
+        offtargetFh.close()
+        shutil.move(offtargetFh.name, options.offtargetFname)
+        logging.info("off-target info written to %s" % options.offtargetFname)
+
+    if not options.debug:
+       shutil.rmtree(batchDir)
 
 def sendStatus(batchId):
     " send batch status as json "
