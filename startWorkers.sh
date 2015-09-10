@@ -5,7 +5,8 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 workCount=4
-if [ `pwd` == "/var/www/crisporTest" -o `pwd` == "/var/www/crisporMax" ] ; then
+echo `pwd`
+if [ `pwd` == "/var/www/crisporTest" -o `pwd` == "/var/www/crisporMax" -o `pwd` == "/home/www/crisporMax" ] ; then
     workCount=1
 fi
 echo $workCount

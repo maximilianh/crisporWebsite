@@ -107,7 +107,8 @@ ALTPAMMINSCORE = 1.0
 # for some PAMs, we allow other alternative motifs when searching for offtargets
 # MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
 # on the guideSeq results in Tsai et al, Nat Biot 2014
-offtargetPams = {"NGG" : "NAG,NGA"}
+# The NGA -> NGG rule was described by Kleinstiver...Young 2015 "Improved Cas9 Specificity..."
+offtargetPams = {"NGG" : "NAG,NGA", "NGA" : "NGG" }
 
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
@@ -1108,22 +1109,27 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
 
 def addSscScores(guideData, seqFieldIdx, scoreFieldIdx):
     """ given a list of guide sequences and info about them, add them SSC efficiency scores.
-        Assumes that the last field of the list is the 30mer context sequence.
-        Also removes the 30mer field from the row, as it's not needed anymore.
+        Assumes that the last field of the list is the 34mer context sequence.
+        Also removes the 34mer field from the row, as it's not needed anymore.
     """
+    # the doench and SSC scores don't use the same 30mer
+    # the doench 30mer is -4 - +6 relative to the 20mer start,end range
+    # the ssc score uses 0 - +10 relative to the 20mer start,end range
     seq30Mers = []
     for guide in guideData:
-        seq30Mer = guide[seqFieldIdx]
-        if seq30Mer!=None:
-            seq30Mers.append(seq30Mer)
+        seq34Mer = guide[seqFieldIdx]
+        if seq34Mer!=None:
+            seq30Mers.append(seq34Mer[-30:])
 
+    # need to call this with a batch of sequences, as it's an external binary
     scores = calcSscScores(seq30Mers)
 
+    # now add the scores to the rows
     for guide in guideData:
-        seq30Mer = guide[seqFieldIdx]
+        seq34Mer = guide[seqFieldIdx]
         del guide[seqFieldIdx]
-        if seq30Mer!=None:
-            guide[scoreFieldIdx] = scores[seq30Mer]
+        if seq34Mer!=None:
+            guide[scoreFieldIdx] = scores[seq34Mer[-30:]]
 
     return guideData
 
@@ -1154,11 +1160,11 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
 
             # get 30mer and calc Doench
             gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
-            seq30Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 6, extSeq)
-            if seq30Mer==None:
+            seq34Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 10, extSeq)
+            if seq34Mer==None:
                 effScore = "Too close to end"
             else:
-                effScore = int(round(100*calcDoenchScore(seq30Mer)))
+                effScore = int(round(100*calcDoenchScore(seq34Mer[:30])))
 
             # get 60mer and calc oof-score
             seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
@@ -1179,10 +1185,10 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
             ontargetDesc = ""
             mhScore, oofScore = 0, 0
             subOptMatchCount = False
-            seq30Mer = None
+            seq34Mer = None
 
         # replace sscScore with None, will be added below
-        guideData.append( [guideScore, effScore, mhScore, oofScore, None, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount, seq30Mer] )
+        guideData.append( [guideScore, effScore, mhScore, oofScore, None, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount, seq34Mer] )
         guideScores[pamId] = guideScore
 
     if USESSC:
@@ -1358,8 +1364,8 @@ def printTableHead(batchId, chrom, org):
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
-    print '<th style="border-top:none; border-right: none" class="rotate"><div><span><a href="crispor.cgi?batchId=%s&sortBy=effScore">Doench</a></span></div></th>' % batchId
-    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
+    print '<th style="border-top:none; border-right: none" class="rotate"><div><span><a title="Doench et al score. Ranges from 0-100, higher values are better" href="crispor.cgi?batchId=%s&sortBy=effScore">Doench</a></span></div></th>' % batchId
+    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a title="Xu et al. score. Ranges mostly -2 to +2. Should be positive." href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
     print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none">Prox GC</span></div></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
@@ -1498,6 +1504,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             # Doench score
             print '''<td>%s</td>''' % (str(effScore))
             # Xu score
+            if sscScore is None:
+                sscScore = 0.0
             print '''<td>%0.1f</td>''' % (sscScore)
             #print "<!-- %s -->" % seq30Mer
         # close GC > 4
@@ -3269,6 +3277,7 @@ def mainCommandLine():
         offtargetFh.write("\t".join(offtargetHeaders)+"\n")
 
     for seqId, seq in seqs.iteritems():
+        seq = seq.upper()
         logging.info("running on sequence ID '%s'" % seqId)
         # get the other parameters and write to a new batch
         seq = seq.upper()

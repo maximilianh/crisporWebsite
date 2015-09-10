@@ -121,7 +121,7 @@ def main():
     altPats = altPats.split(",") # convert to list
     patLen = len(mainPat)
 
-    if len(altPats)>0:
+    if len(altPats)>0 and altPats!=["na"]:
         assert(len(mainPat)==len(altPats[0]))
 
     guideSeqs = dict()
