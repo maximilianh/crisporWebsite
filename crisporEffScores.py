@@ -28,14 +28,23 @@ import json
 global binDir
 binDir = None
 
+# the name of a directory to use for caching some efficiency values that are slow to calculate
+# deactivated by default
+cacheDir = None
+
+# by default bindir is relative to the location of this library
 if binDir is None:
-    binDir = join(".", "bin")
+    binDir = join(dirname(__file__), "bin")
 
 BUFSIZE = 10000000
 
 def setBinDir(path):
     global binDir
     binDir = path
+
+def setCacheDir(path):
+    global cacheDir
+    cacheDir = path
 
 def getBinPath(name):
     """
@@ -419,14 +428,21 @@ class ScoreCache:
     """
 
     def __init__(self, scoreName):
-        self.cacheFname = "out/%s.tab" % scoreName
+        if cacheDir is None:
+            self.cacheFname = None
+            return
+
+        self.cacheFname = join(cacheDir, "%s.tab" % scoreName)
         scoreCache = readDict(self.cacheFname, isFloat=True)
         self.scoreCache = scoreCache
 
     def findNewSeqs(self, seqs):
         """ get seqs that are not in cache. If all are, return the list of scores.
+        Otherwise return None for the scores.
         Returns tuple (seqs, scores)
         """
+        if self.cacheFname is None:
+            return (seqs, None)
         self.allSeqs = seqs
         newSeqs = set()
         for s in seqs:
@@ -440,7 +456,10 @@ class ScoreCache:
         return newSeqs, scoreList
 
     def mergeIntoCache(self, newScores):
-        # create final result merging cache and new scores
+        # create final result merging cache and newly obtained scores
+        if self.cacheFname==None:
+            return newScores
+            
         scoreList = []
         assert(len(newScores)==len(self.newSeqs))
         newScoreDict = dict(zip(self.newSeqs, newScores))
@@ -700,12 +719,15 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"])
-    {'oof': [51], 'wang': [66], 'chariRaw': [-0.15504833], 'mh': [4404], 'chariRank': [54], 'doench': [10], 'crisprScan': [39], 'ssc': [-0.035894]}
+    {'oof': [51], 'wang': [66], 'chariRaw': [-0.15504833], 'mh': [4404], 'finalGc6': [1], 'chariRank': [54], 'doench': [10], 'finalGg': [0], 'crisprScan': [39], 'ssc': [-0.035894]}
     """
     scores = {}
-    scores["wang"] = cacheScores("wang", calcWangSvmScores, trimSeqs(seqs, -20, 0))
+
+    guideSeqs = trimSeqs(seqs, -20, 0)
+
+    scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
     if "wangOrig" in addOpt or doAll:
-        scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, trimSeqs(seqs, -20, 0))
+        scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
 
     scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
     scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
@@ -718,6 +740,9 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     mh, oof = calcAllBaeScores(trimSeqs(seqs, -30, 30))
     scores["oof"] = oof
     scores["mh"] = mh
+
+    scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
+    scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
 
     # fusi score not run by default, requires an apiKey
     if "fusi" in addOpt or doAll:
