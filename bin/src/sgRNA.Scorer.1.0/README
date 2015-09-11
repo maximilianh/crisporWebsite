@@ -1,0 +1,37 @@
+#####################################################
+Author: Raj Chari
+Date: May 1st, 2015
+Version 1.0
+
+#####################################################
+README for Cas9 SP and ST1 scoring package
+
+Please cite, Chari et al (2015), "Unraveling CRISPR-Cas9 genome engineering parameters in mammalian cells via a library-on-library approach", Nature Methods
+
+#####################################################
+Step 1: Make sure you have the necessary things installed
+
+Python 2.7+ https://www.python.org/downloads/
+Biopython: http://biopython.org/wiki/Download
+Numpy: http://www.scipy.org/scipylib/download.html
+Scipy: http://www.scipy.org/scipylib/download.html
+
+Download SVM-Light:
+http://svmlight.joachims.org/
+
+#####################################################
+
+Step 2: To run the package.  You need to specify an input FASTA file (e.g. input.fasta), an organism (Hg/Mm) and a species (SP/ST1).  You can either input a sequence for which sgRNAs can be selected or a fasta file of sgRNA sequences.  If sgRNA sequences are provided, make sure to include the PAM sequence as well (23bp total for SP and 27bp for ST1)
+In the command prompt or shell type, if you want to get scores for human SP sites, type:
+python scoreMySites.py input.fasta Hg SP mySPSites
+
+This will create a number of files that start with mySPSites.*
+
+Your final output is mySPSites.FinalOutput.txt which will be a tab-delimited text file
+
+#####################################################
+
+Output file definition:
+Column 1 -> Name of your sgRNA
+Column 2 -> Sequence of your sgRNA site (incluing PAM)
+Column 3 -> Percentile rank of sgRNA among entire human exome set

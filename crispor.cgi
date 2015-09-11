@@ -8,13 +8,16 @@
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
 import Cookie, time, math, sys, cgi, re, array, random, platform, os
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
-import traceback, json, pwd
+import traceback, json, pwd, types
 
 from datetime import datetime
 from collections import defaultdict, namedtuple
 from sys import stdout
-from os.path import join, isfile, basename, dirname, getmtime
+from os.path import join, isfile, basename, dirname, getmtime, isdir
 from StringIO import StringIO
+
+# out own eff scoring library
+import crisporEffScores
 
 # don't report print as an error
 # pylint: disable=E1601
@@ -34,6 +37,7 @@ DEBUG = False
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
+#TEMPDIR = "/dev/shm/"
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
@@ -94,7 +98,7 @@ MAXOCC = 40000
 # the BWA queue size is 2M by default. We derive the queue size from MAXOCC
 MFAC = 2000000/MAXOCC
 
-# Highly-sensitive mode: MAXOCC is increased in runBwa() and in the html UI if only one guide seq
+# Highly-sensitive mode: MAXOCC is increased in processSubmission() and in the html UI if only one guide seq
 # is run
 HIGH_MAXOCC=600000
 
@@ -112,9 +116,26 @@ offtargetPams = {"NGG" : "NAG,NGA", "NGA" : "NGG" }
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
 
-# use the SSC score?
-USESSC = True
+# names/order of efficacy scores to show in UI
+scoreNames = ["chariRank", "ssc", "doench", "wang", "crisprScan", "oof"]
+# how many digits shall we show for each score? default is 0
+scoreDigits = {
+    "ssc" : 2,
+}
 
+# labels and descriptions of eff. scores
+scoreDescs = {
+    "doench" : ("Doench", "Doench et al score. Ranges from 0-100, higher values are better"),
+    "ssc" : ("SSC", "SSC, Xu et al. score. Ranges mostly -2 to +2. Should be positive."),
+    "crisprScan" : ("CrisprScan", "CrisprScan Zebrafish score by Moreno-Mateos et al"),
+    "wang" : ("Wang", "SVM score by Wang/Wei/Sabatini/Lander, range 0-100"),
+    "chariRank" : ("Chari", "Chari et al. SVM Rank-Percent, range: 0-100"),
+    "oof" : ("Out-of-Frame", "Bae et al. Out-of-Frame score, range: 0-100")
+}
+
+# the headers for the guide and offtarget output files
+guideHeaders = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
 # ====== END GLOBALS ============
 
 
@@ -125,8 +146,6 @@ class JobQueue:
     jobs have different types and status. status can be updated while they run
     job running times are kept and old job info is kept in a separate table
     
-    >>> os.system("rm /tmp/tempCrisporTest.db")
-    0
     >>> q = JobQueue("/tmp/tempCrisporTest.db")
     >>> q.clearJobs()
     >>> q.waitCount()
@@ -155,6 +174,8 @@ class JobQueue:
     can't pop from an empty queue
     >>> q.popJob()
     (None, None, None)
+    >>> os.system("rm /tmp/tempCrisporTest.db")
+    0
     """
 
     _queueDef = (
@@ -651,6 +672,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     subOptMatchCount = 0
 
     # for each edit distance, get the off targets and iterate over them
+    foundOneOntarget = False
     for editDist in range(0, maxMMs+1):
         #print countDict,"<p>"
         matches = countDict.get(editDist, [])
@@ -669,7 +691,13 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             else:
                 geneDesc = geneNameStr
 
-            if editDist==0 and chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC:
+            # is this the on-target?
+            # if we got a genome position, use it. Otherwise use a random off-target with 0MMs
+            # as the on-target
+            if editDist==0 and \
+                ((chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC) \
+                or (inChrom=='' and foundOneOntarget==False and x1Count < MAXOCC)):
+                foundOneOntarget = True
                 ontargetDesc = geneDesc
                 continue
 
@@ -710,89 +738,6 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     return posList, otDescStr, guideScore, last12DescStr, ontargetDesc, subOptMatchCount
 
 # --- START OF SCORING ROUTINES 
-
-def calcSscScores(seqs):
-    """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
-    Pipes the sequences to the binary to get the scores.
-    Warning: if a lot of data is piped, this implementation might block. split
-    the data, increase the python buffer or rewrite the communication to a line-based
-    protocol to allow bigger datasets.
-    >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
-    {'AGCAGGATAGTCCTTCCGAGTGGAGGGAGG': 0.182006}
-    """
-    if len(seqs)==0:
-        return dict()
-
-    strList = []
-    for s in seqs:
-        assert(len(s)==30)
-        strList.append("%s 0 0 + dummy" % s)
-    sscIn = "\n".join(strList)
-
-    # example data:
-    # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix 
-    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19
-    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  0 0 -   t
-    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19  0.182006
-    sscPath = join(binDir, "SSC")
-    matPath = join(baseDir, "bin", "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
-    cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
-    logging.debug("running cmd %s, stdin %s" % (cmd, sscIn))
-    stdout, stderr = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(sscIn)
-    scores = {}
-    i = 0
-    for lineIdx, line in enumerate(stdout.split("\n")):
-        fs = line.split()
-        seq, score = fs[0], float(fs[-1])
-        scores[seq] = score
-        lineIdx += 1
-        if lineIdx==len(seqs):
-            break
-    return scores
-
-# DOENCH SCORING 
-params = [
-# pasted/typed table from PDF and converted to zero-based positions
-(1,'G',-0.2753771),(2,'A',-0.3238875),(2,'C',0.17212887),(3,'C',-0.1006662),
-(4,'C',-0.2018029),(4,'G',0.24595663),(5,'A',0.03644004),(5,'C',0.09837684),
-(6,'C',-0.7411813),(6,'G',-0.3932644),(11,'A',-0.466099),(14,'A',0.08537695),
-(14,'C',-0.013814),(15,'A',0.27262051),(15,'C',-0.1190226),(15,'T',-0.2859442),
-(16,'A',0.09745459),(16,'G',-0.1755462),(17,'C',-0.3457955),(17,'G',-0.6780964),
-(18,'A',0.22508903),(18,'C',-0.5077941),(19,'G',-0.4173736),(19,'T',-0.054307),
-(20,'G',0.37989937),(20,'T',-0.0907126),(21,'C',0.05782332),(21,'T',-0.5305673),
-(22,'T',-0.8770074),(23,'C',-0.8762358),(23,'G',0.27891626),(23,'T',-0.4031022),
-(24,'A',-0.0773007),(24,'C',0.28793562),(24,'T',-0.2216372),(27,'G',-0.6890167),
-(27,'T',0.11787758),(28,'C',-0.1604453),(29,'G',0.38634258),(1,'GT',-0.6257787),
-(4,'GC',0.30004332),(5,'AA',-0.8348362),(5,'TA',0.76062777),(6,'GG',-0.4908167),
-(11,'GG',-1.5169074),(11,'TA',0.7092612),(11,'TC',0.49629861),(11,'TT',-0.5868739),
-(12,'GG',-0.3345637),(13,'GA',0.76384993),(13,'GC',-0.5370252),(16,'TG',-0.7981461),
-(18,'GG',-0.6668087),(18,'TC',0.35318325),(19,'CC',0.74807209),(19,'TG',-0.3672668),
-(20,'AC',0.56820913),(20,'CG',0.32907207),(20,'GA',-0.8364568),(20,'GG',-0.7822076),
-(21,'TC',-1.029693),(22,'CG',0.85619782),(22,'CT',-0.4632077),(23,'AA',-0.5794924),
-(23,'AG',0.64907554),(24,'AG',-0.0773007),(24,'CG',0.28793562),(24,'TG',-0.2216372),
-(26,'GT',0.11787758),(28,'GG',-0.69774)]
-
-intercept =  0.59763615
-gcHigh    = -0.1665878
-gcLow     = -0.2026259
-
-def calcDoenchScore(seq):
-    assert(len(seq)==30)
-    score = intercept
-
-    guideSeq = seq[4:24]
-    gcCount = guideSeq.count("G") + guideSeq.count("C")
-    if gcCount <= 10:
-        gcWeight = gcLow
-    if gcCount > 10:
-        gcWeight = gcHigh
-    score += abs(10-gcCount)*gcWeight
-
-    for pos, modelSeq, weight in params:
-        subSeq = seq[pos:pos+len(modelSeq)]
-        if subSeq==modelSeq:
-            score += weight
-    return 1.0/(1.0+math.exp(-score))
 
 # MIT offtarget scoring
 
@@ -839,74 +784,6 @@ def calcMitGuideScore(hitSum):
     score = int(round(score*100))
     return score
 
-# Microhomology score from Bae et al, Nat Biotech 2014 
-
-def calcMicroHomolScore(seq, left):
-    """ calculate the micro homology and out-of-frame score for a breakpoint in a 60-80mer
-    See http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html
-    Source code adapted from Supp File 1
-
-    From the manuscript:
-    "On the basis of these observations, we developed a simple formula and a
-    computer program (Supplementary Fig. 3) to predict the deletion patterns
-    at a given nuclease target site that are associated with microhomology of
-    at least two bases (Fig. 1b and Supplementary Note). We assigned a pattern
-    score to each deletion pattern and a microhomology score (equaling the sum
-    of pattern scores) to each target site. We then obtained an out-of-frame
-    score at a given site by dividing the sum of pattern scores assigned to
-    frameshifting deletions by the microhomology score."
-    """
-    seq = seq.upper()
-    length_weight=20.0
-    right=len(seq)-int(left)
-
-    duplRows = []
-    for k in reversed(range(2,left)):
-        for j in range(left,left+right-k+1): 
-            for i in range(0,left-k+1):
-                if seq[i:i+k]==seq[j:j+k]:
-                    length = j-i
-                    dupSeq = seq[i:i+k]
-                    duplRows.append( (dupSeq, i, i+k, j, j+k, length) )
-
-    if len(duplRows)==0:
-        return 0, 0
-
-    ### After searching out all microhomology patterns, duplication should be removed!! 
-    sum_score_3=0
-    sum_score_not_3=0
-
-    for i in range(len(duplRows)):
-        n=0
-        scrap, left_start, left_end, right_start, right_end, length = duplRows[i]
-
-        for j in range(i):
-            _, left_start_ref, left_end_ref, right_start_ref, right_end_ref, _ = duplRows[j]
-
-            if (left_start >= left_start_ref) and \
-               (left_end <= left_end_ref) and \
-               (right_start >= right_start_ref) and \
-               (right_end <= right_end_ref) and \
-               (left_start - left_start_ref) == (right_start - right_start_ref) and \
-               (left_end - left_end_ref) == (right_end - right_end_ref):
-                    n+=1
-
-        if n != 0:
-            continue
-
-        length_factor = round(1/math.exp(length/length_weight),3)
-        num_GC=scrap.count("G")+scrap.count("C")
-        score = 100*length_factor*((len(scrap)-num_GC)+(num_GC*2))
-
-        if (length % 3)==0:
-            sum_score_3+=score
-        elif (length % 3)!=0:
-            sum_score_not_3+=score
-
-        mhScore = sum_score_3+sum_score_not_3
-        oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
-    return int(mhScore), int(oofScore)
-
 # --- END OF SCORING ROUTINES 
 
 def parseChromSizes(fname):
@@ -921,8 +798,8 @@ def parseChromSizes(fname):
 def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
     """ extend (start, end) by flank and get sequence for it using twoBitTwoFa.
     Return None if not possible to extend.
-    >>> extendAndGetSeq("ce10", "chrI", 1000, 1002, flank=3)
-    'ACATTTTT'
+    >>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
+    'AAGGAATGTAG'
     """
     genomeDir = genomesDir
     sizeFname = "%(genomeDir)s/%(db)s/%(db)s.sizes" % locals()
@@ -1094,34 +971,13 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
                 matches.setdefault(name, []).extend(posList)
     return matches
 
-def addSscScores(guideData, seqFieldIdx, scoreFieldIdx):
-    """ given a list of guide sequences and info about them, add them SSC efficiency scores.
-        Assumes that the last field of the list is the 34mer context sequence.
-        Also removes the 34mer field from the row, as it's not needed anymore.
-    """
-    # the doench and SSC scores don't use the same 30mer
-    # the doench 30mer is -4 - +6 relative to the 20mer start,end range
-    # the ssc score uses 0 - +10 relative to the 20mer start,end range
-    seq30Mers = []
-    for guide in guideData:
-        seq34Mer = guide[seqFieldIdx]
-        if seq34Mer!=None:
-            seq30Mers.append(seq34Mer[-30:])
+def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None):
+    """ 
+    merges guide information from the sequence, the efficacy scores and the off-targets.
+    creates rows with fields:
 
-    # need to call this with a batch of sequences, as it's an external binary
-    scores = calcSscScores(seq30Mers)
 
-    # now add the scores to the rows
-    for guide in guideData:
-        seq34Mer = guide[seqFieldIdx]
-        del guide[seqFieldIdx]
-        if seq34Mer!=None:
-            guide[scoreFieldIdx] = scores[seq34Mer[-30:]]
-
-    return guideData
-
-def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None):
-    """ for each pam in startDict, retrieve the guide sequence next to it and score it
+    for each pam in startDict, retrieve the guide sequence next to it and score it
     sortBy can be "effScore" or "mhScore" or "oofScore"
     """
     allEnzymes = readEnzymes()
@@ -1145,57 +1001,52 @@ def scoreGuides(seq, extSeq, startDict, pamPat, otMatches, inputPos, sortBy=None
             posList, otDesc, guideScore, last12Desc, ontargetDesc, subOptMatchCount =\
                 makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
 
-            # get 30mer and calc Doench
-            gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
-            seq34Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 10, extSeq)
-            if seq34Mer==None:
-                effScore = "Too close to end"
-            else:
-                effScore = int(round(100*calcDoenchScore(seq34Mer[:30])))
+            #gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
+            #seq34Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 10, extSeq)
+            #if seq34Mer==None:
+                #effScore = "Too close to end"
+            #else:
+                #effScore = int(round(100*calcDoenchScore(seq34Mer[:30])))
 
             # get 60mer and calc oof-score
-            seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
-            if seq60Mer == None:
-                mhScore, oofScore = "Too close to end", ""
-            else:
-                assert(len(seq60Mer)==60)
-                mhScore, oofScore = calcMicroHomolScore(seq60Mer, 30)
-                oofScore = str(oofScore)+" %"
+            #seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
+            #if seq60Mer == None:
+                #mhScore, oofScore = "Too close to end", ""
+            #else:
+                #assert(len(seq60Mer)==60)
+                #mhScore, oofScore = calcMicroHomolScore(seq60Mer, 30)
+                #oofScore = str(oofScore)+" %"
 
         # no off-targets found?
         else:
             posList, otDesc, guideScore = None, "Not found", None
             last12Desc = ""
-            effScore = 0
+            #effScore = 0
             hasNotFound = True
             mutEnzymes = []
             ontargetDesc = ""
-            mhScore, oofScore = 0, 0
+            #mhScore, oofScore = 0, 0
             subOptMatchCount = False
             seq34Mer = None
 
-        # replace sscScore with None, will be added below
-        guideData.append( [guideScore, effScore, mhScore, oofScore, None, startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount, seq34Mer] )
+        #gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
+        #seq100Mer = getExtSeq(seq, gStart, gEnd, strand, 30, 50, extSeq)
+
+        guideData.append( [guideScore, effScores.get(pamId, {}), startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount] )
         guideScores[pamId] = guideScore
 
-    if USESSC:
-        guideData = addSscScores(guideData, seqFieldIdx=-1, scoreFieldIdx=4)
-    else:
+    #if USESSC:
+        #guideData = addSscScores(guideData, seqFieldIdx=-1, scoreFieldIdx=4)
+    #else:
         # just remove the last field (=34mer)
-        guideData = [x[:-1] for x in guideData]
+        #guideData = [x[:-1] for x in guideData]
 
-    if sortBy == "effScore":
-        sortCol = 1
-    elif sortBy == "mhScore":
-        sortCol = 2
-    elif sortBy == "oofScore":
-        sortCol = 3
-    elif sortBy == "sscScore":
-        sortCol = 4
+    if sortBy is not None and sortBy!="spec":
+        sortFunc = (lambda row: row[1][sortBy])
     else:
-        sortCol = 0
+        sortFunc = operator.itemgetter(0)
 
-    guideData.sort(reverse=True, key=operator.itemgetter(sortCol))
+    guideData.sort(reverse=True, key=sortFunc)
 
     #guideData.sort(reverse=True, key=lambda row: 3*row[0]+row[1])
     return guideData, guideScores, hasNotFound
@@ -1295,25 +1146,20 @@ def printTableHead(batchId, chrom, org):
     print '<th style="width:170px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9.")
 
-    print '<th style="width:70px; border-bottom:none"><a href="crispor.cgi?batchId=%s">Specificity Score</a>' % batchId
-    htmlHelp("The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
+    print '<th style="width:70px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
+    htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.&lt;br&gt;The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;See Hsu et al. Nat Biotech 2013")
     print "</th>"
 
-    print '<th style="width:90px; border-bottom:none" colspan="3">Predicted Efficacy'
-    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;Two efficacy scores are given, Doench et al and the SSC score, from Xu et al.<br>The Doench score ranges from 0-100. &lt;br&gt;The SSC score usually is in the range -2 to +2. 50-60% of inefficient guides have negative scores, see Xu et al.<br>The last sub-column, prox. GC, indicates if the 6bp next to the PAM contain at least 4 Gs or Cs.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
-    #print '<table><tr>'
-    #print '<th>Doench</th>'
-    #print '<th>SSC</th>'
-    #print '<th>Prox. GC</th>'
-    #print '</tr></table>'
+    print '<th style="width:250px; border-bottom:none" colspan="%d">Predicted Efficacy' % (len(scoreNames)+1)
+    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;<br>The Chari, Doench, CrisprScan and Out-of-Frame scores range from 0-100. &lt;br&gt;The SSC score usually is in the range -2 to +2. 50-60% of inefficient guides have negative scores, see Xu et al.&lt;br&gt;Use the CrisprScan score for Zebrafish injections.<br>The last sub-column, prox. GC, indicates if the 6bp next to the PAM contain at least 4 Gs or Cs.<br>Guides like this lead to a heritable mutation rate of 60% in Drosophila (Ren et al., Cell Reports 2014)")
 
     #print '<th style="width:50">Prox. GC'
     #htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
     print '</th>'
 
-    print '<th style="width:50px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame Score</a>' % batchId
-    htmlHelp("The Out-of-Frame Score predicts the percentage of clones that will carry out-of-frame deletions. For details see Bae et al, Nat Met 2014.")
-    print '</th>'
+    #print '<th style="width:50px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame Score</a>' % batchId
+    #htmlHelp("The Out-of-Frame Score predicts the percentage of clones that will carry out-of-frame deletions. For details see Bae et al, Nat Met 2014.")
+    #print '</th>'
 
     print '<th style="width:120px; border-bottom:none">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
     htmlHelp("For each number of mismatches, the number of off-targets is indicated.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 3 mismatches, etc.<br>Off-targets are considered if they are flanked by one of the motifs NGG, NAG or NGA.<br>Shown in grey are the off-targets that have no mismatches in the 12 bp <br>adjacent to the PAM. These are the most likely off-targets.")
@@ -1347,14 +1193,15 @@ def printTableHead(batchId, chrom, org):
     print "</th>"
     print "</tr>"
 
-    print '<tr style="border-top:none; background-color:#F0F0F0">'
+    print '<tr style="border-top:none; border-left: solid black 5px; background-color:#F0F0F0">'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
-    print '<th style="border-top:none; border-right: none" class="rotate"><div><span><a title="Doench et al score. Ranges from 0-100, higher values are better" href="crispor.cgi?batchId=%s&sortBy=effScore">Doench</a></span></div></th>' % batchId
-    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a title="Xu et al. score. Ranges mostly -2 to +2. Should be positive." href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
-    print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none">Prox GC</span></div></th>'
-    print '<th style="border-top:none"></th>'
+    for scoreName in scoreNames:
+        scoreLabel, scoreDesc = scoreDescs[scoreName]
+        print '<th style="border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" href="crispor.cgi?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+    #print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a title="Xu et al. score. Ranges mostly -2 to +2. Should be positive." href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
+    print '<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="Ren et al 2014 obtained the highest cleavage when the final 6bp contained &gt;= 4 GCs"href="crispor.cgi?batchId=%s&sortBy=finalGc6">Prox GC</span></div></th>' % (batchId)
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print "</tr>"
@@ -1418,16 +1265,24 @@ def findOtCutoff(otData):
 
     return otData, 1000
 
+def printNoEffScoreFoundWarn(effScoresCount):
+    if effScoresCount==0:
+        print('<div style="text-align:left"><strong>Note:</strong> No guide could be scored for efficacy.')
+        print("This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence.</div><br>")
+
+
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
 
     showPamWarning(pam)
+    showNoGenomeWarning(dbInfo)
     printTableHead(batchId, chrom, org)
 
     count = 0
+    effScoresCount = 0
     for guideRow in guideData:
-        guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, guideSeq, \
+        guideScore, effScores, startPos, strand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         color = scoreToColor(guideScore)
@@ -1451,7 +1306,6 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print "<tt>"+guideSeq + " <i>" + pamSeq+"</i></tt>"
         print "<br>"
 
-
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
             print '<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
@@ -1463,7 +1317,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print ' High GC content<br>'
 
         if gcContent(guideSeq)<0.25:
-            text = "This sequence has a GC content lower than 25%.<br>In the data of Wang/Sabatini/Lander Science 2014, guides with a very low GC content had low cleavage efficiency."
+            text = "This sequence has a GC content lower than 25%.<br>In the data of Wang/Sabatini/Lander Science 2014, guides with a very low GC content had low cleavage efficacy."
             print "<br>"
             htmlWarn(text)
             print ' Low GC content<br>'
@@ -1483,17 +1337,21 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "%d" % guideScore
         print "</td>"
 
-        # efficacy scores
-        if effScore==None:
-            print '<td colspan="2">Too close to end</td>'
-            htmlHelp("The efficacy scores are calculated from a 30-mer.<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
+        # eff scores
+        if effScores==None:
+            print '<td colspan="%d">Too close to end</td>' % len(scoreNames)
+            htmlHelp("The efficacy scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
         else:
-            # Doench score
-            print '''<td>%s</td>''' % (str(effScore))
-            # Xu score
-            if sscScore is None:
-                sscScore = 0.0
-            print '''<td>%0.1f</td>''' % (sscScore)
+            for scoreName in scoreNames:
+                score = effScores.get(scoreName, None)
+                if score!=None:
+                    effScoresCount += 1
+                if score==None:
+                    print '''<td>--</td>'''
+                elif scoreDigits.get(scoreName, 0)==0:
+                    print '''<td>%d</td>''' % int(score)
+                else:
+                    print '''<td>%0.2f</td>''' % (float(score))
             #print "<!-- %s -->" % seq30Mer
         # close GC > 4
         print "<td>"
@@ -1508,13 +1366,6 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "<small>GG</small>"
             htmlHelp("Farboud/Meyer 2015 (Genetics 199(4)) obtained the highest cleavage in <i>C. elegans</i> with guides that end with <tt>GG</tt>. ")
         print "</td>"
-
-        # microhomolgy score and out of frame score
-        print "<td>"
-        #print mhScore
-        #print '<br><span style="color:grey">'
-        print oofScore
-        print "</span></td>"
 
         # mismatch description
         print "<td>"
@@ -1571,6 +1422,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
 
     print "</table>"
     printDownloadTableLinks(batchId)
+
+    printNoEffScoreFoundWarn(effScoresCount)
 
 def linkLocalFiles(listFname):
     """ write a <link> statement for each filename in listFname. Version them via mtime
@@ -1652,21 +1505,31 @@ def printHeader(batchId):
     print("""<style>
        th.rotate {
          /* Something you can count on */
-         height: 10;
+         /* height: 10px; */
          white-space: nowrap;
        }
        
        th.rotate > div {
+         float:left;
+         white-space: nowrap;
+         position: relative;
+         border-style: none;
+         -webkit-transform: rotate(-90deg);
+         -moz-transform: rotate(270deg);
+         -ms-transform: rotate(270deg);
+         -o-transform: rotate(270deg);
+
          transform: 
            /* Magic Numbers */
            /* translate(25px, 51px) */
            /* 45 is really 360 - 45 */
            rotate(270deg);
-         width: 30;
+         width: 25px;
        }
        th.rotate > div > span {
-         border-bottom: 1px solid #ccc;
-         padding: 5px 5px;
+         /* border-bottom: 1px solid #ccc; */
+         padding: 0px 3px;
+         white-space: nowrap;
        }
     </style>""")
 
@@ -1749,8 +1612,8 @@ def writePamFlank(seq, startDict, pam, faFname, gapped=False):
 
 def runCmd(cmd):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
-    cmd = cmd.replace("BIN", binDir)
-    cmd = cmd.replace("SCRIPT", scriptDir)
+    cmd = cmd.replace("$BIN", binDir)
+    cmd = cmd.replace("$SCRIPT", scriptDir)
     cmd = "set -o pipefail; " + cmd
     debug("Running %s" % cmd)
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
@@ -1847,7 +1710,95 @@ def annotateBedWithPos(inBed, outBed):
         ofh.write("\n")
     ofh.close()
 
-def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
+def calcGuideEffScores(seq, extSeq, pam):
+    """ given a sequence and an extended sequence, get all potential guides
+    with pam, extend them to 100mers and score them with various eff. scores. Return a
+    list of rows [headers, (guideSeq, 100mer, score1, score2, score3,...), ... ]
+    """
+    print seq, extSeq, pam
+    seq = seq.upper()
+    if extSeq:
+        extSeq = extSeq.upper()
+    startDict, endSet = findAllPams(seq, pam)
+    pamInfo = list(flankSeqIter(seq, startDict, len(pam)))
+
+    guideIds = []
+    guides = []
+    longSeqs = []
+    for pamId, startPos, strand, guideSeq, pamSeq in pamInfo:
+        guides.append(guideSeq+pamSeq)
+        gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
+        longSeq = getExtSeq(seq, gStart, gEnd, strand, 30, 50, extSeq)
+        if longSeq!=None:
+            longSeqs.append(longSeq)
+            guideIds.append(pamId)
+
+    if len(longSeqs)>0:
+        effScores = crisporEffScores.calcAllScores(longSeqs)
+    else:
+        effScores = {}
+    scoreNames = effScores.keys()
+
+    # reformat to rows, write all scores to file
+    rows = []
+    for i, (guideId, guide, longSeq) in enumerate(zip(guideIds, guides, longSeqs)):
+        row = [guideId, guide, longSeq]
+        for scoreName in scoreNames:
+            row.append(effScores[scoreName][i])
+        rows.append(row)
+
+    headerRow = ["guideId", "guide", "longSeq"]
+    headerRow.extend(scoreNames)
+    rows.insert(0, headerRow)
+    return rows
+
+def writeRow(ofh, row):
+    " write list to file as tab-sep row "
+    row = [str(x) for x in row]
+    ofh.write("\t".join(row))
+    ofh.write("\n")
+
+def createBatchEffScoreTable(batchId):
+    """ annotate all potential guides with efficacy scores and write to file.
+    tab-sep file for easier debugging, no pickling
+    """
+    outFname = join(batchDir, batchId+".effScores.tab")
+    seq, org, pam, position, extSeq = readBatchParams(batchId)
+    seq = seq.upper()
+    if extSeq:
+        extSeq = extSeq.upper()
+
+    guideRows = calcGuideEffScores(seq, extSeq, pam)
+    guideFh = open(outFname, "w")
+    for row in guideRows:
+        writeRow(guideFh, row)
+    guideFh.close()
+    logging.info("Wrote eff scores to %s" % guideFh.name)
+
+def readEffScores(batchId):
+    " parse eff scores from tab sep file and return as dict pamId -> dict of scoreName -> value "
+    effScoreFname = join(batchDir, batchId)+".effScores.tab"
+    # old batches during transition time don't have this file yet, so make one now
+    if not isfile(effScoreFname):
+        createBatchEffScoreTable(batchId)
+
+    seqToScores = {}
+    for row in lineFileNext(open(effScoreFname)):
+        scoreDict = {}
+        rowDict = row._asdict()
+        # the first three fields are the pamId, shortSeq, longSeq, they are not scores
+        allScoreNames = row._fields[3:]
+        for scoreName in allScoreNames:
+            score = rowDict[scoreName]
+            if "." in score:
+                score = float(score)
+            else:
+                score = int(score)
+            scoreDict[scoreName] = score
+        seqToScores[row.guideId] = scoreDict
+    return seqToScores
+
+def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     """ search fasta file against genome, filter for pam matches and write to bedFName 
     optionally write status updates to work queue.
     """
@@ -1858,6 +1809,15 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     if len(parseFasta(open(faFnames[0])))==1:
         global MAXOCC
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
+
+    queue.startStep(batchId, "effScores", "Calculating guide efficacy scores")
+    createBatchEffScoreTable(batchId)
+
+    if genome=="noGenome":
+        # skip off-target search
+        open(bedFname, "w") # create a 0-byte file to signal job completion
+        queue.startStep(batchId, "done", "Job completed")
+        return
 
     saFname = batchBase+".sa"
 
@@ -1880,14 +1840,14 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
             seqLen = 19
 
         bwaM = MFAC*MAXOCC # -m is queue size in bwa
-        cmd = "BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
+        cmd = "$BIN/bwa aln -o 0 -m %(bwaM)s -n %(maxDiff)d -k %(maxDiff)d -N -l %(seqLen)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(saFname)s" % locals()
         runCmd(cmd)
 
         queue.startStep(batchId, "saiToBed", convertMsg)
         maxOcc = MAXOCC # create local var from global
         # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
         # the sorting should improve the twoBitToFa runtime
-        cmd = "BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | SCRIPT/xa2multi.pl | SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+        cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
         runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -1898,7 +1858,7 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
     faFnameStr = ",".join(faFnames)
-    cmd = "BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
     segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
@@ -1906,7 +1866,7 @@ def runBwa(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -1970,11 +1930,17 @@ def printOrgDropDown(lastorg):
     " print the organism drop down box "
     genomes = readGenomes()
     print '<select id="genomeDropDown" class style="float:left; max-width:350px" name="org" tabindex="2">'
+    print '<option '
+    if lastorg == "noGenome":
+        print 'selected '
+    print 'value="noGenome">No Genome, no off-target ranking, show only cleavage efficacy scores</option>'
+
     for db, desc in genomes:
         print '<option '
         if db == lastorg :
             print 'selected '
         print 'value="%s">%s</option>' % (db, desc)
+
     print "</select>"
     #print ('''
       #<script type="text/javascript">
@@ -2168,12 +2134,15 @@ def findAllPams(seq, pam):
     startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
     return startDict, endSet
 
-def newBatch(seq, org, pam):
+def newBatch(seq, org, pam, skipAlign=False):
     """ obtain a batch ID and write seq/org/pam to their files. 
     Return batchId, position string and a 100bp-extended seq, if possible.
     """
     batchId = makeTempBase(seq, org, pam)
-    chrom, start, end, strand = findBestMatch(org, seq)
+    if skipAlign:
+        chrom, start, end, strand = None, None, None, None
+    else:
+        chrom, start, end, strand = findBestMatch(org, seq)
     # define temp file names
     batchBase = join(batchDir, batchId)
     # save input seq, pamSeq, genome, position for primer design later
@@ -2196,6 +2165,8 @@ def readDbInfo(org):
     myDir = dirname(__file__)
     genomesDir = join(myDir, "genomes")
     infoFname = join(genomesDir, org, "genomeInfo.tab")
+    if not isfile(infoFname):
+        return None
     dbInfo = lineFileNext(open(infoFname)).next()
     return dbInfo
 
@@ -2232,7 +2203,7 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
             writePamFlank(seq, startDict, pam, faFnames[1], gapped=True)
 
         if commandLineMode:
-            runBwa(faFnames, org, pam, otBedFname, batchBase, batchId, queue)
+            processSubmission(faFnames, org, pam, otBedFname, batchBase, batchId, queue)
         else:
             q = JobQueue(JOBQUEUEDB)
             ip = os.environ["REMOTE_ADDR"]
@@ -2275,6 +2246,10 @@ def showPamWarning(pam):
         print "Please bear in mind that specificity end efficacy scores were designed using data with S. Pyogenes Cas9 and might not be applicable to this particular Cas9.<br>"
         print '</div>'
 
+def showNoGenomeWarning(dbInfo):
+    if dbInfo==None:
+        print('<div style="text-align:left;"><strong>Note:</strong> As there is no genome that can be used to get flanking sequence for your sequence, efficacy scores close to the start and the end of your sequence cannot be calculated and will be shown as "--".</div>')
+
 def getSeq(db, posStr):
     """
     given a database name and a string with the position as chrom:start-end, return the sequence as
@@ -2295,7 +2270,7 @@ def getSeq(db, posStr):
     return seq
 
 def crisprSearch(params):
-    " do crispr off target search "
+    " do crispr off target search and eff. scoring "
     # retrieve sequence if not provided
     if "pos" in params and not "seq" in params:
         params["seq"] = getSeq(params["org"], params["pos"])
@@ -2341,7 +2316,11 @@ def crisprSearch(params):
         global MAXOCC
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
-    if position=='?':
+    if dbInfo==None:
+        print "<div class='title'>No Genome selected, specificity scoring is deactivated</div>"
+        print('<div style="text-align:left;"><strong>Note:</strong> There are no predicted off-targets below and all specificity scores will be shown in red as their score is 0. <br></div>')
+
+    elif position=='?':
         printQueryNotFoundNote(dbInfo)
     else:
         genomePosStr = ":".join(position.split(":")[:2])
@@ -2355,8 +2334,9 @@ def crisprSearch(params):
         #print " (link to Genome Browser)</div>"
 
     otMatches = parseOfftargets(otBedFname)
+    effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
-    guideData, guideScores, hasNotFound = scoreGuides(uppSeq, extSeq, startDict, pam, otMatches, position, sortBy)
+    guideData, guideScores, hasNotFound = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy)
 
     if hasNotFound and not position=="?":
         print('<div style="text-align:left"><strong>Note:</strong> At least one of the possible guide sequences was not found in the genome. ')
@@ -2416,15 +2396,19 @@ def printTeforBodyEnd():
     runPhp("footer.php")
     print '</div>'
 
-def iterGuideRows(guideData):
+def iterGuideRows(guideData, addHeaders=False):
     "yield rows from guide data "
-    headers = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
-    yield headers
+    headers = ["guideId", "guideSeq", "specScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+    for scoreName in scoreNames:
+        headers.append(scoreName+"EffScore")
+    if addHeaders:
+        yield guideHeaders
+
     #print "\t".join(headers)
 
     pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
     for guideRow in guideData:
-        guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, \
+        guideScore, effScores, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
@@ -2441,19 +2425,22 @@ def iterGuideRows(guideData):
             strDesc = 'rev'
         guideDesc = str(pamPos)+strDesc
 
-        row = [guideDesc, guideSeq+pamSeq, guideScore, effScore, otCount, ontargetDesc]
+        row = [guideDesc, guideSeq+pamSeq, guideScore, otCount, ontargetDesc]
+        for scoreName in scoreNames:
+            row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
         row = [str(x) for x in row]
         yield row
 
-def iterOfftargetRows(guideData):
+def iterOfftargetRows(guideData, addHeaders=False):
     " yield bulk offtarget rows for the tab-sep download file "
-    headers = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
-    if allowGap:
-        headers.append("gapPos")
-    yield headers
+    if addHeaders:
+        headers = list(offtargetHeaders) # clone list
+        if allowGap:
+            headers.append("gapPos")
+        yield headers
 
     for guideRow in guideData:
-        guideScore, effScore, mhScore, oofScore, sscScore, startPos, strand, pamId, \
+        guideScore, effScores, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
@@ -2499,14 +2486,18 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat):
 
 def downloadFile(params):
     " "
-    seq, org, pam, position, extSeq = readBatchParams(params["batchId"])
+    batchId = params["batchId"]
+    seq, org, pam, position, extSeq = readBatchParams(batchId)
     uppSeq = seq.upper()
 
     startDict, endSet = findAllPams(uppSeq, pam)
 
-    otBedFname = join(batchDir, params["batchId"]+".bed")
+    otBedFname = join(batchDir, batchId+".bed")
+    effScoreFname = join(batchDir, batchId+".effScores.tab")
+
     otMatches = parseOfftargets(otBedFname)
-    guideData, guideScores, hasNotFound = scoreGuides(uppSeq, extSeq, startDict, pam, otMatches, position)
+    effScores = readEffScores(batchId)
+    guideData, guideScores, hasNotFound = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores)
 
     if position=="?":
         queryDesc = org+"_unknownLoc"
@@ -2518,12 +2509,12 @@ def downloadFile(params):
     if params["download"]=="guides":
         print "Content-Disposition: attachment; filename=\"guides_%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        xlsWrite(iterGuideRows(guideData), "guides", sys.stdout, [6,28,10,10], fileFormat)
+        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [6,28,10,10], fileFormat)
 
     elif params["download"]=="offtargets":
         print "Content-Disposition: attachment; filename=\"offtargets-%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
-        otRows = list(iterOfftargetRows(guideData))
+        otRows = list(iterOfftargetRows(guideData, addHeaders=True))
         otRows.sort(key=operator.itemgetter(4), reverse=True)
         xlsWrite(otRows, "offtargets", sys.stdout, [6,28,28,5], fileFormat)
 
@@ -2570,6 +2561,24 @@ SEQUENCE_TARGET=%(targetStart)s,%(targetLen)s
         pos2 = int(p3["PRIMER_RIGHT_0"].split(",")[0])
         return seq1, tm1, pos1, seq2, tm2, pos2
 
+def parseFastaAsList(fileObj):
+    " parse a fasta file, return list (id, seq) "
+    seqs = []
+    parts = []
+    seqId = None
+    for line in fileObj:
+        line = line.rstrip("\n")
+        if line.startswith(">"):
+            if seqId!=None:
+                seqs.append( (seqId, "".join(parts)) )
+            seqId = line.lstrip(">")
+            parts = []
+        else:
+            parts.append(line)
+    if len(parts)!=0:
+        seqs.append( (seqId, "".join(parts)) )
+    return seqs
+
 def parseFasta(fileObj):
     " parse a fasta file, where each seq is on a single line, return dict id -> seq "
     seqs = {}
@@ -2599,6 +2608,9 @@ def findBestMatch(genome, seq):
     """ find best match for input sequence from batchId in genome and return as
     a string "chrom:start-end:strand or None if not found "
     """
+    if genome=="noGenome":
+        return None, None, None, None
+
     # write seq to tmp file
     tmpFaFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".fa")
     tmpFaFh.write(">tmp\n%s" % seq)
@@ -2611,7 +2623,7 @@ def findBestMatch(genome, seq):
     samFname = tmpSamFh.name
 
     genomeDir = genomesDir # make local var
-    cmd = "BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    cmd = "$BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
@@ -2735,6 +2747,25 @@ def printPrimerTable(primerList, onRows=False):
             print "<td><tt>%s</tt></td>" % seq
             print "</tr>"
     print "</table>"
+
+def printDropboxLink():
+    print """
+    <a id="dropbox-link"></a>
+    <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="lp7njij87kjrcxv"></script>");
+    <script type="text/javascript">
+    options = {
+        success: function(files) {
+           $('textarea[name=hgct_customText]').val(files[0].link);
+           alert('Here is the file link: ' + files[0].link);
+        },
+        cancel: function() {},
+        linkType: 'direct',
+        multiselect: true,
+    };
+    var button = Dropbox.createChooseButton(options);
+    document.getElementById('dropbox-link').appendChild(button);
+    </script>
+    """
 
 def primerDetailsPage(params):
     """ create primers with primer3 around site identified by pamId in batch
@@ -3000,8 +3031,12 @@ def parseArgs():
 Command line interface for the Crispor tool.
 
     org          = genome identifier, like hg19 or ensHumSap
-    fastaInFile  = Fasta file with one sequence
+    fastaInFile  = Fasta file
     guideOutFile = tab-sep file, one row per guide
+
+    If many guides have to scored in batch: Add GGG to them to make them valid
+    guides, separate these sequences by N characters and supply as a single
+    fasta sequence, a few dozen to ~100 per file.
     """)
 
     parser.add_option("-d", "--debug", dest="debug", \
@@ -3018,6 +3053,8 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
     parser.add_option("", "--gap", dest="allowGap", \
         action="store_true", help="allow a gap in the match")
+    parser.add_option("", "--skipAlign", dest="skipAlign", \
+        action="store_true", help="do not align the input sequence. The on-target will be a random match with 0 mismatches.")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
         action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
@@ -3029,8 +3066,6 @@ Command line interface for the Crispor tool.
         action="store_true", help="clear the worker job table and exit")
     parser.add_option("-g", "--genomeDir", dest="genomeDir", \
         action="store", help="directory with genomes, default %default", default=genomesDir)
-    parser.add_option("", "--noSsc", dest="noSsc", \
-        action="store_true", help="do not run the SSC scorer, just use Doench score")
 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
@@ -3054,9 +3089,11 @@ def main():
     
 def delBatchDir():
     " called at program exit, in command line mode "
+    if not isdir(batchDir):
+        return
     logging.debug("Deleting dir %s" % batchDir)
     fnames = glob.glob(join(batchDir, "*"))
-    if len(fnames)>10:
+    if len(fnames)>50:
         raise Exception("cowardly refusing to remove many temp files")
     for fname in fnames:
         os.remove(fname)
@@ -3099,7 +3136,7 @@ def runQueueWorker(userName):
                 uppSeq = seq.upper()
                 startDict, endSet = findAllPams(uppSeq, pam)
                 print "searching for offtargets:  ", seq, org, pam, position
-                otBedFname = getOfftargets(uppSeq, org, pam, batchId, startDict, q)
+                getOfftargets(uppSeq, org, pam, batchId, startDict, q)
             except:
                 exStr = traceback.format_exc()
                 print " - WORKER CRASHED WITH EXCEPTION -"
@@ -3170,10 +3207,6 @@ def mainCommandLine():
     #if options.ajax:
         #sendStatus(options.ajax)
 
-    if options.noSsc:
-        global USESSC
-        USESSC = False
-
     if options.worker:
         runQueueWorker(options.user)
         sys.exit(0)
@@ -3207,22 +3240,37 @@ def mainCommandLine():
         global allowGap
         allowGap = True
 
+    skipAlign = False
+    if options.skipAlign:
+        skipAlign = True
+
     # get sequence
     seqs = parseFasta(open(inSeqFname))
+
+    # make a directory for the temp files
+    # and put it into the global variable, so all functions will use it
+    global batchDir
+    batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
+    logging.debug("Created directory %s" % batchDir)
+    if options.debug:
+        logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+    else:
+        atexit.register(delBatchDir)
+
+    # prepare output files
+    guideFh = open(join(batchDir, "guideInfo.tab"), "w")
+    guideFh.write("\t".join(guideHeaders)+"\n")
+    if options.offtargetFname:
+        offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
+        offtargetFh.write("\t".join(offtargetHeaders)+"\n")
 
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
         logging.info("running on sequence ID '%s'" % seqId)
         # get the other parameters and write to a new batch
+        seq = seq.upper()
         pam = options.pam
-        global batchDir
-        batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
-        if options.debug:
-            logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
-        else:
-            atexit.register(delBatchDir)
-
-        batchId, position, extSeq = newBatch(seq, org, pam)
+        batchId, position, extSeq = newBatch(seq, org, pam, skipAlign)
         logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
         if position=="?":
@@ -3231,30 +3279,41 @@ def mainCommandLine():
         startDict, endSet = findAllPams(seq, pam)
         otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
         otMatches = parseOfftargets(otBedFname)
-        guideData, guideScores, hasNotFound = scoreGuides(seq, extSeq, startDict, pam, otMatches, position)
 
-        ofh = open(outGuideFname, "w")
+        effScores = readEffScores(batchId)
+
+        guideData, guideScores, hasNotFound = mergeGuideInfo(seq, startDict, pam, otMatches, position, effScores)
+
         for row in iterGuideRows(guideData):
-            ofh.write("\t".join(row))
-            ofh.write("\n")
-        logging.info("guide info written to %s" % outGuideFname)
+            guideFh.write("\t".join(row))
+            guideFh.write("\n")
 
         if options.offtargetFname:
-            ofh = open(options.offtargetFname, "w")
             for row in iterOfftargetRows(guideData):
-                ofh.write("\t".join(row))
-                ofh.write("\n")
-            logging.info("off-target info written to %s" % options.offtargetFname)
+                offtargetFh.write("\t".join(row))
+                offtargetFh.write("\n")
 
-        if not options.debug:
-            os.removedirs(batchDir)
+    guideFh.close()
+    shutil.move(guideFh.name, outGuideFname)
+    logging.info("guide info written to %s" % outGuideFname)
+
+    if options.offtargetFname:
+        offtargetFh.close()
+        shutil.move(offtargetFh.name, options.offtargetFname)
+        logging.info("off-target info written to %s" % options.offtargetFname)
+
+    if not options.debug:
+       shutil.rmtree(batchDir)
 
 def sendStatus(batchId):
     " send batch status as json "
     print "Content-type: application/json\n"
     q = JobQueue(JOBQUEUEDB)
     status = q.getStatus(batchId)
-    d = {"status":status}
+    if "Traceback" in status:
+        d = {"status" : "An error occured. Please send an email to services@tefor.net and tell us that the failing batchId was %s. We can usually fix this quickly. Thanks!" % batchId}
+    else:
+        d = {"status":status}
     print json.dumps(d)
 
 def mainCgi():
