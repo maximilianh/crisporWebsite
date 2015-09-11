@@ -428,10 +428,6 @@ class ScoreCache:
     """
 
     def __init__(self, scoreName):
-        if cacheDir is None:
-            self.cacheFname = None
-            return
-
         self.cacheFname = join(cacheDir, "%s.tab" % scoreName)
         scoreCache = readDict(self.cacheFname, isFloat=True)
         self.scoreCache = scoreCache
@@ -441,8 +437,6 @@ class ScoreCache:
         Otherwise return None for the scores.
         Returns tuple (seqs, scores)
         """
-        if self.cacheFname is None:
-            return (seqs, None)
         self.allSeqs = seqs
         newSeqs = set()
         for s in seqs:
@@ -457,9 +451,6 @@ class ScoreCache:
 
     def mergeIntoCache(self, newScores):
         # create final result merging cache and newly obtained scores
-        if self.cacheFname==None:
-            return newScores
-            
         scoreList = []
         assert(len(newScores)==len(self.newSeqs))
         newScoreDict = dict(zip(self.newSeqs, newScores))
@@ -601,14 +592,15 @@ def calcWangSvmScoresUsingR(seqs):
 
 def cacheScores(scoreName, scoreFunc, seqs):
     " run scoreFunc on seqs, using an on-disk score cache to improve speed "
+    if cacheDir is None:
+        return scoreFunc(seqs)
+    
     logging.info("Getting %d scores of type %s" % (len(seqs), scoreName))
     effCache = ScoreCache(scoreName)
     newSeqs, allScoresFound = effCache.findNewSeqs(seqs)
     if allScoresFound is not None:
-        logging.info("All seqs found in cache")
         return allScoresFound
     else:
-        logging.info("need to get some new")
         newScores = scoreFunc(newSeqs)
     allScores = effCache.mergeIntoCache(newScores)
     assert(len(allScores)==len(seqs))
