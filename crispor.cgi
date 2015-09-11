@@ -1197,11 +1197,21 @@ def printTableHead(batchId, chrom, org):
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
+
     for scoreName in scoreNames:
+        if scoreNames=="oof":
+            continue
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print '<th style="border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" href="crispor.cgi?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
-    #print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a title="Xu et al. score. Ranges mostly -2 to +2. Should be positive." href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
+
+    # the ProxGC score comes next
     print '<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="Ren et al 2014 obtained the highest cleavage when the final 6bp contained &gt;= 4 GCs"href="crispor.cgi?batchId=%s&sortBy=finalGc6">Prox GC</span></div></th>' % (batchId)
+
+    # now the off score
+    scoreName = "oof"
+    scoreLabel, scoreDesc = scoreDescs[scoreName]
+    print '<th style="border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" href="crispor.cgi?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print "</tr>"
