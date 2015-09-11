@@ -1,5 +1,7 @@
 this directory contains the original source code 
 of external dependencies, except the ones from UCSC that can be downloaded
-from hgdownload.soe.ucsc.edu
+from http://hgdownload.soe.ucsc.edu
 
 This is provided in case something has to be recompiled from source in the future.
+
+To recompile SVM-light and libsvm and move their binaries to the right dir, run "make"
