@@ -116,7 +116,7 @@ offtargetPams = {"NGG" : "NAG,NGA", "NGA" : "NGG" }
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
 
-# names/order of efficiency scores to show in UI
+# names/order of efficacy scores to show in UI
 scoreNames = ["chariRank", "ssc", "doench", "wang", "crisprScan", "oof"]
 # how many digits shall we show for each score? default is 0
 scoreDigits = {
@@ -739,47 +739,6 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
 # --- START OF SCORING ROUTINES 
 
-def calcSscScores(seqs):
-    """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
-    Pipes the sequences to the binary to get the scores.
-    Warning: if a lot of data is piped, this implementation might block. split
-    the data, increase the python buffer or rewrite the communication to a line-based
-    protocol to allow bigger datasets.
-    >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
-    {'AGCAGGATAGTCCTTCCGAGTGGAGGGAGG': 0.182006}
-    """
-    if len(seqs)==0:
-        return dict()
-
-    strList = []
-    for s in seqs:
-        assert(len(s)==30)
-        strList.append("%s 0 0 + dummy" % s)
-    sscIn = "\n".join(strList)
-
-    # example data:
-    # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix 
-    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19
-    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  0 0 -   t
-    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19  0.182006
-    sscPath = join(binDir, "SSC")
-    matPath = join(baseDir, "bin", "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
-    cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
-    logging.debug("running cmd %s, stdin %s" % (cmd, sscIn))
-    stdout, stderr = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(sscIn)
-    scores = {}
-    i = 0
-    for lineIdx, line in enumerate(stdout.split("\n")):
-        if "Processing failed" in line:
-            return dict()
-        fs = line.split()
-        seq, score = fs[0], float(fs[-1])
-        scores[seq] = score
-        lineIdx += 1
-        if lineIdx==len(seqs):
-            break
-    return scores
-
 # MIT offtarget scoring
 
 # aka Matrix "M"
@@ -1014,7 +973,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
 
 def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None):
     """ 
-    merges guide information from the sequence, the efficiency scores and the off-targets.
+    merges guide information from the sequence, the efficacy scores and the off-targets.
     creates rows with fields:
 
 
@@ -1188,11 +1147,11 @@ def printTableHead(batchId, chrom, org):
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9.")
 
     print '<th style="width:70px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
-    htmlHelp("The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;The higher the specificity score, the less likely is cutting somewhere else in the genome. See Hsu et al.")
+    htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.&lt;br&gt;The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. &lt;br&gt;See Hsu et al. Nat Biotech 2013")
     print "</th>"
 
     print '<th style="width:250px; border-bottom:none" colspan="%d">Predicted Efficacy' % (len(scoreNames)+1)
-    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;<br>The Chari, Doench, CrisprScan and Out-of-Frame scores range from 0-100. &lt;br&gt;The SSC score usually is in the range -2 to +2. 50-60% of inefficient guides have negative scores, see Xu et al.<br>The last sub-column, prox. GC, indicates if the 6bp next to the PAM contain at least 4 Gs or Cs.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
+    htmlHelp("The higher the efficacy score, the more likely is cleavage at this position. &lt;br&gt;<br>The Chari, Doench, CrisprScan and Out-of-Frame scores range from 0-100. &lt;br&gt;The SSC score usually is in the range -2 to +2. 50-60% of inefficient guides have negative scores, see Xu et al.&lt;br&gt;Use the CrisprScan score for Zebrafish injections.<br>The last sub-column, prox. GC, indicates if the 6bp next to the PAM contain at least 4 Gs or Cs.<br>Guides like this lead to a heritable mutation rate of 60% in Drosophila (Ren et al., Cell Reports 2014)")
 
     #print '<th style="width:50">Prox. GC'
     #htmlHelp("At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.")
@@ -1242,7 +1201,7 @@ def printTableHead(batchId, chrom, org):
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print '<th style="border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" href="crispor.cgi?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
     #print '<th style="border-top:none; border-right: none; border-left:none" class="rotate"><div><span><a title="Xu et al. score. Ranges mostly -2 to +2. Should be positive." href="crispor.cgi?batchId=%s&sortBy=sscScore">SSC</a></span></div></th>' % batchId
-    print '<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="Ren et al 2014 obtained the highest efficiency when the final 6bp contained &gt;= 4 GCs"href="crispor.cgi?batchId=%s&sortBy=finalGc6">Prox GC</span></div></th>' % (batchId)
+    print '<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="Ren et al 2014 obtained the highest cleavage when the final 6bp contained &gt;= 4 GCs"href="crispor.cgi?batchId=%s&sortBy=finalGc6">Prox GC</span></div></th>' % (batchId)
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print "</tr>"
@@ -1306,14 +1265,22 @@ def findOtCutoff(otData):
 
     return otData, 1000
 
+def printNoEffScoreFoundWarn(effScoresCount):
+    if effScoresCount==0:
+        print('<div style="text-align:left"><strong>Note:</strong> No guide could be scored for efficacy.')
+        print("This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence.</div><br>")
+
+
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
 
     showPamWarning(pam)
+    showNoGenomeWarning(dbInfo)
     printTableHead(batchId, chrom, org)
 
     count = 0
+    effScoresCount = 0
     for guideRow in guideData:
         guideScore, effScores, startPos, strand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
@@ -1339,7 +1306,6 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print "<tt>"+guideSeq + " <i>" + pamSeq+"</i></tt>"
         print "<br>"
 
-
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
             print '<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam)
@@ -1351,7 +1317,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print ' High GC content<br>'
 
         if gcContent(guideSeq)<0.25:
-            text = "This sequence has a GC content lower than 25%.<br>In the data of Wang/Sabatini/Lander Science 2014, guides with a very low GC content had low cleavage efficiency."
+            text = "This sequence has a GC content lower than 25%.<br>In the data of Wang/Sabatini/Lander Science 2014, guides with a very low GC content had low cleavage efficacy."
             print "<br>"
             htmlWarn(text)
             print ' Low GC content<br>'
@@ -1377,9 +1343,11 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             htmlHelp("The efficacy scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
         else:
             for scoreName in scoreNames:
-                score = effScores.get(scoreName, "Na")
-                if score=="Na":
-                    print '''<td>Na</td>'''
+                score = effScores.get(scoreName, None)
+                if score!=None:
+                    effScoresCount += 1
+                if score==None:
+                    print '''<td>--</td>'''
                 elif scoreDigits.get(scoreName, 0)==0:
                     print '''<td>%d</td>''' % int(score)
                 else:
@@ -1398,11 +1366,6 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
             print "<small>GG</small>"
             htmlHelp("Farboud/Meyer 2015 (Genetics 199(4)) obtained the highest cleavage in <i>C. elegans</i> with guides that end with <tt>GG</tt>. ")
         print "</td>"
-
-        # Bae et al out of frame score
-        #print "<td>"
-        #print effScores["oof"]
-        #print "</span></td>"
 
         # mismatch description
         print "<td>"
@@ -1459,6 +1422,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
 
     print "</table>"
     printDownloadTableLinks(batchId)
+
+    printNoEffScoreFoundWarn(effScoresCount)
 
 def linkLocalFiles(listFname):
     """ write a <link> statement for each filename in listFname. Version them via mtime
@@ -1774,7 +1739,7 @@ def calcGuideEffScores(seq, extSeq, pam):
         effScores = {}
     scoreNames = effScores.keys()
 
-    # reformat to rows
+    # reformat to rows, write all scores to file
     rows = []
     for i, (guideId, guide, longSeq) in enumerate(zip(guideIds, guides, longSeqs)):
         row = [guideId, guide, longSeq]
@@ -1794,7 +1759,7 @@ def writeRow(ofh, row):
     ofh.write("\n")
 
 def createBatchEffScoreTable(batchId):
-    """ annotate all potential guides with efficiency scores and write to file.
+    """ annotate all potential guides with efficacy scores and write to file.
     tab-sep file for easier debugging, no pickling
     """
     outFname = join(batchDir, batchId+".effScores.tab")
@@ -1845,7 +1810,7 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
         global MAXOCC
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
-    queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
+    queue.startStep(batchId, "effScores", "Calculating guide efficacy scores")
     createBatchEffScoreTable(batchId)
 
     if genome=="noGenome":
@@ -1968,7 +1933,7 @@ def printOrgDropDown(lastorg):
     print '<option '
     if lastorg == "noGenome":
         print 'selected '
-    print 'value="noGenome">No Genome, no specificity scoring,  show only efficiency scores</option>'
+    print 'value="noGenome">No Genome, no off-target ranking, show only cleavage efficacy scores</option>'
 
     for db, desc in genomes:
         print '<option '
@@ -2281,6 +2246,10 @@ def showPamWarning(pam):
         print "Please bear in mind that specificity end efficacy scores were designed using data with S. Pyogenes Cas9 and might not be applicable to this particular Cas9.<br>"
         print '</div>'
 
+def showNoGenomeWarning(dbInfo):
+    if dbInfo==None:
+        print('<div style="text-align:left;"><strong>Note:</strong> As there is no genome that can be used to get flanking sequence for your sequence, efficacy scores close to the start and the end of your sequence cannot be calculated and will be shown as "--".</div>')
+
 def getSeq(db, posStr):
     """
     given a database name and a string with the position as chrom:start-end, return the sequence as
@@ -2348,7 +2317,9 @@ def crisprSearch(params):
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
     if dbInfo==None:
-        print "No Genome selected, specificity scoring is deactivated"
+        print "<div class='title'>No Genome selected, specificity scoring is deactivated</div>"
+        print('<div style="text-align:left;"><strong>Note:</strong> There are no predicted off-targets below and all specificity scores will be shown in red as their score is 0. <br></div>')
+
     elif position=='?':
         printQueryNotFoundNote(dbInfo)
     else:
