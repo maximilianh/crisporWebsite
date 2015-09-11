@@ -715,6 +715,10 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     """
     scores = {}
 
+    for s in seqs:
+        if len(s)!=100:
+            raise Exception("sequence %s is %d bp and not 100 bp long" % (s, len(s)))
+
     guideSeqs = trimSeqs(seqs, -20, 0)
 
     scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
@@ -780,7 +784,18 @@ def parseArgs():
         parser.print_help()
         exit(1)
     return args, options
-    
+
+def readSeqs(inFname):
+    seqs = [line.strip() for line in open(inFname, 'U')]
+    seqs = [s for s in seqs if len(s)!=0]
+    filtSeqs = []
+    for s in seqs:
+        if len(s) != 100:
+            logging.error("sequence %s is not 100bp long but %d bp long, skipping" % (s, len(s)))
+            continue
+        filtSeqs.append(s)
+    return filtSeqs
+
 # ----------- MAIN --------------
 if __name__=="__main__":
     args, options = parseArgs()
@@ -791,5 +806,8 @@ if __name__=="__main__":
     #setBinDir("../crispor/bin")
     setBinDir("./bin")
     inFname = sys.argv[1]
-    seqs = open(inFname).read().splitlines()
-    printScoreTabSep(seqs, options.all)
+    seqs = readSeqs(inFname)
+    if len(seqs)==0:
+        logging.error("No sequences in input left")
+    else:
+        printScoreTabSep(seqs, options.all)
