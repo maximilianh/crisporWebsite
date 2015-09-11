@@ -2248,7 +2248,7 @@ def showPamWarning(pam):
 
 def showNoGenomeWarning(dbInfo):
     if dbInfo==None:
-        print('<div style="text-align:left;"><strong>Note:</strong> As there is no genome that can be used to get flanking sequence for your sequence, efficacy scores close to the start and the end of your sequence cannot be calculated and will be shown as "--".</div>')
+        print('<div style="text-align:left;"><strong>Note:</strong> As there is no genome that can be used to get flanking sequence for your sequence, efficacy scores 50bp from the start or the end of your sequence cannot be calculated and will be shown as "--".</div>')
 
 def getSeq(db, posStr):
     """
