@@ -2186,9 +2186,6 @@ function clearInput() {
 
 </form>
     """ % DEFAULTSEQ
-    print '<div style="display:block"><small>Version 2.5,' 
-    print """Feedback: <a href='mailto:services@tefor.net'>services@tefor.net</a>, <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">Forum</a></small></div>"""
-
 
 def readBatchParams(batchId):
     """ given a batchId, return the genome, the pam, the input sequence and the
@@ -2482,7 +2479,10 @@ def printTeforBodyStart():
 
 def printTeforBodyEnd():
     print '</div>'
-    print "<div style='text-align:right'>Feedback? Bug reports? Email <a href='mailto:services@tefor.net'>services@tefor.net</a></div>"
+    #print "<div style='text-align:right'>Feedback? Bug reports? Email <a href='mailto:services@tefor.net'>services@tefor.net</a></div>"
+    print '<div style="display:block; text-align:center">Version 3,'
+    print """Feedback: <a href='mailto:services@tefor.net'>services@tefor.net</a> or <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">Forum</a></div>"""
+
     print '</div>'
     print '</div>'
     print '</div>'
