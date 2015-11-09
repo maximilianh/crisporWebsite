@@ -1559,6 +1559,7 @@ def printHeader(batchId):
             contentAsHTML: true,
             maxWidth:400,
             arrow: false,
+            interactive: true,
             speed : 0
         }); });
     $(document).ready(function() {
@@ -1567,6 +1568,7 @@ def printHeader(batchId):
             contentAsHTML: true,
             maxWidth:400,
             interactive: true,
+            onlyOne: true,
             arrow: false,
             speed : 0
         }); });
@@ -2480,6 +2482,7 @@ def printTeforBodyStart():
 
 def printTeforBodyEnd():
     print '</div>'
+    print "<div style='text-align:right'>Feedback? Bug reports? Email <a href='mailto:services@tefor.net'>services@tefor.net</a></div>"
     print '</div>'
     print '</div>'
     print '</div>'
