@@ -10,8 +10,8 @@ and open the template in the editor.
 #bd
 {   
     width:100%;
-    margin-left:auto;
-    margin-right:auto;
+    /* margin-left:auto;*/
+    /*margin-right:auto;*/
 }
 
 div.introtext
@@ -60,6 +60,13 @@ img.help
     text-align: right;
     width:20px;
 }
+
+small
+{
+font-size:78%;
+line-height:110%;
+}
+
 div.helptext
 {
     display:none;
@@ -144,7 +151,7 @@ table
 td, th
 {
     border:1px solid black;
-    padding:5px;
+    padding:4px;
     vertical-align:top;
     text-align:left;
     width:auto;    

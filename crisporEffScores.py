@@ -469,12 +469,15 @@ class ScoreCache:
 
 def sendFusiRequest(seqs):
     """ obtain the fusi score as calculated by Fusi et al's webservice
-    >>> sendFusiRequest([ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC"])
-    [0.599829103280437, 0.599829103280437]
+    Needs a file fusiKey.txt in current directory or a file ~/.fusiKey.txt in user's home directory.
+    >>> sendFusiRequest(["GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC"])
+    [60, 60]
     """
     keyFname = expanduser("~/.fusiKey.txt")
     if not isfile(keyFname):
-        raise Exception("No ~/.fusiKey.txt file found. Request an API key from azimuth@microsoft.com, write it into this file (single line) and retry")
+        keyFname = "fusiKey.txt"
+    if not isfile(keyFname):
+        raise Exception("No ./fusiKey.txt and ~/.fusiKey.txt file found. Request an API key from azimuth@microsoft.com, write it into this file (single line) and retry")
 
     api_key = open(keyFname, "r").read().strip()
     paramList = [ (seq, "-1", "-1") for seq in seqs]
@@ -507,7 +510,7 @@ def sendFusiRequest(seqs):
         # response = urllib.request.urlopen(req)
 
         dataList = json.loads(response.read())["Results"]["output2"]["value"]["Values"]
-        scores = [float(x[0]) for x in dataList]
+        scores = [int(round(100*float(x[0]))) for x in dataList]
         return scores
 
     except urllib2.HTTPError, error:
@@ -517,6 +520,7 @@ def sendFusiRequest(seqs):
         print(error.info())
 
         print(json.loads(error.read())) 
+        raise
 
 def trimSeqs(seqs, fiveFlank, threeFlank):
     """ given a list of 100bp sequences, return a list of sequences with the
@@ -687,6 +691,15 @@ def calcMicroHomolScore(seq, left):
         oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
     return int(mhScore), int(oofScore)
 
+def forceWrapper(func, seqs):
+    """
+    run func over seqs. If any exception occurs, return a list of -1s for all seqs.
+    """
+    try:
+        return func(seqs)
+    except:
+        return [-1]*len(seqs)
+
 def calcAllScores(seqs, addOpt=[], doAll=False):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
@@ -703,6 +716,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     guideSeqs = trimSeqs(seqs, -20, 0)
 
     scores["drsc"] = calcHousden(trimSeqs(seqs, -20, 0))
+    scores["housden"] = scores["drsc"] # for backwards compatibility with my old scripts.
 
     scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
     if "wangOrig" in addOpt or doAll:
@@ -726,6 +740,11 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     # fusi score not run by default, requires an apiKey
     if "fusi" in addOpt or doAll:
         scores["fusi"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+
+    # fusiForce is a request to the online API that will not fail
+    # if any exception is thrown, we set the scores to -1
+    if "fusiForce" in addOpt:
+        scores["fusi"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
     return scores
 
