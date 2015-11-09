@@ -1643,9 +1643,6 @@ def printHeader(batchId):
 
     print'<body id="wrapper">'
     
-    #print "<div id='fb-root'></div>"
-    #print('<script src="facebooklike.js"></script>')
-
 def firstFreeLine(lineMasks, y, start, end):
     " recursively search for first free line to place a feature (start, end) "
     #print "called with y", y
@@ -2188,7 +2185,6 @@ function clearInput() {
 </form>
     """ % DEFAULTSEQ
     print '<div style="display:block"><small>Version 2.5,' 
-    #print '''<a href="#footer-credits" onclick="$('.credits').fadeToggle('fast');$('#footer-credits').fadeToggle('fast');">Credits</a>, '''
     print """Feedback: <a href='mailto:services@tefor.net'>services@tefor.net</a>, <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">Forum</a></small></div>"""
 
 
