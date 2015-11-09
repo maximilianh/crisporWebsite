@@ -2096,7 +2096,7 @@ def printForm(params):
         <img src="%simage/info-small.png" style="vertical-align:text-top;">
     </div>
     <div class="about-us"><br>
-    CRISPOR v2.0 uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
+    CRISPOR v3.0 uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
     It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </div>
