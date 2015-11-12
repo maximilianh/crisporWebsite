@@ -712,8 +712,8 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
-    >>> calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"])
-    {'oof': [51], 'wang': [66], 'drsc': [6.3], 'chariRaw': [-0.15504833], 'mh': [4404], 'finalGc6': [1], 'chariRank': [54], 'doench': [10], 'finalGg': [0], 'crisprScan': [39], 'ssc': [-0.035894], 'fusi': [56]}
+    >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
+    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('drsc', [6.3]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66])]
     """
     scores = {}
 
@@ -756,7 +756,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     # fusiForce is a request to the online API that will not fail
     # if any exception is thrown, we set the scores to -1
     if "fusiForce" in addOpt:
-        scores["fusi"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
+        scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
     return scores
 

@@ -135,13 +135,13 @@ scoreDescs = {
     "crisprScan" : ("Moreno-Mateos", "Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>"),
     "wang" : ("Wang", "Range: 0-100. SVM model trained on human cell culture data on guides from &gt;1000 genes. The Xu score can be considered an updated version of this score, as the training data overlaps a lot. Delivery: lentivirus. See <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang et al.</a>"),
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
-    "fusi" : ("Fusi", "Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al.</a>,"),
+    "fusi" : ("Fusi", "Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al.</a>."),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "oof" : ("Out-of-Frame", "Range: 0-100. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al.</a>")
 }
 
 # the headers for the guide and offtarget output files
-guideHeaders = ["guideId", "guideSeq", "specScore", "effScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+guideHeaders = ["guideId", "guideSeq", "specScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
 offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
 # ====== END GLOBALS ============
 
@@ -1838,7 +1838,7 @@ def calcGuideEffScores(seq, extSeq, pam):
             guideIds.append(pamId)
 
     if len(longSeqs)>0:
-        effScores = crisporEffScores.calcAllScores(longSeqs, addOpt=["fusiForce"])
+        effScores = crisporEffScores.calcAllScores(longSeqs)
     else:
         effScores = {}
     scoreNames = effScores.keys()
@@ -2490,11 +2490,11 @@ def printTeforBodyEnd():
 
 def iterGuideRows(guideData, addHeaders=False):
     "yield rows from guide data "
-    headers = ["guideId", "guideSeq", "specScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+    headers = list(tuple(guideHeaders)) # make a copy of the list
     for scoreName in scoreNames:
-        headers.append(scoreName+"EffScore")
+        headers.append(scoreDescs[scoreName][0]+"EffScore")
     if addHeaders:
-        yield guideHeaders
+        yield headers
 
     #print "\t".join(headers)
 
