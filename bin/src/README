@@ -5,3 +5,6 @@ from http://hgdownload.soe.ucsc.edu
 This is provided in case something has to be recompiled from source in the future.
 
 To recompile SVM-light and libsvm and move their binaries to the right dir, run "make"
+
+The directory Rule_Set_2_scoring/ contains python source code that implements the
+Fusi et al score in python as provided by John Doench.

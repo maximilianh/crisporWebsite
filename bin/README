@@ -1,0 +1,9 @@
+This directory includes dependencies, required software, for crispor.
+
+There is one Subdir per platform (Linux or OSX=Darwin).
+
+There is also a subdirectory src/ with the original source of the tools, in
+case the binaries don't work on your platform.
+
+fusiDoench/ includes the python librarires to calculate the fusi doench score
+for crisporEffScores.py

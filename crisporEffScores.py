@@ -20,8 +20,13 @@ import platform, math, tempfile, bisect, sys, os, logging, types, optparse
 from os.path import dirname, join, basename, isfile, expanduser, isdir
 from math import log10
 
-import urllib2
+import urllib2, pickle
 import json
+
+fusiDir = "bin/fusiDoench"
+sys.path.insert(0, join(fusiDir, "analysis"))
+
+import model_comparison
 
 # import numpy as np
 
@@ -469,7 +474,8 @@ class ScoreCache:
 
 def sendFusiRequest(seqs):
     """ obtain the fusi score as calculated by Fusi et al's webservice
-    >>> sendFusiRequest([ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC"])
+    # test deactivated - server is not working
+    >> sendFusiRequest([ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC"])
     [0.599829103280437, 0.599829103280437]
     """
     keyFname = expanduser("~/.fusiKey.txt")
@@ -692,7 +698,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"])
-    {'oof': [51], 'wang': [66], 'drsc': [6.3], 'chariRaw': [-0.15504833], 'mh': [4404], 'finalGc6': [1], 'chariRank': [54], 'doench': [10], 'finalGg': [0], 'crisprScan': [39], 'ssc': [-0.035894]}
+    {'oof': [51], 'wang': [66], 'drsc': [6.3], 'chariRaw': [-0.15504833], 'mh': [4404], 'finalGc6': [1], 'chariRank': [54], 'doench': [10], 'finalGg': [0], 'crisprScan': [39], 'ssc': [-0.035894], 'fusi': [56]}
     """
     scores = {}
 
@@ -709,6 +715,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
         scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
 
     scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
+    scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
     scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
     scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
 
@@ -723,9 +730,12 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
     scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
 
-    # fusi score not run by default, requires an apiKey
-    if "fusi" in addOpt or doAll:
-        scores["fusi"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+    # the fusi score calculated by the Microsoft Research Server is not run by
+    # default, requires an apiKey
+    if "fusiOnline" in addOpt or doAll:
+        scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+    # by default, I use the python source code sent to me by John Doench
+
 
     return scores
 
@@ -806,6 +816,36 @@ def calcHousden(seqs):
         score = float("%0.1f" % score) # round to one decimal point
         scores.append(score)
     return scores
+
+def calcFusiDoench(seqs):
+    """
+    based on source code sent by John Doench
+    {'include_strand': False, 'weighted': None, 'num_thread_per_proc': None, 'extra pairs': False, 'gc_features': True, 'test_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
+       'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
+       u'CUL3', u'NF1', u'NF2'], dtype=object), 'testing_non_binary_target_name': 'ranks', 'train_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
+       'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
+       u'CUL3', u'NF1', u'NF2'], dtype=object), 'cv': 'gene', 'adaboost_alpha': 0.5, 'all pairs': False, 'binary target name': 'score_drug_gene_threshold', 'normalize_features': False, 'nuc_features': True, 'include_gene_effect': False, 'num_genes_remove_train': None, 'include_gene_guide_feature': 0, 'include_known_pairs': False, 'include_gene_feature': False, 'training_metric': 'spearmanr', 'num_proc': 8, 'include_drug': False, 'include_microhomology': False, 'V': 3, 'include_Tm': True, 'adaboost_loss': 'ls', 'rank-transformed target name': 'score_drug_gene_rank', 'include_pi_nuc_feat': True, 'include_sgRNAscore': False, 'flipV1target': False, 'include_NGGX_interaction': True, 'seed': 1, 'NDGC_k': 10, 'raw target name': None, 'all_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
+       'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
+       u'CUL3', u'NF1', u'NF2'], dtype=object), 'order': 2, 'include_gene_position': False}
+    """
+    #aa_cut = 0
+    #percent_peptide=0
+    #learn_options["V"] = 2
+    #model, learn_options = pickle.load(f)
+    #for seq in seqs:
+        #get_all_order_nuc_features(seq, feature_sets, learn_options, learn_options["order"], max_index_to_use=30)
+        #assert(not learn_options["gc_features"])
+        #assert(not learn_options["gene_position"])
+    aa_cut = 0
+    per_peptide=0
+    f = open(join(fusiDir, 'saved_models/V3_model_nopos.pickle'))
+    model= pickle.load(f)
+    res = []
+    for seq in seqs:
+        score = model_comparison.predict(seq, aa_cut, per_peptide, model=model)
+        res.append(int(round(100*score)))
+    return res
+
 
 # ----------- MAIN --------------
 if __name__=="__main__":
