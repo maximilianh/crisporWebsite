@@ -2362,8 +2362,11 @@ def getSeq(db, posStr):
     seqStr = proc.stdout.read()
     # remove fasta header line
     lines = seqStr.splitlines()
-    lines.pop(0)
+    if len(lines)>0:
+        lines.pop(0)
     seq = "".join(lines)
+    if len(seq)<23:
+        errAbort("Sorry, the sequence range %s on genome %s is not longer than 23bp. To find a valid CRISPR/Cas9 site, one needs at least a 23bp long sequence." % (db, posStr))
     return seq
 
 def crisprSearch(params):
