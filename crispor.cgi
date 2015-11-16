@@ -2518,7 +2518,7 @@ def iterGuideRows(guideData, addHeaders=False):
             strDesc = 'fw'
         else:
             strDesc = 'rev'
-        guideDesc = str(pamPos)+strDesc
+        guideDesc = str(int(pamPos)+1)+strDesc
 
         row = [guideDesc, guideSeq+pamSeq, guideScore, otCount, ontargetDesc]
         for scoreName in scoreNames:
