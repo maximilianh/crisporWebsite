@@ -40,7 +40,9 @@ my $scaffold_seq = "GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGT
 my $min_pos = 0;    
 my $max_pos = 100000000; 
 my $retained_portion = 1; 
-my $scoreFilter = 1; 
+# MAX: removed score filter
+my $scoreFilter = 0; 
+# -- MAX
 
 ################################### USER INPUTS ############################################################
 
@@ -71,7 +73,11 @@ elsif($option eq '-f' or $option eq '--file'){
                         last;
                 }
                 close (INPUTCHECK);
-                @sequences = importFasta($inputFile);                                                                            
+                # MAX - changing output file names
+                $result_dir = $inputFile.".outDir";
+                $outputFile = $inputFile.".outTab";
+                # -- MAX
+                @sequences = importFasta($inputFile);  
         }else{
                 print "Error: Please check to make sure the file \"$inputFile\" exists and is a readable plain text file.\n";
                 exit;       

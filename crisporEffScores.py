@@ -8,6 +8,7 @@
 # - Fusi: Fusi et al, prepublication manuscript on bioarxiv, http://dx.doi.org/10.1101/021568 http://research.microsoft.com/en-us/projects/azimuth/, only available as a web API
 # - Housden: Housden et al, PMID 26350902, http://www.flyrnai.org/evaluateCrispr/
 # - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
+# - Wu-Crispr: Wong et al, PMID, http://www.genomebiology.com/2015/16/1/218
 
 # the input are 100bp sequences that flank the basepair just 5' of the PAM +/-50bp.
 # so 50bp 5' of the PAM, and 47bp 3' of the PAM -> 100bp
@@ -16,14 +17,14 @@
 # If you run too many sequences at once, it may hang. Increase the BUFSIZE variable in this case.
 
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError, call
-import platform, math, tempfile, bisect, sys, os, logging, types, optparse
-from os.path import dirname, join, basename, isfile, expanduser, isdir
+import platform, math, tempfile, bisect, sys, os, logging, types, optparse, shutil
+from os.path import dirname, join, basename, isfile, expanduser, isdir, abspath
 from math import log10
 
 import urllib2, pickle
 import json
 
-fusiDir = "bin/fusiDoench"
+fusiDir = join(dirname(__file__), "bin/fusiDoench")
 sys.path.insert(0, join(fusiDir, "analysis"))
 
 import model_comparison
@@ -53,15 +54,17 @@ def setCacheDir(path):
     global cacheDir
     cacheDir = path
 
-def getBinPath(name):
+def getBinPath(name, isDir=False):
     """
     get the full pathname of a platform-specific binary, in the bin/ directory relative to this directory
     """
     currPlatform = platform.system()
     #myDir = dirname(join(__file__))
     binPath = join(binDir, currPlatform, name)
-    if not isfile(binPath):
-        raise Exception("Could not find %s" % binPath)
+    if isDir and not isdir(binPath):
+        raise Exception("Could not directory %s" % binPath)
+    if not isDir and not isfile(binPath):
+        raise Exception("Could not find file %s" % binPath)
     return binPath
 
 def seqToVec(seq, offsets={"A":0,"C":1,"G":2,"T":3}):
@@ -488,7 +491,7 @@ def sendFusiRequest(seqs):
         raise Exception("No ./fusiKey.txt and ~/.fusiKey.txt file found. Request an API key from azimuth@microsoft.com, write it into this file (single line) and retry")
 
     api_key = open(keyFname, "r").read().strip()
-    paramList = [ (seq, "-1", "-1") for seq in seqs]
+    paramList = [ [seq, "-1", "-1"] for seq in seqs]
                         #"Values": [ [ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "-1", "-1" ] ]
     data =  {
 
@@ -528,7 +531,7 @@ def sendFusiRequest(seqs):
         print(error.info())
 
         print(json.loads(error.read())) 
-        raise
+        sys.exit(1)
 
 def trimSeqs(seqs, fiveFlank, threeFlank):
     """ given a list of 100bp sequences, return a list of sequences with the
@@ -713,7 +716,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('drsc', [6.3]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66])]
+    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('drsc', [6.3]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [40])]
     """
     scores = {}
 
@@ -734,6 +737,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
     scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
     scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
+    scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 10))
 
     chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
     scores["chariRaw"] = chariScores[0]
@@ -775,7 +779,9 @@ def printScoreTabSep(seqs, doAll=False):
         print "\t".join(row)
 
 def test():
-    global binDir
+    #sendFusiRequest([ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC"])
+    #sys.exit(1)
+    #global binDir
     import doctest
     doctest.testmod()
 
@@ -867,6 +873,46 @@ def calcFusiDoench(seqs):
         res.append(int(round(100*score)))
     return res
 
+def calcWuCrisprScore(seqs):
+    """
+    Input is 30mers:
+    20bp guide, 3bp PAM, 7bp 3' sequence.
+    >>> calcWuCrisprScore(["ggtgcagctcgagcaacaggcggctcagaa"])
+    [87]
+    """
+
+    inSeq = "".join(seqs)
+    tempFh = tempfile.NamedTemporaryFile()
+    tempFh.write(">t\n"+inSeq+"\n")
+    tmpPath = abspath(tempFh.name)
+    tempFh.flush()
+
+    # the perl script needs cwd to be its dir, so save, change and set back
+    oldCwd = os.getcwd()
+    os.chdir(join(getBinPath("WU-CRISPR", isDir=True)))
+    cmd = "wu-crispr.pl -f %s > /dev/null" % tmpPath
+    assert(os.system(cmd)==0)
+    os.chdir(oldCwd)
+
+    #seqId   Score   Sequence        Orientation     Position
+    #test    87      ggtgcagctcgagcaacagg    sense   1, 31
+
+    # I modified the perl script to write to a .outTab file otherwise not
+    # thread safe
+    outFname = tempFh.name+".outTab"
+    scores = []
+    for line in open(outFname):
+        if line.startswith("seqId"):
+            continue
+        seqId, score, seq, orient, pos = line.split("\t")
+        start = int(pos.split(",")[0])-1
+        if not (start % 30 == 0 and orient=="sense"):
+            continue
+        scores.append(int(score))
+
+    shutil.rmtree(tempFh.name+".outDir")
+    os.remove(outFname)
+    return scores
 
 # ----------- MAIN --------------
 if __name__=="__main__":
