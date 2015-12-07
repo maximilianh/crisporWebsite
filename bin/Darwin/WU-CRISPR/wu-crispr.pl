@@ -505,7 +505,7 @@ sub foldingdG {
    close OLIGO;
 
    my $dG;
-   system("../RNAfold < $tempSeq > $tempOUT");
+   system(./RNAfold < $tempSeq > $tempOUT");
    open(RESULT, "$tempOUT") or die "Cannot open $tempOUT for reading $!\n";
    while(my $line = <RESULT>){
       if($line =~ /([\-|\d][\.|\d]+)\)/){
@@ -532,7 +532,7 @@ sub RNA_fold {
    close OLIGO;
 
    my ($dG, $align);
-   system("../RNAfold < $tempSeq > $tempOUT");
+   system("./RNAfold < $tempSeq > $tempOUT");
    open(RESULT, "$tempOUT") or die "Cannot open $tempOUT for reading $!\n";
    while(my $line = <RESULT>){
          if($line =~ /([\-|\d][\.|\d]+)\)/){
