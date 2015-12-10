@@ -890,16 +890,19 @@ def calcWuCrisprScore(seqs):
         assert(len(s)==30)
 
     inSeq = "".join(seqs)
-    #tempFh = open("temp.tmp", "w")
-    tempFh = tempfile.NamedTemporaryFile()
+    tempFh = open("temp.fa", "w")
+    #tempFh = tempfile.NamedTemporaryFile()
     tempFh.write(">t\n"+inSeq+"\n")
     tmpPath = abspath(tempFh.name)
     tempFh.flush()
 
     # the perl script needs cwd to be its dir, so save, change and set back
     oldCwd = os.getcwd()
-    os.chdir(join(getBinPath("WU-CRISPR", isDir=True)))
+    wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
+    logging.info("Running wu-crisp in %s" % wuCrispDir)
+    os.chdir(wuCrispDir)
     cmd = "wu-crispr.pl -f %s > /dev/null" % tmpPath
+    print "XX", cmd
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
 
@@ -909,6 +912,13 @@ def calcWuCrisprScore(seqs):
     # I modified the perl script to write to a .outTab file otherwise not
     # thread safe
     outFname = tempFh.name+".outTab"
+    # stay compatible with the original perl script
+    print outFname
+    if not isfile(tempFh.name+".out"):
+        outFname = join(wuCrispDir, "WU-CRISPR_V0.9_prediction_result.xls")
+        logging.warn("Apparently the original version of the perl script is used.")
+        logging.warn("Careful, don't multithread!")
+
     scoreDict = {}
     for line in open(outFname):
         if line.startswith("seqId"):
