@@ -902,7 +902,6 @@ def calcWuCrisprScore(seqs):
     logging.info("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
     cmd = "wu-crispr.pl -f %s > /dev/null" % tmpPath
-    print "XX", cmd
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
 
@@ -912,8 +911,7 @@ def calcWuCrisprScore(seqs):
     # I modified the perl script to write to a .outTab file otherwise not
     # thread safe
     outFname = tempFh.name+".outTab"
-    # stay compatible with the original perl script
-    print outFname
+    # but stay compatible with the original perl script
     if not isfile(tempFh.name+".out"):
         outFname = join(wuCrispDir, "WU-CRISPR_V0.9_prediction_result.xls")
         logging.warn("Apparently the original version of the perl script is used.")
