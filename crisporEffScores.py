@@ -840,6 +840,7 @@ def calcHousden(seqs):
 
 def calcFusiDoench(seqs):
     """
+    Input is a 30mer: 4bp 5', 20bp guide, 3bp PAM, 3bp 5'
     based on source code sent by John Doench
     {'include_strand': False, 'weighted': None, 'num_thread_per_proc': None, 'extra pairs': False, 'gc_features': True, 'test_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
        'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
@@ -863,6 +864,10 @@ def calcFusiDoench(seqs):
     model= pickle.load(f)
     res = []
     for seq in seqs:
+        pam = seq[25:27]
+        if pam!="GG":
+            res.append(-1)
+            continue
         score = model_comparison.predict(seq, aa_cut, per_peptide, model=model)
         res.append(int(round(100*score)))
     return res
