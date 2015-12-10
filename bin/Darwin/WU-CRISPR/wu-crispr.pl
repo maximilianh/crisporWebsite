@@ -118,6 +118,7 @@ my $id;
 my %id2Sequence;
 foreach (@sequences){
         my $sequence = ${$_}{'seq'};
+        print "GOT INPUT SEQ $sequence\n";
         $id = ${$_}{'id'};
         $id2Sequence{$id}=$sequence; 
         $submittedSeq = $sequence;
@@ -169,8 +170,10 @@ open(OUT, ">$outputFile") or die "$outputFile could not be opened for writing\n"
 print OUT "seqId\tScore\tSequence\tOrientation\tPosition\n";
 foreach my $sequenceId (sort keys %scoreList){
         
+        print $result_file;
         foreach my $line (sort {$b cmp $a} @{$scoreList{$sequenceId}}){                my ($score,$seq) = split /\t/, $line;
-                next if $score<50 and $scoreFilter ==1;
+                print $sequenceId, $score, $seq;
+                next if $score<50 and $scoreFilter == 1;
                 my $direction = $resultSeqs{$seq}{'orient'};
                 my $position = $resultSeqs{$seq}{'location'};
                 print OUT "$sequenceId\t$score\t$seq\t$direction\t$position\n";
@@ -211,6 +214,7 @@ sub generate_feature {
             my $cds_pos = index($seqStrand,$matched_bases)-50+1;
             next unless $cds_pos > $min_pos and $cds_pos < $max_pos and $cds_pos / length($exon) < $retained_portion;
             my $output = generate_feature_line($oligo); # return '' if failed the pre-filters
+            print "OUTPUT=$output\n";
 
             if ($output) {
                  $feature[$line_count] = $output;

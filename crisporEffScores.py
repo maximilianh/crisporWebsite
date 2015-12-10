@@ -875,13 +875,17 @@ def calcFusiDoench(seqs):
 
 def calcWuCrisprScore(seqs):
     """
-    Input is 30mers:
+    Input is a list of 30mers:
     20bp guide, 3bp PAM, 7bp 3' sequence.
     >>> calcWuCrisprScore(["ggtgcagctcgagcaacaggcggctcagaa"])
     [87]
     """
 
+    for s in seqs:
+        assert(len(s)==30)
+
     inSeq = "".join(seqs)
+    #tempFh = open("temp.tmp", "w")
     tempFh = tempfile.NamedTemporaryFile()
     tempFh.write(">t\n"+inSeq+"\n")
     tmpPath = abspath(tempFh.name)
@@ -900,17 +904,33 @@ def calcWuCrisprScore(seqs):
     # I modified the perl script to write to a .outTab file otherwise not
     # thread safe
     outFname = tempFh.name+".outTab"
-    scores = []
+    scoreDict = {}
     for line in open(outFname):
         if line.startswith("seqId"):
             continue
         seqId, score, seq, orient, pos = line.split("\t")
+        #print "got wucrisp row", seqId, score, seq, orient, pos
         start = int(pos.split(",")[0])-1
         if not (start % 30 == 0 and orient=="sense"):
+            #print "skipping, incorrect position"
             continue
-        scores.append(int(score))
+        #print "keeping seq/score", seq, score
+        scoreDict[seq] = int(score)
+        #scores.append(int(score))
 
-    shutil.rmtree(tempFh.name+".outDir")
+    # return 0 for all sequences where we didn't get a score back from
+    # wu-crispr
+    scores = []
+    guideSeqs = [s[:20].lower() for s in seqs]
+    #print "guideseqs", guideSeqs
+    #print 'scoreDict', scoreDict
+    for seq in guideSeqs:
+        if seq not in scoreDict:
+            scores.append(0)
+        else:
+            scores.append(scoreDict[seq])
+
+    #shutil.rmtree(tempFh.name+".outDir")
     os.remove(outFname)
     return scores
 
