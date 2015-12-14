@@ -867,7 +867,7 @@ def calcFusiDoench(seqs):
     aa_cut = 0
     per_peptide=0
     f = open(join(fusiDir, 'saved_models/V3_model_nopos.pickle'))
-    model= pickle.load(f)
+    model= pickle.load(f) # if this fails, install sklearn like this: pip install scikit-learn==0.16.1
     res = []
     for seq in seqs:
         pam = seq[25:27]
@@ -882,7 +882,7 @@ def calcWuCrisprScore(seqs):
     """
     Input is a list of 30mers:
     20bp guide, 3bp PAM, 7bp 3' sequence.
-    >>> calcWuCrisprScore(["ggtgcagctcgagcaacaggcggctcagaa"])
+    >>> calcWuCrisprScore(["ggtgcagctcgagcaacaggcggc"])
     [93]
     """
 
@@ -890,8 +890,8 @@ def calcWuCrisprScore(seqs):
         assert(len(s)==24)
 
     inSeq = "".join(seqs)
-    tempFh = open("temp.fa", "w")
-    #tempFh = tempfile.NamedTemporaryFile()
+    #tempFh = open("temp.fa", "w")
+    tempFh = tempfile.NamedTemporaryFile()
     tempFh.write(">t\n"+inSeq+"\n")
     tmpPath = abspath(tempFh.name)
     tempFh.flush()
@@ -899,7 +899,7 @@ def calcWuCrisprScore(seqs):
     # the perl script needs cwd to be its dir, so save, change and set back
     oldCwd = os.getcwd()
     wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
-    logging.info("Running wu-crisp in %s" % wuCrispDir)
+    logging.debug("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
     cmd = "wu-crispr.pl -f %s > /dev/null" % tmpPath
     assert(os.system(cmd)==0)
@@ -912,7 +912,7 @@ def calcWuCrisprScore(seqs):
     # thread safe
     outFname = tempFh.name+".outTab"
     # but stay compatible with the original perl script
-    if not isfile(tempFh.name+".out"):
+    if not isdir(tempFh.name+".outDir"):
         outFname = join(wuCrispDir, "WU-CRISPR_V0.9_prediction_result.xls")
         logging.warn("The original version of the wu-crispr perl script is used.")
         logging.warn("Careful, don't multithread!")
@@ -943,7 +943,7 @@ def calcWuCrisprScore(seqs):
         else:
             scores.append(scoreDict[seq])
 
-    #shutil.rmtree(tempFh.name+".outDir")
+    shutil.rmtree(tempFh.name+".outDir")
     os.remove(outFname)
     return scores
 
