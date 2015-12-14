@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+
 #################################################################################################################
 
 # Copyright (C) 2015  Xiaowei Wang (email: xwang@radonc.wustl.edu), Washington University in St. Louis
@@ -19,7 +20,6 @@
 use strict;
 use warnings;
 use Cwd;
-use Sys::Hostname;
 
 use File::Path;
 
@@ -71,11 +71,7 @@ elsif($option eq '-f' or $option eq '--file'){
                         last;
                 }
                 close (INPUTCHECK);
-                # MAX - changing output file names
-                $result_dir = $inputFile.".outDir";
-                $outputFile = $inputFile.".outTab";
-                # -- MAX
-                @sequences = importFasta($inputFile);  
+                @sequences = importFasta($inputFile);                                                                            
         }else{
                 print "Error: Please check to make sure the file \"$inputFile\" exists and is a readable plain text file.\n";
                 exit;       
@@ -167,7 +163,6 @@ open(OUT, ">$outputFile") or die "$outputFile could not be opened for writing\n"
 print OUT "seqId\tScore\tSequence\tOrientation\tPosition\n";
 foreach my $sequenceId (sort keys %scoreList){
         
-        print $result_file;
         foreach my $line (sort {$b cmp $a} @{$scoreList{$sequenceId}}){                my ($score,$seq) = split /\t/, $line;
                 next if $score<50 and $scoreFilter ==1;
                 my $direction = $resultSeqs{$seq}{'orient'};
@@ -493,8 +488,7 @@ sub dG_binding {
 sub foldingdG {
    my $sequence = shift;
    my $tempSeq = "tempSeq$$";
-   my $host = hostname();
-   my $tempOUT = "$host.tempOUT$$";
+   my $tempOUT = "tempOUT$$";
 
    $sequence =~ s/[5|3|'|\-|\s+]//g;
    $sequence =~ tr/Tt/Uu/;
@@ -521,8 +515,7 @@ sub foldingdG {
 sub RNA_fold {
    my $sequence = shift;
    my $tempSeq = "tempSeq$$";
-   my $host = hostname();
-   my $tempOUT = "$host.tempOUT$$";
+   my $tempOUT = "tempOUT$$";
    $sequence =~ s/[5|3|'|\-|\s+]//g;
    $sequence =~ tr/Tt/Uu/;
    

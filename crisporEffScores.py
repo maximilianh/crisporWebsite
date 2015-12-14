@@ -716,7 +716,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('drsc', [6.3]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [40])]
+    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('drsc', [6.3]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
     scores = {}
 
@@ -737,7 +737,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
     scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
     scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
-    scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 10))
+    scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
 
     chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
     scores["chariRaw"] = chariScores[0]
@@ -883,11 +883,11 @@ def calcWuCrisprScore(seqs):
     Input is a list of 30mers:
     20bp guide, 3bp PAM, 7bp 3' sequence.
     >>> calcWuCrisprScore(["ggtgcagctcgagcaacaggcggctcagaa"])
-    [87]
+    [93]
     """
 
     for s in seqs:
-        assert(len(s)==30)
+        assert(len(s)==24)
 
     inSeq = "".join(seqs)
     tempFh = open("temp.fa", "w")
@@ -914,7 +914,7 @@ def calcWuCrisprScore(seqs):
     # but stay compatible with the original perl script
     if not isfile(tempFh.name+".out"):
         outFname = join(wuCrispDir, "WU-CRISPR_V0.9_prediction_result.xls")
-        logging.warn("Apparently the original version of the perl script is used.")
+        logging.warn("The original version of the wu-crispr perl script is used.")
         logging.warn("Careful, don't multithread!")
 
     scoreDict = {}
@@ -924,7 +924,7 @@ def calcWuCrisprScore(seqs):
         seqId, score, seq, orient, pos = line.split("\t")
         #print "got wucrisp row", seqId, score, seq, orient, pos
         start = int(pos.split(",")[0])-1
-        if not (start % 30 == 0 and orient=="sense"):
+        if not (start % 24 == 0 and orient=="sense"):
             #print "skipping, incorrect position"
             continue
         #print "keeping seq/score", seq, score
