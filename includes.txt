@@ -1,8 +1,8 @@
-/var/www/main/style/style_general.css    
-/var/www/main/specific/style/squeleton.css    
-/var/www/main/style/menu.css
-/var/www/main/specific/style/menu.css
-/var/www/main/specific/style/logo.css
-/var/www/main/style/newfont/personnalfont.css
-/var/www/main/specific/style/button.css
+/var/www/tefor/style/style_general.css    
+/var/www/tefor/specific/style/squeleton.css    
+/var/www/tefor/style/menu.css
+/var/www/tefor/specific/style/menu.css
+/var/www/tefor/specific/style/logo.css
+/var/www/tefor/style/newfont/personnalfont.css
+/var/www/tefor/specific/style/button.css
 style/style.css
