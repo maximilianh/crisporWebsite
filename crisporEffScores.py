@@ -890,8 +890,7 @@ def calcWuCrisprScore(seqs):
         assert(len(s)==24)
 
     inSeq = "".join(seqs)
-    tempFh = open("temp.fa", "w")
-    #tempFh = tempfile.NamedTemporaryFile()
+    tempFh = tempfile.NamedTemporaryFile()
     tempFh.write(">t\n"+inSeq+"\n")
     tmpPath = abspath(tempFh.name)
     tempFh.flush()
