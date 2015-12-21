@@ -72,15 +72,19 @@ def seqToVec(seq, offsets={"A":0,"C":1,"G":2,"T":3}):
     >>> seqToVec("AAAAATTTTTGGGGGCCCCC")
     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]
     """
-    #assert(len(seq)==20)
+    assert(len(seq)==20)
     row = [0]*len(seq)*4
+    pseudoOffset = offsets["A"]
     for pos, nucl in enumerate(seq):
         nucl = nucl.upper()
-        if nucl in offsets:
-            nuclOffset = offsets.get(nucl)
-        else:
-            nuclOffset = offsets["other"]
-        row[pos*len(offsets)+nuclOffset] = 1
+        # treat N, Y, etc like "A". Happens very rarely.
+        nuclOffset = offsets.get(nucl, pseudoOffset)
+        vecPos = (pos*len(offsets))+nuclOffset
+        #if vecPos not in range(len(row)):
+            #ofh = open("temp.txt", "a")
+            #ofh.write(str(vecPos)+" "+seq+" "+str(row)+"pos %d, nucl %s" % (pos, nucl)+"\n")
+            #assert(False)
+        row[vecPos] = 1
     return row
 
 def vecToSeqDicts(coefs):
@@ -177,12 +181,15 @@ def calcWangSvmScores(seqs):
 
     >>> calcWangSvmScores(["ATAGACCTACCTTGTTGAAG"])
     [60]
+    >>> calcWangSvmScores(["NTAGACCTACCTTGTTGAAG"])
+    [60]
     """
     scores = []
     vecOrder = {"A":0, "C":1, "T":2, "G":3}
 
     lines = []
     for seq in seqs:
+        seq = seq.upper()
         assert(len(seq)==20)
         vec = seqToVec(seq, offsets=vecOrder)
         lines.append(listToSvml(vec, 0))
@@ -194,7 +201,8 @@ def calcWangSvmScores(seqs):
     proc = Popen(cmd,stdout=PIPE, stdin=PIPE, stderr=None, bufsize=BUFSIZE)
     dataOut = proc.communicate(input=dataIn)[0]
 
-    for line in dataOut.splitlines():
+    lines = dataOut.splitlines()
+    for line in lines:
         if line.startswith("labels"):
             continue
         if line.startswith("Accuracy"):
@@ -540,7 +548,7 @@ def trimSeqs(seqs, fiveFlank, threeFlank):
     """
     trimSeqs = []
     for s in seqs:
-        trimSeqs.append(s[50+fiveFlank:50+threeFlank])
+        trimSeqs.append(s[50+fiveFlank:50+threeFlank].upper())
     return trimSeqs
 
 def iterSvmRows(seqs):
@@ -726,23 +734,36 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
 
     guideSeqs = trimSeqs(seqs, -20, 0)
 
-    scores["drsc"] = calcHousden(trimSeqs(seqs, -20, 0))
-    scores["housden"] = scores["drsc"] # for backwards compatibility with my old scripts.
+    logging.debug("Housden scores")
+    scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
+    #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
 
+    logging.debug("Wang scores")
     scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
     if "wangOrig" in addOpt or doAll:
         scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
 
+    logging.debug("Doench score")
     scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
+
+    logging.debug("Fusi score")
     scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+
+    logging.debug("SSC score")
     scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
+
+    logging.debug("CrisprScan score")
     scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
+
+    logging.debug("wuCrispr score")
     scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
 
+    logging.debug("Chari score")
     chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
     scores["chariRaw"] = chariScores[0]
     scores["chariRank"] = chariScores[1]
 
+    logging.debug("OOF scores")
     mh, oof = calcAllBaeScores(trimSeqs(seqs, -30, 30))
     scores["oof"] = oof
     scores["mh"] = mh
@@ -831,6 +852,11 @@ def calcHousden(seqs):
     """
     scores = []
     for seq in seqs:
+        seq = seq.upper()
+        if "N" in seq: # cannot do Ns
+            scores.append(-1.0)
+            continue
+
         assert(len(seq)==20)
         nuclToIndex = {"A":0,"T":1,"C":2,"G":3}
 
@@ -872,6 +898,9 @@ def calcFusiDoench(seqs):
     for seq in seqs:
         pam = seq[25:27]
         if pam!="GG":
+            res.append(-1)
+            continue
+        if "N" in seq:
             res.append(-1)
             continue
         score = model_comparison.predict(seq, aa_cut, per_peptide, model=model)
