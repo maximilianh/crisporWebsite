@@ -8,7 +8,7 @@
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
 import Cookie, time, math, sys, cgi, re, array, random, platform, os
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
-import traceback, json, pwd, types
+import traceback, json, pwd, types, pickle
 
 from datetime import datetime
 from collections import defaultdict, namedtuple
@@ -141,8 +141,8 @@ scoreDescs = {
 }
 
 # the headers for the guide and offtarget output files
-guideHeaders = ["guideId", "guideSeq", "specScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
-offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "offtargetScore", "chrom", "start", "end", "locusDesc"]
+guideHeaders = ["guideId", "guideSeq", "mitSpecScore", "cfdSpecScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "locusDesc"]
 # ====== END GLOBALS ============
 
 
@@ -698,6 +698,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
     otCounts = []
     posList = []
     scores = []
+    cfdScores = []
     last12MmCounts = []
     ontargetDesc = ""
     subOptMatchCount = 0
@@ -737,14 +738,19 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             otSeqNoPam = otSeq[:len(otSeq)-len(pam)]
             if len(otSeqNoPam)==19:
                 otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
-            score = calcHitScore(guideNoPam, otSeqNoPam)
-            scores.append(score)
+            # MIT score must not include the PAM
+            mitScore = calcHitScore(guideNoPam, otSeqNoPam)
+            scores.append(mitScore)
+
+            # CFD score must include the PAM
+            cfdScore = calcCfdScore(guideSeq, otSeq)
+            cfdScores.append(cfdScore)
 
             posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
-            alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, score, posStr)
+            alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, mitScore, posStr)
             if not hasLast12Mm:
                 last12MmOtCount+=1
-            posList.append( (otSeq, score, editDist, posStr, geneDesc, alnHtml, gapPos) )
+            posList.append( (otSeq, mitScore, cfdScore, editDist, posStr, geneDesc, alnHtml, gapPos) )
             # taking the maximum is probably not necessary, 
             # there should be only one offtarget for X1-exceeding matches
             subOptMatchCount = max(int(x1Count), subOptMatchCount)
@@ -755,18 +761,21 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
     if subOptMatchCount > MAXOCC:
         guideScore = 0
+        guideCfdScore = 0
         posList = []
         ontargetDesc = ""
         last12DescStr = ""
         otDescStr = ""
     else:
         guideScore = calcMitGuideScore(sum(scores))
+        guideCfdScore = calcMitGuideScore(sum(cfdScores))
         otDescStr = "&thinsp;-&thinsp;".join(otCounts)
         last12DescStr = "&thinsp;-&thinsp;".join(last12MmCounts)
 
     posList.sort(reverse=True, key=operator.itemgetter(1)) # sort by offtarget score
 
-    return posList, otDescStr, guideScore, last12DescStr, ontargetDesc, subOptMatchCount
+    return posList, otDescStr, guideScore, guideCfdScore, last12DescStr, \
+        ontargetDesc, subOptMatchCount
 
 # --- START OF SCORING ROUTINES 
 
@@ -814,6 +823,66 @@ def calcMitGuideScore(hitSum):
     score = 100 / (100+hitSum)
     score = int(round(score*100))
     return score
+
+# === SOURCE CODE cfd-score-calculator.py provided by John Doench =====
+# The CFD score is an improved specificity score 
+
+def get_mm_pam_scores():
+    """
+    """
+    dataDir = join(dirname(__file__), 'CFD_Scoring')
+    mm_scores = pickle.load(open(join(dataDir, 'mismatch_score.pkl'),'rb'))
+    pam_scores = pickle.load(open(join(dataDir, 'pam_scores.pkl'),'rb'))
+    return (mm_scores,pam_scores)
+
+#Reverse complements a given string
+def revcom(s):
+    basecomp = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','U':'A'}
+    letters = list(s[::-1])
+    letters = [basecomp[base] for base in letters]
+    return ''.join(letters)
+
+#Calculates CFD score
+def calc_cfd(wt,sg,pam):
+    mm_scores,pam_scores = get_mm_pam_scores()
+    score = 1
+    sg = sg.replace('T','U')
+    wt = wt.replace('T','U')
+    s_list = list(sg)
+    wt_list = list(wt)
+    for i,sl in enumerate(s_list):
+        if wt_list[i] == sl:
+            score*=1
+        else:
+            key = 'r'+wt_list[i]+':d'+revcom(sl)+','+str(i+1)
+            score*= mm_scores[key]
+    score*=pam_scores[pam]
+    return (score)
+
+mm_scores, pam_scores = None, None
+
+def calcCfdScore(guideSeq, otSeq):
+    """ based on source code provided by John Doench
+    >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "GGGGGGGGGGGGGGGGGAAAGGG")
+    0.4635989007074176
+    >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "GGGGGGGGGGGGGGGGGGGGGGG")
+    1.0
+    >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "aaaaGaGaGGGGGGGGGGGGGGG")
+    0.5140384614450001
+    """
+    global mm_scores, pam_scores
+    if mm_scores is None:
+        mm_scores,pam_scores = get_mm_pam_scores()
+    wt = guideSeq.upper()
+    off = otSeq.upper()
+    m_wt = re.search('[^ATCG]',wt)
+    m_off = re.search('[^ATCG]',off)
+    if (m_wt is None) and (m_off is None):
+        pam = off[-2:]
+        sg = off[:-3]
+        cfd_score = calc_cfd(wt,sg,pam)
+        return cfd_score
+# ==== END CFD score source provided by John Doench
 
 # --- END OF SCORING ROUTINES 
 
@@ -1033,28 +1102,13 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             pamMatches = otMatches[pamId]
             guideSeqFull = guideSeq + pamSeq
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq)
-            posList, otDesc, guideScore, last12Desc, ontargetDesc, subOptMatchCount =\
-                makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
-
-            #gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
-            #seq34Mer = getExtSeq(seq, gStart, gEnd, strand, 4, 10, extSeq)
-            #if seq34Mer==None:
-                #effScore = "Too close to end"
-            #else:
-                #effScore = int(round(100*calcDoenchScore(seq34Mer[:30])))
-
-            # get 60mer and calc oof-score
-            #seq60Mer = getExtSeq(seq, gStart, gEnd, strand, 20, 20, extSeq)
-            #if seq60Mer == None:
-                #mhScore, oofScore = "Too close to end", ""
-            #else:
-                #assert(len(seq60Mer)==60)
-                #mhScore, oofScore = calcMicroHomolScore(seq60Mer, 30)
-                #oofScore = str(oofScore)+" %"
+            posList, otDesc, guideScore, guideCfdScore, last12Desc, ontargetDesc, \
+                subOptMatchCount = makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
 
         # no off-targets found?
         else:
             posList, otDesc, guideScore = None, "Not found", None
+            guideCfdScore = None
             last12Desc = ""
             #effScore = 0
             hasNotFound = True
@@ -1067,7 +1121,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         #gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
         #seq100Mer = getExtSeq(seq, gStart, gEnd, strand, 30, 50, extSeq)
 
-        guideData.append( [guideScore, effScores.get(pamId, {}), startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount] )
+        guideData.append( [guideScore, guideCfdScore, effScores.get(pamId, {}), startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount] )
         guideScores[pamId] = guideScore
 
     #if USESSC:
@@ -1277,7 +1331,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
     links = []
 
     i = 0
-    for otSeq, score, editDist, pos, gene, alnHtml, gapPos in otData:
+    for otSeq, score, cfdScore, editDist, pos, gene, alnHtml, gapPos in otData:
         cssClasses = ["tooltipster"]
         if not gene.startswith("exon:"):
             cssClasses.append("notExon")
@@ -1338,7 +1392,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
     count = 0
     effScoresCount = 0
     for guideRow in guideData:
-        guideScore, effScores, startPos, strand, pamId, guideSeq, \
+        guideScore, guideCfdScore, effScores, startPos, strand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         color = scoreToColor(guideScore)
@@ -2503,7 +2557,7 @@ def iterGuideRows(guideData, addHeaders=False):
 
     pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
     for guideRow in guideData:
-        guideScore, effScores, startPos, strand, pamId, \
+        guideScore, guideCfdScore, effScores, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
@@ -2520,7 +2574,7 @@ def iterGuideRows(guideData, addHeaders=False):
             strDesc = 'rev'
         guideDesc = str(int(pamPos)+1)+strDesc
 
-        row = [guideDesc, guideSeq+pamSeq, guideScore, otCount, ontargetDesc]
+        row = [guideDesc, guideSeq+pamSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
         for scoreName in scoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
         row = [str(x) for x in row]
@@ -2535,18 +2589,18 @@ def iterOfftargetRows(guideData, addHeaders=False):
         yield headers
 
     for guideRow in guideData:
-        guideScore, effScores, startPos, strand, pamId, \
+        guideScore, guideCfdScore, effScores, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
 
         if otData!=None:
             otCount = len(otData)
-            for otSeq, score, editDist, pos, gene, alnHtml, gapPos in otData:
+            for otSeq, mitScore, cfdScore, editDist, pos, gene, alnHtml, gapPos in otData:
                 gene = gene.replace(",", "_").replace(";","-")
 
                 chrom, start, end, strand = parsePos(pos)
-                row = [pamId, guideSeq+pamSeq, otSeq, editDist, score, chrom, start, end, gene]
+                row = [pamId, guideSeq+pamSeq, otSeq, editDist, mitScore, cfdScore, chrom, start, end, gene]
                 if allowGap:
                     row.append(gapPos)
                 row = [str(x) for x in row]
