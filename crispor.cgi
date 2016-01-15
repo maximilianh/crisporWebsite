@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/cluster/software/bin/python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
 
@@ -92,7 +92,7 @@ allowGap = False
 # maximum number of occurences in the genome to get flagged as repeats. 
 # This is used in bwa samse, when converting the same file
 # and for warnings in the table output.
-MAXOCC = 40000
+MAXOCC = 60000
 
 # the BWA queue size is 2M by default. We derive the queue size from MAXOCC
 MFAC = 2000000/MAXOCC
@@ -129,7 +129,7 @@ scoreDigits = {
 scoreDescs = {
     "doench" : ("Doench", "Range: 0-100. Linear regression model trained on 880 guides transfected into human MOLM13/NB4/TF1 cells (three genes) and mouse cells (six genes). Delivery: lentivirus. The Fusi score can be considered an updated version this score, as their training data overlaps a lot. See <a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench et al.</a>"),
     "ssc" : ("Xu", "Range ~ -2 - +2. Aka 'SSC score'. Linear regression model trained on data from &gt;1000 genes in human KBM7/HL60 cells (Wang et al) and mouse (Koike-Yusa et al.). Delivery: lentivirus. Ranges mostly -2 to +2. See <a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu et al.</a>"),
-    "crisprScan" : ("Moreno-Mateos", "Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>"),
+    "crisprScan" : ("Mor.-Mateos", "Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>"),
     "wang" : ("Wang", "Range: 0-100. SVM model trained on human cell culture data on guides from &gt;1000 genes. The Xu score can be considered an updated version of this score, as the training data overlaps a lot. Delivery: lentivirus. See <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang et al.</a>"),
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
     "fusi" : ("Fusi", "Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al.</a>."),
@@ -889,7 +889,7 @@ def calcCfdScore(guideSeq, otSeq):
     m_off = re.search('[^ATCG]',off)
     if (m_wt is None) and (m_off is None):
         pam = off[-2:]
-        sg = off[:-3]
+        sg = off[:20]
         cfd_score = calc_cfd(wt,sg,pam)
         return cfd_score
 # ==== END CFD score source provided by John Doench
@@ -2164,6 +2164,10 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
+<strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
+Site temporarily moved to UCSC. The performance here is somewhat slower.<br>
+Site should be back online at the original URL during Jan 16 2016<p></strong>
+
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
 <span class="introtext">
@@ -2383,7 +2387,8 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
             ip = os.environ["REMOTE_ADDR"]
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pam))
             if not wasOk:
-                print "Job is running"
+                #print "CRISPOR job is running..." % batchId
+                pass
             return None
 
     return otBedFname
@@ -2408,7 +2413,7 @@ def startAjaxWait(batchId):
        setTimeout(function(){
             $.getJSON("%(scriptName)s?batchId=%(batchId)s&ajaxStatus=1", gotStatus);
             poll();
-          } , 4000)})();
+          } , 10000)})();
 
     </script>
     """ % locals()
@@ -2445,6 +2450,21 @@ def getSeq(db, posStr):
     if len(seq)<23:
         errAbort("Sorry, the sequence range %s on genome %s is not longer than 23bp. To find a valid CRISPR/Cas9 site, one needs at least a 23bp long sequence." % (db, posStr))
     return seq
+
+def printStatus(batchId):
+    " print status, not using any Ajax "
+    q = JobQueue(JOBQUEUEDB)
+    status = q.getStatus(batchId)
+    if "Traceback" in status:
+        status = "An error occured during processing.<br> Please send an email to services@tefor.net and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks!" % batchId
+    if status==None:
+        status = "Batch completed. Refresh page to show results."
+
+    print('<meta http-equiv="refresh" content="10" >')
+    print("CRISPOR job has been submitted.<p>")
+
+    print("Job Status: <tt>%s</tt><p>" % status)
+    print("<small>This page will refresh every 10 seconds</small>")
 
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
@@ -2485,7 +2505,8 @@ def crisprSearch(params):
 
     if otBedFname is None:
         # this can happen only in CGI mode. Job has been added to the queue or is not done yet. 
-        startAjaxWait(batchId)
+        #startAjaxWait(batchId)
+        printStatus(batchId)
         return
 
     # be more sensitive if only a single guide seq is run
