@@ -62,7 +62,7 @@ def getBinPath(name, isDir=False):
     #myDir = dirname(join(__file__))
     binPath = join(binDir, currPlatform, name)
     if isDir and not isdir(binPath):
-        raise Exception("Could not directory %s" % binPath)
+        raise Exception("Could not find directory %s" % binPath)
     if not isDir and not isfile(binPath):
         raise Exception("Could not find file %s" % binPath)
     return binPath
@@ -724,7 +724,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('drsc', [6.3]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
     scores = {}
 
@@ -930,7 +930,7 @@ def calcWuCrisprScore(seqs):
     wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
     logging.debug("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
-    cmd = "wu-crispr.pl -f %s > /dev/null" % tmpPath
+    cmd = "perl wu-crispr.pl -f %s > /dev/null" % tmpPath
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
 
