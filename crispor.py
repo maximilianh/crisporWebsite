@@ -1,4 +1,4 @@
-#!/cluster/software/bin/python2.7
+#!/usr/bin/env python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
 
@@ -318,6 +318,21 @@ class JobQueue:
         self.conn.commit()
 
 # ====== FUNCTIONS =====
+contentLineDone = False
+
+def errAbort(msg):
+    " print err msg and exit "
+    if commandLineMode:
+        raise Exception(msg)
+
+    if not contentLineDone:
+        print "Content-type: text/html\n"
+
+    print('<div style="float:left; text-align:left; width: 800px">')
+    print(msg+"<p>")
+    print('</div>')
+    sys.exit(0)  # cgi must not exit with 1
+
 def parseConf(fname):
     """ parse a hg.conf style file,
         return a dict key -> value (both are strings)
@@ -339,11 +354,16 @@ def parseConf(fname):
             conf[key] = value
     return conf
 
-okChars = re.compile(r'[^\w-]')
+# allow only dashes, digits, characters and underscores
+notOkChars = re.compile(r'[^a-zA-Z0-9-_]')
 
-def cleanVal(str):
+def checkVal(key, str):
     """ remove special characters from input string, to protect against injection attacks """
-    return okChars.sub('', str)
+    if len(str) > 10000:
+	errAbort("input parameter %s is too long" % key)
+    if notOkChars.search(str):
+	errAbort("input parameter %s contains an invalid character" % key)
+    return str
 
 def getParams():
     " get CGI parameters and return as dict "
@@ -356,7 +376,7 @@ def getParams():
 	if val!=None:
             # "seq" is cleaned by cleanSeq later
             if key!="seq":
-                val = cleanVal(val)
+                checkVal(key, val)
             params[key] = val
 
     if "pam" in params:
@@ -390,16 +410,6 @@ def debug(msg):
     elif DEBUG:
         print msg
         print "<br>"
-
-def errAbort(msg):
-    " print err msg and exit "
-    if commandLineMode:
-        raise Exception(msg)
-
-    print('<div style="float:left; text-align:left; width: 800px">')
-    print(msg+"<p>")
-    print('</div>')
-    sys.exit(0)  # cgi must not exit with 1
 
 def matchNuc(pat, nuc):
     " returns true if pat (single char) matches nuc (single char) "
@@ -3539,7 +3549,6 @@ def mainCommandLine():
 
 def sendStatus(batchId):
     " send batch status as json "
-    print "Content-type: application/json\n"
     q = JobQueue(JOBQUEUEDB)
     status = q.getStatus(batchId)
     if status==None:
@@ -3592,7 +3601,9 @@ def mainCgi():
 
     # print headers
     print "Content-type: text/html\n"
-    print "" # = end of http headers
+    # so errAbort knows is doesn't have to print this line again
+    global contentLineDone
+    contentLineDone = True
 
     printHeader(batchId)
     printTeforBodyStart()
