@@ -55,12 +55,17 @@ Options:
     
 # Running the script as a CGI under Apache
 
-Make sure you can execute CGI scripts somewhere. Your Apache config should contain a section like this:
+Make sure you can execute CGI scripts somewhere. Your Apache config (e.g. /etc/apache2/sites-enabled/000-default) should contain a section like this:
 
     <Directory "/var/www/html">
          AllowOverride All
          Options +ExecCGI (...)
          AddHandler cgi-script .cgi .pl .py
+
+Also make sure you have the CGI module enabled:
+
+    sudo a2enmod cgi
+    sudo service apache2 restart
 
 Clone the repo into such a directory:
 
