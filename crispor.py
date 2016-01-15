@@ -2183,9 +2183,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
+<!-- <strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
 Site temporarily moved to UCSC. The performance here is somewhat slower.<br>
-Site should be back online at the original URL during Jan 16 2016<p></strong>
+Site should be back online at the original URL during Jan 16 2016<p></strong> -->
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -2372,7 +2372,8 @@ def printQueryNotFoundNote(dbInfo):
     print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
     print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
-    print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<p>"
+    print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<br>"
+    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'<p>"
     print "</em></div>"
 
 def getOfftargets(seq, org, pam, batchId, startDict, queue):
@@ -2590,24 +2591,24 @@ def printFile(fname):
 
 def printTeforBodyStart():
     print """<div>"""
-    print """<a href='http://tefor.net/main/'><img style='width:95px' src='%s/image/logo_tefor.png' alt=''></a>""" % (HTMLPREFIX)
-    print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
+    print """<a href='http://tefor.net/main/'><img style='width:180px' src='%simage/logo_tefor.png' alt=''></a>""" % (HTMLPREFIX)
+    #print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
     print "</div>"
-    #print """
-#<div id='navi'>
-#        <div id='menu' class='default'>
-#                <ul class='navi'>
-#                <li><a href='http://tefor.net'>Home</a></li>
-#                <li><a href='./crispor.cgi'>CRISPOR</a></li>
-#                <li><a href='http://tefor.net/main/pages/citations'>Citations</a></li>
-#                <li><a href='http://tefor.net/main/pages/blog'>News</a></li>
-#                <li><a href='http://tefor.net/main/pages/events'>Events</a></li>
-#                <li><a href='http://tefor.net/main/pages/partners'>Partners</a></li>
-#                <li><a href='http://tefor.net/main/pages/contacts'>Contacts</a></li>
-#                </ul>
-#        </div>
-#</div>
-    #"""
+    print """
+<div id='navi'>
+        <div id='menu' class='default'>
+                <ul class='navi'>
+                <li><a href='http://tefor.net'>Home</a></li>
+                <li><a href='./crispor.cgi'>CRISPOR</a></li>
+                <li><a href='http://tefor.net/main/pages/citations'>Citations</a></li>
+                <li><a href='http://tefor.net/main/pages/blog'>News</a></li>
+                <li><a href='http://tefor.net/main/pages/events'>Events</a></li>
+                <li><a href='http://tefor.net/main/pages/partners'>Partners</a></li>
+                <li><a href='http://tefor.net/main/pages/contacts'>Contacts</a></li>
+                </ul>
+        </div>
+</div>
+    """
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
