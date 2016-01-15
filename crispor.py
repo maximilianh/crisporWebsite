@@ -25,7 +25,7 @@ xlwtLoaded = True
 try:
     import xlwt
 except:
-    sys.stderr.write("crispor.cgi - warning - the python xlwt module is not available\n")
+    sys.stderr.write("crispor.py - warning - the python xlwt module is not available\n")
     xlwtLoaded = False
 
 # write debug output to stdout
@@ -41,7 +41,7 @@ HTMLPREFIX =  ""
 # alternative directory on local disk where image/, style/ and js/ are located
 HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
-# directory of crispor.cgi
+# directory of crispor.py
 baseDir = dirname(__file__)
 
 # the segments.bed files use abbreviated genomic region names
@@ -354,8 +354,8 @@ def parseConf(fname):
             conf[key] = value
     return conf
 
-# allow only dashes, digits, characters and underscores
-notOkChars = re.compile(r'[^a-zA-Z0-9-_]')
+# allow only dashes, digits, characters, underscores and colons in the CGI parameters
+notOkChars = re.compile(r'[^a-zA-Z0-9-_:]')
 
 def checkVal(key, str):
     """ remove special characters from input string, to protect against injection attacks """
@@ -1173,8 +1173,8 @@ def printDownloadTableLinks(batchId):
     print '<div style="text-align:right">'
     print '<small>'
     print "Download tables: "
-    print '<a href="crispor.cgi?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;' % batchId
-    print '<a href="crispor.cgi?batchId=%s&download=offtargets&format=xls">Off-targets</a>' % batchId
+    print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;' % batchId
+    print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>' % batchId
     print '</small>'
     print '</div>'
 
@@ -1277,7 +1277,7 @@ def printTableHead(batchId, chrom, org):
     print '<th style="width:170px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
 
-    print '<th style="width:70px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
+    print '<th style="width:70px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
     htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible.")
     print "</th>"
 
@@ -1288,7 +1288,7 @@ def printTableHead(batchId, chrom, org):
     #htmlHelp("")
     print '</th>'
 
-    print '<th style="width:45px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame</a>' % batchId
+    print '<th style="width:45px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oofScore">Out-of- Frame</a>' % batchId
     htmlHelp(scoreDescs["oof"][1])
     print '</th>'
 
@@ -1302,7 +1302,7 @@ def printTableHead(batchId, chrom, org):
     htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
-    #print '<form id="filter-form" method="get" action="crispor.cgi#otTable">'
+    #print '<form id="filter-form" method="get" action="crispor.py#otTable">'
     print '<input type="hidden" name="batchId" value="%s">' % batchId
 
     if hasGeneModels(org):
@@ -1333,11 +1333,11 @@ def printTableHead(batchId, chrom, org):
         if scoreName=="oof":
             continue
         scoreLabel, scoreDesc = scoreDescs[scoreName]
-        print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.cgi?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+        print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
 
     # the ProxGC score comes next
     # old text was: At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.t
-    print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.cgi?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
+    print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.py?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
 
     # these are empty cells to fill up the row and avoid white space
     print '<th style="border-top:none"></th>'
@@ -1380,7 +1380,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
             #break
 
     #if not showAll and len(otData)>3:
-         #print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.cgi?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
+         #print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.py?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
     return links
 
 def filterOts(otDatas, minScore):
@@ -1605,7 +1605,7 @@ def printHeader(batchId):
 <meta property='fb:admins' content='692090743' />
 <meta name="google-site-verification" content="OV5GRHyp-xVaCc76rbCuFj-CIizy2Es0K3nN9FbIBig" />
 <meta property='og:type' content='website' />
-<meta property='og:url' content='http://tefor.net/crispor/crispor.cgi' />
+<meta property='og:url' content='http://tefor.net/crispor/crispor.py' />
 <meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />
 
 <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
@@ -2296,7 +2296,7 @@ def readBatchParams(batchId):
     if not isfile(inputFaFname):
         errAbort('Could not find the batch %s. We cannot keep Crispor runs for more than '
                 'a few months. Please resubmit your input sequence via'
-            ' <a href="crispor.cgi">the query input form</a>' % batchId)
+            ' <a href="crispor.py">the query input form</a>' % batchId)
 
     ifh = open(inputFaFname)
     ifhFields = ifh.readline().replace(">","").strip().split()
@@ -2507,7 +2507,7 @@ def crisprSearch(params):
         seq, warnMsg = cleanSeq(seq, org)
         batchId, position, extSeq = newBatch(seq, org, pam)
         print ("<script>")
-        print ('''history.replaceState('crispor.cgi', document.title, '?batchId=%s');''' % (batchId))
+        print ('''history.replaceState('crispor.py', document.title, '?batchId=%s');''' % (batchId))
         print ("</script>")
 
     if len(warnMsg)!=0:
@@ -2558,7 +2558,7 @@ def crisprSearch(params):
 
     if len(guideScores)==0:
         print "Found no possible guide sequence. Make sure that your input sequence is long enough and contains at least one match to the PAM motif %s." % pam
-        print '<br><a class="neutral" href="crispor.cgi">'
+        print '<br><a class="neutral" href="crispor.py">'
         print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
         return
 
@@ -2574,7 +2574,7 @@ def crisprSearch(params):
 
     showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom)
 
-    print '<br><a class="neutral" href="crispor.cgi">'
+    print '<br><a class="neutral" href="crispor.py">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
 
 def printFile(fname):
@@ -2599,7 +2599,7 @@ def printTeforBodyStart():
         <div id='menu' class='default'>
                 <ul class='navi'>
                 <li><a href='http://tefor.net'>Home</a></li>
-                <li><a href='./crispor.cgi'>CRISPOR</a></li>
+                <li><a href='./crispor.py'>CRISPOR</a></li>
                 <li><a href='http://tefor.net/main/pages/citations'>Citations</a></li>
                 <li><a href='http://tefor.net/main/pages/blog'>News</a></li>
                 <li><a href='http://tefor.net/main/pages/events'>Events</a></li>
