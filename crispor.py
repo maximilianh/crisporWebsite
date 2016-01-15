@@ -37,7 +37,7 @@ TEMPDIR = os.environ.get("TMPDIR", "/tmp")
 #TEMPDIR = "/dev/shm/"
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
-HTMLPREFIX =  "/crispor/"
+HTMLPREFIX =  ""
 # alternative directory on local disk where image/, style/ and js/ are located
 HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
