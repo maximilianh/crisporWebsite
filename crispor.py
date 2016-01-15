@@ -28,6 +28,8 @@ except:
     sys.stderr.write("crispor.py - warning - the python xlwt module is not available\n")
     xlwtLoaded = False
 
+versionStr = "3.1"
+
 # write debug output to stdout
 DEBUG = False
 #DEBUG = True
@@ -51,7 +53,7 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 batchDir = join(baseDir,"temp")
 
 # the file where the job queue is stored
-JOBQUEUEDB = join(baseDir, "jobs.db")
+JOBQUEUEDB = join("/tmp/crisporJobs.db")
 
 # directory for platform-independent scripts (e.g. Heng Li's perl SAM parser)
 scriptDir = join(baseDir, "bin")
@@ -2136,7 +2138,7 @@ def readGenomes():
 def printOrgDropDown(lastorg):
     " print the organism drop down box "
     genomes = readGenomes()
-    print '<select id="genomeDropDown" class style="float:left; max-width:350px" name="org" tabindex="2">'
+    print '<select id="genomeDropDown" class style="max-width:400px" name="org" tabindex="2">'
     print '<option '
     if lastorg == "noGenome":
         print 'selected '
@@ -2618,7 +2620,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '</div>'
     #print "<div style='text-align:right'>Feedback? Bug reports? Email <a href='mailto:services@tefor.net'>services@tefor.net</a></div>"
-    print '<div style="display:block; text-align:center">Version 3,'
+    print '<div style="display:block; text-align:center">Version %s,' % versionStr
     print """Feedback: <a href='mailto:services@tefor.net'>services@tefor.net</a> or <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">Forum</a></div>"""
 
     print '</div>'

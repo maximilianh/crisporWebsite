@@ -74,7 +74,7 @@ Clone the repo into such a directory:
     cd /var/www/html/
     git clone https://github.com/maximilianh/crisporWebsite
     
-By default, the jobs database is a SQlite file. The Apache user has to be able to write to it so let us create it now:
+By default, the jobs database is a SQlite file, /tmp/crisporJobs.db. The Apache user has to be able to write to it so let us create it now:
 
     ./crispor.cgi --clear
     Worker queue now empty
@@ -88,6 +88,4 @@ Check that your worker is indeed running:
     cat log/worker1.log
     ps aux | grep crispor
 
-The worker needs write permissions in the temp/ directory:
-
-    chmod a+rw temp
+Now try to access the script from a webbrowser, http://localhost/crispor.py and click "Submit"
