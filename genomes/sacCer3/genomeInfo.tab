@@ -1,0 +1,2 @@
+#name	description	nibPath	organism	defaultPos	active	orderKey	genome	scientificName	htmlPath	hgNearOk	hgPbOk	sourceName	taxId	server
+sacCer3	Apr. 2011 (SacCer_Apr2011/sacCer3)	/gbdb/sacCer3	S. cerevisiae	chrIV:765966-775965	1	19013	S. cerevisiae	Saccharomyces cerevisiae	/gbdb/sacCer3/html/description.html	1	0	Saccharomyces cerevisiae S288c assembly from Saccharomyces Genome Database (GCA_000146055.2)	559292	ucsc
