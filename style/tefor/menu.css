@@ -1,0 +1,100 @@
+#menu
+{           	    
+    font: ColabLig, Arial, Helvetica, sans-serif;
+    text-align: center;
+    padding:0px;
+        
+}
+
+ul.navi
+{
+    padding: 13px;
+}
+
+ul.navi li
+{
+    display: inline-block;
+    list-style-type: none;        
+    cursor:pointer;    
+}
+
+ul.navi li img
+{
+    vertical-align: middle;
+    width:25px;
+}
+
+ul.navi li div.submenu, ul.navi li div.submenufixed
+{        
+    display:none;
+    
+    font-size:medium;
+    text-align:left;    
+    
+    width:auto;
+    max-width:50%;
+    height:auto;  
+    max-height:70%;        
+
+    padding:10px;
+    
+    margin-bottom:0px;    
+    margin-left:0%;
+    margin-right:0%;        
+    
+    border-bottom-left-radius:5px;
+    border-bottom-right-radius:20px;                
+}
+
+.default
+{    
+    width: 100%;               
+    min-width:900px;
+}
+.fixed
+{
+    position: fixed;
+    top: -25px;
+    left: 0px;
+    width: 100%;        
+    min-width:900px;        
+    z-index: 3501;   
+    
+}
+ul.navi li div.submenu
+{    
+    position:absolute;        
+    z-index:100;    
+}
+ul.navi li div.submenufixed
+{    
+    position:fixed;    
+    z-index:3502;    
+}
+ul.navi li div.submenu_wrapper
+{        
+    max-height:300px;    
+    width: 104.15%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    direction:rtl;    
+}
+div.default_submenu
+{
+    padding-left:5px;
+    direction:ltr;
+}
+div.floating_sub_submenu
+{
+    margin-top:5px;
+    float:left;
+    padding-left:20px;    
+    direction:ltr;
+}
+div.separator
+{
+    line-height:5px;
+    border-bottom: solid thin lightgrey;
+    margin-bottom: 5px;
+    margin-right: 15px;
+}

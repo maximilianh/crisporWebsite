@@ -1,0 +1,135 @@
+/*
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/* 
+    Created on : 4 déc. 2014, 18:21:47
+    Author     : JB
+*/
+
+#navi
+{    
+    float:left;    
+    width:78%;
+    
+    margin-top:15px;
+    margin-left:20px;
+    margin-bottom:20px;
+}
+#menu
+{           	        
+    background: #ff7f04; /* Old browsers */
+    background: -moz-linear-gradient(top,  #ff7f04 0%, #ffa73d 50%, #ffb76b 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ff7f04), color-stop(50%,#ffa73d), color-stop(100%,#ffb76b)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* IE10+ */
+    background: linear-gradient(to bottom,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff7f04', endColorstr='#ffb76b',GradientType=0 ); /* IE6-9 */
+            
+    box-shadow:         5px 11px 15px 1px rgba(47, 129, 203, 0.15);
+    -moz-box-shadow:    5px 11px 15px 1px rgba(47, 129, 203, 0.15);
+    -webkit-box-shadow: 5px 11px 15px 1px rgba(47, 129, 203, 0.15);            
+        
+}
+ul.navi li
+{
+/*    margin-right: 12px;*/
+    padding-left: 17px;
+    padding-right: 17px;
+    border-radius:20px;
+    /*border: solid thin red;*/
+    /*margin-right: 25px;*/
+    color: white;
+}
+
+ul.navi li a,ul.navi li .linklike
+{           
+    color: white;
+    text-decoration: none;
+}
+
+.thisurl
+{
+    padding-top:5px;
+    padding-bottom:5px;
+    background-color: rgba(300,300,300,0.2);
+    
+    box-shadow:         inset 0px 0px 15px 2px rgba(100, 100, 100, 0.1);
+    -moz-box-shadow:    inset 0px 0px 15px 2px rgba(100, 100, 100, 0.1);
+    -webkit-box-shadow: inset 0px 0px 15px 2px rgba(100, 100, 100, 0.1);
+}
+
+div.thisurl
+{
+    margin-top:   2px;
+    margin-bottom:2px;
+    padding: 3px;
+    padding-left:10px;
+    padding-right:10px;
+    margin-right:10px;
+    border-radius:20px;
+}
+
+ul.navi li a:hover, 
+ul.navi li .linklike:hover, 
+ul.navi li:hover div.level1, 
+ul.navi li.thisurl div.level1,
+ul.navi li:hover .thisurl,
+ul.navi li .thisurl
+{
+    text-shadow: 1px 1px 1px black;
+}
+ul.navi li:hover img, ul.navi li.thisurl img
+{
+    opacity:        1;
+    
+    -webkit-filter: drop-shadow(1px 1px 1px #222);
+    filter:         drop-shadow(1px 1px 1px #222);
+}
+
+.default
+{    
+    font-size:20px;
+    line-height:24px;    
+    border-radius:50px;
+    height: 67px;
+}
+.fixed
+{
+    font-size:22px;
+    line-height:24px;
+    height:90px;
+}
+ul.navi li div.submenu, ul.navi li div.submenufixed
+{        
+    background: #ffb76b; /* Old browsers */
+    background: -moz-linear-gradient(top,  #ffb76b 0%, #ffa73d 50%, #ff7f04 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffb76b), color-stop(50%,#ffa73d), color-stop(100%,#ff7f04)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  #ffb76b 0%,#ffa73d 50%,#ff7f04 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  #ffb76b 0%,#ffa73d 50%,#ff7f04 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  #ffb76b 0%,#ffa73d 50%,#ff7f04 100%); /* IE10+ */
+    background: linear-gradient(to bottom,  #ffb76b 0%,#ffa73d 50%,#ff7f04 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff7f04', endColorstr='#ffb76b',GradientType=0 ); /* IE6-9 */
+    
+    box-shadow:         5px 11px 15px 1px rgba(47, 129, 203, 0.1);
+    -moz-box-shadow:    5px 11px 15px 1px rgba(47, 129, 203, 0.1);
+    -webkit-box-shadow: 5px 11px 15px 1px rgba(47, 129, 203, 0.1);
+}
+ul.navi li div.submenu
+{    
+    top:103px;
+}
+ul.navi li div.submenufixed
+{        
+    top:67px;
+}
+div.submenu a
+{    
+    text-decoration: none;
+}
+div.submenu a:hover
+{
+    text-shadow: 1px 1px 1px #ddd;
+}

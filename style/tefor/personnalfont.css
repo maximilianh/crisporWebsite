@@ -1,0 +1,34 @@
+@font-face
+{
+    font-family: "ColabBol";
+    font-weight: normal;
+    src: url('ColabBol.otf');
+}
+
+@font-face
+{
+    font-family: "ColabLig";
+    font-weight: normal;
+    src: url('ColabLig.otf');
+}
+
+@font-face
+{
+    font-family: "ColabMed";
+    font-weight: normal;
+    src: url('ColabMed.otf');
+}
+
+@font-face
+{
+    font-family: "ColabReg";
+    font-weight: normal;
+    src: url('ColabReg.otf');
+}
+
+@font-face
+{
+    font-family: "ColabThi";
+    font-weight: normal;
+    src: url('ColabThi.otf');
+}

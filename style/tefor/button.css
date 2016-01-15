@@ -1,0 +1,58 @@
+
+#stylized button,
+input[type="submit"],
+button,
+div.nonselectedform,
+div.nonselectedformsmall,
+div.nonselectedfloatingsubmit,
+div.button,
+div.button2,
+div.headerbutton
+{
+    margin-bottom: 15px;
+    padding-left:10px;
+    padding-right:10px;
+    
+    height:31px;
+    width:auto;
+    background: #ff7f04; /* Old browsers */
+    background: -moz-linear-gradient(top,  #ff7f04 0%, #ffa73d 50%, #ffb76b 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ff7f04), color-stop(50%,#ffa73d), color-stop(100%,#ffb76b)); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* IE10+ */
+    background: linear-gradient(to bottom,  #ff7f04 0%,#ffa73d 50%,#ffb76b 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff7f04', endColorstr='#ffb76b',GradientType=0 ); /* IE6-9 */
+
+    color:#f0efef;
+    
+    border:none;
+    border-radius: 5px;
+    -moz-box-shadow:    0 2px 10px 2px #ccc;
+    -webkit-box-shadow: 0 2px 10px 2px #ccc;
+    box-shadow:         0 2px 10px 2px #ccc;
+    
+    text-align:center;
+    line-height:31px;
+    font-size:16px;
+    
+}
+#stylized button:hover,
+input[type="submit"]:hover,
+button:hover,
+div.nonselectedform:hover,
+div.nonselectedformsmall:hover,
+div.nonselectedfloatingsubmit:hover,
+div.button:hover,
+div.button2:hover,
+div.headerbutton:hover,
+div.buttonselected
+{
+    background:#ff7f04;
+    color:#f0efef;
+    cursor:pointer;
+    
+    -moz-box-shadow:    0 0px 10px 1px #ccc;
+    -webkit-box-shadow: 0 0px 10px 1px #ccc;
+    box-shadow:         0 0px 10px 1px #ccc;
+}

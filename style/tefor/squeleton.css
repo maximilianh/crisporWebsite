@@ -1,0 +1,11 @@
+body
+{
+    min-width:1000px;
+    background-image:url('../../images/background/background6.png');
+}
+.subpanel, .subpanelhalf, .subpanelfull, .subpanelhalfleft, .subpanelintroduction
+{    
+    -moz-box-shadow:    0 0 15px 3px rgba(47, 129, 203, 0.1);
+    box-shadow:         0 0 15px 3px rgba(47, 129, 203, 0.1);
+    -webkit-box-shadow: 0 0 15px 3px rgba(47, 129, 203, 0.1);
+}
