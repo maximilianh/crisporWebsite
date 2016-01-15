@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+from collections import namedtuple
+import os, logging
+from os.path import join, isfile
+
+# go through all subdirectories and collect info from all genomeInfo.tab file and write to genomeInfo.all.tab
+
+# subdirectory with genome info
+genomesDir = "genomes"
+
+
+def lineFileNext(fh):
+    """ 
+        parses tab-sep file with headers as field names 
+        yields collection.namedtuples
+        strips "#"-prefix from header line
+    """
+    line1 = fh.readline()
+    line1 = line1.strip("\n").strip("#")
+    headers = line1.split("\t")
+    Record = namedtuple('tsvRec', headers)
+   
+    for line in fh:
+        line = line.rstrip("\n")
+        fields = line.split("\t")
+        try:
+            rec = Record(*fields)
+        except Exception, msg:
+            logging.error("Exception occured while parsing line, %s" % msg)
+            logging.error("Filename %s" % fh.name)
+            logging.error("Line was: %s" % repr(line))
+            logging.error("Does number of fields match headers?")
+            logging.error("Headers are: %s" % headers)
+            #raise Exception("wrong field count in line %s" % line)
+            continue
+        # convert fields to correct data type
+        yield rec
+
+fields = ["name","description", "genome", "scientificName", "url", "server"]
+
+tmpFname = join(genomesDir, "genomeInfo.all.tab.tmp")
+outFname = join(genomesDir, "genomeInfo.all.tab")
+
+ofh = open(tmpFname, "w")
+
+ofh.write("\t".join(fields)+"\n")
+for subDir in os.listdir(genomesDir):
+    infoFname = join(genomesDir, subDir, "genomeInfo.tab")
+    if not isfile(infoFname):
+        continue
+    for row in lineFileNext(open(infoFname)):
+        newRow = []
+        rowDict = row._asdict()
+        for field in fields:
+            newRow.append(rowDict.get(field, ""))
+        ofh.write("\t".join(newRow)+"\n")
+ofh.close()
+
+os.rename(tmpFname, outFname)
+print("Recreated %s" % outFname)
