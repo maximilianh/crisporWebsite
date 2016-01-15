@@ -1,19 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
 
-# todo: check symlink to /var/www
-
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
-import Cookie, time, math, sys, cgi, re, array, random, platform, os
+import Cookie, time, sys, cgi, re, random, platform, os
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
-import traceback, json, pwd, types, pickle
+import traceback, json, pwd, pickle
 
 from datetime import datetime
 from collections import defaultdict, namedtuple
-from sys import stdout
-from os.path import join, isfile, basename, dirname, getmtime, isdir
+from os.path import join, isfile, basename, dirname, isdir
 from StringIO import StringIO
 
 # out own eff scoring library
@@ -40,7 +37,7 @@ TEMPDIR = os.environ.get("TMPDIR", "/tmp")
 #TEMPDIR = "/dev/shm/"
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
-HTMLPREFIX =  ""
+HTMLPREFIX =  "/crispor/"
 # alternative directory on local disk where image/, style/ and js/ are located
 HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
@@ -202,12 +199,24 @@ class JobQueue:
     def __init__(self, dbName):
         self.dbName = dbName
         self.conn = sqlite3.Connection(dbName)
-        self.conn.execute(self._queueDef % ("queue", "PRIMARY KEY"))
+        try:
+            self.conn.execute(self._queueDef % ("queue", "PRIMARY KEY"))
+        except sqlite3.OperationalError:
+            errAbort("cannot open the file %s" % JOBQUEUEDB)
         self.conn.execute(self._queueDef % ("doneJobs", ""))
         self.conn.commit()
+        self._chmodJobDb()
  
+    def _chmodJobDb(self):
+        # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
+        try:
+            os.chmod(JOBQUEUEDB, 0o666)
+        except OSError:
+            pass
+
     def addJob(self, jobType, jobId, paramStr):
         " create a new job, returns False if not successful  "
+        self._chmodJobDb()
         sql = 'INSERT INTO queue (jobType, jobId, isRunning, lastUpdate, ' \
             'stepTimes, paramStr, stepName, stepLabel, startTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now"))'
         now = "%.3f" % time.time()
@@ -744,7 +753,8 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
             # CFD score must include the PAM
             cfdScore = calcCfdScore(guideSeq, otSeq)
-            cfdScores.append(cfdScore)
+            if cfdScore != None:
+                cfdScores.append(cfdScore)
 
             posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
             alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, mitScore, posStr)
@@ -1562,8 +1572,8 @@ def linkLocalFiles(listFname):
                 continue
         mTime = str(os.path.getmtime(fname)).split(".")[0] # seconds is enough
         if fname.endswith(".css"):
-            url = fname.replace("/var/www/", "http://tefor.net/")
-            print "<link rel='stylesheet' media='screen' type='text/css' href='%s?%s'/>" % (url, mTime)
+            #url = fname.replace("/var/www/", "http://tefor.net/")
+            print "<link rel='stylesheet' media='screen' type='text/css' href='%s%s?%s'/>" % (HTMLPREFIX, fname, mTime)
 
 def printHeader(batchId):
     " print the html header "
@@ -1902,7 +1912,11 @@ def calcGuideEffScores(seq, extSeq, pam):
     for i, (guideId, guide, longSeq) in enumerate(zip(guideIds, guides, longSeqs)):
         row = [guideId, guide, longSeq]
         for scoreName in scoreNames:
-            row.append(effScores[scoreName][i])
+            scoreList = effScores[scoreName]
+            if len(scoreList) > 0:
+                row.append(scoreList[i])
+            else:
+                row.append("noScore?")
         rows.append(row)
 
     headerRow = ["guideId", "guide", "longSeq"]
@@ -2075,17 +2089,25 @@ def readGenomes():
 
     myDir = dirname(__file__)
     genomesDir = join(myDir, "genomes")
-    for subDir in os.listdir(genomesDir):
-        infoFname = join(genomesDir, subDir, "genomeInfo.tab")
-        if isfile(infoFname):
-            row = lineFileNext(open(infoFname)).next()
+
+    inFnames = []
+    globalFname = join(genomesDir, "genomeInfo.all.tab")
+    if isfile(globalFname):
+        inFnames = [globalFname]
+    else:
+        for subDir in os.listdir(genomesDir):
+            infoFname = join(genomesDir, subDir, "genomeInfo.tab")
+            if isfile(infoFname):
+                inFnames.append(infoFname)
+    
+    for infoFname in inFnames:
+        for row in lineFileNext(open(infoFname)):
             # add a note to identify UCSC genomes
             if row.server.startswith("ucsc"):
                 addStr="UCSC "
             else:
                 addStr = ""
             genomes[row.name] = row.scientificName+" - "+row.genome+" - "+addStr+row.description
-            #genomes[row.name] = row.genome+" - "+row.scientificName+" - "+row.description
 
     genomes = genomes.items()
     genomes.sort(key=operator.itemgetter(1))
@@ -2142,10 +2164,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
- <div style="text-align:center">
+ <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
- </div>
-<div class="introtext">
+<span class="introtext">
     <div onclick="$('.about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
         <img src="%simage/info-small.png" style="vertical-align:text-top;">
     </div>
@@ -2153,7 +2174,8 @@ def printForm(params):
     CRISPOR v3.0 uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
     It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
-</div>
+</span>
+ </div>
 
 <div class="windowstep subpanel" style="width:50%%;">
     <div class="substep">
@@ -2342,7 +2364,7 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
     if isfile(flagFile):
        errAbort("This sequence is still being processed. Please wait for ~20 seconds "
            "and try again, e.g. by reloading this page. If you see this message for "
-           "more than 1-2 minutes, please email services@tefor.net")
+           "more than 2-3 minutes, please send an email services@tefor.net. Thanks!")
 
     if not isfile(otBedFname) or commandLineMode:
         # write potential PAM sites to file 
@@ -2356,6 +2378,7 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
         if commandLineMode:
             processSubmission(faFnames, org, pam, otBedFname, batchBase, batchId, queue)
         else:
+            # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
             q = JobQueue(JOBQUEUEDB)
             ip = os.environ["REMOTE_ADDR"]
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pam))
@@ -2411,7 +2434,7 @@ def getSeq(db, posStr):
         errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
     genomeDir = genomesDir # pull in global var
     twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
-    cmd = ["twoBitToFa", twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
+    cmd = [binDir, "twoBitToFa", twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     seqStr = proc.stdout.read()
     # remove fasta header line
@@ -2526,8 +2549,22 @@ def printFile(fname):
     print open(path).read()
 
 def printTeforBodyStart():
-    print "<div class='logo'><a href='http://tefor.net/main/'><img src='http://tefor.net/main/images/logo/logo_tefor.png' alt='logo tefor infrastructure'></a></div>"
-    printFile("menu.inc")
+    print "<div class='logo'><a href='http://tefor.net/main/'><img src='%s/image/logo_tefor.png' alt='logo tefor infrastructure'></a></div>" % HTMLPREFIX
+    print """
+<div id='navi'>
+        <div id='menu' class='default'>
+                <ul class='navi'>
+                <li><a href='http://tefor.net'>Home</a></li>
+                <li><a href='./crispor.cgi'>CRISPOR</a></li>
+                <li><a href='http://tefor.net/main/pages/citations'>Citations</a></li>
+                <li><a href='http://tefor.net/main/pages/blog'>News</a></li>
+                <li><a href='http://tefor.net/main/pages/events'>Events</a></li>
+                <li><a href='http://tefor.net/main/pages/partners'>Partners</a></li>
+                <li><a href='http://tefor.net/main/pages/contacts'>Contacts</a></li>
+                </ul>
+        </div>
+</div>
+    """
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
@@ -2543,7 +2580,16 @@ def printTeforBodyEnd():
     print '</div>'
     print '</div>'
     print '</div>'
-    printFile("/var/www/main/specific/googleanalytics/script.php")
+    print '''
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-38389239-1', 'auto');
+  ga('send', 'pageview');
+</script>
+'''
 
 def iterGuideRows(guideData, addHeaders=False):
     "yield rows from guide data "
@@ -2695,10 +2741,12 @@ PRIMER_PICK_LEFT_PRIMER=1
 PRIMER_PICK_RIGHT_PRIMER=1
 PRIMER_PRODUCT_SIZE_RANGE=%(prodSizeRange)s
 SEQUENCE_TARGET=%(targetStart)s,%(targetLen)s
+PRIMER_THERMODYNAMIC_PARAMETERS_PATH=bin/src/primer3-2.3.6/src/primer3_config/
 =""" % locals()
         open(tmpInFname, "w").write(conf)
 
-        cmdLine = "primer3_core %s > %s" % (tmpInFname, tmpOutFname)
+        binName = join(binDir, "primer3_core")
+        cmdLine = binName+" %s > %s" % (tmpInFname, tmpOutFname)
         runCmd(cmdLine)
 
         p3 = parseBoulder(tmpOutFname)
@@ -2818,7 +2866,8 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
         errAbort("Not enough space on genome sequence to design primer. Please design it manually")
 
     flankFname = join(batchDir, batchId+".inFlank.fa")
-    cmd = "twoBitToFa genomes/%(genome)s/%(genome)s.2bit %(flankFname)s -seq=%(chrom)s -start=%(flankStart)d -end=%(flankEnd)d" % locals()
+    binFname = join(binDir, "twoBitToFa")
+    cmd = binFname+" genomes/%(genome)s/%(genome)s.2bit %(flankFname)s -seq=%(chrom)s -start=%(flankStart)d -end=%(flankEnd)d > stdout.log 2> stderr.log" % locals()
     runCmd(cmd)
 
     flankSeq = parseFasta(open(flankFname)).values()[0]
@@ -3210,8 +3259,8 @@ Command line interface for the Crispor tool.
         default=ALTPAMMINSCORE)
     parser.add_option("", "--worker", dest="worker", \
         action="store_true", help="Run as worker process: watches job queue and runs jobs")
-    parser.add_option("", "--user", dest="user", \
-        action="store", help="for the --worker option: switch to this user at program start")
+    #parser.add_option("", "--user", dest="user", \
+        #action="store", help="for the --worker option: switch to this user at program start")
     parser.add_option("", "--clear", dest="clear", \
         action="store_true", help="clear the worker job table and exit")
     parser.add_option("-g", "--genomeDir", dest="genomeDir", \
@@ -3249,11 +3298,11 @@ def delBatchDir():
         os.remove(fname)
     os.removedirs(batchDir)
 
-def runQueueWorker(userName):
+def runQueueWorker():
     " in an infinite loop, take jobs from the job queue in jobs.db and finish them "
-    if userName!=None:
-        uid =  pwd.getpwnam(userName)[2]
-        os.setuid(uid)
+    #if userName!=None:
+        #uid =  pwd.getpwnam(userName)[2]
+        #os.setuid(uid)
 
     try:
        # Store the Fork PID
@@ -3358,7 +3407,7 @@ def mainCommandLine():
         #sendStatus(options.ajax)
 
     if options.worker:
-        runQueueWorker(options.user)
+        runQueueWorker()
         sys.exit(0)
 
     if options.clear:
@@ -3468,6 +3517,15 @@ def sendStatus(batchId):
         d = {"status":status}
     print json.dumps(d)
 
+def cleanJobs():
+    """ look for flag file cleanJobs in current dir. If present, remove jobs.db. 
+    this is the only way to remove the file, as the jobs.db file is owned by apache 
+    """
+    if isfile("cleanJobs"):
+        os.remove(JOBQUEUEDB)
+        os.remove("cleanJobs")
+        open("test2.txt", "w").write("hi there")
+
 def mainCgi():
     " main entry if called from apache "
     # XX IS THE SCRIPT SYMLINKED ? XX
@@ -3475,6 +3533,11 @@ def mainCgi():
         # only activate stackdumps if running on a development machine
         import cgitb
         cgitb.enable()
+
+    # make all output files world-writable. Useful so we can a) clean temp and b) write to the jobs database
+    os.umask(000)
+
+    cleanJobs()
 
     # parse incoming parameters
     params = getParams()

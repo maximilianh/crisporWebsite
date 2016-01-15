@@ -1,8 +1,8 @@
-/var/www/tefor/style/style_general.css    
-/var/www/tefor/specific/style/squeleton.css    
-/var/www/tefor/style/menu.css
-/var/www/tefor/specific/style/menu.css
-/var/www/tefor/specific/style/logo.css
-/var/www/tefor/style/newfont/personnalfont.css
-/var/www/tefor/specific/style/button.css
-style/style.css
+./style/tefor/style_general.css    
+./style/tefor/squeleton.css    
+./style/tefor/menu.css
+./style/tefor/menuSpec.css
+./style/tefor/logo.css
+./style/tefor/personnalfont.css
+./style/tefor/button.css
+./style/style.css
