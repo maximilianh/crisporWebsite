@@ -2478,7 +2478,8 @@ def getSeq(db, posStr):
         errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
     genomeDir = genomesDir # pull in global var
     twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
-    cmd = [binDir, "twoBitToFa", twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
+    binPath = join(binDir, "twoBitToFa")
+    cmd = [binPath, twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     seqStr = proc.stdout.read()
     # remove fasta header line
