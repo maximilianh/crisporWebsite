@@ -28,6 +28,14 @@ except:
     sys.stderr.write("crispor.py - warning - the python xlwt module is not available\n")
     xlwtLoaded = False
 
+# optional module for mysql support
+try:
+    import MySQLdb
+    mysqldbLoaded = True
+except:
+    mysqldbLoaded = False
+
+# version of crispor
 versionStr = "3.1"
 
 # write debug output to stdout
@@ -52,8 +60,14 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 # directory for processed batches of offtargets ("cache" of bwa results)
 batchDir = join(baseDir,"temp")
 
-# the file where the job queue is stored
+# use mysql or sqlite for the jobs?
+jobQueueUseMysql = False
+
+# the file where the sqlite job queue is stored
 JOBQUEUEDB = join("/tmp/crisporJobs.db")
+
+# alternatively: connection info for mysql
+jobQueueMysqlConn = {"socket":None, "host":None, "user": None, "password" : None}
 
 # directory for platform-independent scripts (e.g. Heng Li's perl SAM parser)
 scriptDir = join(baseDir, "bin")
@@ -142,6 +156,13 @@ scoreDescs = {
 # the headers for the guide and offtarget output files
 guideHeaders = ["guideId", "guideSeq", "mitSpecScore", "cfdSpecScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
 offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "locusDesc"]
+
+# a file crispor.conf in the directory of the script allows to override any global variable
+myDir = dirname(__file__)
+confPath =join(myDir, "crispor.conf")
+if isfile(confPath):
+    exec(open(confPath))
+
 # ====== END GLOBALS ============
 
 
@@ -152,7 +173,7 @@ class JobQueue:
     jobs have different types and status. status can be updated while they run
     job running times are kept and old job info is kept in a separate table
     
-    >>> q = JobQueue("/tmp/tempCrisporTest.db")
+    >>> q = JobQueue()
     >>> q.clearJobs()
     >>> q.waitCount()
     0
@@ -198,7 +219,14 @@ class JobQueue:
     '  startTime text' # date+time when job was put into queue
     ')')
 
-    def __init__(self, dbName):
+    def __init__(self):
+        " no inheritance needed here "
+        if jobQueueUseMysql:
+            self.openMysql()
+        else:
+            self.openSqlite(JOBQUEUEDB)
+
+    def openSqlite(self, dbName):
         self.dbName = dbName
         self.conn = sqlite3.Connection(dbName)
         try:
@@ -208,13 +236,18 @@ class JobQueue:
         self.conn.execute(self._queueDef % ("doneJobs", ""))
         self.conn.commit()
         self._chmodJobDb()
- 
+
     def _chmodJobDb(self):
         # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
-        try:
-            os.chmod(JOBQUEUEDB, 0o666)
-        except OSError:
-            pass
+        if not jobQueueUseMysql:
+            try:
+                os.chmod(JOBQUEUEDB, 0o666)
+            except OSError:
+                pass
+
+    def openMysql(self):
+        db = MySQLdb.connect(**jobQueueMysql)
+        self.conn = db.cursor()
 
     def addJob(self, jobType, jobId, paramStr):
         " create a new job, returns False if not successful  "
@@ -319,6 +352,10 @@ class JobQueue:
         #self.conn.execute("DROP TABLE queue")
         self.conn.commit()
 
+    def close(self):
+        " "
+        self.conn.close()
+
 # ====== FUNCTIONS =====
 contentLineDone = False
 
@@ -334,27 +371,6 @@ def errAbort(msg):
     print(msg+"<p>")
     print('</div>')
     sys.exit(0)  # cgi must not exit with 1
-
-def parseConf(fname):
-    """ parse a hg.conf style file,
-        return a dict key -> value (both are strings)
-    """
-
-    conf = {}
-    for line in open(fname):
-        line = line.strip()
-        if line.startswith("#"):
-            continue
-        elif line.startswith("include "):
-            inclFname = line.split()[1]
-            inclPath = join(dirname(fname), inclFname)
-            if isfile(inclPath):
-                inclDict = parseConf(inclPath)
-                conf.update(inclDict)
-        elif "=" in line: # string search for "="
-            key, value = line.split("=")
-            conf[key] = value
-    return conf
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
 notOkChars = re.compile(r'[^a-zA-Z0-9-_:]')
@@ -1162,7 +1178,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         #guideData = [x[:-1] for x in guideData]
 
     if sortBy is not None and sortBy!="spec":
-        sortFunc = (lambda row: row[1][sortBy])
+        sortFunc = (lambda row: row[2][sortBy])
     else:
         sortFunc = operator.itemgetter(0)
 
@@ -2405,12 +2421,13 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
             processSubmission(faFnames, org, pam, otBedFname, batchBase, batchId, queue)
         else:
             # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
-            q = JobQueue(JOBQUEUEDB)
+            q = JobQueue()
             ip = os.environ["REMOTE_ADDR"]
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pam))
             if not wasOk:
                 #print "CRISPOR job is running..." % batchId
                 pass
+            q.close()
             return None
 
     return otBedFname
@@ -2475,8 +2492,10 @@ def getSeq(db, posStr):
 
 def printStatus(batchId):
     " print status, not using any Ajax "
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     status = q.getStatus(batchId)
+    q.close()
+
     if "Traceback" in status:
         status = "An error occured during processing.<br> Please send an email to services@tefor.net and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks!" % batchId
     if status==None:
@@ -3365,7 +3384,7 @@ def runQueueWorker():
     print("%s: Worker daemon started. Waiting for jobs." % datetime.ctime(datetime.now()))
     sys.stdout.flush()
 
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     while True:
         if q.waitCount()==0:
             #q.dump()
@@ -3398,11 +3417,13 @@ def runQueueWorker():
             #raise Exception()
             logging.error("Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId))
             q.jobDone(batchId)
+    q.close()
 
 def clearQueue():
     " empty the job queue "
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     q.clearJobs()
+    q.close()
     print("Worker queue now empty")
 
 # this won't work, it's very hard to spawn from CGIs
@@ -3552,8 +3573,10 @@ def mainCommandLine():
 
 def sendStatus(batchId):
     " send batch status as json "
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     status = q.getStatus(batchId)
+    q.close()
+
     if status==None:
         d = {"status":status}
     elif "Traceback" in status:
@@ -3569,7 +3592,7 @@ def cleanJobs():
     if isfile("cleanJobs"):
         os.remove(JOBQUEUEDB)
         os.remove("cleanJobs")
-        open("test2.txt", "w").write("hi there")
+
 
 def mainCgi():
     " main entry if called from apache "
@@ -3579,7 +3602,7 @@ def mainCgi():
         import cgitb
         cgitb.enable()
 
-    # make all output files world-writable. Useful so we can a) clean temp and b) write to the jobs database
+    # make all output files world-writable. Useful so we can clean the tempfiles
     os.umask(000)
 
     cleanJobs()
