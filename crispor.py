@@ -373,7 +373,8 @@ def errAbort(msg):
     sys.exit(0)  # cgi must not exit with 1
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
-notOkChars = re.compile(r'[^a-zA-Z0-9-_:]')
+# and +
+notOkChars = re.compile(r'[^a-zA-Z0-9-_:+]')
 
 def checkVal(key, str):
     """ remove special characters from input string, to protect against injection attacks """
@@ -388,11 +389,13 @@ def getParams():
     form = cgi.FieldStorage()
     params = {}
 
-    #for key in ["pamId", "batchId", "pam", "seq", "org", "showAll", "download", "sortBy", "format", "ajax]:
+    # parameters are:
+    #"pamId", "batchId", "pam", "seq", "org", "showAll", "download", "sortBy", "format", "ajax
     for key in form.keys():
         val = form.getfirst(key)
 	if val!=None:
             # "seq" is cleaned by cleanSeq later
+            val = urllib.unquote(val)
             if key!="seq":
                 checkVal(key, val)
             params[key] = val
