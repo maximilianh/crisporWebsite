@@ -72,6 +72,11 @@ Clone the repo into such a directory:
     cd /var/www/html/
     git clone https://github.com/maximilianh/crisporWebsite
     
+Use the sample genomes and jobs databases for a start:
+
+    mv jobs.db.sample jobs.db
+    mv genomes.sample genomes
+
 By default, the jobs database is a SQlite file. The Apache user has to be able to write to it so let us create it now:
 
     ./crispor.cgi --clear
