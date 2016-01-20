@@ -9,11 +9,13 @@ CRISPOR uses BWA and a few tools from the UCSC Genome Browser (twoBitToFa, bedCl
 
 Install BWA and a few required python modules:
     
-    apt-get install bwa python-numpy python-pandas python-sklearn python-biopython
+    apt-get install bwa python-numpy python-biopython python-pip
+    sudo pip install scikit-learn==0.16.1 pandas
     
 or 
    
-    yum install bwa python-numpy python-pandas python-sklearn python-biopython
+    yum install bwa python-numpy python-biopython python-pip
+    sudo pip install scikit-learn==0.16.1 pandas
     
 When you run crispor.py, it should show the usage message:
 ```
@@ -72,12 +74,22 @@ Clone the repo into such a directory:
     cd /var/www/html/
     git clone https://github.com/maximilianh/crisporWebsite
     
-Use the sample genomes and jobs databases for a start:
+Use the sample E. coli genome for a start:
 
-    mv jobs.db.sample jobs.db
     mv genomes.sample genomes
 
-By default, the jobs database is a SQlite file. The Apache user has to be able to write to it so let us create it now:
+By default, the jobs database is a SQlite file, /tmp/crisporJobs.db. The Apache user has to be able to write to it so let us create it now:
 
     ./crispor.cgi --clear
     Worker queue now empty
+
+Now start a single worker job. It will watch the job queue and process jobs:
+
+    ./startWorkers.sh 1
+
+Check that your worker is indeed running:
+  
+    cat log/worker1.log
+    ps aux | grep crispor
+
+Now try to access the script from a webbrowser, http://localhost/crispor.py and click "Submit"

@@ -1,4 +1,4 @@
-#!/cluster/software/bin/python2.7
+#!/usr/bin/env python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
 
@@ -25,8 +25,18 @@ xlwtLoaded = True
 try:
     import xlwt
 except:
-    sys.stderr.write("crispor.cgi - warning - the python xlwt module is not available\n")
+    sys.stderr.write("crispor.py - warning - the python xlwt module is not available\n")
     xlwtLoaded = False
+
+# optional module for mysql support
+try:
+    import MySQLdb
+    mysqldbLoaded = True
+except:
+    mysqldbLoaded = False
+
+# version of crispor
+versionStr = "3.1"
 
 # write debug output to stdout
 DEBUG = False
@@ -41,7 +51,7 @@ HTMLPREFIX =  ""
 # alternative directory on local disk where image/, style/ and js/ are located
 HTMLDIR = "/usr/local/apache/htdocs/crispor/"
 
-# directory of crispor.cgi
+# directory of crispor.py
 baseDir = dirname(__file__)
 
 # the segments.bed files use abbreviated genomic region names
@@ -50,8 +60,14 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 # directory for processed batches of offtargets ("cache" of bwa results)
 batchDir = join(baseDir,"temp")
 
-# the file where the job queue is stored
-JOBQUEUEDB = join(baseDir, "jobs.db")
+# use mysql or sqlite for the jobs?
+jobQueueUseMysql = False
+
+# the file where the sqlite job queue is stored
+JOBQUEUEDB = join("/tmp/crisporJobs.db")
+
+# alternatively: connection info for mysql
+jobQueueMysqlConn = {"socket":None, "host":None, "user": None, "password" : None}
 
 # directory for platform-independent scripts (e.g. Heng Li's perl SAM parser)
 scriptDir = join(baseDir, "bin")
@@ -140,6 +156,13 @@ scoreDescs = {
 # the headers for the guide and offtarget output files
 guideHeaders = ["guideId", "guideSeq", "mitSpecScore", "cfdSpecScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
 offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "locusDesc"]
+
+# a file crispor.conf in the directory of the script allows to override any global variable
+myDir = dirname(__file__)
+confPath =join(myDir, "crispor.conf")
+if isfile(confPath):
+    exec(open(confPath))
+
 # ====== END GLOBALS ============
 
 
@@ -150,7 +173,7 @@ class JobQueue:
     jobs have different types and status. status can be updated while they run
     job running times are kept and old job info is kept in a separate table
     
-    >>> q = JobQueue("/tmp/tempCrisporTest.db")
+    >>> q = JobQueue()
     >>> q.clearJobs()
     >>> q.waitCount()
     0
@@ -196,7 +219,14 @@ class JobQueue:
     '  startTime text' # date+time when job was put into queue
     ')')
 
-    def __init__(self, dbName):
+    def __init__(self):
+        " no inheritance needed here "
+        if jobQueueUseMysql:
+            self.openMysql()
+        else:
+            self.openSqlite(JOBQUEUEDB)
+
+    def openSqlite(self, dbName):
         self.dbName = dbName
         self.conn = sqlite3.Connection(dbName)
         try:
@@ -206,13 +236,18 @@ class JobQueue:
         self.conn.execute(self._queueDef % ("doneJobs", ""))
         self.conn.commit()
         self._chmodJobDb()
- 
+
     def _chmodJobDb(self):
         # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
-        try:
-            os.chmod(JOBQUEUEDB, 0o666)
-        except OSError:
-            pass
+        if not jobQueueUseMysql:
+            try:
+                os.chmod(JOBQUEUEDB, 0o666)
+            except OSError:
+                pass
+
+    def openMysql(self):
+        db = MySQLdb.connect(**jobQueueMysql)
+        self.conn = db.cursor()
 
     def addJob(self, jobType, jobId, paramStr):
         " create a new job, returns False if not successful  "
@@ -317,46 +352,52 @@ class JobQueue:
         #self.conn.execute("DROP TABLE queue")
         self.conn.commit()
 
+    def close(self):
+        " "
+        self.conn.close()
+
 # ====== FUNCTIONS =====
-def parseConf(fname):
-    """ parse a hg.conf style file,
-        return a dict key -> value (both are strings)
-    """
+contentLineDone = False
 
-    conf = {}
-    for line in open(fname):
-        line = line.strip()
-        if line.startswith("#"):
-            continue
-        elif line.startswith("include "):
-            inclFname = line.split()[1]
-            inclPath = join(dirname(fname), inclFname)
-            if isfile(inclPath):
-                inclDict = parseConf(inclPath)
-                conf.update(inclDict)
-        elif "=" in line: # string search for "="
-            key, value = line.split("=")
-            conf[key] = value
-    return conf
+def errAbort(msg):
+    " print err msg and exit "
+    if commandLineMode:
+        raise Exception(msg)
 
-okChars = re.compile(r'[^\w-]')
+    if not contentLineDone:
+        print "Content-type: text/html\n"
 
-def cleanVal(str):
+    print('<div style="float:left; text-align:left; width: 800px">')
+    print(msg+"<p>")
+    print('</div>')
+    sys.exit(0)  # cgi must not exit with 1
+
+# allow only dashes, digits, characters, underscores and colons in the CGI parameters
+# and +
+notOkChars = re.compile(r'[^a-zA-Z0-9-_:+]')
+
+def checkVal(key, str):
     """ remove special characters from input string, to protect against injection attacks """
-    return okChars.sub('', str)
+    if len(str) > 10000:
+	errAbort("input parameter %s is too long" % key)
+    if notOkChars.search(str):
+	errAbort("input parameter %s contains an invalid character" % key)
+    return str
 
 def getParams():
     " get CGI parameters and return as dict "
     form = cgi.FieldStorage()
     params = {}
 
-    #for key in ["pamId", "batchId", "pam", "seq", "org", "showAll", "download", "sortBy", "format", "ajax]:
+    # parameters are:
+    #"pamId", "batchId", "pam", "seq", "org", "showAll", "download", "sortBy", "format", "ajax
     for key in form.keys():
         val = form.getfirst(key)
 	if val!=None:
             # "seq" is cleaned by cleanSeq later
+            val = urllib.unquote(val)
             if key!="seq":
-                val = cleanVal(val)
+                checkVal(key, val)
             params[key] = val
 
     if "pam" in params:
@@ -390,16 +431,6 @@ def debug(msg):
     elif DEBUG:
         print msg
         print "<br>"
-
-def errAbort(msg):
-    " print err msg and exit "
-    if commandLineMode:
-        raise Exception(msg)
-
-    print('<div style="float:left; text-align:left; width: 800px">')
-    print(msg+"<p>")
-    print('</div>')
-    sys.exit(0)  # cgi must not exit with 1
 
 def matchNuc(pat, nuc):
     " returns true if pat (single char) matches nuc (single char) "
@@ -1150,7 +1181,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         #guideData = [x[:-1] for x in guideData]
 
     if sortBy is not None and sortBy!="spec":
-        sortFunc = (lambda row: row[1][sortBy])
+        sortFunc = (lambda row: row[2][sortBy])
     else:
         sortFunc = operator.itemgetter(0)
 
@@ -1163,8 +1194,8 @@ def printDownloadTableLinks(batchId):
     print '<div style="text-align:right">'
     print '<small>'
     print "Download tables: "
-    print '<a href="crispor.cgi?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;' % batchId
-    print '<a href="crispor.cgi?batchId=%s&download=offtargets&format=xls">Off-targets</a>' % batchId
+    print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;' % batchId
+    print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>' % batchId
     print '</small>'
     print '</div>'
 
@@ -1267,7 +1298,7 @@ def printTableHead(batchId, chrom, org):
     print '<th style="width:170px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
 
-    print '<th style="width:70px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
+    print '<th style="width:70px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
     htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible.")
     print "</th>"
 
@@ -1278,7 +1309,7 @@ def printTableHead(batchId, chrom, org):
     #htmlHelp("")
     print '</th>'
 
-    print '<th style="width:45px; border-bottom:none"><a href="crispor.cgi?batchId=%s&sortBy=oofScore">Out-of- Frame</a>' % batchId
+    print '<th style="width:45px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oofScore">Out-of- Frame</a>' % batchId
     htmlHelp(scoreDescs["oof"][1])
     print '</th>'
 
@@ -1292,7 +1323,7 @@ def printTableHead(batchId, chrom, org):
     htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
-    #print '<form id="filter-form" method="get" action="crispor.cgi#otTable">'
+    #print '<form id="filter-form" method="get" action="crispor.py#otTable">'
     print '<input type="hidden" name="batchId" value="%s">' % batchId
 
     if hasGeneModels(org):
@@ -1323,11 +1354,11 @@ def printTableHead(batchId, chrom, org):
         if scoreName=="oof":
             continue
         scoreLabel, scoreDesc = scoreDescs[scoreName]
-        print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.cgi?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+        print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
 
     # the ProxGC score comes next
     # old text was: At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.t
-    print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.cgi?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
+    print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.py?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
 
     # these are empty cells to fill up the row and avoid white space
     print '<th style="border-top:none"></th>'
@@ -1370,7 +1401,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
             #break
 
     #if not showAll and len(otData)>3:
-         #print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.cgi?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
+         #print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.py?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
     return links
 
 def filterOts(otDatas, minScore):
@@ -1595,7 +1626,7 @@ def printHeader(batchId):
 <meta property='fb:admins' content='692090743' />
 <meta name="google-site-verification" content="OV5GRHyp-xVaCc76rbCuFj-CIizy2Es0K3nN9FbIBig" />
 <meta property='og:type' content='website' />
-<meta property='og:url' content='http://tefor.net/crispor/crispor.cgi' />
+<meta property='og:url' content='http://tefor.net/crispor/crispor.py' />
 <meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />
 
 <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
@@ -2126,7 +2157,7 @@ def readGenomes():
 def printOrgDropDown(lastorg):
     " print the organism drop down box "
     genomes = readGenomes()
-    print '<select id="genomeDropDown" class style="float:left; max-width:350px" name="org" tabindex="2">'
+    print '<select id="genomeDropDown" class style="max-width:400px" name="org" tabindex="2">'
     print '<option '
     if lastorg == "noGenome":
         print 'selected '
@@ -2173,9 +2204,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
+<!-- <strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
 Site temporarily moved to UCSC. The performance here is somewhat slower.<br>
-Site should be back online at the original URL during Jan 16 2016<p></strong>
+Site should be back online at the original URL during Jan 16 2016<p></strong> -->
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -2286,7 +2317,7 @@ def readBatchParams(batchId):
     if not isfile(inputFaFname):
         errAbort('Could not find the batch %s. We cannot keep Crispor runs for more than '
                 'a few months. Please resubmit your input sequence via'
-            ' <a href="crispor.cgi">the query input form</a>' % batchId)
+            ' <a href="crispor.py">the query input form</a>' % batchId)
 
     ifh = open(inputFaFname)
     ifhFields = ifh.readline().replace(">","").strip().split()
@@ -2362,7 +2393,8 @@ def printQueryNotFoundNote(dbInfo):
     print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
     print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
-    print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<p>"
+    print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<br>"
+    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'<p>"
     print "</em></div>"
 
 def getOfftargets(seq, org, pam, batchId, startDict, queue):
@@ -2392,12 +2424,13 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
             processSubmission(faFnames, org, pam, otBedFname, batchBase, batchId, queue)
         else:
             # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
-            q = JobQueue(JOBQUEUEDB)
+            q = JobQueue()
             ip = os.environ["REMOTE_ADDR"]
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pam))
             if not wasOk:
                 #print "CRISPOR job is running..." % batchId
                 pass
+            q.close()
             return None
 
     return otBedFname
@@ -2448,7 +2481,8 @@ def getSeq(db, posStr):
         errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
     genomeDir = genomesDir # pull in global var
     twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
-    cmd = [binDir, "twoBitToFa", twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
+    binPath = join(binDir, "twoBitToFa")
+    cmd = [binPath, twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     seqStr = proc.stdout.read()
     # remove fasta header line
@@ -2462,8 +2496,10 @@ def getSeq(db, posStr):
 
 def printStatus(batchId):
     " print status, not using any Ajax "
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     status = q.getStatus(batchId)
+    q.close()
+
     if "Traceback" in status:
         status = "An error occured during processing.<br> Please send an email to services@tefor.net and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks!" % batchId
     if status==None:
@@ -2496,7 +2532,7 @@ def crisprSearch(params):
         seq, warnMsg = cleanSeq(seq, org)
         batchId, position, extSeq = newBatch(seq, org, pam)
         print ("<script>")
-        print ('''history.replaceState('crispor.cgi', document.title, '?batchId=%s');''' % (batchId))
+        print ('''history.replaceState('crispor.py', document.title, '?batchId=%s');''' % (batchId))
         print ("</script>")
 
     if len(warnMsg)!=0:
@@ -2547,7 +2583,7 @@ def crisprSearch(params):
 
     if len(guideScores)==0:
         print "Found no possible guide sequence. Make sure that your input sequence is long enough and contains at least one match to the PAM motif %s." % pam
-        print '<br><a class="neutral" href="crispor.cgi">'
+        print '<br><a class="neutral" href="crispor.py">'
         print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
         return
 
@@ -2563,7 +2599,7 @@ def crisprSearch(params):
 
     showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom)
 
-    print '<br><a class="neutral" href="crispor.cgi">'
+    print '<br><a class="neutral" href="crispor.py">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
 
 def printFile(fname):
@@ -2580,24 +2616,24 @@ def printFile(fname):
 
 def printTeforBodyStart():
     print """<div>"""
-    print """<a href='http://tefor.net/main/'><img style='width:95px' src='%s/image/logo_tefor.png' alt=''></a>""" % (HTMLPREFIX)
-    print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
+    print """<a href='http://tefor.net/main/'><img style='width:180px' src='%simage/logo_tefor.png' alt=''></a>""" % (HTMLPREFIX)
+    #print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
     print "</div>"
-    #print """
-#<div id='navi'>
-#        <div id='menu' class='default'>
-#                <ul class='navi'>
-#                <li><a href='http://tefor.net'>Home</a></li>
-#                <li><a href='./crispor.cgi'>CRISPOR</a></li>
-#                <li><a href='http://tefor.net/main/pages/citations'>Citations</a></li>
-#                <li><a href='http://tefor.net/main/pages/blog'>News</a></li>
-#                <li><a href='http://tefor.net/main/pages/events'>Events</a></li>
-#                <li><a href='http://tefor.net/main/pages/partners'>Partners</a></li>
-#                <li><a href='http://tefor.net/main/pages/contacts'>Contacts</a></li>
-#                </ul>
-#        </div>
-#</div>
-    #"""
+    print """
+<div id='navi'>
+        <div id='menu' class='default'>
+                <ul class='navi'>
+                <li><a href='http://tefor.net'>Home</a></li>
+                <li><a href='./crispor.py'>CRISPOR</a></li>
+                <li><a href='http://tefor.net/main/pages/citations'>Citations</a></li>
+                <li><a href='http://tefor.net/main/pages/blog'>News</a></li>
+                <li><a href='http://tefor.net/main/pages/events'>Events</a></li>
+                <li><a href='http://tefor.net/main/pages/partners'>Partners</a></li>
+                <li><a href='http://tefor.net/main/pages/contacts'>Contacts</a></li>
+                </ul>
+        </div>
+</div>
+    """
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
@@ -2607,7 +2643,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '</div>'
     #print "<div style='text-align:right'>Feedback? Bug reports? Email <a href='mailto:services@tefor.net'>services@tefor.net</a></div>"
-    print '<div style="display:block; text-align:center">Version 3,'
+    print '<div style="display:block; text-align:center">Version %s,' % versionStr
     print """Feedback: <a href='mailto:services@tefor.net'>services@tefor.net</a> or <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">Forum</a></div>"""
 
     print '</div>'
@@ -3352,7 +3388,7 @@ def runQueueWorker():
     print("%s: Worker daemon started. Waiting for jobs." % datetime.ctime(datetime.now()))
     sys.stdout.flush()
 
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     while True:
         if q.waitCount()==0:
             #q.dump()
@@ -3385,11 +3421,13 @@ def runQueueWorker():
             #raise Exception()
             logging.error("Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId))
             q.jobDone(batchId)
+    q.close()
 
 def clearQueue():
     " empty the job queue "
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     q.clearJobs()
+    q.close()
     print("Worker queue now empty")
 
 # this won't work, it's very hard to spawn from CGIs
@@ -3539,9 +3577,10 @@ def mainCommandLine():
 
 def sendStatus(batchId):
     " send batch status as json "
-    print "Content-type: application/json\n"
-    q = JobQueue(JOBQUEUEDB)
+    q = JobQueue()
     status = q.getStatus(batchId)
+    q.close()
+
     if status==None:
         d = {"status":status}
     elif "Traceback" in status:
@@ -3557,7 +3596,7 @@ def cleanJobs():
     if isfile("cleanJobs"):
         os.remove(JOBQUEUEDB)
         os.remove("cleanJobs")
-        open("test2.txt", "w").write("hi there")
+
 
 def mainCgi():
     " main entry if called from apache "
@@ -3567,7 +3606,7 @@ def mainCgi():
         import cgitb
         cgitb.enable()
 
-    # make all output files world-writable. Useful so we can a) clean temp and b) write to the jobs database
+    # make all output files world-writable. Useful so we can clean the tempfiles
     os.umask(000)
 
     cleanJobs()
@@ -3592,7 +3631,9 @@ def mainCgi():
 
     # print headers
     print "Content-type: text/html\n"
-    print "" # = end of http headers
+    # so errAbort knows is doesn't have to print this line again
+    global contentLineDone
+    contentLineDone = True
 
     printHeader(batchId)
     printTeforBodyStart()

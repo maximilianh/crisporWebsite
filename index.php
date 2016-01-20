@@ -1,3 +1,3 @@
 <?php
-    header("Location:./crispor.cgi");
+    header("Location:./crispor.py");
 ?>
