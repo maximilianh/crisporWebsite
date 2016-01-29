@@ -85,7 +85,7 @@ pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NGA','NGA - S. Pyogenes mutant VQR'),
          ('NGCG','NGCG - S. Pyogenes mutant VRER'),
          ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
-         ('NNGRRT','NNG(A/G)(A/G)T - Streptococcus Aureus'),
+         ('NNGRRT','NNG(A/G)(A/G)T - Staphylococcus Aureus'),
          ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
          ('NNNNACA','NNNNACA - Campylobacter jejuni'),
        ]
