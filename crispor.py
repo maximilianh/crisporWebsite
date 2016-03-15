@@ -38,6 +38,9 @@ except:
 # version of crispor
 versionStr = "3.1"
 
+# contact email
+contactEmail = "max@soe.ucsc.edu"
+
 # write debug output to stdout
 DEBUG = False
 #DEBUG = True
@@ -262,7 +265,7 @@ class JobQueue:
         except sqlite3.IntegrityError:
             return False
         except sqlite3.OperationalError:
-            errAbort("Cannot open DB file %s. Please contact services@tefor.net" % self.dbName)
+            errAbort("Cannot open DB file %s. Please contact %s" % (self.dbName, contactEmail))
 
     def getStatus(self, jobId):
         " return current job status label or None if job is not in queue"
@@ -1831,7 +1834,7 @@ def runCmd(cmd):
             sys.exit(1)
         else:
             print "Server error: could not run command %s.<p>" % cmd
-            print "please send us an email, we will fix this error as quickly as possible. services@tefor.net "
+            print "please send us an email, we will fix this error as quickly as possible. %s " % contactEmail
             sys.exit(0)
 
 
@@ -2253,7 +2256,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     """
     printOrgDropDown(lastorg)
     #print '<small style="float:left">Type a species name to search for it</small>'
-    print '<small style="float:left">Missing a genome? Contact <a href="mailto:services@tefor.net">services@tefor.net</a></small>'
+    print '<small style="float:left">Missing a genome? Send us <a href="mailto:%s">email</a></small>' % (contactEmail)
     #print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
     #To add your genome of interest to the list, send us 
     #<a href="mailto:services@tefor.net">an email</a>.</div>
@@ -2409,7 +2412,7 @@ def getOfftargets(seq, org, pam, batchId, startDict, queue):
     if isfile(flagFile):
        errAbort("This sequence is still being processed. Please wait for ~20 seconds "
            "and try again, e.g. by reloading this page. If you see this message for "
-           "more than 2-3 minutes, please send an email services@tefor.net. Thanks!")
+           "more than 2-3 minutes, please send an email %s.net. Thanks!" % contactEmail)
 
     if not isfile(otBedFname) or commandLineMode:
         # write potential PAM sites to file 
@@ -2501,7 +2504,7 @@ def printStatus(batchId):
     q.close()
 
     if "Traceback" in status:
-        status = "An error occured during processing.<br> Please send an email to services@tefor.net and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks!" % batchId
+        status = "An error occured during processing.<br> Please send an email to %s and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks!" % (contactEmail, batchId)
     if status==None:
         status = "Batch completed. Refresh page to show results."
 
@@ -2642,9 +2645,8 @@ def printTeforBodyStart():
 
 def printTeforBodyEnd():
     print '</div>'
-    #print "<div style='text-align:right'>Feedback? Bug reports? Email <a href='mailto:services@tefor.net'>services@tefor.net</a></div>"
     print '<div style="display:block; text-align:center">Version %s,' % versionStr
-    print """Feedback: <a href='mailto:services@tefor.net'>services@tefor.net</a> or <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">Forum</a></div>"""
+    print """Feedback: By <a href='mailto:%s'>email</a> or in the <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">forum</a></div>""" % (contactEmail)
 
     print '</div>'
     print '</div>'
@@ -3051,7 +3053,7 @@ def primerDetailsPage(params):
 
     matchList = otMatches[pamId][0] # = get all matches with 0 mismatches
     if len(matchList)!=1:
-        errAbort("Multiple perfect matches for this guide sequence. Cannot design primer. Please select another guide sequences or email services@tefor.net to discuss your strategy or modifications to this software.")
+        errAbort("Multiple perfect matches for this guide sequence. Cannot design primer. Please select another guide sequences or email %s to discuss your strategy or modifications to this software." % contactEmail)
         # XX we could show a dialog: which match do you want to design primers for?
         # But who would want to use a guide sequence that is not unique?
 
@@ -3584,7 +3586,7 @@ def sendStatus(batchId):
     if status==None:
         d = {"status":status}
     elif "Traceback" in status:
-        d = {"status" : "An error occured. Please send an email to services@tefor.net and tell us that the failing batchId was %s. We can usually fix this quickly. Thanks!" % batchId}
+        d = {"status" : "An error occured. Please send an email to %s and tell us that the failing batchId was %s. We can usually fix this quickly. Thanks!" % (contactEmail, batchId)}
     else:
         d = {"status":status}
     print json.dumps(d)
