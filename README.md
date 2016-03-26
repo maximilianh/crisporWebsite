@@ -27,8 +27,12 @@ Command line interface for the Crispor tool.
     fastaInFile  = Fasta file
     guideOutFile = tab-sep file, one row per guide
 
-    If many guides have to scored in batch: Add GGG to them to make them valid
-    guides, separate these sequences by N characters and supply as a single
+    Use "noGenome" if you only want efficiency scoring (a LOT faster). This option 
+    will use BWA only to match the sequence to the genome, extend it and obtain
+    efficiency scores.
+
+    If many guides have to be scored in batch: Add GGG to them to make them valid
+    guides, separate these sequences by at least one "N" character and supply as a single
     fasta sequence, a few dozen to ~100 per file.
     
 
