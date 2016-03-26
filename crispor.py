@@ -84,6 +84,10 @@ genomesDir = join(baseDir, "genomes")
 DEFAULTORG = 'hg19'
 DEFAULTSEQ = 'cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccggaagtggccagggcgggggcgacctcggctcacagcgcgcccggctattctcgcagctcaccatgGATGATGATATCGCCGCGCTCGTCGTCGACAACGGCTCCGGCATGTGCAAGGCCGGCTTCGCGGGCGACGATGCCCCCCGGGCCGTCTTCCCCTCCATCGTGGGGCGCC'
 
+# used if hg19 is not available
+ALTORG = 'sacCer3'
+ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
+
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NGA','NGA - S. Pyogenes mutant VQR'),
          ('NGCG','NGCG - S. Pyogenes mutant VRER'),
@@ -2157,9 +2161,8 @@ def readGenomes():
     allGenomes = genomes
     return allGenomes
 
-def printOrgDropDown(lastorg):
-    " print the organism drop down box "
-    genomes = readGenomes()
+def printOrgDropDown(lastorg, genomes):
+    " print the organism drop down box. "
     print '<select id="genomeDropDown" class style="max-width:400px" name="org" tabindex="2">'
     print '<option '
     if lastorg == "noGenome":
@@ -2193,6 +2196,13 @@ def printForm(params):
     " print html input form "
     scriptName = basename(__file__)
 
+    genomes = readGenomes()
+
+    haveHuman = False
+    for g in genomes:
+        if g[0]=="hg19":
+             haveHuman = True
+
     # The returned cookie is available in the os.environ dictionary
     cookies=Cookie.SimpleCookie(os.environ.get('HTTP_COOKIE'))
     if "lastorg" in cookies and "lastseq" in cookies and "lastpam" in cookies:
@@ -2200,6 +2210,11 @@ def printForm(params):
        lastseq   = cookies['lastseq'].value
        lastpam   = cookies['lastpam'].value
     else:
+       if not haveHuman:
+           global DEFAULTSEQ
+           global DEFAULTORG
+           DEFAULTSEQ = ALTSEQ
+           DEFAULTORG = ALTORG
        lastorg = DEFAULTORG
        lastseq = DEFAULTSEQ
        lastpam = DEFAULTPAM
@@ -2254,13 +2269,8 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     <small>Note: we have pre-calculated <a target=_blank href="http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&hubUrl=http://hgwdev.soe.ucsc.edu/~max/crispor/hub.txt">all human exon guides</a>.</small>
     </div>
     """
-    printOrgDropDown(lastorg)
-    #print '<small style="float:left">Type a species name to search for it</small>'
+    printOrgDropDown(lastorg, genomes)
     print '<small style="float:left">Missing a genome? Send us <a href="mailto:%s">email</a></small>' % (contactEmail)
-    #print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
-    #To add your genome of interest to the list, send us 
-    #<a href="mailto:services@tefor.net">an email</a>.</div>
-    #"""
     print """
     </div>
     <div class="windowstep subpanel" style="width:40%%; height:158px">
@@ -2272,6 +2282,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
         Select a Protospacer Adjacent Motif (PAM)
     </div>
     """ % HTMLPREFIX
+
     printPamDropDown(lastpam)
     print """
     <div style="width:40%; margin-top: 50px; margin-left:50px; text-align:center; display:block">
@@ -2284,7 +2295,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
 /* set the dropbox to hg19 and paste the example sequence into the input box. */
 function resetToExample() {
     $("textarea[name='seq']").val("%s");
-    $("#genomeDropDown").val("hg19");
+    $("#genomeDropDown").val("%s");
     $("select[name='pam']").val("NGG");
     }
 
@@ -2308,7 +2319,7 @@ function clearInput() {
 </script>
 
 </form>
-    """ % DEFAULTSEQ
+    """ % (DEFAULTSEQ, DEFAULTORG)
 
 def readBatchParams(batchId):
     """ given a batchId, return the genome, the pam, the input sequence and the
@@ -2646,7 +2657,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '</div>'
     print '<div style="display:block; text-align:center">Version %s,' % versionStr
-    print """Feedback: By <a href='mailto:%s'>email</a> or in the <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">forum</a></div>""" % (contactEmail)
+    print """Feedback: By <a href='mailto:%s'>email</a> or in the <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">forum.</a> Local installation free for non-commercial use.</div>""" % (contactEmail)
 
     print '</div>'
     print '</div>'
