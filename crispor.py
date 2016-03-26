@@ -84,6 +84,9 @@ genomesDir = join(baseDir, "genomes")
 DEFAULTORG = 'hg19'
 DEFAULTSEQ = 'cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccggaagtggccagggcgggggcgacctcggctcacagcgcgcccggctattctcgcagctcaccatgGATGATGATATCGCCGCGCTCGTCGTCGACAACGGCTCCGGCATGTGCAAGGCCGGCTTCGCGGGCGACGATGCCCCCCGGGCCGTCTTCCCCTCCATCGTGGGGCGCC'
 
+# used if hg19 is not available
+ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
+
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NGA','NGA - S. Pyogenes mutant VQR'),
          ('NGCG','NGCG - S. Pyogenes mutant VRER'),
@@ -2158,7 +2161,7 @@ def readGenomes():
     return allGenomes
 
 def printOrgDropDown(lastorg):
-    " print the organism drop down box "
+    " print the organism drop down box. Returns true if hg19 was in the list "
     genomes = readGenomes()
     print '<select id="genomeDropDown" class style="max-width:400px" name="org" tabindex="2">'
     print '<option '
@@ -2166,10 +2169,13 @@ def printOrgDropDown(lastorg):
         print 'selected '
     print 'value="noGenome">-- No Genome: no specificity, only cleavage efficiency scores (max. len 25kbp)</option>'
 
+    foundHuman = False
     for db, desc in genomes:
         print '<option '
         if db == lastorg :
             print 'selected '
+        if db == "hg19":
+            foundHuman = True
         print 'value="%s">%s</option>' % (db, desc)
 
     print "</select>"
@@ -2178,6 +2184,7 @@ def printOrgDropDown(lastorg):
       #$("#genomeDropDown").ufd({maxWidth:350, listWidthFixed:false});
       #</script>''')
     print ('''<br>''')
+    return foundHuman
 
 def printPamDropDown(lastpam):
     
@@ -2254,13 +2261,8 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     <small>Note: we have pre-calculated <a target=_blank href="http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&hubUrl=http://hgwdev.soe.ucsc.edu/~max/crispor/hub.txt">all human exon guides</a>.</small>
     </div>
     """
-    printOrgDropDown(lastorg)
-    #print '<small style="float:left">Type a species name to search for it</small>'
+    haveHumanGenome = printOrgDropDown(lastorg)
     print '<small style="float:left">Missing a genome? Send us <a href="mailto:%s">email</a></small>' % (contactEmail)
-    #print """<div id="helpstep2" class="helptext">More information on these species can be found on the <a href="http://www.efor.fr">EFOR</a> website.
-    #To add your genome of interest to the list, send us 
-    #<a href="mailto:services@tefor.net">an email</a>.</div>
-    #"""
     print """
     </div>
     <div class="windowstep subpanel" style="width:40%%; height:158px">
@@ -2272,6 +2274,11 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
         Select a Protospacer Adjacent Motif (PAM)
     </div>
     """ % HTMLPREFIX
+
+    if not haveHumanGenome:
+        global DEFAULTSEQ
+        DEFAULTSEQ = ALTSEQ
+
     printPamDropDown(lastpam)
     print """
     <div style="width:40%; margin-top: 50px; margin-left:50px; text-align:center; display:block">
