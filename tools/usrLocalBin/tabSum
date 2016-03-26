@@ -1,0 +1,56 @@
+#!/usr/bin/env python2.7
+
+import logging, sys, optparse, types
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("usage: %prog [options] inFile - sum up all rows") 
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-f", "--field", dest="fieldList", action="append", type="int", help="only run on column X (zero-based), can be specified several times") 
+#parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+#parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== FUNCTIONs =====
+    
+# ----------- MAIN --------------
+if args==[]: 
+    parser.print_help()
+    exit(1)
+
+fname = args[0]
+fh = open(fname)
+
+if options.fieldList:
+    fieldList = [int(x) for x in options.fieldList]
+else:
+    fieldList = None
+
+sum = 0
+count = 0
+for line in fh:
+    fields = line.strip("\n").split("\t")
+    # get list of fields to sum
+    if fieldList!=None:
+        curFieldList=fieldList
+    else:
+        curFieldList=range(0, len(fields))
+    for i in curFieldList:
+        if fields[i]=="":
+            continue
+        if "." in fields[i]:
+            sum += float(fields[i])
+        else:
+            sum += int(fields[i])
+        count +=1
+
+#logging.info("count %d" % count)
+#logging.info("avg %f" % (sum/float(count)))
+if type(sum)==types.FloatType:
+    print "%f" % sum
+else:
+    print "%d" % sum

@@ -1,0 +1,57 @@
+#!/usr/bin/python
+
+from sys import *
+from optparse import OptionParser
+import tabfile
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("usage: %prog [options] operation filename filename - given to lists with id -> number associations, do calculations on every id, only implemented operation is div") 
+
+#parser.add_option("-l", "--wordlength", dest="motiflength", action="store", help="length of word [default: %default, hexamers]", type="int", metavar="NUMBER", default="6") 
+#parser.add_option("-m", "--maf", dest="maf", action="store_true", help="force maf format [default: %default]", default=True) 
+parser.add_option("-q", "--quiet", dest="quiet", action="store_true", help="shut up, don't warn all the time") 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+    
+# ----------- MAIN --------------
+if args==[]: 
+    parser.print_help()
+    exit(1)
+
+op = args[0]
+quiet = options.quiet
+if op not in ["div", "sum"]:
+    stderr.write("unknown operation: %s" % op)
+    exit(1)
+files = args[1:3]
+
+if len(files)==2:
+    file1, file2 = files
+    stderr.write("Reading files...\n")
+    dict1 = tabfile.slurpdict(file1)
+    dict1Rest = tabfile.slurpdict(file1, otherFields=True)
+    dict2 = tabfile.slurpdict(file2)
+    dict2Rest = tabfile.slurpdict(file2, otherFields=True)
+
+    for key, val in dict1.iteritems():
+        if key in dict2:
+            val2 = dict2[key]
+            if op == "div":
+                if float(val2)!=0:
+                    print "%s\t%f\t%s\t%s" % (key, float(val) / float(val2), "\t".join(dict1Rest.get(key, [])), "\t".join(dict2Rest.get(key, [])))
+                else:
+                    print "%s\tZeroDiv" % (key) 
+        else:
+            if not quiet:
+                stderr.write("warning: cannot find key %s in file2\n" % key)
+
+
+if len(files)==1:
+    file1= files[0]
+    dict1 = tabfile.slurpdictlist(file1)
+    for key, vals in dict1.iteritems():
+        vals = [int(float(x)) for x in vals]
+        valSum = sum(vals)
+        row = [key, str(valSum)]
+        print "\t".join(row)

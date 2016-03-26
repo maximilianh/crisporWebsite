@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+from sys import *
+from optparse import OptionParser
+import os
+import urllib
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("usage: %prog [options] Dataset attribute1 attribute2 ... outfile - download data from Ensembl via Biomart with wget, example: 'retrBiomart hsapiens_gene_ensembl ensembl_gene_id ensembl_transcript_id', look at biomart.org's xml button (top, right) to find the names of your attributes of interest") 
+parser.add_option("-f", "--fasta", dest="fasta", action="store_true", help="force fasta output format") 
+parser.add_option("-c", "--count", dest="count", action="store", help="maximal number of rows to return") 
+parser.add_option("-o", "--outfile", dest="outfile", action="store", help="write output to this file", default="stdout") 
+parser.add_option("-a", "--append", dest="append", action="store_true", help="do not overwrite but append to outfile") 
+parser.add_option("", "--appendValue", dest="appendValue", action="store", help="append this value to all lines") 
+parser.add_option("", "--removeSingleField", dest="removeSingleFields", action="store_true", help="filter out records that consist of only one field") 
+parser.add_option("", "--biomartServer", dest="biomartServer", action="store", help="the biomart server to use, default %default", default="www.ensembl.org") 
+parser.add_option("", "--schema", dest="schema", action="store", help="the biomart schema to use, default %default", default="default") 
+(options, args) = parser.parse_args()
+
+# ----------- MAIN --------------
+if args==[]: 
+    parser.print_help()
+    exit(1)
+
+dataset = args[0]
+attributes = args[1:]
+
+outfile = options.outfile
+append = options.append
+appendValue = options.appendValue
+removeSingleFields=options.removeSingleFields
+biomartServer = options.biomartServer
+schema = options.schema
+
+if options.fasta:
+	format = 'formatter = "FASTA"'
+else:
+	format = 'formatter = "TSV"'
+
+header='http://%s/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query virtualSchemaName = "%s" header = "0"  %s datasetConfigVersion = "0.6" uniqueRows="1"><Dataset name = "%s" interface = "default" >' % (biomartServer, schema, format, dataset)
+footer='</Dataset></Query>'
+
+attributes=[('<Attribute name = "%s" />' % attr) for attr in attributes]
+
+url = header + "".join(attributes) + footer
+url = url.replace(" ", "%20")
+
+stderr.write("Downloading data from Ensembl, dataset %s..." % dataset)
+data = urllib.urlopen(url)
+
+if outfile=="stdout":
+    ofh = stdout
+else:
+    if append:
+        ofh = open(outfile, "a")
+    else:
+        ofh = open(outfile, "w")
+
+inCount = 0
+outCount= 0
+for line in data:
+    line = line.strip()
+    inCount+=1
+    if "ERROR" in line:
+        stderr.write("error: %s\n" % line)
+        exit(1)
+    else:
+        fields = line.strip().split()
+        nonEmptyLen=len([f for f in fields if f!=""])
+        if nonEmptyLen==1 and removeSingleFields:
+            continue
+        outCount+=1
+        if appendValue:
+           line = line+"\t"+appendValue 
+        ofh.write(line+"\n")
+
+stderr.write(" got %d lines, of which %d were downloaded (single-field-filter)\n" % (inCount, outCount))

@@ -1,0 +1,31 @@
+#!/usr/bin/python
+
+from sys import *
+from optparse import OptionParser
+import re, gzip
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("%prog [options] inFname field0Based - take a field as sequence from tab-sep file and show gc content as a new field ") 
+#parser.add_option("", "--bestValueCutoff", dest="bestValueCutoff", action="store",  help="when determining the most parsimonous value, how much more support does the best value need from the second best value, default %default", default=2, type="int") 
+
+def gcContent(seq):
+    c = 0
+    for x in seq:
+        if x in ["G","C"]:
+            c+= 1
+    return 100.0*(float(c)/len(seq))
+            
+
+(options, args) = parser.parse_args()
+
+if len(args)==0:
+    parser.print_help()
+    exit(0)
+
+fname = args[0]
+field = int(args[1])
+
+for line in open(fname):
+    fs = line.strip("\n").split()
+    fs.append("%0.2f" % gcContent(fs[field]))
+    print "\t".join(fs)

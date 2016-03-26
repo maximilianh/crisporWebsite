@@ -1,0 +1,195 @@
+#!/usr/bin/python
+
+# jit compiler for python, remove these lines if you get an error here, it is not needed
+try:
+    import psyco
+except (ImportError, ):
+    pass
+else:
+    psyco.full()
+
+from sys import *
+from optparse import OptionParser
+import re, gzip
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("%prog [options] operation tabSepFile hashfile: do something with tabSepFile, either replace fields according to a list , join fields with a list or filter lines in tabSepFile with values in hashFile (operation = one of 'join'=add keys from hash, 'filter'=keep lines with key in 2nd file, 'remove', 'unique' = let pass only first lines with first value in field specified by -f). 'mark': mark lines that match the second file with a star") 
+parser.add_option("", "--headers", dest="headers", action="store_true", help="always let pass first header line")
+parser.add_option("", "--noSplit", dest="doNotSplit", action="store_true", help="do not split the line, but test each and every string from hashfile and look if it matches a line in tabSepFile. This is really slow. Don't use it. Use -s instead if possible") 
+parser.add_option("-s", "--splitChars", dest="splitChars", action="store", help="use regular expression to split textfile when searching for matches", default="[\t,]", metavar="REGEX") 
+parser.add_option("-a", "--noAppend", dest="noAppend", action="store_true", help="do not append different substitutions with comma, just use first replacement value", default=False) 
+parser.add_option("-r", "--reverse", dest="reverse", action="store_true", help="reverse replaceList columns, not to<tab>from but from<tab>to", default=False) 
+parser.add_option("-n", "--minOcc", dest="minOcc", action="store", type="int", metavar="N", help="if filter mode: only lines pass the filter that contain at least N values of the list", default=1) 
+parser.add_option("-e", "--endOfLine", dest="endOfLine", action="store_true",   help="in join mode: add at end of line instead of fusing the fields", default=False) 
+parser.add_option("-f", "--onlyField", dest="onlyField", action="store",  type="int", help="in join or unique mode: look only at field no x. JOIN: will permit to mark NOT_FOUND fields, UNIQUE: required option", default=None) 
+parser.add_option("-x", "--expand", dest="expand", action="store_true",  help="in join mode: instead of adding double values with commas, create a new line for all replacement values", default=False) 
+parser.add_option("-j", "--joinChar", dest="joinChar", action="store",  help="in join mode: use this character to join fields, default \\t", default="\t") 
+parser.add_option("-o", "--onlyReplaced", dest="onlyReplaced", action="store_true",  help="in replace mode: only let lines pass where at least one value was replaced", default=False) 
+#parser.add_option("", "--bestValueCutoff", dest="bestValueCutoff", action="store",  help="when determining the most parsimonous value, how much more support does the best value need from the second best value, default %default", default=2, type="int") 
+
+(options, args) = parser.parse_args()
+splitChars = options.splitChars
+splitCharsRe = re.compile(splitChars)
+
+# ----------- MAIN --------------
+if len(args)<=2: 
+    parser.print_help()
+    exit(1)
+
+operation = args[0].lower()
+txtFName = args[1]
+replFName = args[2]
+reverse = options.reverse
+minOcc = options.minOcc
+endOfLine = options.endOfLine
+onlyField = options.onlyField
+expand = options.expand
+joinChar = options.joinChar
+#bestValueCutoff=options.bestValueCutoff
+onlyReplaced = options.onlyReplaced
+
+filter = False
+join = False
+replace = False
+remove = False
+#bestValue=False
+unique=False
+
+operation = operation.lower()
+operations = ["replace", "filter", "join", "remove", "unique"]
+if operation not in operations:
+    stderr.write("error: wrong operation, only operations allowed are: %s\n" % ",".join(operations))
+    exit(1)
+elif operation=="join":
+    join=True
+elif operation=="mark":
+    mark=True
+elif operation=="filter":
+    filter=True
+elif operation=="remove":
+    remove=True
+elif operation=="replace":
+    replace=True
+elif operation=="unique":
+    unique=True
+
+if unique and onlyField==None:
+    stderr.write("unique command requires -f/--onlyField option\n")
+    exit(1)
+# --------------- read repl file into dict --------------------
+if replFName=="stdin":
+    replFile= stdin
+elif replFName=="none":
+    replFile = []
+else:
+    replFile = open(replFName,"r")
+
+repl = {}
+for l in replFile:
+    #if l.startswith("#"):
+        #print l
+        #continue
+    fs = l.strip().split("\t")
+    if filter:
+        repl[fs[0]]=True
+    else:
+        if len(fs)==1:
+            if (remove or filter):
+                repl[fs[0]]=True
+                continue
+            else:
+                continue
+        if not reverse: 
+            (fromStr, toStr) = fs[0:2]
+        else:
+            (toStr, fromStr) = fs[0:2]
+        if fromStr not in repl:
+            repl[fromStr] = toStr
+        else:
+            if (not options.noAppend) and toStr not in repl[fromStr].split(','):
+                repl[fromStr] += "," + toStr
+
+
+#for k,v in repl.iteritems():
+    #print "--",k,v
+
+# ----------------- TREAT TEXTFILE --------------------------
+# iterate over lines of textfile and replace
+if txtFName=="stdin":
+    txtFile = stdin
+elif txtFName.endswith(".gz"):
+    txtFile = gzip.open(txtFName, "r")
+else:
+    txtFile = open(txtFName, "r")
+
+alreadySeen = set() # for unique
+
+if options.headers:
+    print txtFile.next(),
+
+for l in txtFile:
+    if onlyReplaced:
+        doPrint = False
+    else:
+        doPrint = True
+
+    if l.startswith("#"):
+        continue
+    # fs = l.split()
+    fs = splitCharsRe.split(l.strip())
+    if replace or join:
+        for fno in range(0,len(fs)):
+            field = fs[fno]
+            found = field in repl
+            if found or join:
+                if join and not found and (onlyField!=None and onlyField==fno):
+                        newVal = "noJoinPossible"
+                elif not found:
+                        continue
+                else:
+                        newVal = repl[field]
+
+                if replace:
+                    l = l.replace(field, newVal)
+                    doPrint = True
+                elif join:
+                    if not expand or (not "," in newVal): # if expand, but no comma, treat line normally
+                        if not endOfLine:
+                                l = l.replace(field, field+joinChar+newVal)
+                        else:
+                                l = l.strip() + joinChar + newVal + "\n"
+                        doPrint = True
+                    elif expand and "," in newVal:
+                        newValues = newVal.split(",")
+                        doPrint=False
+                        for val in newValues:
+                            newl = l.replace(field, field+joinChar+val)
+                            print newl,
+        if doPrint:
+            print l,
+
+    elif filter or remove:
+        # filter-mode
+        occ=0
+        if options.doNotSplit:
+            # this is really slow
+            for text in repl:
+                if text in l:
+                    occ+=1
+        for field in fs:
+            if field in repl:
+                occ+=1
+        if filter and occ>=minOcc:
+            print l,
+        elif remove and occ==0:
+            print l,
+    elif unique:
+        data = fs[onlyField]
+        #print data
+        if data not in alreadySeen:
+            print l,
+        alreadySeen.add(data)
+        #print alreadySeen
+
+
+

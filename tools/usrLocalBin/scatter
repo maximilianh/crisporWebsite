@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import locale
+locale.setlocale(locale.LC_ALL, '')
+
+scale = ' .\'\`^",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'
+scale_range = len(scale) - 1
+
+if 'COLUMNS' in os.environ:
+	width = int(os.environ['COLUMNS'])
+else:
+	width = 80
+
+def asciify(val, max):
+	#return str(int(scale_range * val / max))
+	return scale[int(scale_range * val / max)]
+
+def asciifyline(line, max):
+	return map(lambda val: asciify(val,max), line)
+
+def asciifyarray(array, max):
+	print "".join("-" for i in range(width + 2)) + " " + str(maxY)
+	for line in array:
+		print '|' + ''.join(asciifyline(line,max)) + "|"
+	print "".join("-" for i in range(width + 2)) + " " + str(minY)
+	print "%-10.6f" % minX + "".join(" " for i in range(width + 2 - 20)) + "%10.6f" % maxX
+
+def emptyLine():
+	return [0 for i in range(width)]
+
+def emptyArray():
+	return [emptyLine() for i in range(width/3)]
+	
+pairs = []
+minX = None
+maxX = None
+minY = None
+maxY = None
+for line in sys.stdin:
+	try:
+	    (x,y) = map(locale.atof, line.strip().split())
+	except: 
+	    continue
+
+	if x == locale.atof("Inf") or y == locale.atof("Inf"):
+	    continue
+	if x == locale.atof("-Inf") or y == locale.atof("-Inf"):
+	    continue
+
+	if minX is None or x < minX:
+		minX = x
+	if minY is None or y < minY:
+		minY = y
+	if maxX is None or x > maxX:
+		maxX = x
+	if maxY is None or y > maxY:
+		maxY = y
+	pairs.append((x,y))
+
+spanX = maxX - minX
+spanY = maxY - minY
+max = None
+array = emptyArray()
+for X,Y in pairs:
+	scaledX = int((width - 1) * (X - minX) / spanX)
+	scaledY = int((width/3 - 1) * (maxY - Y) / spanY)
+	array[scaledY][scaledX] += 1
+	if max is None or array[scaledY][scaledX] > max:
+		max = array[scaledY][scaledX]
+
+asciifyarray(array, max)

@@ -1,0 +1,99 @@
+#!/usr/bin/env python2.7
+
+from sys import *
+from optparse import OptionParser
+import logging, collections, operator
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("usage: %prog [options] filename filename ... - print lines where a value occurs in a certain column for the first time, skip the others, ignoring comments") 
+
+#parser.add_option("-l", "--wordlength", dest="motiflength", action="store", help="length of word [default: %default, hexamers]", type="int", metavar="NUMBER", default="6") 
+#parser.add_option("-m", "--maf", dest="maf", action="store_true", help="force maf format [default: %default]", default=True) 
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-c", "--count", dest="count", action="store_true", help="add count") 
+parser.add_option("-s", "--sort", dest="sort", action="store_true", help="add count and sort") 
+parser.add_option("-r", "--ratio", dest="ratio", action="store_true", help="add count and ratio and sort")
+parser.add_option("", "--minCount", dest="minCount", action="store", type="int", help="output only with at least these many counts", default=None)
+parser.add_option("", "--maxCount", dest="maxCount", action="store", type="int", help="output only with no more than these many counts", default=None)
+parser.add_option("-k", "--colIndex", dest="colIndex", action="append", help="index of column(s) to use, zero-based, can be used multiple times, default %default", default=None) 
+parser.add_option("-n", "--colName", dest="colNames", action="append", help="name of column(s) to use, can be used multiple times", default=None) 
+parser.add_option("-a", "--appendLines", dest="appendLines", action="store_true", help="if both -s and -k are set: do not only show fields from -k, and counts from -s, but also append complete lines separated by |", default=None) 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== FUNCTIONs =====
+    
+# ----------- MAIN --------------
+#if args==[]: 
+    #parser.print_help()
+    #exit(1)
+
+filenames = args
+fromStdin = False
+
+if len(filenames)==0:
+    filenames = ["stdin"]
+    fromStdin = True
+
+colIndexLst = None
+if options.colNames!=None:
+    if fromStdin:
+        line1 = stdin.readline().rstrip("\n")
+    else:
+        line1 = open(filenames[0]).readline().rstrip("\n")
+    print line1
+    headers = line1.split("\t")
+    nameToCol = {}
+    for i, name in enumerate(headers):
+        nameToCol[name] = i
+    colIndexLst = [nameToCol[n] for n in options.colNames]
+elif options.colIndex!=None:
+    colIndexLst = options.colIndex
+
+fullLines = collections.defaultdict(list) # only used if -k used
+values = collections.defaultdict(int)
+lineCount = 0
+for filename in filenames:
+    if filename=="stdin":
+        ifh = stdin
+    else:
+        ifh = open(filename)
+
+    for line in ifh:
+        if line.startswith("#"):
+            continue
+        else:
+            lineCount += 1
+            fields = line.rstrip("\n").split("\t")
+            if colIndexLst==None:
+                valueTuple=tuple(fields)
+            else:
+                valueTuple = tuple([fields[int(x)] for x in colIndexLst])
+                fullLines[valueTuple].append(line.rstrip("\n"))
+
+            values[valueTuple]+=1
+            #values[valueTuple].append(line)
+
+values = values.items()
+
+if options.sort or options.ratio:
+    values.sort(key=operator.itemgetter(-1), reverse=True)
+
+for key, count in values:
+    row = list(key)
+    if options.count or options.sort or options.ratio:
+        row.append(str(count))
+        if options.ratio:
+            row.append("%0.3f%%" % (100*float(count)/lineCount))
+        elif colIndexLst and options.appendLines:
+            row = row.append("|".join(fullLines[key]))
+
+    elif colIndexLst:
+        row = fullLines[key]
+
+    if (options.maxCount==None or count < options.maxCount) \
+        and (options.minCount==None or count > options.minCount):
+        print "\t".join(row)

@@ -1,0 +1,209 @@
+#!/usr/bin/env python
+
+import logging, sys, optparse, os, shutil, glob
+from collections import namedtuple
+from os.path import join, isdir
+
+import MySQLdb # install with "sudo apt-get install python-mysqldb"
+
+
+# temp dir on local disk
+tmpDir = "/tmp2"
+
+# directory where the genomes are stored for the crispr tool
+crisprGenomeDir = "/var/www/crispor/genomes/"
+#crisprGenomeDir = "/tmp/final"
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <taxId1> <taxId2> ... - add genome to crispr site
+
+queries UCSC database for all assemblies of genome, takes the newest one, downloads it, indexes it with bwa,
+tries to find some gene model set and moves everything into the crispr directories at the end
+
+""") 
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-a", "--auto", dest="auto", action="store_true", help="auto-mode: don't ask the user, always choose the newest assembly")
+#parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+#parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== FUNCTIONs =====
+def runCmd(cmd, mustRun=True):
+    " wrapper around os.system that prints error messages "
+    ret = os.system(cmd)
+    if ret!=0 and mustRun:
+        print "Could not run command %s" % cmd
+        sys.exit(0)
+    return ret
+    
+def sqlConnect(db):
+    """ connect to ucsc sql """
+    #if name=="public":
+    host, user, passwd = "genome-mysql.cse.ucsc.edu", "genomep", "password"
+    #elif name=="local":
+        #cfg = parseHgConf()
+        #host, user, passwd = cfg["db.host"], cfg["db.user"], cfg["db.password"]
+    conn = MySQLdb.connect(host=host, user=user, passwd=passwd, db=db)
+    return conn
+
+def querySql(conn, query):
+    " return all rows for query as namedtuples "
+    cursor = conn.cursor()
+    rows = cursor.execute(query)
+    data = cursor.fetchall()
+    colNames = [desc[0] for desc in cursor.description]
+    Rec = namedtuple("MysqlRow", colNames)
+    recs = [Rec(*row) for row in data]
+    cursor.close()
+    return recs
+
+def selectGenomes(taxIds, quiet):
+    " given a list of taxIds, let the user select an assembly and return a list of dbDb rows for them "
+    conn = sqlConnect("hgcentral")
+    data = {}
+    dbRows = []
+    for taxId in taxIds:
+        print "taxon ID:",taxId
+        print
+        query = 'SELECT * FROM dbDb WHERE taxId="%s" ORDER BY orderKey DESC' % taxId
+        rows = querySql(conn, query)
+
+        if len(rows)==0:
+            print "Sorry, this taxon ID is not served by UCSC"
+            continue
+
+        choice = None
+        possChoices = range(1, len(rows)+1)
+        if quiet:
+            choice = possChoices[-1]
+        while choice not in possChoices:
+            print "Please select the assembly:"
+            print
+            for i, row in enumerate(rows):
+                print i+1, "- ", row.name, " - ", row.description
+            print
+            print "Type the number of the assembly and press Return:"
+            print "(If you just enter Return, number %d will be used)" % possChoices[-1]
+            num = raw_input()
+            if num=="":
+                num = str(possChoices[-1])
+            if not num.isdigit():
+                print "error: you did not type a number"
+                continue
+
+            num = int(num)
+            if num in possChoices:
+                choice = num
+            else:
+                print "error: not a valid number you can select, select one of", possChoices
+        dbRows.append(rows[choice-1])
+
+    return dbRows
+
+def printMsg(msg):
+    " print with some highlighting "
+    print " ==== "+msg+" ==== "
+
+def moveToDest(outFnames, finalDbDir):
+    for outFname in outFnames:
+        print "moving %s to crispr genome dir %s" % (outFname, finalDbDir)
+        shutil.move(outFname, finalDbDir)
+
+def writeGenomeInfo(row):
+    " write basic genome assembly info to finalDbDir "
+    db = row.name
+    genomeInfoPath = join(crisprGenomeDir, db, "genomeInfo.tab")
+    giFh = open(genomeInfoPath, "w")
+    headers = list(row._fields)
+    headers.append("server")
+    giFh.write("#"+"\t".join(headers))
+    giFh.write("\n")
+    row = [str(x) for x in row]
+    giFh.write("\t".join(row))
+    giFh.write("\t"+"ucsc"+"\n")
+    giFh.close()
+    print("wrote %s" % genomeInfoPath)
+
+def getGenomes(rows):
+    " download and index genomes "
+    for row in rows:
+        db = row.name
+        dbTmpDir = join(tmpDir, db)
+        if isdir(dbTmpDir):
+            print ("there exists already a directory %s" % dbTmpDir)
+            print ("are you sure there is not already a process in a different terminal that indexes this genome?")
+            print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
+            sys.exit(1)
+        else:
+            os.makedirs(dbTmpDir)
+
+        finalDbDir = join(crisprGenomeDir, db)
+        if isdir(finalDbDir):
+            print "the directory %s already exists" % finalDbDir
+            print "looks like this genome has already been indexed"
+            continue
+
+
+        printMsg("Genome: " + db)
+        printMsg("Downloading")
+        twoBitTmp = join(dbTmpDir, db+".2bit")
+        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenpath/%s/bigZips/%s.2bit -O %s" % (db, db, twoBitTmp)
+        runCmd(cmd)
+
+        printMsg("Converting to fasta")
+        faTmp = join(dbTmpDir, db+".fa")
+        cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
+        runCmd(cmd)
+
+        printMsg("Indexing fasta with BWA")
+        cmd = "bwa index %s" % faTmp
+        runCmd(cmd)
+
+        printMsg("Deleting fasta")
+        cmd = "rm %s" % faTmp
+        runCmd(cmd)
+
+        printMsg("Making chrom sizes")
+        sizesTmp = join(dbTmpDir, db+".sizes")
+        cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
+        runCmd(cmd)
+
+        printMsg("Downloading ensembl transcripts to gene name table")
+        ensToGeneTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
+        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/ensemblToGeneName.txt.gz -O - | zcat > %s" % (db, ensToGeneTmp)
+        runCmd(cmd)
+
+        printMsg("Downloading gene models and converting to segments")
+        segTmp = join(dbTmpDir, "%s.segments.bed" % db)
+        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/ensGene.txt.gz -O - | gunzip -c | cut -f2- | genePredToBed stdin stdout | bedToExons stdin stdout | lstOp replace stdin %(ensToGeneTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
+        runCmd(cmd)
+
+        cmd = "rm %s" % ensToGeneTmp
+        runCmd(cmd)
+
+        printMsg("Moving output files into crispr tool directory")
+        outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
+        outFnames.extend([segTmp, sizesTmp, twoBitTmp])
+        os.makedirs(finalDbDir)
+        moveToDest(outFnames, finalDbDir)
+
+        cmd = "rm -rf %s" % dbTmpDir
+        runCmd(cmd)
+
+        writeGenomeInfo(row)
+
+# ----------- MAIN --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+taxIds = args
+genomeRows = selectGenomes(taxIds, options.auto)
+getGenomes(genomeRows)
+#for row in genomeRows:
+    #writeGenomeInfo(row)
