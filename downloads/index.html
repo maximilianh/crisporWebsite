@@ -2,8 +2,20 @@
 <body>
 Files available:
 <ul>
-<li>VirtualBox virtual machine that includes CRISPOR. <a href="crisporVm.tar.gz">Download</a></li>
-<li><a href="https://github.com/maximilianh/crisporPaper">Github Repo crisporPaper</a> with all code for the analysis paper</li>
-<li><a href="https://github.com/maximilianh/crisporWebsite">Github Repo crisporWebsite</a> with all code used by the website</li>
+<li><a href="https://github.com/maximilianh/crisporPaper">Github repo crisporPaper</a> with all code for the analysis paper</li>
+<li><a href="https://github.com/maximilianh/crisporWebsite">Github repo crisporWebsite</a> with all code used by the website. Note that local installations are only free for non-commercial use.</li>
+<li>A virtualBox virtual machine image for Windows/OSX/Linux that includes CRISPOR. You can use this to run CRISPOR on your own computer, on Windows, OSX or Linux</li>
+  <ul>
+  <li>Install <a href="http://virtualbox.org">VirtualBox</a> for your operating system first, Windows, OSX or Linux</li>
+  <li><a href="crisporVm.tar.gz">Download the VM image</a> (free for non-commercial use)
+  <li>Extract the virtual machine image, double-click it or import the file crispor.vbox file in VirtualBox</li>
+  <li>When the virtual machine is running, point your internet browser to <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a></li>
+  <li>To run the command line version, go to the directory /var/www/html/ and run crispor.cgi in the built in terminal</li>
+  <li>You can also ssh to port 2222 on localhost, e.g. <tt>ssh crispor@localhost -p 2222</tt>, password "crispor"</li>
+  <li>The user "crispor" has sudo rights on the machine</li>
+  <li>To add more genomes, download them from our list of <a href="/genomes">pre-indexed genomes</a> and copy to /var/www/html/genomes in the virtual machine</li>
+  </ul>
+</li>
+
 </ul>
 </body></html>
