@@ -2657,7 +2657,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '</div>'
     print '<div style="display:block; text-align:center">Version %s,' % versionStr
-    print """Feedback: By <a href='mailto:%s'>email</a> or in the <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">forum. Local installation free for non-commercial use.</a></div>""" % (contactEmail)
+    print """Feedback: By <a href='mailto:%s'>email</a> or in the <a href="https://groups.google.com/forum/?hl=en#!forum/crispor">forum.</a> Local installation free for non-commercial use.</div>""" % (contactEmail)
 
     print '</div>'
     print '</div>'
