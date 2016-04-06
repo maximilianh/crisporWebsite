@@ -2404,11 +2404,11 @@ def readDbInfo(org):
 def printQueryNotFoundNote(dbInfo):
     print "<div class='title'>Query sequence, not present in the genome of %s</div>" % dbInfo.scientificName
     print "<div class='substep'>"
-    print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
+    print "<em><strong>Note:</strong>The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
     print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
     print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<br>"
-    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'<p>"
+    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'. Include more flanking sequence > 50bp to obtain the scores.<p>"
     print "</em></div>"
 
 def getOfftargets(seq, org, pam, batchId, startDict, queue):
