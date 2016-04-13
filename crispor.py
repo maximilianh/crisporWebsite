@@ -901,7 +901,7 @@ def revcom(s):
 
 #Calculates CFD score
 def calc_cfd(wt,sg,pam):
-    mm_scores,pam_scores = get_mm_pam_scores()
+    #mm_scores,pam_scores = get_mm_pam_scores()
     score = 1
     sg = sg.replace('T','U')
     wt = wt.replace('T','U')
@@ -2404,11 +2404,11 @@ def readDbInfo(org):
 def printQueryNotFoundNote(dbInfo):
     print "<div class='title'>Query sequence, not present in the genome of %s</div>" % dbInfo.scientificName
     print "<div class='substep'>"
-    print "<em><strong>Note:</strong> The query sequence was not found in the selected genome."
+    print "<em><strong>Note:</strong>The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
     print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
     print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<br>"
-    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'<p>"
+    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'. Include more flanking sequence > 50bp to obtain the scores.<p>"
     print "</em></div>"
 
 def getOfftargets(seq, org, pam, batchId, startDict, queue):
@@ -2673,6 +2673,18 @@ def printTeforBodyEnd():
 </script>
 '''
 
+pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
+
+def intToExtPamId(pamId):
+    " convert the internal pam Id like s20+ to the external one, like 21Forw "
+    pamPos, strand, rest = pamIdRe.match(pamId).groups()
+    if strand=="+":
+        strDesc = 'forw'
+    else:
+        strDesc = 'rev'
+    guideDesc = str(int(pamPos)+1)+strDesc
+    return guideDesc
+
 def iterGuideRows(guideData, addHeaders=False):
     "yield rows from guide data "
     headers = list(tuple(guideHeaders)) # make a copy of the list
@@ -2683,7 +2695,6 @@ def iterGuideRows(guideData, addHeaders=False):
 
     #print "\t".join(headers)
 
-    pamIdRe = re.compile(r's([0-9]+)([+-])g?([0-9]*)')
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
@@ -2695,12 +2706,7 @@ def iterGuideRows(guideData, addHeaders=False):
         # s20+ or s20+g0 if gapped
         #pamPos = int(pamId[1:-1])+1
         #strand = pamId[-1]
-        pamPos, strand, rest = pamIdRe.match(pamId).groups()
-        if strand=="+":
-            strDesc = 'fw'
-        else:
-            strDesc = 'rev'
-        guideDesc = str(int(pamPos)+1)+strDesc
+        guideDesc = intToExtPamId(pamId)
 
         row = [guideDesc, guideSeq+pamSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
         for scoreName in scoreNames:
@@ -2728,7 +2734,8 @@ def iterOfftargetRows(guideData, addHeaders=False):
                 gene = gene.replace(",", "_").replace(";","-")
 
                 chrom, start, end, strand = parsePos(pos)
-                row = [pamId, guideSeq+pamSeq, otSeq, editDist, mitScore, cfdScore, chrom, start, end, gene]
+                guideDesc = intToExtPamId(pamId)
+                row = [guideDesc, guideSeq+pamSeq, otSeq, editDist, mitScore, cfdScore, chrom, start, end, gene]
                 if allowGap:
                     row.append(gapPos)
                 row = [str(x) for x in row]
@@ -3216,7 +3223,7 @@ def primerDetailsPage(params):
         print "The guide sequence %s does not contain the motif TTTT, which terminates RNA polymerase. This guide sequence can be transcribed in mammalian cells." % guideSeq
 
         print "<br>"
-        print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence in the plasmid pM3636, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+        print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence in the plasmid <a href='https://www.addgene.org/43860/'>MLM3636</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
         print "<br>"
         if "mammCellsNote" in primers:
             print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added to the sequence below, where it is underlined.<br>")
