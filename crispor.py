@@ -92,6 +92,7 @@ pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
          ('NGA','NGA - S. Pyogenes mutant VQR'),
          ('NGCG','NGCG - S. Pyogenes mutant VRER'),
          ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
+         ('NGGNG','NGGNG - Streptococcus Thermophilus St3Cas9'),
          ('NNGRRT','NNG(A/G)(A/G)T - Staphylococcus Aureus'),
          ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
          ('NNNNACA','NNNNACA - Campylobacter jejuni'),
@@ -2964,7 +2965,7 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
     tmpOutFname = join(batchDir, batchId+".primer3.out")
     # the guide seq has to be at least 150bp away from the left PCR primer for agarose gels
     lSeq, lTm, lPos, rSeq, rTm, rPos = \
-        runPrimer3(flankSeq, tmpFname, tmpOutFname, 1000+guideStart-150, 330, "300-600")
+        runPrimer3(flankSeq, tmpFname, tmpOutFname, 1000+guideStart-150, 330, "500-700")
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq
 
@@ -3154,7 +3155,7 @@ def primerDetailsPage(params):
     print "<strong>Genomic sequence %s:%d-%d including primers, forward strand:</strong><br> <tt>%s</tt><br>" % (chromLong, start, end, targetHtml)
     print '''</div>'''
     print "<strong>Sequence length:</strong> %d<p>" % (rPos-lPos)
-    print '<small>Method: Primer3.2 with default settings, target length 400-600 bp</small>'
+    print '<small>Method: Primer3.2 with default settings, target length 500-700 bp</small>'
 
     # restriction enzymes
     allEnzymes = readEnzymes()
