@@ -103,3 +103,15 @@ Check that your worker is indeed running:
     ps aux | grep crispor
 
 Now try to access the script from a webbrowser, http://localhost/crispor.py and click "Submit"
+
+# Licenses
+
+Included software:
+
+* BWA is under GPL3
+* libSVM: under copyright by Chih-Chung Chang and Chih-Jen Lin see http://www.csie.ntu.edu.tw/~cjlin/libsvm/COPYRIGHT
+* svmlight: free for non-commercial use, see http://svmlight.joachims.org/
+* SSC: no license specified
+* primer3: GPL2.
+
+crispor.py and crisporEffScores.py are released under GPLv3, see LICENSE.txt
