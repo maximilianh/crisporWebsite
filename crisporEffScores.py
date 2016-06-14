@@ -29,6 +29,8 @@ sys.path.insert(0, join(fusiDir, "analysis"))
 
 import model_comparison
 
+logging.basicConfig(level=logging.DEBUG)
+
 # import numpy as np
 
 # global that points to the crispor 'bin' directory with the external executables
@@ -918,19 +920,24 @@ def calcWuCrisprScore(seqs):
     for s in seqs:
         assert(len(s)==24)
 
-    inSeq = "".join(seqs)
     #tempFh = open("temp.fa", "w")
     tempFh = tempfile.NamedTemporaryFile()
-    tempFh.write(">t\n"+inSeq+"\n")
-    tmpPath = abspath(tempFh.name)
+
+    for s in seqs:
+        tempFh.write(">%s\n%s\n" %(s, s))
+
     tempFh.flush()
+    tmpPath = abspath(tempFh.name)
 
     # the perl script needs cwd to be its dir, so save, change and set back
     oldCwd = os.getcwd()
     wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
     logging.debug("Running wu-crisp in %s" % wuCrispDir)
+    print("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
     cmd = "perl wu-crispr.pl -f %s > /dev/null" % tmpPath
+    logging.debug("Running %s" % cmd)
+    print("Running %s" % cmd)
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
 
@@ -953,7 +960,7 @@ def calcWuCrisprScore(seqs):
         seqId, score, seq, orient, pos = line.split("\t")
         #print "got wucrisp row", seqId, score, seq, orient, pos
         start = int(pos.split(",")[0])-1
-        if not (start % 24 == 0 and orient=="sense"):
+        if not (start == 0 and orient=="sense"):
             #print "skipping, incorrect position"
             continue
         #print "keeping seq/score", seq, score
@@ -962,6 +969,7 @@ def calcWuCrisprScore(seqs):
 
     # return 0 for all sequences where we didn't get a score back from
     # wu-crispr
+    logging.debug("got back %d scores, putting in 0 for all others" % len(scoreDict))
     scores = []
     guideSeqs = [s[:20].lower() for s in seqs]
     #print "guideseqs", guideSeqs
