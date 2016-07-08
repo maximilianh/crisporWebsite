@@ -1,9 +1,16 @@
 # CRISPOR - a CRISPR/Cas9 assistant 
 
-CRISPOR predicts off-targets in the genome, ranks guides, highlights problematic guides, designs primers and helps with cloning.
-Try it on http://crispr.tefor.net
+CRISPOR predicts off-targets in the genome, ranks guides, highlights
+problematic guides, designs primers and helps with cloning.  Try it on
+http://crispr.org
 
-CRISPOR uses BWA and a few tools from the UCSC Genome Browser (twoBitToFa, bedClip).
+CRISPOR uses BWA, a few tools from the UCSC Genome Browser (twoBitToFa, bedClip),
+various R packages and a huge collection of external packages and source code files
+from published articles, see the file crisporEffScores.py for the exact references.
+
+If you only need efficiency scores and no interactive website, try "python
+crisporEffScores.py", it is a python module but also has a command line
+interface that may be sufficient for programmers.
 
 # Installation of the command-line script:
 
@@ -17,6 +24,10 @@ or
     yum install bwa python-pip
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib
     
+Install required R libraries:
+   
+    sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
+
 When you run crispor.py, it should show the usage message:
 ```
 Usage: crispor.cgi [options] org fastaInFile guideOutFile 
@@ -59,7 +70,7 @@ Options:
                         directory with genomes, default ./genomes
 ```
     
-# Running the script as a CGI under Apache
+# Running the script as a CGI under Apache with the job queue
 
 Make sure you can execute CGI scripts somewhere. Your Apache config (e.g. /etc/apache2/sites-enabled/000-default) should contain a section like this:
 
@@ -103,3 +114,15 @@ Check that your worker is indeed running:
     ps aux | grep crispor
 
 Now try to access the script from a webbrowser, http://localhost/crispor.py and click "Submit"
+
+# Licenses
+
+Included software:
+
+* BWA is under GPL3
+* libSVM: under copyright by Chih-Chung Chang and Chih-Jen Lin see http://www.csie.ntu.edu.tw/~cjlin/libsvm/COPYRIGHT
+* svmlight: free for non-commercial use, see http://svmlight.joachims.org/
+* SSC: no license specified
+* primer3: GPL2.
+* Fusi/Doench score: see LICENSE.txt, (c) by Microsoft Research
+* crispor.py and crisporEffScores.py themselves are released under GPLv3, see LICENSE.txt
