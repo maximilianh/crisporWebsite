@@ -115,6 +115,19 @@ Check that your worker is indeed running:
 
 Now try to access the script from a webbrowser, http://localhost/crispor.py and click "Submit"
 
+# Adding a genome
+
+Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome.
+
+The subdirectory usrLocalBin contains required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
+
+The script can auto-download genomes from Ensembl and UCSC or allows you to add your own custom genome in .fasta format. It does not handle gene models yet for custom genomes, email me if you need that, this step depends on the input file format of your genes.
+
+E.g. to add the X. laevis genome:
+    sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
+
+The four |-split values for the --desc option are: internalDatabaseName, scienticName, commonOrDisplayName, VersionOfAssembly
+
 # Licenses
 
 Included software:
