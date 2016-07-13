@@ -128,6 +128,7 @@ E.g. to add the X. laevis genome:
 
 The four |-split values for the --desc option are: internalDatabaseName, scienticName, commonOrDisplayName, VersionOfAssembly
 
+Make sure that internalDatabaseName does not include special characters, spaces etc.
 # Licenses
 
 Included software:
