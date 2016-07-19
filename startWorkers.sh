@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e 
-workCount=${1:-4}
+workCount=${1:-2}
 echo `pwd`
-if [ `pwd` == "/var/www/crisporTest" -o `pwd` == "/var/www/crisporMax" -o `pwd` == "/home/www/crisporMax" ] ; then
+if [[ `pwd` == "*crisporDev*" ]] ; then
     workCount=1
 fi
 echo $workCount
