@@ -313,7 +313,18 @@ class JobQueue:
 
         sql = 'UPDATE queue SET lastUpdate=?, stepName=?, stepLabel=?, stepTimes=?, isRunning=? WHERE jobId=?'
         self.conn.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
-        self.conn.commit()
+
+        tryCount = 0
+        while tryCount < 10:
+            try:
+                self.conn.commit()
+                break
+            except sqlite3.OperationalError:
+                time.sleep(3)
+                tryCount += 1
+
+        if tryCount >= 10:
+            raise Exception("Database locked for a long time")
 
     def jobDone(self, jobId):
         " remove the job from the queue and add it to the queue log"
@@ -1215,8 +1226,10 @@ def hasGeneModels(org):
 def printTableHead(batchId, chrom, org):
     " print guide score table description and columns "
     # one row per guide sequence
-    print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>.<br>'''
-    print '''Please cite the source when you use a score:
+    print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>. Click on a column title to rank by a different score.<br>'''
+    print '''
+    <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> See our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>, figures 4 and 5.<br>
+    Please also cite the sources when you use a score:
     <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi</a>,
     <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari</a>,
     <a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu</a>,
@@ -1228,9 +1241,7 @@ def printTableHead(batchId, chrom, org):
     <a target='_blank' href='https://mcb.berkeley.edu/labs/meyer/publicationpdfs/959.full.pdf'>-GG</a>,
     <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Out-of-Frame</a>
     <br>
-    Our recommendation: Use Fusi for mammals, Moreno-Mateos for Zebrafish.
-    '''
-    print '''Click on a column title to rank by its score.<br></div>'''
+    </div>'''
 
     printDownloadTableLinks(batchId)
 
@@ -2229,6 +2240,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
+
 <span class="introtext">
     <div onclick="$('.about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
         <img src="%simage/info-small.png" style="vertical-align:text-top;">
@@ -2238,6 +2250,9 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
+
+<br><i>Wondering which score is best for you? Have a look at the <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper</a><small> (and email us any questions)</small></i>
+
  </div>
 
 <div class="windowstep subpanel" style="width:50%%;">
