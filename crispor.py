@@ -1874,6 +1874,11 @@ def parseOfftargets(bedFname):
     for line in open(bedFname):
         fields = line.rstrip("\n").split("\t")
         chrom, start, end, name, segment = fields
+        # hg38: ignore alternate chromosomes otherwise the 
+        # regions on the main chroms look as if they could not be 
+        # targeted at all with Cas9
+        if chrom.endswith("_alt"):
+            continue
         nameFields = name.split("|")
         pamId, strand, editDist, seq = nameFields[:4]
         # strip the gap info from the pamId
