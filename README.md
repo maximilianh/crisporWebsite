@@ -17,12 +17,12 @@ interface that may be sufficient for programmers.
 Install BWA and a few required python modules:
     
     apt-get install bwa python-pip python-matplotlib
-    sudo pip install biopython numpy scikit-learn==0.16.1 pandas
+    sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader
     
 or 
    
     yum install bwa python-pip
-    sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib
+    sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
     
 Install required R libraries:
    
