@@ -1,0 +1,2 @@
+guideId	guideSeq	mitSpecScore	cfdSpecScore	offtargetCount	guideGenomeMatchGeneLocus
+21forw	GAAGCCGGCCTTGCACATGCCGG	7	81	139	exon:ACTB/AC006483.1	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
