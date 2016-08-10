@@ -3,7 +3,13 @@ from collections import namedtuple
 import os, logging
 from os.path import join, isfile
 
-# go through all subdirectories and collect info from all genomeInfo.tab file and write to genomeInfo.all.tab
+# when many genomes are installed, the list of genome info is better kept in a single
+# file, so it is faster to read.
+
+# this file goes through all subdirectories and collect info from all genomeInfo.tab file and 
+# write to genomes/genomeInfo.all.tab
+# crispor.py will detect if this file is present and use it.
+# do not forget to recreate the file each time you add a genome
 
 # subdirectory with genome info
 genomesDir = "genomes"
