@@ -2041,8 +2041,8 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
     genomeDir = genomesDir # make var local, see below
     pamLen = len(pam)
 
-    # increase MAXOCC if there is only a single query
-    if len(parseFasta(open(faFnames[0])))==1:
+    # increase MAXOCC if there is only a single query, but only in CGI mode
+    if len(parseFasta(open(faFnames[0])))==1 and not commandLineMode:
         global MAXOCC
         global maxMMs
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
@@ -2096,7 +2096,9 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
     faFnameStr = ",".join(faFnames)
-    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    # twoBitToFa is 15x slower than python's twobitreader
+    #cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
     segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
