@@ -10,8 +10,9 @@ import traceback, json, pwd, pickle
 
 from datetime import datetime
 from collections import defaultdict, namedtuple
-from os.path import join, isfile, basename, dirname, isdir
+from os.path import join, isfile, basename, dirname, isdir, abspath
 from StringIO import StringIO
+from itertools import product
 
 # out own eff scoring library
 import crisporEffScores
@@ -44,6 +45,9 @@ contactEmail = "max@soe.ucsc.edu"
 # write debug output to stdout
 DEBUG = False
 #DEBUG = True
+
+# use bowtie for off-target search?
+useBowtie = False
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
@@ -121,7 +125,7 @@ MAXOCC = 60000
 # the BWA queue size is 2M by default. We derive the queue size from MAXOCC
 MFAC = 2000000/MAXOCC
 
-# Highly-sensitive mode: 
+# Highly-sensitive mode (not for CLI mode): 
 # MAXOCC is increased in processSubmission() and in the html UI if only one
 # guide seq is run
 # Also, the number of allowed mismatches is increased to 5 instead of 4
@@ -2034,34 +2038,22 @@ def readEffScores(batchId):
         seqToScores[row.guideId] = scoreDict
     return seqToScores
 
-def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
-    """ search fasta file against genome, filter for pam matches and write to bedFName 
-    optionally write status updates to work queue.
-    """
-    genomeDir = genomesDir # make var local, see below
+def findOfftargetsBwa(queue, batchId, batchBase, faFnames, genome, pam, bedFname):
+    " align faFnames to genome and create matchedBedFname "
+    matchesBedFname = batchBase+".matches.bed"
+    saFname = batchBase+".sa"
     pamLen = len(pam)
+    genomeDir = genomesDir # make var local, see below
+
+    open(matchesBedFname, "w") # truncate to 0 size
+    assert(len(faFnames) <= 2)
 
     # increase MAXOCC if there is only a single query
-    if len(parseFasta(open(faFnames[0])))==1:
+    if len(parseFasta(open(faFnames[0])))==1 and not commandLineMode:
         global MAXOCC
         global maxMMs
         MAXOCC=max(HIGH_MAXOCC, MAXOCC)
         maxMMs=HIGH_maxMMs
-
-    queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
-    createBatchEffScoreTable(batchId)
-
-    if genome=="noGenome":
-        # skip off-target search
-        open(bedFname, "w") # create a 0-byte file to signal job completion
-        queue.startStep(batchId, "done", "Job completed")
-        return
-
-    saFname = batchBase+".sa"
-
-    matchesBedFname = batchBase+".matches.bed"
-    open(matchesBedFname, "w") # truncate to 0 size
-    assert(len(faFnames) <= 2)
 
     # 2nd fa filename is optional and if present, are sequences with gaps
     for i, faFname in enumerate(faFnames):
@@ -2113,7 +2105,132 @@ def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue
     # make sure the final bed file is never in a half-written state, it is our signal that the job is complete
     shutil.move(bedFnameTmp, bedFname)
     queue.startStep(batchId, "done", "Job completed")
+    return bedFname
 
+def makeVariants(seq):
+    " generate all possible variants of sequence at 1bp-distance"
+    seqs = []
+    for i in range(0, len(seq)):
+        for l in "ACTG":
+            if l==seq[i]:
+                continue
+            newSeq = seq[:i]+l+seq[i+1:]
+            seqs.append((i, seq[i], l, newSeq))
+    return seqs
+
+def expandIupac(seq):
+    """ expand all IUPAC characters to nucleotides, returns list. 
+    >>> expandIupac("NY")
+    ['GC', 'GT', 'AC', 'AT', 'TC', 'TT', 'CC', 'CT']
+    """
+    # http://stackoverflow.com/questions/27551921/how-to-extend-ambiguous-dna-sequence
+    d = {'A': 'A', 'C': 'C', 'B': 'CGT', 'D': 'AGT', 'G': 'G', \
+        'H': 'ACT', 'K': 'GT', 'M': 'AC', 'N': 'GATC', 'S': 'CG', \
+        'R': 'AG', 'T': 'T', 'W': 'AT', 'V': 'ACG', 'Y': 'CT', 'X': 'GATC'}
+    seqs = []
+    for i in product(*[d[j] for j in seq]):
+       seqs.append("".join(i))
+    return seqs
+
+def writeBowtieSequences(inFaFname, outFname, pamPat):
+    " write the sequence and one-bp-distant-sequences + all possible PAM sequences to outFname "
+    ofh = open(outFname, "w")
+    outCount = 0
+    inCount = 0
+    seqs = {}
+    for seqId, seq in parseFastaAsList(open(inFaFname)):
+        inCount += 1
+        for pamSeq in expandIupac(pamPat):
+            for nPos, fromNucl, toNucl, newSeq in makeVariants(seq):
+                newSeqId = "%s.%d:%s>%s" % (seqId, nPos, fromNucl, toNucl)
+                newFullSeq = newSeq+pamSeq
+                ofh.write(">%s\n%s\n" % (newSeqId, newFullSeq))
+                seqs[newSeqId] = newFullSeq
+                outCount += 1
+    ofh.close()
+    logging.debug("Wrote %d variants+expandedPam of %d sequences to %s" % (outCount, inCount, outFname))
+    return seqs
+
+def applyModifStr(seq, modifStrs):
+    """ given a list of pos:toNucl>fromNucl and a seq, return the original seq 
+    position is 1-based!
+    >>> applyModifStr("AAAAA", ["1:T>A"])
+    'TAAAA'
+    """
+    seq = list(seq)
+    for modifStr in modifStrs:
+        pos, toFromNucl = modifStr.split(":")
+        fromNucl, toNucl = toFromNucl.split(">")
+        pos = int(pos)
+        print seq, modifStr, pos, fromNucl, toNucl
+        assert(seq[pos]==toNucl)
+        seq[pos] = fromNucl
+    return "".join(seq)
+   
+def parseRefout(tmpDir, qSeqs):
+    """ parse all .map file in tmpDir and return as list of chrom,start,end,strand,qSeq,tSeq
+    >>> list(parseRefout("."))
+    """
+    ret = []
+    fnames = glob.glob(join(tmpDir, "*.map"))
+    for fname in fnames:
+        for line in open(fname):
+           # s20+.17:A>G     -       chr8    26869044        CCAGCACGTGCAAGGCCGGCTTC IIIIIIIIIIIIIIIIIIIIIII 7       4:C>G,13:T>G,15:C>G
+           seqId, strand, chrom, start, tSeq, weird, someScore, alnModifStr = line.rstrip("\n").split("\t")
+
+           qSeq = qSeqs[seqId]
+           if strand=="-":
+            qSeq = revComp(qSeq)
+
+           ret.append( (chrom, int(start), strand, qSeq, tSeq) )
+    return ret
+
+def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pam, bedFname):
+    " align guides with pam in faFname to genome and write off-targets to bedFname "
+    tmpDir = batchBase+".bowtie.tmp"
+    os.mkdir(tmpDir)
+
+    global batchDir
+    batchDir = tmpDir
+    if not DEBUG:
+        atexit.register(delBatchDir)
+
+    bwFaFname = abspath(join(tmpDir, "bowtieIn.fa"))
+    qSeqs = writeBowtieSequences(faFname, bwFaFname, pam)
+
+    genomePath =  abspath(join(genomesDir, genome, genome))
+    oldCwd = os.getcwd()
+
+    os.chdir(tmpDir) # bowtie writes to hardcoded output filenames with --refout
+    cmd = "bowtie %(genomePath)s -f %(bwFaFname)s  -a -v 3 -y -t --best dummy --mm --refout --maxbts=2000 -p 4 -m 100000" % locals()
+    runCmd(cmd)
+    os.chdir(oldCwd)
+    print parseRefout(tmpDir, qSeqs)
+
+    if DEBUG:
+        logging.info("debug mode: Not deleting %s" % tmpDir)
+    else:
+        shutil.rmtree(tmpDir)
+
+def processSubmission(faFnames, genome, pam, bedFname, batchBase, batchId, queue):
+    """ search fasta file against genome, filter for pam matches and write to bedFName 
+    optionally write status updates to work queue.
+    """
+    queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
+    createBatchEffScoreTable(batchId)
+
+    if genome=="noGenome":
+        # skip off-target search
+        open(bedFname, "w") # create a 0-byte file to signal job completion
+        queue.startStep(batchId, "done", "Job completed")
+        return
+
+    if useBowtie:
+        findOfftargetsBowtie(queue, batchId, batchBase, faFnames[0], genome, pam, bedFname)
+    else:
+        findOfftargetsBwa(queue, batchId, batchBase, faFnames, genome, pam, bedFname)
+
+    return bedFname
 
 def lineFileNext(fh):
     """ 
@@ -3362,6 +3479,8 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
     parser.add_option("", "--gap", dest="allowGap", \
         action="store_true", help="allow a gap in the match")
+    parser.add_option("", "--bowtie", dest="bowtie", \
+        action="store_true", help="new: use bowtie as the aligner")
     parser.add_option("", "--skipAlign", dest="skipAlign", \
         action="store_true", help="do not align the input sequence. The on-target will be a random match with 0 mismatches.")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
@@ -3389,15 +3508,8 @@ Command line interface for the Crispor tool.
         logging.basicConfig(level=logging.INFO)
     return args, options
 
-def main():
-    # detect if running under apache or not
-    if 'REQUEST_METHOD' in os.environ and sys.argv[-1] != "--worker":
-        mainCgi()
-    else:
-        mainCommandLine()
-    
 def delBatchDir():
-    " called at program exit, in command line mode "
+    " called at program exit, for command line mode "
     if not isdir(batchDir):
         return
     logging.debug("Deleting dir %s" % batchDir)
@@ -3526,6 +3638,10 @@ def mainCommandLine():
         clearQueue()
         sys.exit(0)
 
+    if options.debug:
+        global DEBUG
+        DEBUG = True
+
     org, inSeqFname, outGuideFname = args
 
     # different genomes directory?
@@ -3550,6 +3666,10 @@ def mainCommandLine():
     if options.allowGap:
         global allowGap
         allowGap = True
+
+    if options.bowtie:
+        global useBowtie
+        useBowtie = True
 
     skipAlign = False
     if options.skipAlign:
@@ -3690,4 +3810,11 @@ def mainCgi():
     </div>""")
     print("</body></html>")
 
+def main():
+    # detect if running under apache or not
+    if 'REQUEST_METHOD' in os.environ and sys.argv[-1] != "--worker":
+        mainCgi()
+    else:
+        mainCommandLine()
+    
 main()
