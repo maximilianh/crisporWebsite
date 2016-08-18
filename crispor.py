@@ -167,7 +167,7 @@ scoreDescs = {
 
 # the headers for the guide and offtarget output files
 guideHeaders = ["guideId", "guideSeq", "mitSpecScore", "cfdSpecScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
-offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "locusDesc"]
+offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "strand", "locusDesc"]
 
 # a file crispor.conf in the directory of the script allows to override any global variable
 myDir = dirname(__file__)
