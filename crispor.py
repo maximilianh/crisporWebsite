@@ -2113,21 +2113,23 @@ def writeBowtieSequences(inFaFname, outFname, pamPat):
     ofh = open(outFname, "w")
     outCount = 0
     inCount = 0
-    seqs = {}
+    guideSeqs = {} # 20mer guide sequences
+    qSeqs = {} # 23mer query sequences for bowtie, produced by expanding guide sequences
     allPamSeqs = expandIupac(pamPat)
     for seqId, seq in parseFastaAsList(open(inFaFname)):
         inCount += 1
+        guideSeqs[seqId] = seq
         for pamSeq in allPamSeqs:
             ofh.write(">%s\n%s\n" % (seqId, seq))
             for nPos, fromNucl, toNucl, newSeq in makeVariants(seq):
                 newSeqId = "%s.%d:%s>%s" % (seqId, nPos, fromNucl, toNucl)
                 newFullSeq = newSeq+pamSeq
                 ofh.write(">%s\n%s\n" % (newSeqId, newFullSeq))
-                seqs[newSeqId] = newFullSeq
+                qSeqs[newSeqId] = newFullSeq
                 outCount += 1
     ofh.close()
     logging.debug("Wrote %d variants+expandedPam of %d sequences to %s" % (outCount, inCount, outFname))
-    return seqs, allPamSeqs
+    return guideSeqs, qSeqs, allPamSeqs
 
 def applyModifStr(seq, modifStrs):
     """ given a list of pos:toNucl>fromNucl and a seq, return the original seq
@@ -2145,27 +2147,31 @@ def applyModifStr(seq, modifStrs):
         seq[pos] = fromNucl
     return "".join(seq)
    
-def parseRefout(tmpDir, qSeqs, pamLen):
-    """ parse all .map file in tmpDir and return as list of chrom,start,end,strand,qGuideSeq,tSeq
-    >>> list(parseRefout("."))
+def parseRefout(tmpDir, guideSeqs, pamLen):
+    """ parse all .map file in tmpDir and return as list of chrom,start,end,strand,guideSeq,tSeq
     """
     ret = []
     fnames = glob.glob(join(tmpDir, "*.map"))
     for fname in fnames:
         for line in open(fname):
            # s20+.17:A>G     -       chr8    26869044        CCAGCACGTGCAAGGCCGGCTTC IIIIIIIIIIIIIIIIIIIIIII 7       4:C>G,13:T>G,15:C>G
-           guideId, strand, chrom, start, tSeq, weird, someScore, alnModifStr = line.rstrip("\n").split("\t")
+           guideIdWithMod, strand, chrom, start, tSeq, weird, someScore, alnModifStr = \
+               line.rstrip("\n").split("\t")
 
-           qSeq = qSeqs[guideId]
+           guideId = guideIdWithMod.split(".")[0]
+           guideSeq = guideSeqs[guideId]
            if strand=="-":
-            qSeq = revComp(qSeq)
+            guideSeq = revComp(guideSeq)
 
            start = int(start)
-           ret.append( (guideId, chrom, start, start+GUIDELEN+pamLen, strand, qSeq, tSeq) )
+           ret.append( (guideId, chrom, start, start+GUIDELEN+pamLen, strand, guideSeq, tSeq) )
     return ret
 
 def getEditDist(str1, str2):
-    " return edit distance between two strings of equal length "
+    """ return edit distance between two strings of equal length 
+    >>> getEditDist("HIHI", "HAHA")
+    2
+    """
     assert(len(str1)==len(str2))
     str1 = str1.upper()
     str2 = str2.upper()
@@ -2190,7 +2196,7 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
     # write out the sequences for bowtie
     queue.startStep(batchId, "seqPrep", "preparing sequences")
     bwFaFname = abspath(join(tmpDir, "bowtieIn.fa"))
-    qSeqs, allPamSeqs = writeBowtieSequences(faFname, bwFaFname, pamPat)
+    guideSeqs, qSeqs, allPamSeqs = writeBowtieSequences(faFname, bwFaFname, pamPat)
 
     genomePath =  abspath(join(genomesDir, genome, genome))
     oldCwd = os.getcwd()
@@ -2198,16 +2204,27 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
     # run bowtie
     queue.startStep(batchId, "bowtie", "aligning with bowtie")
     os.chdir(tmpDir) # bowtie writes to hardcoded output filenames with --refout
-    cmd = "bowtie %(genomePath)s -f %(bwFaFname)s  -a -v 3 -y -t --best dummy --mm --refout --maxbts=2000 -p 4 -m 100000" % locals()
+    # -v 3 = up to three mismatches
+    # -y   = try hard
+    # -t   = print time it took
+    # -k   = output up to X alignments
+    # -m   = do not output any hit if a read has more than X hits
+    # --max = write all reads that exceed -m to this file
+    # --refout = output in bowtie format, not SAM
+    # --maxbts=2000 maximum number of backtracks
+    # -p 4 = use four threads
+    # --mm = use mmap
+    maxOcc = MAXOCC # meaning in BWA: includes any PAM, in bowtie we have the PAM in the input sequence
+    cmd = "bowtie %(genomePath)s -f %(bwFaFname)s  -v 3 -y -t -k %(maxOcc)d -m %(maxOcc)d dummy --max tooManyHits.txt --mm --refout --maxbts=2000 -p 4" % locals()
     runCmd(cmd)
     os.chdir(oldCwd)
 
     queue.startStep(batchId, "parse", "parsing alignments")
     pamLen = len(pamPat)
-    #hits = parseRefout(tmpDir, qSeqs)
-    print "XX HARDCODED TEST"
-    hits = parseRefout("/usr/local/var/www/htdocs/crispor/doc/bowtieOut", qSeqs, pamLen)
-    print hits
+    hits = parseRefout(tmpDir, qSeqs)
+    #print "XX HARDCODED TEST"
+    #hits = parseRefout("/usr/local/var/www/htdocs/crispor/doc/bowtieOut", guideSeqs, pamLen)
+    #print hits
 
     queue.startStep(batchId, "scoreOts", "scoring off-targets")
     # make the list of alternative PAM sequences
@@ -2222,29 +2239,36 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
     tempFh = open(tempBedPath, "w")
 
     offTargets = {}
-    for guideId, chrom, start, end, strand, qGuideSeq, tSeq in hits:
+    for guideIdWithMod, chrom, start, end, strand, _, tSeq in hits:
+        guideId = guideIdWithMod.split(".")[0]
+        guideSeq = guideSeqs[guideId]
         genomePamSeq = tSeq[-pamLen:]
         if genomePamSeq in altPamSeqs:
             minScore = ALTPAMMINSCORE
         elif genomePamSeq in allPamSeqs:
             minScore = MINSCORE
         else:
+            logging.debug("Skipping off-target for %s: %s:%d-%d" % (guideId, chrom, start, end))
             continue
+
+        logging.debug("off-target minScore = %f" % minScore )
 
         # check if this match passes the off-target score limit
-        guideSeqNoPam = qGuideSeq[:-pamLen]
         tSeqNoPam = tSeq[:-pamLen]
-        otScore = calcHitScore(guideSeqNoPam, tSeqNoPam)
+        otScore = calcHitScore(guideSeq, tSeqNoPam)
         if otScore < minScore:
+            logging.debug("off-target not accepted")
             continue
 
-        editDist = getEditDist(guideSeqNoPam, tSeqNoPam)
+        editDist = getEditDist(guideSeq, tSeqNoPam)
         guideHitCount = 0
         guideId = guideId.split(".")[0] # full guide ID looks like s33+.0:A>T
         name = guideId+"|"+strand+"|"+str(editDist)+"|"+tSeq+"|"+str(guideHitCount)+"|"+str(otScore)
         row = [chrom, str(start), str(end), name]
         # this way of collecting the features will remove the duplicates
-        offTargets[ (chrom, start, end, strand, guideId) ] = row
+        otKey = (chrom, start, end, strand, guideId)
+        logging.debug("off-target key is %s" % str(otKey))
+        offTargets[ otKey ] = row
 
     for rowKey, row in offTargets.iteritems():
         tempFh.write("\t".join(row))
@@ -3579,7 +3603,8 @@ def delTmpDirs():
     global tmpDirsDelExit
     logging.debug("Removing tmpDirs: %s" % ",".join(tmpDirsDelExit))
     for tmpDir in tmpDirsDelExit:
-        shutil.rmtree(tmpDir)
+        if isdir(tmpDir):
+            shutil.rmtree(tmpDir)
     tmpDirsDelExit = []
 
 def runQueueWorker():
