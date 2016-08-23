@@ -52,6 +52,11 @@ useBowtie = False
 # calculate the efficienc scores?
 doEffScoring = True
 
+# Is the current PAM from Cpf1? This is a global var because it changes 
+# all sequence processing. If this is true, the PAM is assumed to be located
+# on the left of the guide.
+isCpf1 = False
+
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
 #TEMPDIR = "/dev/shm/"
@@ -96,13 +101,14 @@ ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
-         ('NGA','NGA - S. Pyogenes mutant VQR'),
-         ('NGCG','NGCG - S. Pyogenes mutant VRER'),
-         ('NNAGAA','NNAGAA - Streptococcus Thermophilus'),
-         ('NGGNG','NGGNG - Streptococcus Thermophilus St3Cas9'),
-         ('NNGRRT','NNG(A/G)(A/G)T - Staphylococcus Aureus'),
-         ('NNNNGMTT','NNNNG(A/C)TT - Neisseiria Meningitidis'),
-         ('NNNNACA','NNNNACA - Campylobacter jejuni'),
+         ('TTN','TTN-23bp - Cfp1'),
+         ('NGA','20bp-NGA - S. Pyogenes mutant VQR'),
+         ('NGCG','20bp-NGCG - S. Pyogenes mutant VRER'),
+         ('NNAGAA','20bp-NNAGAA - Streptococcus Thermophilus'),
+         ('NGGNG','20bp-NGGNG - Streptococcus Thermophilus St3Cas9'),
+         ('NNGRRT','20bp-NNG(A/G)(A/G)T - Staphylococcus Aureus'),
+         ('NNNNGMTT','20bp-NNNNG(A/C)TT - Neisseiria Meningitidis'),
+         ('NNNNACA','20bp-NNNNACA - Campylobacter jejuni'),
        ]
 
 DEFAULTPAM = 'NGG'
@@ -130,8 +136,8 @@ GUIDELEN=20
 # MAXOCC is increased in processSubmission() and in the html UI if only one
 # guide seq is run
 # Also, the number of allowed mismatches is increased to 5 instead of 4
-HIGH_MAXOCC=600000
-HIGH_maxMMs=5
+#HIGH_MAXOCC=600000
+#HIGH_maxMMs=5
 
 # minimum off-target score of standard off-targets (those that end with NGG)
 # XX THIS SHOULD BE BASED ON CFD SCORE NOW!
@@ -169,7 +175,7 @@ scoreDescs = {
 
 # the headers for the guide and offtarget output files
 guideHeaders = ["guideId", "guideSeq", "mitSpecScore", "cfdSpecScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
-offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "strand", "locusDesc"]
+offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchPos", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "strand", "locusDesc"]
 
 # a file crispor.conf in the directory of the script allows to override any global variable
 myDir = dirname(__file__)
@@ -213,10 +219,10 @@ class JobQueue:
     0
 
     can't pop from an empty queue
-    >>> q.popJob()
-    (None, None, None)
-    >>> os.system("rm /tmp/tempCrisporTest.db")
-    0
+    #>>> q.popJob()
+    #(None, None, None)
+    #>>> os.system("rm /tmp/tempCrisporTest.db")
+    #0
     """
 
     _queueDef = (
@@ -562,34 +568,51 @@ def revComp(seq):
         newSeq.append(revTbl[c])
     return "".join(newSeq)
 
-def findPams(seq, pam, strand, startDict, endSet):
+def findPams (seq, pam, strand, startDict, endSet, isCpf1):
     """ return two values: dict with pos -> strand of PAM and set of end positions of PAMs
-    Makes sure to return only values with at least 20 bp left (if strand "+") or to the 
+    Makes sure to return only values with at least GUIDELEN bp left (if strand "+") or to the
     right of the match (if strand "-")
-    >>> findPams("GGGGGGGGGGGGGGGGGGGGGGG", "NGG", "+", {}, set())
+    If the PAM is TTN, then this is inversed: pos-strand matches must have at least GUIDELEN
+    basepairs to the right, neg-strand matches must have at least GUIDELEN bp on their left
+    >>> findPams("GGGGGGGGGGGGGGGGGGGGGGG", "NGG", "+", {}, set(), False)
     ({20: '+'}, set([23]))
-    >>> findPams("CCAGCCCCCCCCCCCCCCCCCCC", "CCA", "-", {}, set())
+    >>> findPams("CCAGCCCCCCCCCCCCCCCCCCC", "CCA", "-", {}, set(), False)
     ({0: '-'}, set([3]))
+    >>> findPams("TTNCCCCCCCCCCCCCCCCCTTN", "TTN", "+", {}, set(), True)
+    ({0: '+'}, set([3]))
+    >>> findPams("CCCCCCCCCCCCCCCCCCCCCAAAA", "NAA", "-", {}, set(), True
+    ({}, set([]))
+    >>> findPams("AAACCCCCCCCCCCCCCCCCCCCC", "NAA", "-", {}, set(), True)
+    ({}, set([]))
+    >>> findPams("CCCCCCCCCCCCCCCCCCCCCCCCCAA", "NAA", "-", {}, set(), True)
+    ({}, set([]))
 
     """
-
-    # -------------------
-    #          OKOKOKOKOK
-    minPosPlus  = 20
-    # -------------------
-    # OKOKOKOKOK
-    maxPosMinus = len(seq)-(20+len(pam))
+    if isCpf1:
+        maxPosPlus  = len(seq)-(GUIDELEN+len(pam))
+        minPosMinus = GUIDELEN
+    else:
+        # -------------------
+        #          OKOKOKOKOK
+        minPosPlus  = GUIDELEN
+        # -------------------
+        # OKOKOKOKOK
+        maxPosMinus = len(seq)-(GUIDELEN+len(pam))
 
     #print "new search", seq, pam, "<br>"
     for start in findPat(seq, pam):
-        # need enough flanking seq on one side
-        #print "found", start,"<br>"
-        if strand=="+" and start<minPosPlus:
-            #print "no, out of bounds +", "<br>"
-            continue
-        if strand=="-" and start>maxPosMinus:
-            #print "no, out of bounds, -<br>"
-            continue
+        if isCpf1:
+            # need enough flanking seq on one side
+            #print "found", start,"<br>"
+            if strand == "+" and start > maxPosPlus:
+                continue
+            if strand == "-" and start < minPosMinus:
+                continue
+        else:
+            if strand=="+" and start < minPosPlus:
+                continue
+            if strand=="-" and start > maxPosMinus:
+                continue
 
         #print "match", strand, start, end, "<br>"
         startDict[start] = strand
@@ -633,8 +656,6 @@ def showSeqAndPams(seq, startDict, pam, guideScores):
             score = guideScores[pamId]
             color = scoreToColor(score)
 
-            #print score, opacity
-            #texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s" onmouseover="$('.hiddenExonMatch').show('fast');$('#show-more').hide();$('#show-less').show()" onfocus="window.location.href = '#seqStart'" >''' % (color, pamId,pamId))
             texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (color, pamId,pamId))
             texts.append(name)
             texts.append("</a>")
@@ -659,17 +680,26 @@ def iterOneDelSeqs(seq):
 def flankSeqIter(seq, startDict, pamLen):
     """ given a seq and dictionary of pos -> strand and the length of the pamSite
     yield tuples of (name, startPos, strand, flankSeq, pamSeq)
+
     """
     startList = sorted(startDict.keys())
     for startPos in startList:
         strand = startDict[startPos]
 
-        if strand=="+":
-            flankSeq = seq[startPos-GUIDELEN:startPos]
-            pamSeq = seq[startPos:startPos+pamLen]
-        else: # strand is minus
-            flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+GUIDELEN])
-            pamSeq = revComp(seq[startPos:startPos+pamLen])
+        if isCpf1: # Cpf1: get the sequence to the right of the PAM
+            if strand=="+":
+                flankSeq = seq[startPos+pamLen:startPos+pamLen+GUIDELEN]
+                pamSeq = seq[startPos:startPos+pamLen]
+            else: # strand is minus
+                flankSeq = revComp(seq[startPos-GUIDELEN:startPos])
+                pamSeq = revComp(seq[startPos:startPos+pamLen])
+        else: # common case: get the sequence on the left side of the PAM
+            if strand=="+":
+                flankSeq = seq[startPos-GUIDELEN:startPos]
+                pamSeq = seq[startPos:startPos+pamLen]
+            else: # strand is minus
+                flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+GUIDELEN])
+                pamSeq = revComp(seq[startPos:startPos+pamLen])
 
         if "N" in flankSeq:
             continue
@@ -702,7 +732,17 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
 
     return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
 
-def makeAlnStr(seq1, seq2, pam, score, posStr):
+def highlightMismatches(str1, str2):
+    " return a string that marks mismatches between str1 and str2 with * "
+    s = []
+    for x, y in zip(str1, str2):
+        if x==y:
+            s.append(".")
+        else:
+            s.append("*")
+    return "".join(s)
+
+def makeAlnStr(seq1, seq2, pam, mitScore, cfdScore, posStr):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
     lines = [ [], [], [] ]
     last12MmCount = 0
@@ -724,7 +764,7 @@ def makeAlnStr(seq1, seq2, pam, score, posStr):
     if len(posStr)>1 and posStr[0].isdigit():
         posStr = "chr"+posStr
 
-    htmlText = "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>Off-target score: %.2f<br>Position: %s</small>" % (lines[0], lines[1], lines[2], score, posStr)
+    htmlText = "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>MIT Off-target score: %.2f<br>CFD Off-target score: %f<br>Position: %s</small>" % (lines[0], lines[1], lines[2], mitScore, cfdScore, posStr)
     hasLast12Mm = last12MmCount>0
     return htmlText, hasLast12Mm
 
@@ -808,7 +848,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
                 cfdScores.append(cfdScore)
 
             posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
-            alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, mitScore, posStr)
+            alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, mitScore, cfdScore, posStr)
             if not hasLast12Mm:
                 last12MmOtCount+=1
             posList.append( (otSeq, mitScore, cfdScore, editDist, posStr, geneDesc, alnHtml) )
@@ -833,7 +873,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         otDescStr = "&thinsp;-&thinsp;".join(otCounts)
         last12DescStr = "&thinsp;-&thinsp;".join(last12MmCounts)
 
-    posList.sort(reverse=True, key=operator.itemgetter(1)) # sort by offtarget score
+    posList.sort(reverse=True, key=operator.itemgetter(2)) # sort by CFD score
 
     return posList, otDescStr, guideScore, guideCfdScore, last12DescStr, \
         ontargetDesc, subOptMatchCount
@@ -959,8 +999,8 @@ def parseChromSizes(fname):
 def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
     """ extend (start, end) by flank and get sequence for it using twoBitTwoFa.
     Return None if not possible to extend.
-    >>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
-    'AAGGAATGTAG'
+    #>>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
+    #'AAGGAATGTAG'
     """
     genomeDir = genomesDir
     sizeFname = "%(genomeDir)s/%(db)s/%(db)s.sizes" % locals()
@@ -1937,6 +1977,7 @@ def calcGuideEffScores(seq, extSeq, pam):
     if extSeq:
         extSeq = extSeq.upper()
     startDict, endSet = findAllPams(seq, pam)
+
     pamInfo = list(flankSeqIter(seq, startDict, len(pam)))
 
     guideIds = []
@@ -2029,11 +2070,11 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     open(matchesBedFname, "w") # truncate to 0 size
 
     # increase MAXOCC if there is only a single query, but only in CGI mode
-    if len(parseFasta(open(faFname)))==1 and not commandLineMode:
-        global MAXOCC
-        global maxMMs
-        MAXOCC=max(HIGH_MAXOCC, MAXOCC)
-        maxMMs=HIGH_maxMMs
+    #if len(parseFasta(open(faFname)))==1 and not commandLineMode:
+        #global MAXOCC
+        #global maxMMs
+        #MAXOCC=max(HIGH_MAXOCC, MAXOCC)
+        #maxMMs=HIGH_maxMMs
 
     maxDiff = maxMMs
     queue.startStep(batchId, "bwa", "Alignment of potential guides, mismatches <= %d" % maxDiff)
@@ -2048,7 +2089,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     maxOcc = MAXOCC # create local var from global
     # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
     # the sorting should improve the twoBitToFa runtime
-    cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pamLen)s | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+    cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pam)s | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -2133,17 +2174,16 @@ def writeBowtieSequences(inFaFname, outFname, pamPat):
 
 def applyModifStr(seq, modifStrs):
     """ given a list of pos:toNucl>fromNucl and a seq, return the original seq
-    position is 1-based!
-    >>> applyModifStr("AAAAA", ["1:T>A"])
-    'TAAAA'
+    position is 0-based
+    >>> applyModifStr("ACAATAAGACATAAACATATCGG", "14:T>A,21:A>G,22:C>G".split(","))
+    'ACAATAAGACATAATCATATCAC'
     """
     seq = list(seq)
     for modifStr in modifStrs:
+        #logging.debug( modifStr)
         pos, toFromNucl = modifStr.split(":")
         fromNucl, toNucl = toFromNucl.split(">")
         pos = int(pos)
-        print seq, modifStr, pos, fromNucl, toNucl
-        assert(seq[pos]==toNucl)
         seq[pos] = fromNucl
     return "".join(seq)
    
@@ -2160,11 +2200,15 @@ def parseRefout(tmpDir, guideSeqs, pamLen):
 
            guideId = guideIdWithMod.split(".")[0]
            guideSeq = guideSeqs[guideId]
+           if alnModifStr=="":
+               genomeSeq = tSeq
+           else:
+               genomeSeq = applyModifStr(tSeq, alnModifStr.split(","))
            if strand=="-":
             guideSeq = revComp(guideSeq)
 
            start = int(start)
-           ret.append( (guideId, chrom, start, start+GUIDELEN+pamLen, strand, guideSeq, tSeq) )
+           ret.append( (guideId, chrom, start, start+GUIDELEN+pamLen, strand, guideSeq, genomeSeq) )
     return ret
 
 def getEditDist(str1, str2):
@@ -2221,9 +2265,9 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
 
     queue.startStep(batchId, "parse", "parsing alignments")
     pamLen = len(pamPat)
-    hits = parseRefout(tmpDir, qSeqs)
-    #print "XX HARDCODED TEST"
-    #hits = parseRefout("/usr/local/var/www/htdocs/crispor/doc/bowtieOut", guideSeqs, pamLen)
+    #hits = parseRefout(tmpDir, qSeqs)
+    print "XX HARDCODED TEST"
+    hits = parseRefout("/usr/local/var/www/htdocs/crispor/doc/bowtieOut", guideSeqs, pamLen)
     #print hits
 
     queue.startStep(batchId, "scoreOts", "scoring off-targets")
@@ -2243,6 +2287,7 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
         guideId = guideIdWithMod.split(".")[0]
         guideSeq = guideSeqs[guideId]
         genomePamSeq = tSeq[-pamLen:]
+        logging.debug( "PAM seq: %s of %s" % (genomePamSeq, tSeq))
         if genomePamSeq in altPamSeqs:
             minScore = ALTPAMMINSCORE
         elif genomePamSeq in allPamSeqs:
@@ -2302,12 +2347,14 @@ def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue)
     """ search fasta file against genome, filter for pam matches and write to bedFName 
     optionally write status updates to work queue.
     """
-    if doEffScoring:
+    if doEffScoring and not isCpf1:
         queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
         createBatchEffScoreTable(batchId)
 
     if genome=="noGenome":
         # skip off-target search
+        if isCpf1:
+            errAbort("Sorry, no efficiency score has been published yet for Cpf1.")
         open(bedFname, "w") # create a 0-byte file to signal job completion
         queue.startStep(batchId, "done", "Job completed")
         return
@@ -2320,8 +2367,8 @@ def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue)
     return bedFname
 
 def lineFileNext(fh):
-    """ 
-        parses tab-sep file with headers as field names 
+    """
+        parses tab-sep file with headers as field names
         yields collection.namedtuples
         strips "#"-prefix from header line
     """
@@ -2586,8 +2633,8 @@ def findAllPams(seq, pam):
     """ find all matches for PAM and return as dict startPos -> strand and a set
     of end positions
     """
-    startDict, endSet = findPams(seq, pam, "+", {}, set())
-    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
+    startDict, endSet = findPams(seq, pam, "+", {}, set(), isCpf1)
+    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet, isCpf1)
     return startDict, endSet
 
 def newBatch(seq, org, pam, skipAlign=False):
@@ -2637,7 +2684,7 @@ def printQueryNotFoundNote(dbInfo):
     print "</em></div>"
 
 def getOfftargets(seq, org, pam, batchId, startDict, queue):
-    """ write guides to fasta and run bwa or use older cached results.
+    """ write guides to fasta and run bwa or use cached results.
     Return name of the BED file with the matches.
     Write progress status updates to queue object.
     """
@@ -2789,9 +2836,9 @@ def crisprSearch(params):
         return
 
     # be more sensitive if only a single guide seq is run
-    if len(startDict)==1:
-        global MAXOCC
-        MAXOCC=max(HIGH_MAXOCC, MAXOCC)
+    #if len(startDict)==1:
+        #global MAXOCC
+        #MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
     if dbInfo==None:
         print "<div class='title'>No Genome selected, specificity scoring is deactivated</div>"
@@ -2947,10 +2994,10 @@ def iterOfftargetRows(guideData, addHeaders=False):
             otCount = len(otData)
             for otSeq, mitScore, cfdScore, editDist, pos, gene, alnHtml in otData:
                 gene = gene.replace(",", "_").replace(";","-")
-
                 chrom, start, end, strand = parsePos(pos)
                 guideDesc = intToExtPamId(pamId)
-                row = [guideDesc, guideSeq+pamSeq, otSeq, editDist, mitScore, cfdScore, chrom, start, end, strand, gene]
+                mismStr = highlightMismatches(guideSeq, otSeq[:GUIDELEN])
+                row = [guideDesc, guideSeq+pamSeq, otSeq, mismStr, editDist, mitScore, cfdScore, chrom, start, end, strand, gene]
                 row = [str(x) for x in row]
                 yield row
 
@@ -3017,6 +3064,10 @@ def downloadFile(params):
 
 def printBody(params):
     " main dispatcher function "
+    if params.get("pam", "")=="TTN":
+        global isCpf1
+        isCpf1 = True
+
     if len(params)==0:
         printForm(params)
     elif "batchId" in params and "pamId" in params and "pam" in params:
@@ -3732,7 +3783,7 @@ def handleOptions(options):
     if options.maxOcc != None:
         global MAXOCC
         MAXOCC = options.maxOcc
-        HIGH_MAXOCC = options.maxOcc
+        #HIGH_MAXOCC = options.maxOcc
 
     if options.minAltPamScore!=None:
         global ALTPAMMINSCORE
@@ -3876,7 +3927,6 @@ def mainCgi():
 
     # make all output files world-writable. Useful so we can clean the tempfiles
     os.umask(000)
-
     cleanJobs()
 
     # parse incoming parameters and clean them
