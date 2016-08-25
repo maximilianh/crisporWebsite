@@ -88,7 +88,7 @@ jobQueueMysqlConn = {"socket":None, "host":None, "user": None, "password" : None
 scriptDir = join(baseDir, "bin")
 
 # directory for helper binaries (e.g. BWA)
-binDir = join(baseDir, "bin", platform.system())
+binDir = abspath(join(baseDir, "bin", platform.system()))
 
 # directory for genomes
 genomesDir = join(baseDir, "genomes")
@@ -101,7 +101,7 @@ ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
 pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
-         ('TTN','TTN-23bp - Cfp1'),
+         ('TTN','TTN-23bp - Cpf1'),
          ('NGA','20bp-NGA - S. Pyogenes mutant VQR'),
          ('NGCG','20bp-NGCG - S. Pyogenes mutant VRER'),
          ('NNAGAA','20bp-NNAGAA - Streptococcus Thermophilus'),
@@ -2161,9 +2161,15 @@ def writeBowtieSequences(inFaFname, outFname, pamPat):
         inCount += 1
         guideSeqs[seqId] = seq
         for pamSeq in allPamSeqs:
-            ofh.write(">%s\n%s\n" % (seqId, seq))
+            # the input sequence + the PAM
+            newSeqId = "%s.%s" % (seqId, pamSeq)
+            newFullSeq = seq+pamSeq
+            ofh.write(">%s\n%s\n" % (newSeqId, newFullSeq))
+            qSeqs[newSeqId] = newFullSeq
+
+            # all one-bp mutations of the input sequence + the PAM
             for nPos, fromNucl, toNucl, newSeq in makeVariants(seq):
-                newSeqId = "%s.%d:%s>%s" % (seqId, nPos, fromNucl, toNucl)
+                newSeqId = "%s.%s.%d:%s>%s" % (seqId, pamSeq, nPos, fromNucl, toNucl)
                 newFullSeq = newSeq+pamSeq
                 ofh.write(">%s\n%s\n" % (newSeqId, newFullSeq))
                 qSeqs[newSeqId] = newFullSeq
@@ -2172,10 +2178,10 @@ def writeBowtieSequences(inFaFname, outFname, pamPat):
     logging.debug("Wrote %d variants+expandedPam of %d sequences to %s" % (outCount, inCount, outFname))
     return guideSeqs, qSeqs, allPamSeqs
 
-def applyModifStr(seq, modifStrs):
-    """ given a list of pos:toNucl>fromNucl and a seq, return the original seq
+def applyModifStr(seq, modifStrs, strand):
+    """ bowtie: given a list of pos:toNucl>fromNucl and a seq, return the original seq.
     position is 0-based
-    >>> applyModifStr("ACAATAAGACATAAACATATCGG", "14:T>A,21:A>G,22:C>G".split(","))
+    >>> applyModifStr("ACAATAAGACATAAACATATCGG", "14:T>A,21:A>G,22:C>G".split(","), "+")
     'ACAATAAGACATAATCATATCAC'
     """
     seq = list(seq)
@@ -2184,14 +2190,20 @@ def applyModifStr(seq, modifStrs):
         pos, toFromNucl = modifStr.split(":")
         fromNucl, toNucl = toFromNucl.split(">")
         pos = int(pos)
+        if strand=="-":
+            fromNucl = revComp(fromNucl)
         seq[pos] = fromNucl
     return "".join(seq)
    
 def parseRefout(tmpDir, guideSeqs, pamLen):
     """ parse all .map file in tmpDir and return as list of chrom,start,end,strand,guideSeq,tSeq
     """
-    ret = []
     fnames = glob.glob(join(tmpDir, "*.map"))
+
+    # while parsing, make sure we keep only the hit with the lowest number of mismatches
+    # to the guide. Saves time when parsing.
+    posToHit = {}
+    hitBestMismCount = {}
     for fname in fnames:
         for line in open(fname):
            # s20+.17:A>G     -       chr8    26869044        CCAGCACGTGCAAGGCCGGCTTC IIIIIIIIIIIIIIIIIIIIIII 7       4:C>G,13:T>G,15:C>G
@@ -2199,16 +2211,28 @@ def parseRefout(tmpDir, guideSeqs, pamLen):
                line.rstrip("\n").split("\t")
 
            guideId = guideIdWithMod.split(".")[0]
-           guideSeq = guideSeqs[guideId]
-           if alnModifStr=="":
-               genomeSeq = tSeq
-           else:
-               genomeSeq = applyModifStr(tSeq, alnModifStr.split(","))
-           if strand=="-":
-            guideSeq = revComp(guideSeq)
+           modifParts = alnModifStr.split(",")
+           if modifParts==['']:
+               modifParts = []
+           mismCount = len(modifParts)
+           hitId = (guideId, chrom, start, strand)
+           oldMismCount = hitBestMismCount.get(hitId, 9999)
+           if mismCount < oldMismCount:
+               hit = (mismCount, guideIdWithMod, strand, chrom, start, tSeq, modifParts)
+               posToHit[hitId] = hit
 
+    ret = []
+    for guideId, hit in posToHit.iteritems():
+           mismCount, guideIdWithMod, strand, chrom, start, tSeq, modifParts = hit
+           if strand=="-":
+               tSeq = revComp(tSeq)
+           guideId = guideIdWithMod.split(".")[0]
+           guideSeq = guideSeqs[guideId]
+           genomeSeq = applyModifStr(tSeq, modifParts, strand)
            start = int(start)
-           ret.append( (guideId, chrom, start, start+GUIDELEN+pamLen, strand, guideSeq, genomeSeq) )
+           bedRow = (guideId, chrom, start, start+GUIDELEN+pamLen, strand, guideSeq, genomeSeq) 
+           ret.append( bedRow )
+
     return ret
 
 def getEditDist(str1, str2):
@@ -2259,16 +2283,13 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
     # -p 4 = use four threads
     # --mm = use mmap
     maxOcc = MAXOCC # meaning in BWA: includes any PAM, in bowtie we have the PAM in the input sequence
-    cmd = "bowtie %(genomePath)s -f %(bwFaFname)s  -v 3 -y -t -k %(maxOcc)d -m %(maxOcc)d dummy --max tooManyHits.txt --mm --refout --maxbts=2000 -p 4" % locals()
+    cmd = "$BIN/bowtie %(genomePath)s -f %(bwFaFname)s  -v 3 -y -t -k %(maxOcc)d -m %(maxOcc)d dummy --max tooManyHits.txt --mm --refout --maxbts=2000 -p 4" % locals()
     runCmd(cmd)
     os.chdir(oldCwd)
 
     queue.startStep(batchId, "parse", "parsing alignments")
     pamLen = len(pamPat)
-    #hits = parseRefout(tmpDir, qSeqs)
-    print "XX HARDCODED TEST"
-    hits = parseRefout("/usr/local/var/www/htdocs/crispor/doc/bowtieOut", guideSeqs, pamLen)
-    #print hits
+    hits = parseRefout(tmpDir, guideSeqs, pamLen)
 
     queue.startStep(batchId, "scoreOts", "scoring off-targets")
     # make the list of alternative PAM sequences
