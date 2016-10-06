@@ -12,3 +12,5 @@ sampleOutOfftargets.mine.tsv should be identical to sampleOutOfftargets.tsv
 
 The file testInHg19.fa contains a sample for the hg19 genome, the output is in testOutHg19.tab 
 and testOutHg19Offtargets.tab
+
+    ../crispor.cgi sacCer3 testInHg19.fa testOutHg19.tab -o testOutHg19Offtargets.tab

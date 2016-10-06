@@ -5,11 +5,11 @@
 # but will extend the end or start by pamlen
 
 # first arg is the PAM sequence
-# Cpf1 PAM TTN is handled
+# Cpf1 PAM TTTN is handled
 
 import sys, logging
 pam = sys.argv[1]
-isCpf1 = (pam=="TTN")
+isCpf1 = (pam=="TTTN")
 pamLen = len(pam)
 #maxX1 = int(sys.argv[2])
 

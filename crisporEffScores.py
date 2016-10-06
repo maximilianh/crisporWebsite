@@ -546,11 +546,14 @@ def sendFusiRequest(seqs):
 def trimSeqs(seqs, fiveFlank, threeFlank):
     """ given a list of 100bp sequences, return a list of sequences with the
     given number of basepairs 5' and 3' added from the middle position (pos 50) of
-    the sequences
+    the sequences. Remove all sequences that contain an "N" character.
     """
     trimSeqs = []
     for s in seqs:
-        trimSeqs.append(s[50+fiveFlank:50+threeFlank].upper())
+        seq = s[50+fiveFlank:50+threeFlank].upper()
+        if "N" in seq:
+            continue
+        trimSeqs.append(seq)
     return trimSeqs
 
 def iterSvmRows(seqs):

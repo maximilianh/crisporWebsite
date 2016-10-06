@@ -115,7 +115,7 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore, passX1Score = sys.argv[1:]
-    isCpf1 = (pamPat=="TTN")
+    isCpf1 = (pamPat=="TTTN")
 
     passX1Score = int(passX1Score)
     altScore = float(altScore)
@@ -150,6 +150,7 @@ def main():
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(pamGenomeSeq, altPat):
+                            #print guideSeq, seq[:20], len(guideSeq)
                             hitScore = calcHitScore(guideSeq, seq[:20])
                             if hitScore > altScore:
                                 doesPass = True

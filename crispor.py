@@ -14,8 +14,11 @@ from os.path import join, isfile, basename, dirname, isdir, abspath
 from StringIO import StringIO
 from itertools import product
 
-# out own eff scoring library
+# our own eff scoring library
 import crisporEffScores
+
+# external dependency: the tabix library
+import tabix # if not found, install with 'pip install pytabix'
 
 # don't report print as an error
 # pylint: disable=E1601
@@ -40,7 +43,7 @@ except:
 versionStr = "3.2"
 
 # contact email
-contactEmail = "max@soe.ucsc.edu"
+contactEmail='crispor@tefor.net'
 
 # write debug output to stdout
 DEBUG = False
@@ -51,11 +54,6 @@ useBowtie = False
 
 # calculate the efficienc scores?
 doEffScoring = True
-
-# Is the current PAM from Cpf1? This is a global var because it changes 
-# all sequence processing. If this is true, the PAM is assumed to be located
-# on the left of the guide.
-isCpf1 = False
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
@@ -100,18 +98,19 @@ DEFAULTSEQ = 'cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccgg
 ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
-pamDesc = [ ('NGG','NGG - Streptococcus Pyogenes'),
-         ('TTN','TTN-23bp - Cpf1'),
-         ('NGA','20bp-NGA - S. Pyogenes mutant VQR'),
-         ('NGCG','20bp-NGCG - S. Pyogenes mutant VRER'),
-         ('NNAGAA','20bp-NNAGAA - Streptococcus Thermophilus'),
-         ('NGGNG','20bp-NGGNG - Streptococcus Thermophilus St3Cas9'),
-         ('NNGRRT','20bp-NNG(A/G)(A/G)T - Staphylococcus Aureus'),
-         ('NNNNGMTT','20bp-NNNNG(A/C)TT - Neisseiria Meningitidis'),
-         ('NNNNACA','20bp-NNNNACA - Campylobacter jejuni'),
+pamDesc = [ ('NGG','20bp-NGG - Cas9 S. Pyogenes'),
+         ('TTTN','TTTN-23bp - Cpf1 F. novicida'),
+         ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
+         ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
+         ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
+         ('NGGNG','20bp-NGGNG - Cas9 S. Thermophilus'),
+         ('NNGRRT','20bp-NNG(A/G)(A/G)T - Cas9 Staphylococcus Aureus'),
+         ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 Neisseiria Meningitidis'),
+         ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
        ]
 
 DEFAULTPAM = 'NGG'
+
 
 # maximum size of an input sequence 
 MAXSEQLEN = 1000
@@ -129,8 +128,15 @@ MAXOCC = 60000
 # the BWA queue size is 2M by default. We derive the queue size from MAXOCC
 MFAC = 2000000/MAXOCC
 
-# the length of the guide sequence
-GUIDELEN=20
+# the length of the guide sequence, set by setupPamInfo
+GUIDELEN=None
+
+# are we doing a Cpf1 run?
+# this variable changes almost all processing and
+# has to be set on program start, as soon as we know 
+# the PAM we're running on
+cpf1Mode=None
+
 
 # Highly-sensitive mode (not for CLI mode): 
 # MAXOCC is increased in processSubmission() and in the html UI if only one
@@ -140,16 +146,25 @@ GUIDELEN=20
 #HIGH_maxMMs=5
 
 # minimum off-target score of standard off-targets (those that end with NGG)
-# XX THIS SHOULD BE BASED ON CFD SCORE NOW!
+# This should probably be based on the CFD score these days
+# But for now, I'll let the user do the filtering
 MINSCORE = 0.0
+
 # minimum off-target score for alternative PAM off-targets
+# There is not a lot of data to support this cutoff, but it seems
+# reasonable to have at least some cutoff, as otherwise we would show
+# NAG and NGA like NGG and the data shows clearly that the alternative
+# PAMs are not recognized as well as the main NGG PAM.
+# so for now, I just filter out very degenerative ones. the best solution
+# would be to have a special penalty on the CFD score, but CFS does not 
+# support non-NGG PAMs (is this actually true?)
 ALTPAMMINSCORE = 1.0
 
 # for some PAMs, we allow other alternative motifs when searching for offtargets
 # MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
 # on the guideSeq results in Tsai et al, Nat Biot 2014
 # The NGA -> NGG rule was described by Kleinstiver...Young 2015 "Improved Cas9 Specificity..."
-offtargetPams = {"NGG" : ["NAG","NGA"], "NGA" : ["NGG"] }
+offtargetPams = {"NGG" : ["NAG","NGA"], "NGA" : ["NGG"]}
 
 # global flag to indicate if we're run from command line or as a CGI
 commandLineMode = False
@@ -163,12 +178,12 @@ scoreDigits = {
 
 # labels and descriptions of eff. scores
 scoreDescs = {
-    "doench" : ("Doench", "Range: 0-100. Linear regression model trained on 880 guides transfected into human MOLM13/NB4/TF1 cells (three genes) and mouse cells (six genes). Delivery: lentivirus. The Fusi score can be considered an updated version this score, as their training data overlaps a lot. See <a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench et al.</a>"),
+    "doench" : ("Doench '14", "Range: 0-100. Linear regression model trained on 880 guides transfected into human MOLM13/NB4/TF1 cells (three genes) and mouse cells (six genes). Delivery: lentivirus. The Fusi score can be considered an updated version this score, as their training data overlaps a lot. See <a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench et al.</a>"),
     "ssc" : ("Xu", "Range ~ -2 - +2. Aka 'SSC score'. Linear regression model trained on data from &gt;1000 genes in human KBM7/HL60 cells (Wang et al) and mouse (Koike-Yusa et al.). Delivery: lentivirus. Ranges mostly -2 to +2. See <a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu et al.</a>"),
     "crisprScan" : ("Mor.-Mateos", "Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>"),
     "wang" : ("Wang", "Range: 0-100. SVM model trained on human cell culture data on guides from &gt;1000 genes. The Xu score can be considered an updated version of this score, as the training data overlaps a lot. Delivery: lentivirus. See <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang et al.</a>"),
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
-    "fusi" : ("Fusi", "Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al.</a>."),
+    "fusi" : ("Doench '16", "Originally called the 'Fusi' score. Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a>"),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "oof" : ("Out-of-Frame", "Range: 0-100. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al.</a>")
 }
@@ -185,6 +200,16 @@ if isfile(confPath):
 
 # ====== END GLOBALS ============
 
+def setupPamInfo(pam):
+    " modify a few globals based on the current pam "
+    global GUIDELEN
+    global cpf1Mode
+    if pam=="TTTN":
+        GUIDELEN = 23
+        cpf1Mode = True
+    else:
+        GUIDELEN = 20
+        cpf1Mode = False
 
 # ==== CLASSES =====
 class JobQueue:
@@ -405,7 +430,7 @@ def errAbort(msg):
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
 # and +
-notOkChars = re.compile(r'[^a-zA-Z0-9-_:+]')
+notOkChars = re.compile(r'[^a-zA-Z0-9-_:+.]')
 
 def checkVal(key, str):
     """ remove special characters from input string, to protect against injection attacks """
@@ -540,7 +565,7 @@ def cleanSeq(seq, db):
         if len(l)==0:
             continue
         for c in l:
-            if c not in "actgACTG":
+            if c not in "actgACTGNn":
                 nCount +=1
             else:
                 newSeq.append(c)
@@ -555,30 +580,30 @@ def cleanSeq(seq, db):
         seq = seq[:MAXSEQLEN_NOGENOME]
 
     if nCount!=0:
-        msgs.append("Sequence contained %d non-ACTG letters. They were removed." % nCount)
+        msgs.append("Sequence contained %d non-ACTGN letters. They were removed." % nCount)
 
     return seq, "<br>".join(msgs)
 
 def revComp(seq):
     " rev-comp a dna sequence with UIPAC characters "
     revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' , 'M' : 'K', 'K' : 'M', 
-        "R" : "Y" , "Y":"R" }
+        "R" : "Y" , "Y":"R" , "g":"c", "a":"t", "c":"g","t":"a", "n":"n"}
     newSeq = []
     for c in reversed(seq):
         newSeq.append(revTbl[c])
     return "".join(newSeq)
 
-def findPams (seq, pam, strand, startDict, endSet, isCpf1):
+def findPams (seq, pam, strand, startDict, endSet):
     """ return two values: dict with pos -> strand of PAM and set of end positions of PAMs
     Makes sure to return only values with at least GUIDELEN bp left (if strand "+") or to the
     right of the match (if strand "-")
-    If the PAM is TTN, then this is inversed: pos-strand matches must have at least GUIDELEN
+    If the PAM is TTTN, then this is inversed: pos-strand matches must have at least GUIDELEN
     basepairs to the right, neg-strand matches must have at least GUIDELEN bp on their left
     >>> findPams("GGGGGGGGGGGGGGGGGGGGGGG", "NGG", "+", {}, set(), False)
     ({20: '+'}, set([23]))
     >>> findPams("CCAGCCCCCCCCCCCCCCCCCCC", "CCA", "-", {}, set(), False)
     ({0: '-'}, set([3]))
-    >>> findPams("TTNCCCCCCCCCCCCCCCCCTTN", "TTN", "+", {}, set(), True)
+    >>> findPams("TTTNCCCCCCCCCCCCCCCCCTTTN", "TTTN", "+", {}, set(), True)
     ({0: '+'}, set([3]))
     >>> findPams("CCCCCCCCCCCCCCCCCCCCCAAAA", "NAA", "-", {}, set(), True
     ({}, set([]))
@@ -588,7 +613,9 @@ def findPams (seq, pam, strand, startDict, endSet, isCpf1):
     ({}, set([]))
 
     """
-    if isCpf1:
+    assert(cpf1Mode is not None)
+
+    if cpf1Mode:
         maxPosPlus  = len(seq)-(GUIDELEN+len(pam))
         minPosMinus = GUIDELEN
     else:
@@ -601,7 +628,7 @@ def findPams (seq, pam, strand, startDict, endSet, isCpf1):
 
     #print "new search", seq, pam, "<br>"
     for start in findPat(seq, pam):
-        if isCpf1:
+        if cpf1Mode:
             # need enough flanking seq on one side
             #print "found", start,"<br>"
             if strand == "+" and start > maxPosPlus:
@@ -630,23 +657,66 @@ def rulerString(maxLen):
         texts.append(spacer)
     return "".join(texts)
 
-def showSeqAndPams(seq, startDict, pam, guideScores):
+def varDictToHtml(varDict, seq):
+    " make a list of one html string per position in the sequence "
+    if varDict is None:
+        return None
+
+    varHtmls = []
+    for i in range(0, len(seq)):
+        if not i in varDict:
+            varHtmls.append(".")
+        else:
+            chrom, pos, refAll, altAll, infoDicts = varDict[i]
+            varHooverLines = []
+            for infoDict in infoDicts:
+                varHooverLines.append("%s -> %s" % (refAll, altAll))
+                if "AF" in infoDict:
+                    varHooverLines.append(", All.-Freq: %s<br>" % infoDict["AF"])
+            if "ExAC" in varDict["label"]:
+                    endPos = int(pos)+len(refAll)
+                    varHooverLines.append('<a target=_blank href="http://exac.broadinstitute.org/region/%s-%s-%d">ExAC Browser</a>' % (chrom, pos, endPos))
+            varDesc = "".join(varHooverLines)
+
+            if len(infoDicts)==1 and len(refAll)==1 and len(altAll)==1:
+                dispChar = altAll
+            else:
+                dispChar = "*"
+            varHtmls.append("<u class='tooltipsterInteract' title='%s'>%s</u>" % (varDesc, dispChar))
+    return varHtmls
+
+def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varLabel, minAF):
     " show the sequence and the PAM sites underneath in a sequence viewer "
     lines, maxY = distrOnLines(seq.upper(), startDict, len(pam))
 
     print "<div class='substep'>"
     print '<a id="seqStart"></a>'
     print "Found %d possible guide sequences in input (%d bp). Click on a PAM %s match to show its guide sequence.<br>" % (len(guideScores), len(seq), pam)
-    print "Shown below are the PAM site and the expected cleavage position located -3bp 5' of the PAM site.<br>"
-    print '''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.'''
+
+    if not cpf1Mode:
+        print "Shown below are the PAM site and the expected cleavage position located -3bp 5' of the PAM site.<br>"
+        print '''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<br>'''
+    else:
+        print ""
+
+    if varLabel is not None:
+        print ("Shown above the sequence are the variants from the database '%s'." % varLabel)
+        print("""<form style="display:inline" id="paramForm" action="%s" method="GET">""" % basename(__file__))
+        print("""min. frequency: """)
+        print("""<input type="text" name="minAF" size="8" value="%f">""" % minAF)
+        print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
+
+
     print "</div>"
     print '''<div style="text-align: left; overflow-x:scroll; width:100%; background:#DDDDDD; border-style: solid; border-width: 1px">'''
 
     print '<pre style="font-size: 80%; display:inline; line-height: 0.95em; text-align:left">'+rulerString(len(seq))
+
+    if varHtmls is not None:
+        print "".join(varHtmls)
     print seq
 
     for y in range(0, maxY+1):
-        #print "y", y, "<br>"
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId  in lines[y]:
@@ -659,10 +729,13 @@ def showSeqAndPams(seq, startDict, pam, guideScores):
             texts.append('''<a style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (color, pamId,pamId))
             texts.append(name)
             texts.append("</a>")
-        print "".join(texts)
+        print(u''.join(texts).encode("utf8"))
     print("</pre><br>")
 
     print '''</div>'''
+
+    if cpf1Mode:
+        print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">Cpf1 has a staggered site: cleavage occurs after the 18th base on the non-targeted strand which has the TTTN PAM motif (indicate by "\\" in the schema above). Cleavage occurs after the 23rd base on the targeted strand which has the AAAN motif (indicated by "/" in the schema above). See <a target=_blank href="http://www.sciencedirect.com/science/article/pii/S0092867415012003">Zetsche et al 2015</a>, in particular <a target=_blank href="http://www.sciencedirect.com/science?_ob=MiamiCaptionURL&_method=retrieve&_eid=1-s2.0-S0092867415012003&_image=1-s2.0-S0092867415012003-gr3.jpg&_cid=272196&_explode=defaultEXP_LIST&_idxType=defaultREF_WORK_INDEX_TYPE&_alpha=defaultALPHA&_ba=&_rdoc=1&_fmt=FULL&_issn=00928674&_pii=S0092867415012003&md5=11771263f3e390e444320cacbcfae323">Fig 3</a>.</div>')
     
 def iterOneDelSeqs(seq):
     """ given a seq, create versions with each bp removed. Avoid duplicates 
@@ -677,36 +750,41 @@ def iterOneDelSeqs(seq):
             yield i, delSeq
         doneSeqs.add(delSeq)
 
-def flankSeqIter(seq, startDict, pamLen):
+def flankSeqIter(seq, startDict, pamLen, doFilterNs):
     """ given a seq and dictionary of pos -> strand and the length of the pamSite
-    yield tuples of (name, startPos, strand, flankSeq, pamSeq)
+    yield tuples of (name, pamStart, guideStart, strand, flankSeq, pamSeq)
 
+    if doFilterNs is set, will not return any sequences that contain an N character
     """
     startList = sorted(startDict.keys())
-    for startPos in startList:
-        strand = startDict[startPos]
+    for pamStart in startList:
+        strand = startDict[pamStart]
 
-        if isCpf1: # Cpf1: get the sequence to the right of the PAM
+        if cpf1Mode: # Cpf1: get the sequence to the right of the PAM
             if strand=="+":
-                flankSeq = seq[startPos+pamLen:startPos+pamLen+GUIDELEN]
-                pamSeq = seq[startPos:startPos+pamLen]
+                guideStart = pamStart+pamLen
+                flankSeq = seq[guideStart:guideStart+GUIDELEN]
+                pamSeq = seq[pamStart:pamStart+pamLen]
             else: # strand is minus
-                flankSeq = revComp(seq[startPos-GUIDELEN:startPos])
-                pamSeq = revComp(seq[startPos:startPos+pamLen])
+                guideStart = pamStart-GUIDELEN
+                flankSeq = revComp(seq[guideStart:pamStart])
+                pamSeq = revComp(seq[pamStart:pamStart+pamLen])
         else: # common case: get the sequence on the left side of the PAM
             if strand=="+":
-                flankSeq = seq[startPos-GUIDELEN:startPos]
-                pamSeq = seq[startPos:startPos+pamLen]
+                guideStart = pamStart-GUIDELEN
+                flankSeq = seq[guideStart:pamStart]
+                pamSeq = seq[pamStart:pamStart+pamLen]
             else: # strand is minus
-                flankSeq = revComp(seq[startPos+pamLen:startPos+pamLen+GUIDELEN])
-                pamSeq = revComp(seq[startPos:startPos+pamLen])
+                guideStart = pamStart+pamLen
+                flankSeq = revComp(seq[guideStart:guideStart+GUIDELEN])
+                pamSeq = revComp(seq[pamStart:pamStart+pamLen])
 
-        if "N" in flankSeq:
+        if "N" in flankSeq and doFilterNs:
             continue
 
-        yield "s%d%s" % (startPos, strand), startPos, strand, flankSeq, pamSeq
+        yield "s%d%s" % (pamStart, strand), pamStart, guideStart, strand, flankSeq, pamSeq
 
-def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
+def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
     " return link to genome browser (ucsc or ensembl) at pos, with given text "
     if dbInfo.server.startswith("Ensembl"):
         baseUrl = "www.ensembl.org"
@@ -722,6 +800,11 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
         if pos[0].isdigit():
             pos = "chr"+pos
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
+    # some limited support for gbrowse
+    elif dbInfo.server.startswith("http://"):
+        chrom, start, end, strand = parsePos(pos)
+        start = start+1
+        url = "%s/?name=%s:%d..%d" % (dbInfo.server, chrom, start, end)
     else:
         #return "unknown genome browser server %s, please email services@tefor.net" % dbInfo.server
         url = "javascript:void(0)"
@@ -732,10 +815,16 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses=[]):
 
     return '''<a title="%s"%s target="_blank" href="%s">%s</a>''' % (title, classStr, url, text)
 
-def highlightMismatches(str1, str2):
-    " return a string that marks mismatches between str1 and str2 with * "
+def highlightMismatches(guide, offTarget, pamLen):
+    " return a string that marks mismatches between guide and offtarget with * "
+    if cpf1Mode:
+        offTarget = offTarget[pamLen:]
+    else:
+        offTarget = offTarget[:-pamLen]
+    assert(len(guide)==len(offTarget))
+
     s = []
-    for x, y in zip(str1, str2):
+    for x, y in zip(guide, offTarget):
         if x==y:
             s.append(".")
         else:
@@ -746,7 +835,20 @@ def makeAlnStr(seq1, seq2, pam, mitScore, cfdScore, posStr):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
     lines = [ [], [], [] ]
     last12MmCount = 0
-    for i in range(0, len(seq1)-len(pam)):
+
+    if cpf1Mode:
+        lines[0].append("<i>"+seq1[:len(pam)]+"</i> ")
+        lines[1].append("<i>"+seq2[:len(pam)]+"</i> ")
+        lines[2].append("".join([" "]*(len(pam)+1)))
+
+    if cpf1Mode:
+        guideStart = len(pam)
+        guideEnd = len(seq1)
+    else:
+        guideStart = 0
+        guideEnd = len(seq1)-len(pam)
+
+    for i in range(guideStart, guideEnd):
         if seq1[i]==seq2[i]:
             lines[0].append(seq1[i])
             lines[1].append(seq2[i])
@@ -757,19 +859,32 @@ def makeAlnStr(seq1, seq2, pam, mitScore, cfdScore, posStr):
             lines[2].append("*")
             if i>7:
                 last12MmCount += 1
-    lines[0].append(" <i>"+seq1[-len(pam):]+"</i>")
-    lines[1].append(" <i>"+seq2[-len(pam):]+"</i>")
+
+    if not cpf1Mode:
+        lines[0].append(" <i>"+seq1[-len(pam):]+"</i>")
+        lines[1].append(" <i>"+seq2[-len(pam):]+"</i>")
     lines = ["".join(l) for l in lines]
 
     if len(posStr)>1 and posStr[0].isdigit():
         posStr = "chr"+posStr
 
-    htmlText = "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>MIT Off-target score: %.2f<br>CFD Off-target score: %f<br>Position: %s</small>" % (lines[0], lines[1], lines[2], mitScore, cfdScore, posStr)
+    htmlText1 = "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>" \
+        % (lines[0], lines[1], lines[2])
+    if cpf1Mode:
+        htmlText2 = "CPf1: No off-target scores available</small>"
+    else:
+        if cfdScore==None:
+            cfdStr = "Cannot calculate CFD score on non-ACTG characters"
+        else:
+            cfdStr = "%f" % cfdScore
+        htmlText2 = "CFD Off-target score: %s<br>MIT Off-target score: %.2f<br>Position: %s</small>" % (cfdStr, mitScore, posStr)
     hasLast12Mm = last12MmCount>0
-    return htmlText, hasLast12Mm
+    return htmlText1+htmlText2, hasLast12Mm
 
 def parsePos(text):
-    " parse a string of format chr:start-end:strand and return a 4-tuple "
+    """ parse a string of format chr:start-end:strand and return a 4-tuple
+    Strand defaults to + and end defaults to start+23
+    """
     if text!=None and len(text)!=0 and text!="?":
         fields = text.split(":")
         if len(fields)==2:
@@ -785,19 +900,19 @@ def parsePos(text):
     return chrom, start, end, strand
 
 def makePosList(countDict, guideSeq, pam, inputPos):
-    """ for a given guide sequence, return a list of tuples that 
+    """ for a given guide sequence, return a list of tuples that
     describes the offtargets sorted by score and a string to describe the offtargets in the
     format x/y/z/w of mismatch counts
     inputPos has format "chrom:start-end:strand". All 0MM matches in this range
     are ignored from scoring ("ontargets")
-    Also return the same description for just the last 12 bp and the score 
+    Also return the same description for just the last 12 bp and the score
     of the guide sequence (calculated using all offtargets).
     """
     inChrom, inStart, inEnd, inStrand = parsePos(inputPos)
     count = 0
     otCounts = []
     posList = []
-    scores = []
+    mitOtScores = []
     cfdScores = []
     last12MmCounts = []
     ontargetDesc = ""
@@ -838,16 +953,20 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             otSeqNoPam = otSeq[:len(otSeq)-len(pam)]
             if len(otSeqNoPam)==19:
                 otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
-            # MIT score must not include the PAM
-            mitScore = calcHitScore(guideNoPam, otSeqNoPam)
-            scores.append(mitScore)
+            if pam!="TTTN":
+                # MIT score must not include the PAM
+                mitScore = calcHitScore(guideNoPam, otSeqNoPam)
+                # CFD score must include the PAM
+                cfdScore = calcCfdScore(guideSeq, otSeq)
+            else:
+                mitScore=0.0
+                cfdScore=0.0
 
-            # CFD score must include the PAM
-            cfdScore = calcCfdScore(guideSeq, otSeq)
+            mitOtScores.append(mitScore)
             if cfdScore != None:
                 cfdScores.append(cfdScore)
 
-            posStr = "%s:%d-%s" % (chrom, int(start)+1,end)
+            posStr = "%s:%d-%s:%s" % (chrom, int(start)+1,end, strand)
             alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, mitScore, cfdScore, posStr)
             if not hasLast12Mm:
                 last12MmOtCount+=1
@@ -860,20 +979,34 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         # create a list of number of offtargets for this edit dist
         otCounts.append( str(otCount) )
 
+    # calculate the guide scores
+    if pam=="TTTN":
+        guideScore = -1
+        guideCfdScore = -1
+    else:
+        if subOptMatchCount > MAXOCC:
+            guideScore = 0
+            guideCfdScore = 0
+        else:
+            guideScore = calcMitGuideScore(sum(mitOtScores))
+            guideCfdScore = calcMitGuideScore(sum(cfdScores))
+
+    # obtain the off-target info: coordinates, descriptions and off-target counts
     if subOptMatchCount > MAXOCC:
-        guideScore = 0
-        guideCfdScore = 0
         posList = []
         ontargetDesc = ""
         last12DescStr = ""
         otDescStr = ""
     else:
-        guideScore = calcMitGuideScore(sum(scores))
-        guideCfdScore = calcMitGuideScore(sum(cfdScores))
         otDescStr = "&thinsp;-&thinsp;".join(otCounts)
         last12DescStr = "&thinsp;-&thinsp;".join(last12MmCounts)
 
-    posList.sort(reverse=True, key=operator.itemgetter(2)) # sort by CFD score
+    if pam=="TTTN":
+        # sort by edit dist if using Cfp1
+        posList.sort(key=operator.itemgetter(3))
+    else:
+        # sort by CFD score if we have it
+        posList.sort(reverse=True, key=operator.itemgetter(2))
 
     return posList, otDescStr, guideScore, guideCfdScore, last12DescStr, \
         ontargetDesc, subOptMatchCount
@@ -1079,10 +1212,16 @@ def pamStartToGuideRange(startPos, strand, pamLen):
     """ given a PAM start position and its strand, return the (start,end) of the guide.
     Coords can be negative or exceed the length of the input sequence.
     """
-    if strand=="+":
-        return (startPos-GUIDELEN, startPos)
-    else: # strand is minus
-        return (startPos+pamLen, startPos+pamLen+GUIDELEN)
+    if not cpf1Mode:
+        if strand=="+":
+            return (startPos-GUIDELEN, startPos)
+        else: # strand is minus
+            return (startPos+pamLen, startPos+pamLen+GUIDELEN)
+    else:
+        if strand=="+":
+            return (startPos+pamLen, startPos+pamLen+GUIDELEN)
+        else: # strand is minus
+            return (startPos-GUIDELEN, startPos)
 
 def htmlHelp(text):
     " show help text with tooltip or modal dialog "
@@ -1163,11 +1302,18 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
     """
     matches = {}
     #print guideSeq, pamSeq, "<br>"
-    fullSeq = guideSeq+pamSeq
+    fullSeq = concatGuideAndPam(guideSeq, pamSeq)
+
     for siteLen, sites in allEnzymes.iteritems():
-        startSeq = len(fullSeq)-len(pamSeq)-3-(siteLen)+1
+        if cpf1Mode:
+            # most modified position: 3bp from the end
+            startSeq = len(fullSeq)-len(pamSeq)-3-(siteLen)+1
+        else:
+            # most modified position: 4nt from the end
+            # see http://www.nature.com/nbt/journal/v34/n8/full/nbt.3620.html
+            # Figure 1
+            startSeq = len(fullSeq)-4-(siteLen)+1
         seq = fullSeq[startSeq:]
-        #print "restrEnz with len %d"% siteLen, seq, "<br>"
         for name, restrSite in sites:
             posList = findSite(seq, restrSite)
             if len(posList)!=0:
@@ -1177,7 +1323,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
     return matches
 
 def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None):
-    """ 
+    """
     merges guide information from the sequence, the efficiency scores and the off-targets.
     creates rows with fields:
 
@@ -1191,17 +1337,18 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
     guideScores = {}
     hasNotFound = False
 
-    pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat)))
+    pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat), True))
 
-    for pamId, startPos, strand, guideSeq, pamSeq in pamSeqs:
+    for pamId, pamStart, guideStart, strand, guideSeq, pamSeq in pamSeqs:
         # matches in genome
         # one desc in last column per OT seq
         if pamId in otMatches:
             pamMatches = otMatches[pamId]
-            guideSeqFull = guideSeq + pamSeq
+            guideSeqFull = concatGuideAndPam(guideSeq, pamSeq)
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq)
             posList, otDesc, guideScore, guideCfdScore, last12Desc, ontargetDesc, \
-                subOptMatchCount = makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
+               subOptMatchCount = \
+                   makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
 
         # no off-targets found?
         else:
@@ -1216,17 +1363,9 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             subOptMatchCount = False
             seq34Mer = None
 
-        #gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pamPat))
-        #seq100Mer = getExtSeq(seq, gStart, gEnd, strand, 30, 50, extSeq)
-
-        guideData.append( [guideScore, guideCfdScore, effScores.get(pamId, {}), startPos, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount] )
+        guideRow = [guideScore, guideCfdScore, effScores.get(pamId, {}), pamStart, guideStart, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount]
+        guideData.append( guideRow )
         guideScores[pamId] = guideScore
-
-    #if USESSC:
-        #guideData = addSscScores(guideData, seqFieldIdx=-1, scoreFieldIdx=4)
-    #else:
-        # just remove the last field (=34mer)
-        #guideData = [x[:-1] for x in guideData]
 
     if sortBy is not None and sortBy!="spec":
         sortFunc = (lambda row: row[2][sortBy])
@@ -1235,7 +1374,6 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
 
     guideData.sort(reverse=True, key=sortFunc)
 
-    #guideData.sort(reverse=True, key=lambda row: 3*row[0]+row[1])
     return guideData, guideScores, hasNotFound
 
 def printDownloadTableLinks(batchId):
@@ -1255,22 +1393,23 @@ def hasGeneModels(org):
 def printTableHead(batchId, chrom, org):
     " print guide score table description and columns "
     # one row per guide sequence
-    print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>. Click on a column title to rank by a different score.<br>'''
-    print '''
-    <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> See our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>, figures 4 and 5.<br>
-    Please also cite the sources when you use a score:
-    <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi</a>,
-    <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari</a>,
-    <a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu</a>,
-    <a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench</a>,
-    <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang</a>,
-    <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>,
-    <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden</a>,
-    <a target='_blank' href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Prox. GC</a>,
-    <a target='_blank' href='https://mcb.berkeley.edu/labs/meyer/publicationpdfs/959.full.pdf'>-GG</a>,
-    <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Out-of-Frame</a>
-    <br>
-    </div>'''
+    if not cpf1Mode:
+        print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>. Click on a column title to rank by a different score.<br>'''
+        print '''
+        <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> See our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>, figures 4 and 5.<br>
+        References for scores:
+        <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016 (=Fusi)</a>,
+        <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari</a>,
+        <a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu</a>,
+        <a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench</a>,
+        <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang</a>,
+        <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>,
+        <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden</a>,
+        <a target='_blank' href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Prox. GC</a>,
+        <a target='_blank' href='https://mcb.berkeley.edu/labs/meyer/publicationpdfs/959.full.pdf'>-GG</a>,
+        <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Out-of-Frame</a>
+        <br>
+        </div>'''
 
     printDownloadTableLinks(batchId)
 
@@ -1327,14 +1466,17 @@ def printTableHead(batchId, chrom, org):
     </script>
     """
 
-    print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
-    print '<colgroup span="1"><col></colgroup>'
-    print '<colgroup span="1"><col></colgroup>'
-    print '<colgroup span="1"><col></colgroup>'
-    print '<colgroup span="3"><col><col><col></colgroup>'
-    print '<colgroup span="1"><col></colgroup>'
-    print '<colgroup span="1"><col></colgroup>'
-    print '<colgroup span="1"><col></colgroup>'
+    if not cpf1Mode:
+        print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
+        print '<colgroup span="1"><col></colgroup>'
+        print '<colgroup span="1"><col></colgroup>'
+        print '<colgroup span="1"><col></colgroup>'
+        print '<colgroup span="3"><col><col><col></colgroup>'
+        print '<colgroup span="1"><col></colgroup>'
+        print '<colgroup span="1"><col></colgroup>'
+        print '<colgroup span="1"><col></colgroup>'
+    else:
+        print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
 
     print '<thead>'
     print '<tr style="border-bottom:none; border-left:5px solid black; background-color:#F0F0F0">'
@@ -1343,15 +1485,17 @@ def printTableHead(batchId, chrom, org):
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
-    print '<th style="width:170px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
+    print '<th style="width:180px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
     htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
 
-    print '<th style="width:70px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
-    htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible.")
-    print "</th>"
+    if not cpf1Mode:
+        print '<th style="width:70px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
+        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible.")
+        print "</th>"
 
-    print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
-    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.")
+    if not cpf1Mode:
+        print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
+        htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.")
 
     #print '<th style="width:50">Prox. GC'
     #htmlHelp("")
@@ -1367,8 +1511,8 @@ def printTableHead(batchId, chrom, org):
 
     #print '<th style="width:120">Off-targets with no mismatches next to PAM</i>'
     print "</th>"
-    print '<th style="width:*; border-bottom:none">Genome Browser links to matches sorted by off-target score'
-    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by off-target score (see Hsu et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
+    print '<th style="width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
+    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
     #print '<form id="filter-form" method="get" action="crispor.py#otTable">'
@@ -1393,20 +1537,25 @@ def printTableHead(batchId, chrom, org):
     print "</th>"
     print "</tr>"
 
+    # subheaders
     print '<tr style="border-top:none; border-left: solid black 5px; background-color:#F0F0F0">'
-    print '<th style="border-top:none"></th>'
+
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
 
-    for scoreName in scoreNames:
-        if scoreName=="oof":
-            continue
-        scoreLabel, scoreDesc = scoreDescs[scoreName]
-        print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+    if not cpf1Mode:
+        print '<th style="border-top:none"></th>'
 
-    # the ProxGC score comes next
-    # old text was: At least four G or C nucleotides in the 6bp next to the PAM.<br>Ren, Zhihao, Jiang et al (Cell Reports 2014) showed that this feature is correlated with Cas9 activity (P=0.625). <br>When GC>=4, the guide RNA tested in Drosophila induced a heritable mutation rate in over 60% of cases.t
-    print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.py?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
+    if not cpf1Mode:
+        for scoreName in scoreNames:
+            if scoreName=="oof":
+                continue
+            scoreLabel, scoreDesc = scoreDescs[scoreName]
+            print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+
+    if not cpf1Mode:
+        # the ProxGC score comes next
+        print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate"><div><span style="border-bottom:none"><a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.py?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
 
     # these are empty cells to fill up the row and avoid white space
     print '<th style="border-top:none"></th>'
@@ -1420,6 +1569,8 @@ def scoreToColor(guideScore):
         color = "#32cd32"
     elif guideScore > 20:
         color = "#ffff00"
+    elif guideScore==-1:
+        color = "black"
     else:
         color = "#aa0114"
     return color
@@ -1474,12 +1625,12 @@ def findOtCutoff(otData):
     return otData, 1000
 
 def printNoEffScoreFoundWarn(effScoresCount):
-    if effScoresCount==0:
+    if effScoresCount==0 and not cpf1Mode:
         print('<div style="text-align:left"><strong>Note:</strong> No guide could be scored for efficiency.')
         print("This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence.</div><br>")
 
 
-def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom):
+def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom, varHtmls):
     " shows table of all PAM motif matches "
     print "<br><div class='title'>Predicted guide sequences for PAMs</div>" 
 
@@ -1490,7 +1641,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
     count = 0
     effScoresCount = 0
     for guideRow in guideData:
-        guideScore, guideCfdScore, effScores, startPos, strand, pamId, guideSeq, \
+        guideScore, guideCfdScore, effScores, pamStart, guideStart, strand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         color = scoreToColor(guideScore)
@@ -1500,7 +1651,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         #print '<td id="%s">' % pamId
         print '<td>'
         print '<a href="#list%s">' % (pamId)
-        print str(startPos+1)+" /"
+        print str(pamStart+1)+" /"
         if strand=="+":
             print 'fw'
         else:
@@ -1508,10 +1659,32 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print '</a>'
         print "</td>"
 
-        # sequence
+        # sequence with variants and PCR primer link
         print "<td>"
         print "<small>"
-        print "<tt>"+guideSeq + " <i>" + pamSeq+"</i></tt>"
+
+        # guide sequence + PAM sequence
+        if cpf1Mode:
+            fullGuideHtml = "<tt><i>"+pamSeq+"</i> " + guideSeq+"</tt>"
+            spacePos = len(pamSeq)
+        else:
+            fullGuideHtml = "<tt>"+guideSeq + " <i>" + pamSeq+"</i></tt>"
+            spacePos = len(guideSeq)
+
+        # variant-string
+        if varHtmls is not None:
+            varFound = False
+            varStrs = []
+            for i in range(guideStart, guideStart+len(guideSeq)+len(pamSeq)):
+                html = varHtmls[i]
+                if html!=".":
+                    varFound = True
+                if (i-guideStart)==spacePos:
+                    varStrs.append("&nbsp;")
+                varStrs.append(html)
+            print("<tt>%s</tt><br>" % ("".join(varStrs)))
+
+        print fullGuideHtml
         print "<br>"
 
         scriptName = basename(__file__)
@@ -1538,52 +1711,54 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         print "</td>"
 
         # off-target score, aka specificity score aka MIT score
-        print "<td>"
-        if guideScore==None:
-            print "No matches"
-        else:
-            print "%d" % guideScore
-        print "</td>"
+        if not cpf1Mode:
+            print "<td>"
+            if guideScore==None:
+                print "No matches"
+            else:
+                print "%d" % guideScore
+            print "</td>"
 
         # eff scores
-        if effScores==None:
-            print '<td colspan="%d">Too close to end</td>' % len(scoreNames)
-            htmlHelp("The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
-        else:
-            for scoreName in scoreNames:
-                if scoreName=="oof":
-                    continue
-                score = effScores.get(scoreName, None)
-                if score!=None:
-                    effScoresCount += 1
-                if score==None:
-                    print '''<td>--</td>'''
-                elif scoreName=="ssc":
-                    # save some space
-                    numStr = '%.1f' % (float(score))
-                    print '''<td>%s</td>'''  % numStr
-                elif scoreDigits.get(scoreName, 0)==0:
-                    print '''<td>%d</td>''' % int(score)
-                else:
-                    print '''<td>%0.1f</td>''' % (float(score))
-            #print "<!-- %s -->" % seq30Mer
-        # close GC > 4
-        print "<td>"
-        finalGc = int(effScores.get("finalGc6", -1))
-        if finalGc==1:
-            print "+"
-        elif finalGc==0:
-            print "-"
-        else:
-            print "--"
+        if not cpf1Mode:
+            if effScores==None:
+                print '<td colspan="%d">Too close to end</td>' % len(scoreNames)
+                htmlHelp("The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
+            else:
+                for scoreName in scoreNames:
+                    if scoreName=="oof":
+                        continue
+                    score = effScores.get(scoreName, None)
+                    if score!=None:
+                        effScoresCount += 1
+                    if score==None:
+                        print '''<td>--</td>'''
+                    elif scoreName=="ssc":
+                        # save some space
+                        numStr = '%.1f' % (float(score))
+                        print '''<td>%s</td>'''  % numStr
+                    elif scoreDigits.get(scoreName, 0)==0:
+                        print '''<td>%d</td>''' % int(score)
+                    else:
+                        print '''<td>%0.1f</td>''' % (float(score))
+                #print "<!-- %s -->" % seq30Mer
+            # close GC > 4
+            print "<td>"
+            finalGc = int(effScores.get("finalGc6", -1))
+            if finalGc==1:
+                print "+"
+            elif finalGc==0:
+                print "-"
+            else:
+                print "--"
 
-        # main motif is "NGG" and last nucleotides are GGNGG
-        #if pam=="NGG" and patMatch(guideSeq[-2:], "GG"):
-        if int(effScores.get("finalGg", 0))==1:
-            print "<br>"
-            print "<small>-GG</small>"
-            #htmlHelp("Farboud/Meyer 2015 (Genetics 199(4)) obtained the highest cleavage in <i>C. elegans</i> with guides that end with <tt>GG</tt>. ")
-        print "</td>"
+            # main motif is "NGG" and last nucleotides are GGNGG
+            #if pam=="NGG" and patMatch(guideSeq[-2:], "GG"):
+            if int(effScores.get("finalGg", 0))==1:
+                print "<br>"
+                print "<small>-GG</small>"
+                #htmlHelp("Farboud/Meyer 2015 (Genetics 199(4)) obtained the highest cleavage in <i>C. elegans</i> with guides that end with <tt>GG</tt>. ")
+            print "</td>"
 
         print "<td>"
         print effScores.get("oof", "--")
@@ -1831,16 +2006,39 @@ def distrOnLines(seq, startDict, featLen):
         end = start+featLen
         strand = startDict[start]
 
-        ftSeq = seq[start:end] 
+        # Cannot use Unicode here: these symbols are not part of the
+        # monospace font on some platforms and therefore their width
+        # is not the same as the other characters
+        #arrNE = u'\u2197'
+        #arrSE = u'\u2198'
+        arrNE = u'/'
+        arrSE = u'\\'
+        #arrNE = u'\u2a3c' # hebrew
+        #arrSE = u'\ufb27' # math
+        ftSeq = seq[start:end]
         if strand=="+":
-            label = '%s..%s'%(seq[start-3].lower(), ftSeq)
-            startFt = start - 3
-            endFt = end
+            if cpf1Mode:
+                label = '%s'%(ftSeq)+u'.................%s....%s' % (arrNE, arrSE)
+                startFt = start
+                endFt = start+len(label)
+            else:
+                #label = '%s..%s'%(seq[start-3].lower(), ftSeq)
+                label = '|>.%s'%(ftSeq)
+                startFt = start - 3
+                endFt = end
         else:
-            #print seq, end, "<br>"
-            label = '%s..%s'%(ftSeq, seq[end+2].lower())
-            startFt = start
-            endFt = end + 3
+            if cpf1Mode:
+                spc1 = "...."
+                spc2 = "................."
+                labelPrefix = u'%s%s%s%s' % (arrSE, spc1, arrNE, spc2)
+                label = labelPrefix + ftSeq
+                startFt = start - len(labelPrefix)
+                endFt = startFt+len(label)
+            else:
+                #label = '%s..%s'%(ftSeq, seq[end+2].lower())
+                label = '%s.<|'%(ftSeq)
+                startFt = start
+                endFt = end + 3
 
         y = firstFreeLine(lineMasks, 0, startFt, endFt)
         if y==None:
@@ -1862,7 +2060,7 @@ def writePamFlank(seq, startDict, pam, faFname):
     " write pam flanking sequences to fasta file, optionally with versions where each nucl is removed "
     #print "writing pams to %s<br>" % faFname
     faFh = open(faFname, "w")
-    for pamId, startPos, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam)):
+    for pamId, pamStart, guideStart, strand, flankSeq, pamSeq in flankSeqIter(seq, startDict, len(pam), True):
         faFh.write(">%s\n%s\n" % (pamId, flankSeq))
     faFh.close()
 
@@ -1895,7 +2093,7 @@ def parseOfftargets(bedFname):
     # example input:
     # chrIV 9864393 9864410 s41-|-|5|ACTTGACTG|0    chrIV   9864303 9864408 ex:K07F5.16
     # chrIV   9864393 9864410 s41-|-|5|ACTGTAGCTAGCT|9999    chrIV   9864408 9864470 in:K07F5.16
-    debug("reading %s" % bedFname)
+    debug("reading offtargets from %s" % bedFname)
 
     # first sort into dict (pamId,chrom,start,end,editDist,strand) 
     # -> (segType, segName) 
@@ -1972,18 +2170,17 @@ def calcGuideEffScores(seq, extSeq, pam):
     with pam, extend them to 100mers and score them with various eff. scores. Return a
     list of rows [headers, (guideSeq, 100mer, score1, score2, score3,...), ... ]
     """
-    print seq, extSeq, pam
     seq = seq.upper()
     if extSeq:
         extSeq = extSeq.upper()
     startDict, endSet = findAllPams(seq, pam)
 
-    pamInfo = list(flankSeqIter(seq, startDict, len(pam)))
+    pamInfo = list(flankSeqIter(seq, startDict, len(pam), False))
 
     guideIds = []
     guides = []
     longSeqs = []
-    for pamId, startPos, strand, guideSeq, pamSeq in pamInfo:
+    for pamId, startPos, guideStart, strand, guideSeq, pamSeq in pamInfo:
         guides.append(guideSeq+pamSeq)
         gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
         longSeq = getExtSeq(seq, gStart, gEnd, strand, 30, 50, extSeq)
@@ -1992,7 +2189,15 @@ def calcGuideEffScores(seq, extSeq, pam):
             guideIds.append(pamId)
 
     if len(longSeqs)>0:
-        effScores = crisporEffScores.calcAllScores(longSeqs)
+        if cpf1Mode:
+            mh, oof = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs(longSeqs, -30, 30))
+            effScores = {}
+            effScores["oof"] = oof
+            effScores["mh"] = mh
+
+        else:
+            effScores = crisporEffScores.calcAllScores(longSeqs)
+
     else:
         effScores = {}
     scoreNames = effScores.keys()
@@ -2099,9 +2304,9 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     bedFnameTmp = bedFname+".tmp"
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
-    # twoBitToFa is 15x slower than python's twobitreader
-    #cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFnameStr)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
-    cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it should be OK
+    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
     segFname = "%(genomeDir)s/%(genome)s/%(genome)s.segments.bed" % locals()
@@ -2320,11 +2525,14 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
         logging.debug("off-target minScore = %f" % minScore )
 
         # check if this match passes the off-target score limit
-        tSeqNoPam = tSeq[:-pamLen]
-        otScore = calcHitScore(guideSeq, tSeqNoPam)
-        if otScore < minScore:
-            logging.debug("off-target not accepted")
-            continue
+        if pamPat=="TTTN":
+            otScore = 0.0
+        else:
+            tSeqNoPam = tSeq[:-pamLen]
+            otScore = calcHitScore(guideSeq, tSeqNoPam)
+            if otScore < minScore:
+                logging.debug("off-target not accepted")
+                continue
 
         editDist = getEditDist(guideSeq, tSeqNoPam)
         guideHitCount = 0
@@ -2368,13 +2576,13 @@ def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue)
     """ search fasta file against genome, filter for pam matches and write to bedFName 
     optionally write status updates to work queue.
     """
-    if doEffScoring and not isCpf1:
+    if doEffScoring and not cpf1Mode:
         queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
         createBatchEffScoreTable(batchId)
 
     if genome=="noGenome":
         # skip off-target search
-        if isCpf1:
+        if cpf1Mode:
             errAbort("Sorry, no efficiency score has been published yet for Cpf1.")
         open(bedFname, "w") # create a 0-byte file to signal job completion
         queue.startStep(batchId, "done", "Job completed")
@@ -2557,12 +2765,12 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     </div>
     """% (scriptName, HTMLPREFIX, HTMLPREFIX, MAXSEQLEN, MAXSEQLEN, lastseq)
 
+    printOrgDropDown(lastorg, genomes)
     print """
     <div id="trackHubNote" style="margin-bottom:5px">
-    <small>Note: we have pre-calculated <a target=_blank href="http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&hubUrl=http://hgwdev.soe.ucsc.edu/~max/crispor/hub.txt">all human exon guides</a>.</small>
+    <small>Note: we have pre-calculated all exonic guides for this species. Have a look at the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
     </div>
     """
-    printOrgDropDown(lastorg, genomes)
     print '<small style="float:left">Missing a genome? Send us <a href="mailto:%s">email</a></small>' % (contactEmail)
     print """
     </div>
@@ -2600,10 +2808,14 @@ function clearInput() {
 </script>
 <script>
     /* hide the track hub note if genome is not hg19 */
+    ucscTrackDbs=['hg19', 'hg38', 'rn5', 'mm10', 'mm9', 'ci2', 'danRer7', 'sacCer3', 'dm6'];
     function showHideHubNote() {
         var valSel = $("#genomeDropDown").val();
-        if (valSel=="hg19" || valSel=="hg38")
+        if (jQuery.inArray(valSel, ucscTrackDbs)!=-1)
+            {
             $("#trackHubNote").css('visibility', 'visible');
+            $("#hgTracksLink").attr("href", "http://genome-test.soe.ucsc.edu/cgi-bin/hgTracks?db="+valSel+"&crispr=show");
+            }
         else
             $("#trackHubNote").css('visibility', 'hidden');
     }
@@ -2654,8 +2866,8 @@ def findAllPams(seq, pam):
     """ find all matches for PAM and return as dict startPos -> strand and a set
     of end positions
     """
-    startDict, endSet = findPams(seq, pam, "+", {}, set(), isCpf1)
-    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet, isCpf1)
+    startDict, endSet = findPams(seq, pam, "+", {}, set())
+    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
     return startDict, endSet
 
 def newBatch(seq, org, pam, skipAlign=False):
@@ -2763,7 +2975,12 @@ def startAjaxWait(batchId):
     """ % locals()
 
 def showPamWarning(pam):
-    if pam!="NGG":
+    if pam=="TTTN":
+        print '<div style="text-align:left">'
+        print "<strong>Note:</strong> You are using the Cpf1 enzyme."
+        print "Note that currently there are no on- or off-target scores for Cpf1 so no scores are shown below and the guides are not sorted."
+        print '</div>'
+    elif pam!="NGG":
         print '<div style="text-align:left">'
         print "<strong>Note:</strong> Your query involves a Cas9 that is not from S. Pyogenes. "
         print "Please bear in mind that specificity end efficiency scores were designed using data with S. Pyogenes Cas9 and might not be applicable to this particular Cas9.<br>"
@@ -2802,16 +3019,99 @@ def printStatus(batchId):
     status = q.getStatus(batchId)
     q.close()
 
+    errorState = False
+
     if "Traceback" in status:
         status = "An error occured during processing.<br> Please send an email to %s and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks!" % (contactEmail, batchId)
+        errorState = True
+    else:
+        print('<meta http-equiv="refresh" content="10" >')
+        print("CRISPOR job has been submitted.<p>")
+
     if status==None:
         status = "Batch completed. Refresh page to show results."
 
-    print('<meta http-equiv="refresh" content="10" >')
-    print("CRISPOR job has been submitted.<p>")
-
     print("Job Status: <tt>%s</tt><p>" % status)
-    print("<small>This page will refresh every 10 seconds</small>")
+
+    if not errorState:
+        print("<small>This page will refresh every 10 seconds</small>")
+
+def findVarDbs(db):
+    " find all possible variant VCFs and return as list of (label, fname) "
+    # parse the descriptions of the VCF files
+    # descriptions are optional
+    labelFname = join(genomesDir, db, "vcfDescs.txt")
+    descs = {}
+    if isfile(labelFname):
+        for line in open(labelFname):
+            fname, desc = string.split(line, maxsplit=1)
+            descs[fname] = desc
+        
+    vcfMask = join(genomesDir, db, "*.vcf.gz.tbi")
+    fnames = glob.glob(vcfMask)
+    ret = []
+    for fname in fnames:
+        label = basename(fname).split('.')[0].replace("_", " ")
+        vcfFname = fname.replace(".vcf.gz.tbi", ".vcf.gz")
+        # default label is the filename
+        label = descs.get(basename(vcfFname), label)
+        ret.append( (label, vcfFname) )
+    return ret
+        
+def parseVcfInfo(info):
+    " parse a VCF info string and return as a dict key=val "
+    fs = info.split(";")
+    ret = {}
+    for field in fs:
+        parts = string.split(field, "=", maxsplit=1)
+        if len(parts)==2:
+            key, val = parts
+        elif len(parts)==1:
+            key = parts[0]
+            val = True
+        ret[key] = val
+    return ret
+
+def findVariantsInRange(varDb, chrom, start, end, strand, minAF):
+    """ find variants that overlap the position.
+    varDb is a tuple of label, vcfFname
+    return as a dict relative position -> (chrom, pos, refAllele, altAllele, list of info-dicts)
+    special position is "label" which is the label of the variant db
+    """
+    varDbName, vcfFname = varDb
+    tb = tabix.open(vcfFname)
+    chrom = chrom.replace("chr","")
+    records = tb.query(chrom, start+1, end) # VCF is 1-based
+
+    varDict = dict()
+    for rec in records:
+        chrom, varPos, varId, refAll, altAll, qual, filterFlag, info = rec[:8]
+        #altAll = altAll[0] # only use first bp of variant, cheap hack
+        infoDict = parseVcfInfo(info)
+        if "AF" in infoDict:
+            afList = infoDict["AF"].split(",")
+            altAllList = altAll.split(",")
+            newAltAllList = []
+            newAfList = []
+            for af, altAll in zip(afList, altAllList):
+                afNum = float(af)
+                if afNum < minAF:
+                    continue
+                newAltAllList.append(altAll)
+                newAfList.append(af)
+            if len(newAltAllList)==0:
+                continue
+            altAll = ",".join(newAltAllList)
+            infoDict["AF"] = ",".join(newAfList)
+        relPos = int(varPos)-1-start
+        if relPos in varDict:
+            varDict[relPos][2].append(infoDict)
+        else:
+            varDict[relPos] = (chrom, varPos, refAll, altAll, [infoDict])
+
+    varDict["label"] = varDbName
+
+    return varDict
 
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
@@ -2836,6 +3136,15 @@ def crisprSearch(params):
         print ("<script>")
         print ('''history.replaceState('crispor.py', document.title, '?batchId=%s');''' % (batchId))
         print ("</script>")
+
+    setupPamInfo(pam)
+
+    # check if minAF was specified
+    minAF = params.get("minAF", "0.0")
+    try:
+        minAF = float(minAF)
+    except numError:
+        errAbort("minAF has to be a floating point number")
 
     if len(warnMsg)!=0:
         print warnMsg+"<p>"
@@ -2893,13 +3202,22 @@ def crisprSearch(params):
         print('<div style="text-align:left"><strong>Note:</strong> At least one of the possible guide sequences was not found in the genome. ')
         print("If you pasted a cDNA sequence, note that sequences with score 0, e.g. splice junctions, are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
 
-    showSeqAndPams(seq, startDict, pam, guideScores)
+    chrom, start, end, strand = parsePos(position)
+
+    varDbs = findVarDbs(org)
+    if len(varDbs)>0:
+        varDict = findVariantsInRange(varDbs[0], chrom, start, end, strand, minAF)
+        varLabel = varDbs[0][0]
+    else:
+        varDict = None
+        varLabel = None
+
+    varHtmls = varDictToHtml(varDict, seq)
+    showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varLabel, minAF)
 
     showAll = (params.get("showAll", 0)=="1")
 
-    chrom, start, end, strand = parsePos(position)
-
-    showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom)
+    showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chrom, varHtmls)
 
     print '<br><a class="neutral" href="crispor.py">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
@@ -2973,18 +3291,23 @@ def intToExtPamId(pamId):
     guideDesc = str(int(pamPos)+1)+strDesc
     return guideDesc
 
+def concatGuideAndPam(guideSeq, pamSeq):
+    " return guide+pam or pam+guide, depending on cpf1Mode "
+    if cpf1Mode:
+        return pamSeq+guideSeq
+    else:
+        return guideSeq+pamSeq
+
 def iterGuideRows(guideData, addHeaders=False):
-    "yield rows from guide data "
+    "yield rows from guide data. Need to know if for Cpf1 or not "
     headers = list(tuple(guideHeaders)) # make a copy of the list
     for scoreName in scoreNames:
         headers.append(scoreDescs[scoreName][0]+"EffScore")
     if addHeaders:
         yield headers
 
-    #print "\t".join(headers)
-
     for guideRow in guideData:
-        guideScore, guideCfdScore, effScores, startPos, strand, pamId, \
+        guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
@@ -2993,7 +3316,8 @@ def iterGuideRows(guideData, addHeaders=False):
 
         guideDesc = intToExtPamId(pamId)
 
-        row = [guideDesc, guideSeq+pamSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
+        fullSeq = concatGuideAndPam(guideSeq, pamSeq)
+        row = [guideDesc, fullSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
         for scoreName in scoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
         row = [str(x) for x in row]
@@ -3006,8 +3330,9 @@ def iterOfftargetRows(guideData, addHeaders=False):
         yield headers
 
     for guideRow in guideData:
-        guideScore, guideCfdScore, effScores, startPos, strand, pamId, \
-            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+        guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, \
+            ontargetDesc, subOptMatchCount = guideRow
 
         otCount = 0
 
@@ -3017,8 +3342,9 @@ def iterOfftargetRows(guideData, addHeaders=False):
                 gene = gene.replace(",", "_").replace(";","-")
                 chrom, start, end, strand = parsePos(pos)
                 guideDesc = intToExtPamId(pamId)
-                mismStr = highlightMismatches(guideSeq, otSeq[:GUIDELEN])
-                row = [guideDesc, guideSeq+pamSeq, otSeq, mismStr, editDist, mitScore, cfdScore, chrom, start, end, strand, gene]
+                mismStr = highlightMismatches(guideSeq, otSeq, len(pamSeq))
+                fullSeq = concatGuideAndPam(guideSeq, pamSeq)
+                row = [guideDesc, fullSeq, otSeq, mismStr, editDist, mitScore, cfdScore, chrom, start, end, strand, gene]
                 row = [str(x) for x in row]
                 yield row
 
@@ -3053,6 +3379,7 @@ def downloadFile(params):
     " "
     batchId = params["batchId"]
     seq, org, pam, position, extSeq = readBatchParams(batchId)
+    setupPamInfo(pam)
     uppSeq = seq.upper()
 
     startDict, endSet = findAllPams(uppSeq, pam)
@@ -3080,14 +3407,12 @@ def downloadFile(params):
         print "Content-Disposition: attachment; filename=\"offtargets-%s.%s\"" % (queryDesc, fileFormat)
         print "" # = end of http headers
         otRows = list(iterOfftargetRows(guideData, addHeaders=True))
-        otRows.sort(key=operator.itemgetter(4), reverse=True)
+        doReverse = (not cpf1Mode)
+        otRows.sort(key=operator.itemgetter(4), reverse=doReverse)
         xlsWrite(otRows, "offtargets", sys.stdout, [6,28,28,5], fileFormat)
 
 def printBody(params):
     " main dispatcher function "
-    if params.get("pam", "")=="TTN":
-        global isCpf1
-        isCpf1 = True
 
     if len(params)==0:
         printForm(params)
@@ -3107,12 +3432,19 @@ def parseBoulder(tmpOutFname):
         data[key] = val
     return data
 
-def runPrimer3(seq, tmpInFname, tmpOutFname, targetStart, targetLen, prodSizeRange):
+def runPrimer3(seq, tmpInFname, tmpOutFname, targetStart, targetLen, prodSizeRange, tm):
         """ return primers from primer3 in format seq1, tm1, pos1, seq2, tm2, pos2"""
+        minTm = tm-3
+        maxTm = tm+3
+        optTm = tm
+
         conf = """SEQUENCE_TEMPLATE=%(seq)s
 PRIMER_TASK=generic
 PRIMER_PICK_LEFT_PRIMER=1
 PRIMER_PICK_RIGHT_PRIMER=1
+PRIMER_MIN_TM=%(minTm)d
+PRIMER_OPT_TM=%(optTm)d
+PRIMER_MAX_TM=%(maxTm)d
 PRIMER_PRODUCT_SIZE_RANGE=%(prodSizeRange)s
 SEQUENCE_TARGET=%(targetStart)s,%(targetLen)s
 PRIMER_THERMODYNAMIC_PARAMETERS_PATH=bin/src/primer3-2.3.6/src/primer3_config/
@@ -3124,6 +3456,8 @@ PRIMER_THERMODYNAMIC_PARAMETERS_PATH=bin/src/primer3-2.3.6/src/primer3_config/
         runCmd(cmdLine)
 
         p3 = parseBoulder(tmpOutFname)
+        if "PRIMER_LEFT_0_SEQUENCE" not in p3:
+            errAbort("No primer found. Please contact us if you think there should be a primer found.")
         seq1 = p3["PRIMER_LEFT_0_SEQUENCE"]
         seq2 = p3["PRIMER_RIGHT_0_SEQUENCE"]
         tm1 = p3["PRIMER_LEFT_0_TM"]
@@ -3230,7 +3564,7 @@ def findBestMatch(genome, seq):
     logging.debug("Found best match at %s:%d-%d:%s" % (chrom, start, end, strand))
     return chrom, start, end, strand
 
-def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
+def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen, tm):
     " create primer for region around chrom:start-end, write output to batch "
     " returns (leftPrimerSeq, lTm, lPos, rightPrimerSeq, rTm, rPos, amplified sequence)" 
     flankStart = start - 1000
@@ -3241,17 +3575,30 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId):
 
     flankFname = join(batchDir, batchId+".inFlank.fa")
     binFname = join(binDir, "twoBitToFa")
-    cmd = binFname+" genomes/%(genome)s/%(genome)s.2bit %(flankFname)s -seq=%(chrom)s -start=%(flankStart)d -end=%(flankEnd)d > stdout.log 2> stderr.log" % locals()
+    twoBitPath = "genomes/%(genome)s/%(genome)s.2bit" % locals()
+    twoBitPath = abspath(twoBitPath)
+    cmd = binFname+" %(twoBitPath)s %(flankFname)s -seq=%(chrom)s -start=%(flankStart)d -end=%(flankEnd)d" % locals()
     runCmd(cmd)
 
     flankSeq = parseFasta(open(flankFname)).values()[0]
     tmpFname = join(batchDir, batchId+".primer3.in")
     tmpOutFname = join(batchDir, batchId+".primer3.out")
     # the guide seq has to be at least 150bp away from the left PCR primer for agarose gels
+    # try to get some good heuristics for the primer placement
+    # primers must not overlap the target but also not be 
+    # too far away, especially when using next-gen sequencing
+    targetStart = 1000+guideStart
+    targetLen = 23
+    if ampLen<=250:
+        ampDist = 50
+    else:
+        ampDist = 150
+    ampRange = str(ampLen-ampDist)+"-"+str((ampLen))
+
     lSeq, lTm, lPos, rSeq, rTm, rPos = \
-        runPrimer3(flankSeq, tmpFname, tmpOutFname, 1000+guideStart-150, 330, "500-700")
+        runPrimer3(flankSeq, tmpFname, tmpOutFname, targetStart, targetLen, ampRange, tm)
     targetSeq = flankSeq[lPos:rPos+1]
-    return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq
+    return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange
 
 def markupSeq(seq, start, end):
     " print seq with start-end in bold "
@@ -3264,8 +3611,8 @@ def makeHelperPrimers(guideName, guideSeq):
     guideRnaRv = "guideRna%sT7antisense" % guideName
 
     # T7 plasmids
-    if guideSeq.lower().startswith("gg"):
-        primers["T7"].append((guideRnaFw, "TA<b>%s</b>" % guideSeq))
+    if guideSeq.lower().startswith("g"):
+        primers["T7"].append((guideRnaFw, "TAG<b>%s</b>" % guideSeq))
         primers["T7"].append((guideRnaRv, "AAAC<b>%s</b>" % revComp(guideSeq[2:])))
     else:
         primers["T7"].append((guideRnaFw, "TAGG<b>%s</b>" % guideSeq))
@@ -3273,23 +3620,28 @@ def makeHelperPrimers(guideName, guideSeq):
 
     # T7 in-vitro
     prefix = ""
-    if not guideSeq.lower().startswith("gg"):
-        prefix = "GG"
-    specPrimer = "TAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
+    if not guideSeq.lower().startswith("g"):
+        prefix = "G"
+    #specPrimer = "TAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
+    specPrimer = "GAAATTAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
 
-    primers["T7iv"].append(("guideRNA%sT7PromSense" % guideName, specPrimer))
-    primers["T7iv"].append(("guideRNAallT7PromAntisense (constant primer used for all guide RNAs)", "AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC"))
+    primers["T7iv"].append(("guideRNA%sT7crTarget" % guideName, specPrimer))
+    primers["T7iv"].append(("guideRNAallT7common (constant primer used for all guide RNAs)", "AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC"))
 
     # mammalian cells
     fwName = "guideRNA%sU6sense" % guideName
     revName = "guideRNA%sU6antisense" % guideName
-    if guideSeq.lower().startswith("g"):
-        primers["mammCells"].append((fwName, "ACACC<b>%s</b>G" % guideSeq))
-        primers["mammCells"].append((revName, "AAAAC<b>%s</b>G" % revComp(guideSeq)))
+    if cpf1Mode:
+        primers["mammCells"].append((fwName, "AGAT<b>%s</b>G" % guideSeq))
+        primers["mammCells"].append((revName, "AAAA<b>%s</b>G" % revComp(guideSeq)))
     else:
-        primers["mammCells"].append((fwName, "ACACC<u>G</u><b>%s</b>G" % guideSeq))
-        primers["mammCells"].append((revName, "AAAAC<b>%s</b><u>C</u>G" % revComp(guideSeq)))
-        primers["mammCellsNote"] = True
+        if guideSeq.lower().startswith("g"):
+            primers["mammCells"].append((fwName, "ACACC<b>%s</b>G" % guideSeq))
+            primers["mammCells"].append((revName, "AAAAC<b>%s</b>G" % revComp(guideSeq)))
+        else:
+            primers["mammCells"].append((fwName, "ACACC<u>G</u><b>%s</b>G" % guideSeq))
+            primers["mammCells"].append((revName, "AAAAC<b>%s</b><u>C</u>G" % revComp(guideSeq)))
+            primers["mammCellsNote"] = True
 
     return primers
 
@@ -3339,6 +3691,46 @@ def printDropboxLink():
     </script>
     """
 
+def mergeParamDicts(params, changeParams):
+    """ changeParams is a dict that can override elements in params.
+    if value==None in changeParams, the whole element will get removed.
+    """
+    newParams = {}
+    newParams.update(params)
+    newParams.update(changeParams)
+    for key, val in changeParams.iteritems():
+        if val==None:
+            del newParams[key]
+    return newParams
+
+def printHiddenFields(params, changeParams):
+    " "
+    newParams = mergeParamDicts(params, changeParams)
+    for key, val in newParams.iteritems():
+        print('<input type="hidden" name="%s" value="%s">' % (key, val))
+
+def selfCgiGetUrl(params, changeParams):
+    """ create a URL to myself with different parameters than what we have.
+    """
+    newParams = mergeParamDicts(params, changeParams)
+    paramStrs = ["%s=%s" % (key, val) for key, val in newParams.iteritems()]
+    paramStr = "&".join(paramStrs)
+    url = basename(__file__)+"?"+paramStr
+    return url
+
+def printDropDown(name, nameValList, default, onChange=None):
+    """ print a dropdown box and set a default """
+    addStr = ""
+    if onChange is not None:
+        addStr = """ onchange="%s" """ % onChange
+    print('<select id="dropdown" name="%s"%s>' % (name, addStr))
+    for name, desc in nameValList:
+        addString = ""
+        if str(name)==str(default):
+            addString = ' selected="selected"'
+        print('   <option value="%s"%s>%s</option>' % (name, addString, desc))
+    print('</select>')
+
 def primerDetailsPage(params):
     """ create primers with primer3 around site identified by pamId in batch
     with batchId. Output primers as html
@@ -3347,6 +3739,17 @@ def primerDetailsPage(params):
     inSeq, genome, pamSeq, position, extSeq = readBatchParams(batchId)
     seqLen = len(inSeq)
     batchBase = join(batchDir, batchId)
+    setupPamInfo(pam)
+
+    ampLen = params.get("ampLen", "400")
+    if not ampLen.isdigit():
+        errAbort("ampLen parameter must be a number")
+    ampLen = int(ampLen)
+
+    tm = params.get("tm", "60")
+    if not tm.isdigit():
+        errAbort("tm parameter must be a number")
+    tm = int(tm)
 
     # find position of guide sequence in genome at MM0
     otBedFname = batchBase+".bed"
@@ -3380,8 +3783,8 @@ def primerDetailsPage(params):
         guideStart = inSeq.find(revComp(guideSeq))
         highlightSeq = revComp(guideSeqWPam)
 
-    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq = \
-        designPrimer(genome, chrom, start, end, strand, 0, batchId)
+    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange = \
+        designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
     guideStart = targetSeq.upper().find(highlightSeq.upper())
     guideEnd = guideStart + len(highlightSeq)
@@ -3407,7 +3810,10 @@ def primerDetailsPage(params):
     targetHtml = "".join(seqParts)
 
     # prettify guideSeqWPam to highlight the PAM
-    guideSeqHtml = "%s %s" % (guideSeqWPam[:-len(pam)], guideSeqWPam[-len(pam):])
+    if not cpf1Mode:
+        guideSeqHtml = "%s <i>%s</i>" % (guideSeqWPam[:-len(pam)], guideSeqWPam[-len(pam):])
+    else:
+        guideSeqHtml = "<i>%s</i> %s" % (guideSeqWPam[:len(pam)], guideSeqWPam[len(pam):])
 
     print '''<div style='width: 80%; margin-left:10%; margin-right:10%; text-align:left;'>'''
     print "<h2>Guide sequence: %s</h2>" % (guideSeqHtml)
@@ -3429,17 +3835,59 @@ def primerDetailsPage(params):
     print "<td>guideRna%sRight</td>" % primerGuideName
     print "<td>%s</td>" % (rSeq)
     print "<td>Tm %s</td>" % (rTm)
-    print '</tr></table>'
+    print '</tr></table><p>'
 
     print "<h3>Genome fragment with validation primers and guide sequence</h3>"
+
+
+    print("""<form id="ampLenForm" action="%s" method="GET">""" %
+        basename(__file__))
+    print ("Maximum amplicon length:")
+    dropDownSizes = [
+        ("100", "100 bp"),
+        ("150", "150 bp"),
+        ("200", "200 bp"),
+        ("300", "300 bp"),
+        ("400", "400 bp"),
+        ("500", "500 bp"),
+        ("600", "600 bp")
+    ]
+
+    printDropDown("ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()""")
+    print "<br>"
+
+    print ("Primer melting Temperature (Tm):")
+    tmList = [
+        ("56", "56 deg."),
+        ("57", "57 deg."),
+        ("58", "58 deg."),
+        ("59", "59 deg."),
+        ("60", "60 deg."),
+        ("61", "61 deg."),
+        ("62", "62 deg."),
+        ("63", "63 deg."),
+        ("64", "64 deg."),
+        ("65", "65 deg."),
+        ("66", "66 deg."),
+        ("67", "67 deg."),
+        ("68", "68 deg."),
+        ("70", "70 deg."),
+    ]
+    printDropDown("tm", tmList, tm, onChange="""$('#submitPcrForm').click()""")
+
+    printHiddenFields(params, {"ampLen":None, "tm":None})
+
+    print("""<input id="submitPcrForm" style="display:none" type="submit" name="submit" value="submit">""")
+    print('</form><p>')
+
     if strand=="-":
         print("Your guide sequence is on the reverse strand relative to the genome sequence, so it is reverse complemented in the sequence below.<p>")
 
     print '''<div style='word-wrap: break-word; word-break: break-all;'>'''
-    print "<strong>Genomic sequence %s:%d-%d including primers, forward strand:</strong><br> <tt>%s</tt><br>" % (chromLong, start, end, targetHtml)
+    print "<strong>Genomic sequence %s:%d-%d including primers, genomic forward strand:</strong><br> <tt>%s</tt><br>" % (chromLong, start, end, targetHtml)
     print '''</div>'''
     print "<strong>Sequence length:</strong> %d<p>" % (rPos-lPos)
-    print '<small>Method: Primer3.2 with default settings, target length 500-700 bp</small>'
+    print '<small>Method: Primer3.2 with default settings, target length %s bp</small>' % ampRange
 
     # restriction enzymes
     allEnzymes = readEnzymes()
@@ -3482,38 +3930,59 @@ def primerDetailsPage(params):
     primers = makeHelperPrimers(primerGuideName, guideSeq)
     printPrimerTableAll(primers)
 
-    print "<p>Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
+    print "<p>Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription with T7 and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
 
 
     # T7 from plasmids
-    print "<h3>In vitro with T7 RNA polymerase from plasmid DNA</h3>"
-    print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
-    print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid DR274 generated by the Joung lab<p>" % guideSeqWPam
+    if not cpf1Mode:
+        print "<h3>Mice, Zebrafish, Xenopus: cloning into a plasmid and T7 in vitro transcription</h3>"
+        print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
+        print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid DR274 generated by the Joung lab<p>" % guideSeqWPam
 
     printPrimerTable(primers["T7"])
 
     # T7 from primers, in vitro
-    print "<h3>In vitro with T7 polymerase using overlapping oligonucleotides</h3>"
+    print "<h3>Mice, Zebrafish, Xenopus: T7 in vitro transcription from overlapping oligonucleotides</h3>"
     print "Template for in vitro synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
 
     printPrimerTable(primers["T7iv"], onRows=True)
 
-    print 'The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.'
+    #print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.<p>')
+    print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.cell.com/cell-reports/abstract/S2211-1247(13)00312-4">Bassett et al. Cell Rep 2013</a>. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our protocol for T7 guide expression.<p>')
+
+    print('''<a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a> prefixed guides with GG to ensure high efficiency in vitro transcription by T7 RNA polymerase. It has been shown by other authors that the 5' nucleotides of the guide have little or no role in target specificity and it is therefore generally accepted that prefixing guides with GG should not affect activity.<p>''')
+
+    print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our protocol for T7 guide expression.<p>')
 
     # MAMMALIAN CELLS
-    print "<h3>In mammalian cells from plasmid</h3>"
+    print "<h3>In mammalian cells: cloning into a plasmid</h3>"
     if "tttt" in guideSeq.lower():
         print "The guide sequence %s contains the motif TTTT, which terminates RNA polymerase. This guide sequence cannot be transcribed in mammalian cells." % guideSeq
     else:
-        print "The guide sequence %s does not contain the motif TTTT, which terminates RNA polymerase. This guide sequence can be transcribed in mammalian cells." % guideSeq
+        print "The guide sequence %s does not contain the motif TTTT, which terminates RNA polymerase, so it can be transcribed in mammalian cells." % guideSeq
 
         print "<br>"
-        print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence in the plasmid <a href='https://www.addgene.org/43860/'>MLM3636</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+        if not cpf1Mode:
+            print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence into the plasmid <a href='https://www.addgene.org/43860/'>MLM3636</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+        else:
+            print "To express guide RNA for Cpf1 in mammalian cells, two plasmids are available. To clone the guide RNA sequence into the plasmids <a href='https://www.addgene.org/78956/'>pU6-As-crRNA</a> or <a href='https://www.addgene.org/78957/'>pU6-Lb-crRNA</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+
         print "<br>"
         if "mammCellsNote" in primers:
             print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added to the sequence below, where it is underlined.<br>")
 
         printPrimerTable(primers["mammCells"])
+
+    if not cpf1Mode:
+        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print ("""Generate sgRNA expression cassettes by One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following this <a href="downloads/prot/cionaProtocol.pdf">protocol</a>. The resulting PCR product can be directly electroporated, unpurified into Ciona eggs.<br>""")
+        ciPrimers = [
+            ("cionaFwd", "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
+            ("cionaRev", "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
+        ]
+
+        printPrimerTable(ciPrimers)
+
     print "<hr>"
     print '</div>'
 
@@ -3617,7 +4086,7 @@ Command line interface for the Crispor tool.
     parser.add_option("-t", "--test", dest="test", \
         action="store_true", help="run internal tests")
     parser.add_option("-p", "--pam", dest="pam", \
-        action="store", help="PAM-motif to use, default %default", default="NGG")
+        action="store", help="PAM-motif to use, default %default. TTTN triggers special Cpf1 behavior: no scores anymore + the PAM is assumed to be 5' of the guide", default="NGG")
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
@@ -3701,6 +4170,8 @@ def runQueueWorker():
     sys.stdout.flush()
 
     q = JobQueue()
+    print("Job queue: %s" % JOBQUEUEDB)
+
     while True:
         if q.waitCount()==0:
             #q.dump()
@@ -3713,6 +4184,7 @@ def runQueueWorker():
             jobError = False
             try:
                 seq, org, pam, position, extSeq = readBatchParams(batchId)
+                setupPamInfo(pam)
                 uppSeq = seq.upper()
                 startDict, endSet = findAllPams(uppSeq, pam)
                 print "searching for offtargets:  ", seq, org, pam, position
@@ -3740,7 +4212,7 @@ def clearQueue():
     q = JobQueue()
     q.clearJobs()
     q.close()
-    print("Worker queue now empty")
+    print("Worker queue %s, table queue, now empty" % JOBQUEUEDB)
 
 # this won't work, it's very hard to spawn from CGIs
 #def spawnWorkers(minCount):
@@ -3784,10 +4256,6 @@ def handleOptions(options):
     #if options.ajax:
         #sendStatus(options.ajax)
 
-    if options.worker:
-        runQueueWorker()
-        sys.exit(0)
-
     if options.clear:
         clearQueue()
         sys.exit(0)
@@ -3818,12 +4286,19 @@ def handleOptions(options):
         global useBowtie
         useBowtie = True
 
+    if options.pam:
+        setupPamInfo(options.pam)
+
 def mainCommandLine():
     " main entry if called from command line "
     global commandLineMode
     commandLineMode = True
 
     args, options = parseArgs()
+
+    if options.worker:
+        runQueueWorker()
+        sys.exit(0)
 
     handleOptions(options)
     org, inSeqFname, outGuideFname = args
@@ -3876,10 +4351,10 @@ def mainCommandLine():
         otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
         otMatches = parseOfftargets(otBedFname)
 
-        if not options.noEffScores:
-            effScores = readEffScores(batchId)
-        else:
+        if options.noEffScores or cpf1Mode:
             effScores = {}
+        else:
+            effScores = readEffScores(batchId)
 
         guideData, guideScores, hasNotFound = \
             mergeGuideInfo(seq, startDict, pam, otMatches, position, effScores)
