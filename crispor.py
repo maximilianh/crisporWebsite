@@ -1300,26 +1300,27 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
     """ return list of enzymes that overlap the -3 position in guideSeq
     returns dict name -> list of matching positions
     """
-    matches = {}
+    matches = defaultdict(set)
     #print guideSeq, pamSeq, "<br>"
     fullSeq = concatGuideAndPam(guideSeq, pamSeq)
 
     for siteLen, sites in allEnzymes.iteritems():
         if cpf1Mode:
-            # most modified position: 3bp from the end
-            startSeq = len(fullSeq)-len(pamSeq)-3-(siteLen)+1
-        else:
             # most modified position: 4nt from the end
             # see http://www.nature.com/nbt/journal/v34/n8/full/nbt.3620.html
             # Figure 1
             startSeq = len(fullSeq)-4-(siteLen)+1
+        else:
+            # most modified position for Cas9: 3bp from the end
+            startSeq = len(fullSeq)-len(pamSeq)-3-(siteLen)+1
+
         seq = fullSeq[startSeq:]
         for name, restrSite in sites:
             posList = findSite(seq, restrSite)
             if len(posList)!=0:
-                liftOffset = startSeq+len(guideSeq)
+                liftOffset = startSeq
                 posList = [(liftOffset+x, liftOffset+y) for x,y in posList]
-                matches.setdefault(name, []).extend(posList)
+                matches.setdefault(name, set()).update(posList)
     return matches
 
 def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None):
@@ -1368,7 +1369,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         guideScores[pamId] = guideScore
 
     if sortBy is not None and sortBy!="spec":
-        sortFunc = (lambda row: row[2][sortBy])
+        sortFunc = (lambda row: row[2].get(sortBy, 0))
     else:
         sortFunc = operator.itemgetter(0)
 
@@ -1486,7 +1487,6 @@ def printTableHead(batchId, chrom, org):
     print '</th>'
 
     print '<th style="width:180px; border-bottom:none">Guide Sequence + <i>PAM</i><br>Restriction Enzymes'
-    htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br> These enzyme sites overlap cleavage site 3bp 5' to the PAM.<br>Digestion of the screening PCR product with this enzyme will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
 
     if not cpf1Mode:
         print '<th style="width:70px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec">Specificity Score</a>' % batchId
@@ -1707,6 +1707,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, showAll, chr
         if len(mutEnzymes)!=0:
             print "Restr. Enzymes:"
             print ",".join(mutEnzymes)
+            htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br>These enzyme sites overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with this enzyme will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
         print "</small>"
         print "</td>"
 
@@ -3600,9 +3601,27 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen,
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange
 
-def markupSeq(seq, start, end):
-    " print seq with start-end in bold "
-    return seq[:start]+"<u>"+seq[start:end]+"</u>"+seq[end:]
+def markupSeq(seq, ulPosList, boldPosList):
+    " print seq with some parts underlined or in bold. "
+    ulStarts = set([x[0] for x in ulPosList])
+    ulEnds = set([x[1] for x in ulPosList])
+    boldStarts = set([x[0] for x in boldPosList])
+    boldEnds = set([x[1] for x in boldPosList])
+    ret = []
+    for i, nucl in enumerate(seq):
+        if i in ulStarts:
+            ret.append("<u>")
+        if i in ulEnds:
+            ret.append("</u>")
+        if i in boldStarts:
+            ret.append("<strong>")
+        if i in boldEnds:
+            ret.append("</strong>")
+        ret.append(nucl)
+        if (i+1) % 80==0:
+            ret.append("<br>")
+    return "".join(ret)
+    #return seq[:start]+"<u>"+seq[start:end]+"</u>"+seq[end:]
 
 def makeHelperPrimers(guideName, guideSeq):
     " return dict with various names -> primer for primer page "
@@ -3896,15 +3915,26 @@ def primerDetailsPage(params):
     if len(mutEnzymes)!=0:
         print "<h3>Restriction Enzyme Sites for PCR product validation</h3>"
 
-        print "Cas9 induces mutations next to the PAM site."
-        print "If a mutation is induced, then it is very likely that one of the followingenzymes no longer cuts your PCR product amplified from the mutant sequence."
+        print "Cas9 induces mutations, usually 3bp 5' to the PAM site."
+        print "If a mutation is induced, then it is very likely that one of the following enzymes no longer cuts your PCR product amplified from the mutant sequence."
         print "For each restriction enzyme, the guide sequence with the restriction site underlined is shown below.<p>"
 
+        allSitePos = set()
         for enzName, posList in mutEnzymes.iteritems():
             print "<strong>%s</strong>:" % enzName
             for start, end in posList:
-                print markupSeq(guideSeqWPam, start, end)
+                print markupSeq(guideSeqWPam, [(start, end)], [])
+                if strand=="-":
+                    allSitePos.add( (guideEnd-end, guideEnd-start) )
+                else:
+                    allSitePos.add( (guideStart+start, guideStart+end) )
             print "<br>"
+
+        print "<h3>All restriction enzyme sites on amplicon sequence</h3>"
+        print "Restriction sites are underlined, the guide sequence is highlighted in bold. You can check this schema to check if the sites are unique enough to give separate bands on a gel:<p>"
+        print "<tt>"
+        print markupSeq(targetSeq, allSitePos, [(guideStart, guideEnd)])
+        print "</tt>"
 
     # primer helper
 
