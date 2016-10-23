@@ -641,18 +641,21 @@ def calcAllBaeScores(seqs):
     run seqs through calcMicroHomolScore()
     PAM-site has to start at the nucleotide exactly in the middle of the sequence.
     """
-    mhScores, oofScores = [], []
+    mhScores, oofScores, allMhSeqs = [], [], []
     for seq in seqs:
         assert(len(seq)%2==0)
-        mhScore, oof = calcMicroHomolScore(seq, len(seq)/2)
+        mhScore, oof, mhSeqs = calcMicroHomolScore(seq, len(seq)/2)
         mhScores.append(mhScore)
         oofScores.append(oof)
-    return mhScores, oofScores
+        allMhSeqs.append(mhSeqs)
+    return mhScores, oofScores, allMhSeqs
 
 def calcMicroHomolScore(seq, left):
     """ calculate the micro homology and out-of-frame score for a breakpoint in a 60-80mer
     See http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html
     Source code adapted from Supp File 1
+    returns micro-homology score, out-of-frame score and a list of tuples:
+    (sequence, score)
 
     From the manuscript:
     "On the basis of these observations, we developed a simple formula and a
@@ -669,6 +672,7 @@ def calcMicroHomolScore(seq, left):
     right=len(seq)-int(left)
 
     duplRows = []
+    seqs = []
     for k in reversed(range(2,left)):
         for j in range(left,left+right-k+1): 
             for i in range(0,left-k+1):
@@ -678,7 +682,7 @@ def calcMicroHomolScore(seq, left):
                     duplRows.append( (dupSeq, i, i+k, j, j+k, length) )
 
     if len(duplRows)==0:
-        return 0, 0
+        return 0, 0, []
 
     ### After searching out all microhomology patterns, duplication should be removed!! 
     sum_score_3=0
@@ -711,9 +715,12 @@ def calcMicroHomolScore(seq, left):
         elif (length % 3)!=0:
             sum_score_not_3+=score
 
-        mhScore = sum_score_3+sum_score_not_3
-        oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
-    return int(mhScore), int(oofScore)
+        newSeq = seq[0:left_end] + ('-'*length) + seq[right_end:]
+        seqs.append( (float(score), newSeq) )
+
+    mhScore = sum_score_3+sum_score_not_3
+    oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
+    return int(mhScore), int(oofScore), seqs
 
 def forceWrapper(func, seqs):
     """
@@ -769,7 +776,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     scores["chariRank"] = chariScores[1]
 
     logging.debug("OOF scores")
-    mh, oof = calcAllBaeScores(trimSeqs(seqs, -30, 30))
+    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -40, 40))
     scores["oof"] = oof
     scores["mh"] = mh
 
