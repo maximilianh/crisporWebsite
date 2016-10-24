@@ -1,4 +1,3 @@
-#!/usr/local/bin/python2.7
 #!/usr/bin/env python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
