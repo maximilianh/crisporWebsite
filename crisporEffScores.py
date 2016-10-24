@@ -29,8 +29,6 @@ sys.path.insert(0, join(fusiDir, "analysis"))
 
 import model_comparison
 
-logging.basicConfig(level=logging.DEBUG)
-
 # import numpy as np
 
 # global that points to the crispor 'bin' directory with the external executables

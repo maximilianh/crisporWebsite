@@ -1,3 +1,4 @@
+#!/usr/local/bin/python2.7
 #!/usr/bin/env python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
@@ -16,12 +17,42 @@ from os.path import join, isfile, basename, dirname, isdir, abspath
 from StringIO import StringIO
 from itertools import product
 
+# try to load external dependencies
+# we're going into great lengths to create a readable error message
+needModules = set(["tabix", "twobitreader", "pandas", "matplotlib", "scipy"])
+try:
+    import tabix # if not found, install with 'pip install pytabix'
+    needModules.remove("tabix") 
+except:
+    pass
+
+try:
+    import twobitreader # if not found, install with 'pip install twobitreader'
+    needModules.remove("twobitreader")
+except:
+    pass
+    
+try:
+    import pandas # required by doench2016 score. install with 'pip install pandas'
+    needModules.remove("pandas")
+    import scipy # required by doench2016 score. install with 'pip install pandas'
+    needModules.remove("scipy")
+    import matplotlib # required by doench2016 score. install with 'pip install matplotlib'
+    needModules.remove("matplotlib")
+    import numpy # required by doench2016 score. install with 'pip install numpy'
+    needModules.remove("numpy")
+except:
+    pass
+
+if len(needModules)!=0:
+    print("Content-type: text/html\n")
+    print("Python interpreter path: %s<p>" % sys.executable)
+    print("These python modules were not found: %s<p>" % ",".join(needModules))
+    print("To install all requirements in one line, run: pip install pytabix pandas twobitreader scipy matplotlib numpy<p>")
+    sys.exit(0)
+
 # our own eff scoring library
 import crisporEffScores
-
-# external dependencies
-import tabix # if not found, install with 'pip install pytabix'
-import twobitreader # if not found, install with 'pip install twobitreader'
 
 # don't report print as an error
 # pylint: disable=E1601
@@ -188,15 +219,15 @@ scoreDigits = {
     "ssc" : 1,
 }
 
-# List of AddGene plasmids:
+# List of AddGene plasmids, their long and short names:
 addGenePlasmids = [
-("43860", "MLM3636 (Joung lab)"),
-("49330", "pAc-sgRNA-Cas9 (Liu lab)"),
-("42230", "pX330-U6-Chimeric_BB-CBh-hSpCas9 (Zhang lab)"),
-("52961", "lentiCRISPR v2 (Zhang lab)"),
-("61592", "pX600-AAV-CMV::NLS-SaCas9-NLS-3xHA-bGHpA (Zhang lab)"),
-("61593", "pX602-AAV-TBG::NLS-SaCas9-NLS-HA-OLLAS-bGHpA;U6::BsaI-sgRNA (Zhang lab)"),
-("65779", "VVT1 (Joung lab)")
+("43860", ("MLM3636 (Joung lab)", "MLM3636")),
+("49330", ("pAc-sgRNA-Cas9 (Liu lab)", "pAcsgRnaCas9")),
+("42230", ("pX330-U6-Chimeric_BB-CBh-hSpCas9 (Zhang lab) + derivatives", "pX330")),
+("52961", ("lentiCRISPR v2 (Zhang lab)", "lentiCrispr")),
+("61592", ("pX600-AAV-CMV::NLS-SaCas9-NLS-3xHA-bGHpA (Zhang lab)", "pX600")),
+("61593", ("pX602-AAV-TBG::NLS-SaCas9-NLS-HA-OLLAS-bGHpA;U6::BsaI-sgRNA (Zhang lab)", "pX602")),
+("65779", ("VVT1 (Joung lab)", "VVT1"))
 ]
 
 # list of AddGene primer 5' and 3' extensions, one for each AddGene plasmid
@@ -209,6 +240,25 @@ addGenePlasmidInfo = {
 "61592" : ("CACC", "AAAC", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61592/61592-attachment_iAbvIKnbqNRO.pdf"),
 "61593" : ("CACC", "AAAC", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61592/61592-attachment_iAbvIKnbqNRO.pdf"),
 "65779": ("CACC", "AAAC", "BsmBI", "https://www.addgene.org/static/data/plasmids/65/65779/65779-attachment_G8oNyvV6pA78.pdf")
+}
+
+# Restriction enzyme supplier codes
+rebaseSuppliers = {
+"B":"Life Technologies",
+"C":"Minotech Biotechnology",
+"E":"Agilent Technologies",
+"I":"SibEnzyme",
+"J":"Nippon Gene",
+"K":"Takara Bio",
+"M":"Roche",
+"N":"New England Biolabs",
+"O":"Toyobo Biochemicals",
+"Q":"Molecular Biology Resources",
+"R":"Promega Corporation",
+"S":"Sigma Chemical Corporation",
+"V":"Vivantis Technologies",
+"X":"EURx Ltd.",
+"Y":"SinaClon BioScience"
 }
 
 # labels and descriptions of eff. scores
@@ -1287,13 +1337,16 @@ def htmlWarn(text):
     print '''<img style="height:1.1em; width:1.0em" src="%simage/warning-32.png" class="help tooltipster" title="%s" />''' % (HTMLPREFIX, text)
 
 def readEnzymes():
-    " parse restrSites.txt and return as dict length -> list of (name, seq) "
-    fname = "restrSites.txt"
+    """ parse restrSites.txt and
+    return as dict length -> list of (name, suppliers, seq) """
+    fname = "restrSites2.txt"
     enzList = {}
     for line in open(join(baseDir, fname)):
-        name, seq1, seq2 = line.split()
-        seq = seq1+seq2
-        enzList.setdefault(len(seq), []).append( (name, seq) )
+        if line.startswith("#"):
+            continue
+        seq, name, suppliers = line.rstrip("\n").split("\t")
+        suppliers = tuple(suppliers.split(","))
+        enzList.setdefault(len(seq), []).append( (name, suppliers, seq) )
     return enzList
         
 def patMatch(seq, pat, notDegPos=None):
@@ -1305,14 +1358,20 @@ def patMatch(seq, pat, notDegPos=None):
         patChar = pat[x]
         nuc = seq[x]
 
-        assert(patChar in "MKYRACTGN")
-        assert(nuc in "MKYRACTGN")
+        assert(patChar in "MKYRACTGNWSD")
+        assert(nuc in "MKYRACTGNWSD")
 
         if notDegPos!=None and x==notDegPos and patChar!=nuc:
             #print x, seq, pat, notDegPos, patChar, nuc, "<br>"
             return False
 
         if patChar=="N":
+            continue
+        if patChar=="D" and nuc in ["AGT"]:
+            continue
+        if patChar=="W" and nuc in ["A", "T"]:
+            continue
+        if patChar=="S" and nuc in ["G", "C"]:
             continue
         if patChar=="M" and nuc in ["A", "C"]:
             continue
@@ -1349,7 +1408,7 @@ def findSite(seq, restrSite):
 
 def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
     """ return list of enzymes that overlap the -3 position in guideSeq
-    returns dict name -> list of matching positions
+    returns dict (name, pattern, suppliers) -> list of matching positions
     """
     matches = defaultdict(set)
     #print guideSeq, pamSeq, "<br>"
@@ -1366,12 +1425,12 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq):
             startSeq = len(fullSeq)-len(pamSeq)-3-(siteLen)+1
 
         seq = fullSeq[startSeq:]
-        for name, restrSite in sites:
+        for name, suppliers, restrSite in sites:
             posList = findSite(seq, restrSite)
             if len(posList)!=0:
                 liftOffset = startSeq
                 posList = [(liftOffset+x, liftOffset+y) for x,y in posList]
-                matches.setdefault(name, set()).update(posList)
+                matches.setdefault((name, restrSite, suppliers), set()).update(posList)
     return matches
 
 def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None):
@@ -1790,7 +1849,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         print "<br>"
         if len(mutEnzymes)!=0:
             print "Restr. Enzymes:"
-            print ",".join(mutEnzymes)
+            print ",".join([x for x,y in mutEnzymes])
             htmlHelp("Restriction enzymes potentially useful for screening mutations induced by the guide RNA.<br>These enzyme sites overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with this enzyme will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
         print "</small>"
         print "</td>"
@@ -1957,10 +2016,13 @@ def printHeader(batchId, title):
 <meta property='og:url' content='http://tefor.net/crispor/crispor.py' />
 <meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />
 
-<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
-<script src='https://apis.google.com/js/platform.js' async defer></script>
-<script src='http://code.jquery.com/ui/1.11.1/jquery-ui.min.js'></script>
-    """
+"""
+
+    # load jquery from local copy, not from CDN, for offline use
+    print("""<script src='%sjs/jquery.min.js'></script>
+<script src='%sjs/jquery-ui.min.js'></script>
+""" % (HTMLPREFIX, HTMLPREFIX))
+
     linkLocalFiles("includes.txt")
 
     print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLPREFIX
@@ -1972,7 +2034,7 @@ def printHeader(batchId, title):
     print '<script type="text/javascript" src="%sjs/jquery.ui.ufd.js"></script>' % HTMLPREFIX
     #print '<link rel="stylesheet" type="text/css" href="%sstyle/ufd-base.css" />' % HTMLPREFIX
     print '<link rel="stylesheet" type="text/css" href="%sstyle/plain.css" />' % HTMLPREFIX
-    print '<link rel="stylesheet" type="text/css"  href="http://code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css" />'
+    print '<link rel="stylesheet" type="text/css"  href="%sstyle/jquery-ui.css" />' % HTMLPREFIX
     print '<script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>'
 
     # override the main TEFOR css
@@ -2285,14 +2347,17 @@ def annotateBedWithPos(inBed, outBed):
 
 def calcGuideEffScores(seq, extSeq, pam):
     """ given a sequence and an extended sequence, get all potential guides
-    with pam, extend them to 100mers and score them with various eff. scores. Return a
+    with pam, extend them to 100mers and score them with various eff. scores. 
+    Return a
     list of rows [headers, (guideSeq, 100mer, score1, score2, score3,...), ... ]
+
+    extSeq can be None, if we were unable to extend the sequence
     """
     seq = seq.upper()
     if extSeq:
         extSeq = extSeq.upper()
-    startDict, endSet = findAllPams(seq, pam)
 
+    startDict, endSet = findAllPams(seq, pam)
     pamInfo = list(flankSeqIter(seq, startDict, len(pam), False))
 
     guideIds = []
@@ -3590,6 +3655,7 @@ def otPrimerPage(params):
     chromSizes = parseChromSizes(db)
     batchBase = join(batchDir, batchId)
     setupPamInfo(pamSeq)
+
     otBedFname = batchBase+".bed"
     pamOtMatches = parseOfftargets(otBedFname)
 
@@ -3902,6 +3968,9 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen,
     primers = runPrimer3([("seq1", flankSeq)], targetStart, targetLen, ampRange, tm)
     lSeq, lTm, lPos, rSeq, rTm, rPos = primers.values()[0]
 
+    if lSeq==None or rSeq==None:
+        return None, None, None, None, None, None, flankSeq, ampRange
+
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange
 
@@ -3912,18 +3981,25 @@ def markupSeq(seq, ulPosList, boldPosList):
     boldStarts = set([x[0] for x in boldPosList])
     boldEnds = set([x[1] for x in boldPosList])
     ret = []
+    openTags = set()
     for i, nucl in enumerate(seq):
         if i in ulStarts:
             ret.append("<u>")
+            openTags.add("u")
         if i in ulEnds:
             ret.append("</u>")
+            openTags.remove("u")
         if i in boldStarts:
             ret.append("<strong>")
+            openTags.add("strong")
         if i in boldEnds:
             ret.append("</strong>")
+            openTags.remove("strong")
         ret.append(nucl)
         if (i+1) % 80==0:
             ret.append("<br>")
+    for tag in openTags:
+        ret.append("</%s>" % tag)
     return "".join(ret)
     #return seq[:start]+"<u>"+seq[start:end]+"</u>"+seq[end:]
 
@@ -3969,8 +4045,11 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
             primers["mammCellsNote"] = True
 
         u6FwPrefix, u6RwPrefix = addGenePlasmidInfo[plasmid][:2]
-        primers["mammCells"].append((fwName, "%s%s<b>%s</b>G" % (u6FwPrefix, addGPrefix, guideSeq)))
-        primers["mammCells"].append((revName, "%s<b>%s</b>%sG" % (u6RwPrefix, revComp(guideSeq), addCSuffix)))
+        for pi in addGenePlasmids:
+            if pi[0]==plasmid:
+                plasmidLabel = pi[1][1]
+        primers["mammCells"].append((fwName+plasmidLabel, "%s%s<b>%s</b>G" % (u6FwPrefix, addGPrefix, guideSeq)))
+        primers["mammCells"].append((revName+plasmidLabel, "%s<b>%s</b>%sG" % (u6RwPrefix, revComp(guideSeq), addCSuffix)))
 
         #if guideSeq.lower().startswith("g"):
             #primers["mammCells"].append((fwName, "ACACC<b>%s</b>G" % guideSeq))
@@ -3989,7 +4068,11 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
 
         newList = []
         for name, seq in primList:
-            newList.append( (batchName+"_"+name, seq) )
+            if batchName!="":
+                newName = batchName+"_"+name
+            else:
+                newName = name
+            newList.append( (newName, seq) )
         newPrimers[key] = newList
     return newPrimers
 
@@ -4087,32 +4170,31 @@ def printDropDown(name, nameValList, default, onChange=None):
         print('   <option value="%s"%s>%s</option>' % (name, addString, desc))
     print('</select>')
 
-def primerDetailsPage(params):
-    """ create primers with primer3 around site identified by pamId in batch
-    with batchId. Output primers as html
+def findGuideSeq(inSeq, pam, pamId):
+    """ given the input sequence and the pamId, return the guide sequence,
+    the sequence with the pam and its strand.
     """
-    batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
-    inSeq, genome, pamSeq, position, extSeq = readBatchParams(batchId)
-    seqLen = len(inSeq)
-    batchBase = join(batchDir, batchId)
-    setupPamInfo(pam)
+    startDict, endSet = findAllPams(inSeq, pam)
+    pamInfo = list(flankSeqIter(inSeq, startDict, len(pam), False))
+    for guidePamId, pamStart, guideStart, guideStrand, guideSeq, pamSeq in pamInfo:
+        if guidePamId!=pamId:
+            continue
 
-    ampLen = params.get("ampLen", "400")
-    if not ampLen.isdigit():
-        errAbort("ampLen parameter must be a number")
-    ampLen = int(ampLen)
+        guideSeqWPam = guideSeq+pamSeq
+        # prettify guideSeqWPam to highlight the PAM
+        if cpf1Mode:
+            guideSeqHtml = "<i>%s</i> %s" % \
+                (guideSeqWPam[:len(pam)], guideSeqWPam[len(pam):])
+        else:
+            guideSeqHtml = "%s <i>%s</i>" % \
+                (guideSeqWPam[:-len(pam)], guideSeqWPam[-len(pam):])
 
-    tm = params.get("tm", "60")
-    if not tm.isdigit():
-        errAbort("tm parameter must be a number")
-    tm = int(tm)
+        guideEnd = guideStart + GUIDELEN
+        return guideSeq, pamSeq, guideSeqWPam , guideStrand, guideSeqHtml, \
+                guideStart, guideEnd
 
-    plasmid = params.get("plasmid", "43860")
-    plasmidToName = dict(addGenePlasmids)
-    if plasmid not in plasmidToName:
-        errAbort("invalid value for the parameter 'plasmid'")
-
-    # find position of guide sequence in genome at MM0
+def findOntargetPos(batchBase, pamId, position):
+    " find position of guide sequence in genome at MM0 "
     otBedFname = batchBase+".bed"
     otMatches = parseOfftargets(otBedFname)
     if pamId not in otMatches or 0 not in otMatches[pamId]:
@@ -4136,11 +4218,9 @@ def primerDetailsPage(params):
 
         chrom, start, end = filtMatch[:3]
         gene = filtMatch[6]
-        print("<strong>Warning</strong>: Found multiple perfect matches for this guide sequence in the genome. Using only the match in the input sequence %s:%d-%d (gene: %s). This guide will not be specific. Is this a polyploid organism? Try selecting another guide sequence or email %s to discuss your strategy or modifications to this software.<p>" % (chrom, start+1, end, gene, contactEmail))
+        print("<strong>Warning</strong>: Found multiple perfect matches for this guide sequence in the genome. For the PCR, we are using the on-target match in the input sequence %s:%d-%d (gene: %s), but this guide will not be specific. Is this a polyploid organism? Try selecting another guide sequence or email %s to discuss your strategy or modifications to this software.<p>" % (chrom, start+1, end, gene, contactEmail))
 
         matchList = [filtMatch]
-        # XX we could show a dialog: which match do you want to design primers for?
-        # But who would want to use a guide sequence that is not unique?
 
     global batchName
     batchName = batchName.replace(" ", "_")
@@ -4149,81 +4229,70 @@ def primerDetailsPage(params):
         matchList[0]
     start = int(start)
     end = int(end)
+    return chrom, start, end, strand
 
-    # retrieve guideSeq + PAM sequence from input sequence
-    # XX guide sequence must not appear twice in there
-    pamFname = batchBase+".fa"
-    pams = parseFasta(open(pamFname))
-    guideSeq = pams[pamId]
-    guideStrand = pamId[-1]
-    guideSeqWPam = seq
+def printValidationPcrSection(batchId, genome, pamId, position, params,
+        guideStart, guideEnd, primerGuideName):
+    " print the PCR section of the primer page "
+    batchBase = join(batchDir, batchId)
 
-    if strand=="+":
-        guideStart = inSeq.find(guideSeq)
-        highlightSeq = guideSeqWPam
-    else:
-        guideStart = inSeq.find(revComp(guideSeq))
-        highlightSeq = revComp(guideSeqWPam)
+    # check the input parameters: ampLen, tm
+    ampLen = params.get("ampLen", "400")
+    if not ampLen.isdigit():
+        errAbort("ampLen parameter must be a number")
+    ampLen = int(ampLen)
+
+    tm = params.get("tm", "60")
+    if not tm.isdigit():
+        errAbort("tm parameter must be a number")
+    tm = int(tm)
+
+    print "<h2 id='ontargetPcr'>On-target site PCR</h2>"
+    chrom, start, end, strand = findOntargetPos(batchBase, pamId, position)
 
     lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange = \
         designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
-    guideStart = targetSeq.upper().find(highlightSeq.upper())
-    guideEnd = guideStart + len(highlightSeq)
+    primerPosList = []
+    if lSeq!=None:
+        primerPosList.append( (0, len(lSeq)) )
+        primerPosList.append( ( (len(targetSeq)-len(rSeq)), len(targetSeq) ) )
 
-    if not chrom.startswith("ch"):
-        chromLong = "chr"+chrom
+    targetHtml = markupSeq(targetSeq, primerPosList, [(guideStart, guideEnd)])
+
+    allPrimersFound = True
+
+    if batchName=="":
+        primerPrefix = ""
     else:
-        chromLong = chrom
+        primerPrefix = batchName+"_"
 
-    seqParts = ["<i><u>%s</u></i>" % targetSeq[:len(lSeq)] ] # primer 1
-    seqParts.append("&nbsp;")
-    seqParts.append(targetSeq[len(lSeq):guideStart]) # sequence before guide
-
-    seqParts.append("<strong>") 
-    seqParts.append(targetSeq[guideStart:guideEnd]) # guide sequence including PAM
-    seqParts.append("</strong>")
-
-    seqParts.append(targetSeq[guideEnd:len(targetSeq)-len(rSeq)])# sequence after guide
-
-    seqParts.append("&nbsp;")
-    seqParts.append("<i><u>%s</u></i>" % targetSeq[-len(rSeq):]) # primer 2
-
-    targetHtml = "".join(seqParts)
-
-    # prettify guideSeqWPam to highlight the PAM
-    if not cpf1Mode:
-        guideSeqHtml = "%s <i>%s</i>" % (guideSeqWPam[:-len(pam)], guideSeqWPam[-len(pam):])
-    else:
-        guideSeqHtml = "<i>%s</i> %s" % (guideSeqWPam[:len(pam)], guideSeqWPam[len(pam):])
-
-    print '''<div style='width: 80%; margin-left:10%; margin-right:10%; text-align:left;'>'''
-    print "<h2>"
-    if batchName!="":
-        print batchName+":"
-    print "Guide sequence: %s</h2>" % (guideSeqHtml)
-
-    print "<h3>Validation Primers</h3>"
-    guidePos = int(pamId.strip("s+-"))+1
-    guideStrand = pamId[-1]
-    if guideStrand=="+":
-        primerGuideName = str(guidePos)+"forw"
-    else:
-        primerGuideName = str(guidePos)+"rev"
+    print "Use these primers to amplify a genomic fragment around the on-target site:<br>"
 
     print '<table class="primerTable">'
     print '<tr>'
-    print "<td>%s_guideRna%sLeft</td>" % (batchName, primerGuideName)
-    print "<td>%s</td>" % (lSeq)
+    print "<td>%sOntargetGuideRna%sLeft</td>" % (primerPrefix, primerGuideName)
+
+    if lSeq is not None:
+        print "<td>%s</td>" % (lSeq)
+    else:
+        allPrimersFound = False
+        print "<td>Not found</td>"
+
     print "<td>Tm %s</td>" % (lTm)
     print "</tr><tr>"
-    print "<td>%s_guideRna%sRight</td>" % (batchName, primerGuideName)
-    print "<td>%s</td>" % (rSeq)
+    print "<td>%sOntargetGuideRna%sRight</td>" % (primerPrefix, primerGuideName)
+
+    if rSeq is not None:
+        print "<td>%s</td>" % (rSeq)
+    else:
+        allPrimersFound = False
+        print "<td>Not found</td>"
+
     print "<td>Tm %s</td>" % (rTm)
     print '</tr></table><p>'
 
     print "<h3>Genome fragment with validation primers and guide sequence</h3>"
-
 
     print("""<form id="ampLenForm" action="%s" method="GET">""" %
         basename(__file__))
@@ -4239,9 +4308,8 @@ def primerDetailsPage(params):
     ]
 
     printDropDown("ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()""")
-    print "<br>"
 
-    print ("Primer melting Temperature (Tm):")
+    print ("&nbsp;&nbsp;&nbsp; Primer Tm:")
     tmList = [
         ("56", "56 deg."),
         ("57", "57 deg."),
@@ -4262,45 +4330,178 @@ def primerDetailsPage(params):
 
     printHiddenFields(params, {"ampLen":None, "tm":None})
 
+    print("""<input id="submitPcrForm" style="display:none" type="submit" name="submit" value="submit">""")
+    print('</form><p>')
+
     if strand=="-":
         print("Your guide sequence is on the reverse strand relative to the genome sequence, so it is reverse complemented in the sequence below.<p>")
 
+    if not chrom.startswith("ch"):
+        chromLong = "chr"+chrom
+    else:
+        chromLong = chrom
+
     print '''<div style='word-wrap: break-word; word-break: break-all;'>'''
-    print "<strong>Genomic sequence %s:%d-%d including primers, genomic forward strand:</strong><br> <tt>%s</tt><br>" % (chromLong, start, end, targetHtml)
+    if allPrimersFound:
+        print "<strong>Genomic sequence %s:%d-%d including primers, genomic forward strand:</strong>" % (chromLong, start, end)
+    else:
+        print "<strong>Genomic sequence %s:%d-%d including 1000bp of flanking sequence, genomic forward strand.</strong><br>" % (chromLong, start, end)
+        print "Warning: No primers were found at this Tm, please design them yourself.<br>"
+    print "<tt>%s</tt><br>" % (targetHtml)
+
     print '''</div>'''
-    print "<strong>Sequence length:</strong> %d<p>" % (rPos-lPos)
+    if rPos is not None:
+        print "<strong>Sequence length:</strong> %d<p>" % (rPos-lPos)
     print '<small>Method: Primer3.2 with default settings, target length %s bp</small>' % ampRange
 
-    # restriction enzymes
-    allEnzymes = readEnzymes()
-    pamSeq = seq[-len(pam):]
-    mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq)
-    if len(mutEnzymes)!=0:
-        print "<h3>Restriction Enzyme Sites for PCR product validation</h3>"
+    return targetSeq
 
-        print "Cas9 induces mutations, usually 3bp 5' to the PAM site."
-        print "If a mutation is induced, then it is very likely that one of the following enzymes no longer cuts your PCR product amplified from the mutant sequence."
-        print "For each restriction enzyme, the guide sequence with the restriction site underlined is shown below.<p>"
+def printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStart, guideEnd):
+    " print the section about restriction enzymes in the target seq "
+    print "<h2 id='restrSites'>Restriction Sites for PCR product validation</h2>"
 
-        allSitePos = set()
-        for enzName, posList in mutEnzymes.iteritems():
-            print "<strong>%s</strong>:" % enzName
-            for start, end in posList:
-                print markupSeq(guideSeqWPam, [(start, end)], [])
-                if strand=="-":
-                    allSitePos.add( (guideEnd-end, guideEnd-start) )
-                else:
-                    allSitePos.add( (guideStart+start, guideStart+end) )
-            print "<br>"
+    print "Cas9 induces mutations, usually 3bp 5' of the PAM site."
+    print "If a mutation is induced, then it is very likely that one of the following enzymes no longer cuts your PCR product amplified from the mutant sequence."
+    print "For each restriction enzyme, the guide sequence with the restriction site underlined is shown below.<p>"
 
-        print "<h3>All restriction enzyme sites on amplicon sequence</h3>"
-        print "Restriction sites are underlined, the guide sequence is highlighted in bold. You can check this schema to check if the sites are unique enough to give separate bands on a gel:<p>"
+    allSitePos = set()
+    patList = []
+    for (enzName, pattern, suppliers), posList in mutEnzymes.iteritems():
+        patList.append((enzName, pattern))
+        print "<strong>%s/%s</strong>:" % (enzName, pattern)
+        for start, end in posList:
+            print markupSeq(guideSeqWPam, [(start, end)], [])
+            #if strand=="-":
+                #allSitePos.add( (guideEnd-end, guideEnd-start) )
+            #else:
+            allSitePos.add( (guideStart+start, guideStart+end) )
+        supplNames = [rebaseSuppliers.get(x, x) for x in suppliers]
+        print "&nbsp;&nbsp;Enzyme sold by: %s" % ", ".join(sorted(supplNames))
+        print "<br>"
+
+    print "<h3>All restriction enzyme sites on the amplicon sequence</h3>"
+    print "Restriction sites are underlined, the guide sequence is highlighted in bold. Use this schema to check if the sites are unique enough to give separate bands on a gel:<p>"
+    
+    for enzName, pat in patList:
+        print("For enzyme: %s<br>" % enzName)
         print "<tt>"
+        allSitePos = []
+        for pos in findPat(targetSeq, pat):
+            allSitePos.append( (pos, pos+len(pat)) )
         print markupSeq(targetSeq, allSitePos, [(guideStart, guideEnd)])
-        print "</tt>"
+        print "</tt><br>"
+
+def printCloningSection(batchId, primerGuideName, guideSeq, params):
+    " print the cloning/expression section of the primer page "
+    print "<h2 id='cloning'>Cloning and expression of guide RNA</h2>"
+
+    plasmid = params.get("plasmid", "43860")
+    plasmidToName = dict(addGenePlasmids)
+    if plasmid not in plasmidToName:
+        errAbort("Invalid value for the parameter 'plasmid'")
+
+    primers = makeHelperPrimers(primerGuideName, guideSeq, plasmid)
+
+    #print "<p>Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription with T7 and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
+
+    # T7 from plasmids
+    if not cpf1Mode:
+        print "<h3>Mouse, Zebrafish, Xenopus: cloning into a plasmid and T7 in vitro transcription</h3>"
+        print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
+
+        print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid <a href='https://www.addgene.org/42250/'>DR274</a> generated by the Joung lab.<p>" % guideSeq
+
+    printPrimerTable(primers["T7"])
+
+    # T7 from primers, in vitro
+    print "<h3>Mice, Zebrafish, Xenopus: T7 in vitro transcription from overlapping oligonucleotides</h3>"
+    print "Template for in vitro synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
+
+    printPrimerTable(primers["T7iv"], onRows=True)
+
+    #print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.<p>')
+    print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.cell.com/cell-reports/abstract/S2211-1247(13)00312-4">Bassett et al. Cell Rep 2013</a>. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our protocol for T7 guide expression.<p>')
+
+    print('''<a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a> prefixed guides with GG to ensure high efficiency in vitro transcription by T7 RNA polymerase. It has been shown by other authors that the 5' nucleotides of the guide have little or no role in target specificity and it is therefore generally accepted that prefixing guides with GG should not affect activity.<br>''')
+
+    print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our protocol for T7 guide expression.<p>')
+
+    # MAMMALIAN CELLS
+    print "<h3 id='cellCultures'>In cell cultures: cloning into a plasmid</h3>"
+    if "tttt" in guideSeq.lower():
+        print "The guide sequence %s contains the motif TTTT, which terminates RNA polymerase. This guide sequence cannot be transcribed in mammalian cells." % guideSeq
+    else:
+        print "The guide sequence %s does not contain the motif TTTT, which terminates RNA polymerase, so it can be transcribed in mammalian cells." % guideSeq
+
+        print "<br>"
+        if not cpf1Mode:
+            print("""<p><form style="margin-bottom: 0px" id="plasmidForm" action="%s#cellCultures" method="GET">""" %
+                basename(__file__))
+            print "Select your Addgene plasmid: "
+
+            # we need a separate form here (not PCR form), as the target anchor
+            # to jump to after a submit is different
+            plasmidNames = [(x,y) for x,(y,z) in addGenePlasmids]
+            printDropDown("plasmid", plasmidNames, plasmid, onChange="""$('#submitPlasmidForm').click()""")
+            printHiddenFields(cgiParams, {"plasmid":None, "submit":None})
+            print("""<input id="submitPlasmidForm" style="display:none" type="submit" name="submit" value="submit">""")
+            print("""</form></p>""")
+
+            print("<p>To clone the guide into <i><a href='https://www.addgene.org/%s/'>%s</a></i>, use these primers:" % (plasmid, plasmidToName[plasmid][0]))
+            #print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence into the plasmid <a href='https://www.addgene.org/43860/'>MLM3636</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+        else:
+            print "To express guide RNA for Cpf1 in mammalian cells, two plasmids are available. To clone the guide RNA sequence into the plasmids <a href='https://www.addgene.org/78956/'>pU6-As-crRNA</a> or <a href='https://www.addgene.org/78957/'>pU6-Lb-crRNA</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
+
+        print "<br>"
+        if "mammCellsNote" in primers:
+            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added to the sequence below, where it is underlined.<br>")
+
+        printPrimerTable(primers["mammCells"])
+
+        _, _, enzyme, protoUrl = addGenePlasmidInfo[plasmid]
+        print("The plasmid has to be digested with: <i>%s</i><br>" % enzyme)
+        print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
+
+    if not cpf1Mode:
+        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        ciPrimers = [
+            ("cionaFwd", "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
+            ("cionaRev", "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
+        ]
+
+        printPrimerTable(ciPrimers)
+
+    print "<h4 id='primerSummary'>Summary of main cloning/expression primers</h4>"
+    printPrimerTableAll(primers)
+
+def primerDetailsPage(params):
+    """ create primers with primer3 around site identified by pamId in batch
+    with batchId. Output primers as html
+    """
+    # retrieve batch information
+    batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
+    setupPamInfo(pam)
+
+    inSeq, genome, pamSeq, position, extSeq = readBatchParams(batchId)
+    seqLen = len(inSeq)
+    batchBase = join(batchDir, batchId)
+
+    guideSeq, pamSeq, guideSeqWPam, guideStrand, guideSeqHtml, guideStart, guideEnd = findGuideSeq(inSeq, pam, pamId)
+
+    # search for restriction enzymes that overlap the mutation site
+    allEnzymes = readEnzymes()
+    mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq)
+
+    # create a more human readable name of this guide
+    guidePos = int(pamId.strip("s+-"))+1
+    guideStrand = pamId[-1]
+    if guideStrand=="+":
+        primerGuideName = str(guidePos)+"forw"
+    else:
+        primerGuideName = str(guidePos)+"rev"
 
     # primer helper
-
     print """
     <style>
         table.primerTable {
@@ -4316,79 +4517,36 @@ def primerDetailsPage(params):
     </style>
     """
 
-    print "<hr>"
-    print "<h2>Expression of guide RNA</h2>"
+    # output the page header
+    print '''<div style='width: 80%; margin-left:10%; margin-right:10%; text-align:left;'>'''
+    print "<h2>"
+    if batchName!="":
+        print batchName+":"
+    print "Guide sequence: %s</h2>" % (guideSeqHtml)
 
-    print "<h4>Summary of all primers explained below</h4>"
-    primers = makeHelperPrimers(primerGuideName, guideSeq, plasmid)
-    printPrimerTableAll(primers)
+    print("Contents:<br>")
+    print("<ul>")
+    print("<li><a href='#cloning'>Cloning or expression of guide RNA</a>")
+    print("<ul><li><a href='#primerSummary'>Summary of main cloning/expression primers</a></li></ul>")
+    print("<li><a href='#ontargetPcr'>On-target site PCR</a></li>")
+    if len(mutEnzymes)!=0:
+        print("<li><a href='#restrSites'>Restriction sites</a></li>")
+    print("<li><a href='#offtargetPcr'>Off-target site PCR</a></li>")
+    print("</ul>")
+    print("<hr>")
 
-    print "<p>Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription with T7 and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
-
-
-    # T7 from plasmids
-    if not cpf1Mode:
-        print "<h3>Mice, Zebrafish, Xenopus: cloning into a plasmid and T7 in vitro transcription</h3>"
-        print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
-
-        print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid DR274 generated by the Joung lab<p>" % guideSeqWPam
-
-    printPrimerTable(primers["T7"])
-
-    # T7 from primers, in vitro
-    print "<h3>Mice, Zebrafish, Xenopus: T7 in vitro transcription from overlapping oligonucleotides</h3>"
-    print "Template for in vitro synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
-
-    printPrimerTable(primers["T7iv"], onRows=True)
-
-    #print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.<p>')
-    print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.cell.com/cell-reports/abstract/S2211-1247(13)00312-4">Bassett et al. Cell Rep 2013</a>. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our protocol for T7 guide expression.<p>')
-
-    print('''<a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a> prefixed guides with GG to ensure high efficiency in vitro transcription by T7 RNA polymerase. It has been shown by other authors that the 5' nucleotides of the guide have little or no role in target specificity and it is therefore generally accepted that prefixing guides with GG should not affect activity.<p>''')
-
-    print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our protocol for T7 guide expression.<p>')
-
-    # MAMMALIAN CELLS
-    print "<h3>In cultured cells: cloning into a plasmid</h3>"
-    if "tttt" in guideSeq.lower():
-        print "The guide sequence %s contains the motif TTTT, which terminates RNA polymerase. This guide sequence cannot be transcribed in mammalian cells." % guideSeq
-    else:
-        print "The guide sequence %s does not contain the motif TTTT, which terminates RNA polymerase, so it can be transcribed in mammalian cells." % guideSeq
-
-        print "<br>"
-        if not cpf1Mode:
-            print "Addgene plasmid: "
-            printDropDown("plasmid", addGenePlasmids, plasmid, onChange="""$('#submitPcrForm').click()""")
-            print("<br>To clone the guide into the plasmid %s, the following primers should be used:" % plasmidToName[plasmid])
-            #print "To express guide RNA in mammalian cells, a variety of plasmids are available. For example, to clone the guide RNA sequence into the plasmid <a href='https://www.addgene.org/43860/'>MLM3636</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
-        else:
-            print "To express guide RNA for Cpf1 in mammalian cells, two plasmids are available. To clone the guide RNA sequence into the plasmids <a href='https://www.addgene.org/78956/'>pU6-As-crRNA</a> or <a href='https://www.addgene.org/78957/'>pU6-Lb-crRNA</a>, where guide RNA expression is driven by a human U6 promoter, the following primers should be used :"
-
-        print "<br>"
-        if "mammCellsNote" in primers:
-            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added to the sequence below, where it is underlined.<br>")
-
-        printPrimerTable(primers["mammCells"])
-
-        _, _, enzyme, protoUrl = addGenePlasmidInfo[plasmid]
-        print("The plasmid has to be digested with %s." % enzyme)
-        print("<a href='%s'>Click here</a> to access the cloning protocol." % protoUrl)
-
-
-    if not cpf1Mode:
-        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
-        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
-        ciPrimers = [
-            ("cionaFwd", "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
-            ("cionaRev", "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
-        ]
-
-        printPrimerTable(ciPrimers)
-
+    printCloningSection(batchId, primerGuideName, guideSeq, params)
     print "<hr>"
 
-    print("""<input id="submitPcrForm" style="display:none" type="submit" name="submit" value="submit">""")
-    print('</form><p>')
+    targetSeq = printValidationPcrSection(batchId, genome, pamId, position, params, \
+        guideStart, guideEnd, primerGuideName)
+    print "<hr>"
+
+    if len(mutEnzymes)!=0:
+        printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStart, guideEnd)
+    print "<hr>"
+
+    print "<hr>"
 
     print '</div>'
 

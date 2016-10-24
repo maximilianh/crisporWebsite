@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+
+import logging, sys, optparse
+from collections import defaultdict
+from os.path import join, basename, dirname, isfile
+import datetime
+
+# === command line interface, options and help ===
+parser = optparse.OptionParser("usage: %prog [options] filename - convert rebase link_parsrefs.txt file to format name<tab>restrSite<tab>suppliers. Skips enzymes without any suppliers or with less than three ACTGs.")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+#parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== functions =====
+def convRebase(filename):
+    """ parse link_parsrefs.txt and return a nexted dict
+    site -> name -> set of suppliers"""
+    ret = defaultdict(dict)
+    name = ""
+    site = ""
+    company = ""
+    for line in open(filename):
+        if line=="\n":
+            if site!="" and name!="" and company!="":
+                site = site.replace("^","")
+                site = site.split("(")[0]
+
+                acgtCount = 0
+                for nucl in site:
+                    if nucl in "ACTG":
+                        acgtCount +=1
+
+                if acgtCount >= 3:
+                    ret[site].setdefault(name, set()).update(list(company))
+
+            name = ""
+            site = ""
+            company = ""
+            continue
+        if line.startswith("<2>"):
+            name = line.strip().replace("<2>","")
+            continue
+        if line.startswith("<5>"):
+            site = line.strip().replace("<5>","")
+            continue
+        if line.startswith("<7>"):
+            company = line.strip().replace("<7>","")
+            continue
+    return ret
+
+
+            
+        
+    
+# ----------- main --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+filename, outFname = args
+siteToNames = convRebase(filename)
+#if options.test:
+    #logging.debug("test is set")
+    #f = open(options.file, "r")
+
+ofh = open(outFname, "w")
+
+ofh.write("# created with: tools/importRebase link_parsrefs.txt restrSites2.txt\n")
+ofh.write("# time: "+datetime.datetime.now().isoformat()+"\n")
+
+for site, nameList in siteToNames.iteritems():
+    allCompNames = set()
+    allNames = []
+    for name, compNames in nameList.iteritems():
+        allCompNames.update(compNames)
+        allNames.append(name)
+    row = [site, "/".join(allNames), ",".join(allCompNames)]
+    ofh.write( "\t".join(row))
+    ofh.write( "\n")

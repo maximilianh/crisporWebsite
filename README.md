@@ -27,6 +27,7 @@ or
 Install required R libraries:
    
     sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
+    sudo Rscript -e 'source("https://bioconductor.org/biocLite.R"); biocLite(c("limma"));'
 
 When you run crispor.py, it should show the usage message:
 ```
