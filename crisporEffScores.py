@@ -908,8 +908,12 @@ def calcFusiDoench(seqs):
     for seq in seqs:
         pam = seq[25:27]
         if pam!="GG":
-            res.append(-1)
-            continue
+            #res.append(-1)
+            #continue
+            seq = list(seq)
+            seq[25] = "G"
+            seq[26] = "G"
+            seq = "".join(seq)
         if "N" in seq:
             res.append(-1)
             continue

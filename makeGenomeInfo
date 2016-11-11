@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from collections import namedtuple
-import os, logging
+import os, logging, string
 from os.path import join, isfile
 
 # when many genomes are installed, the list of genome info is better kept in a single
@@ -14,6 +14,34 @@ from os.path import join, isfile
 # subdirectory with genome info
 genomesDir = "genomes"
 
+def readVarDbs(db):
+    """ find all possible variant VCFs and return as list of (shortLabel, fname, label, hasAF) 
+    hasAF = file has the AF field (allele frequency). Means that the UI
+    will show the "frequency filter" button.
+    """
+    # parse the descriptions of the VCF files
+    # descriptions are optional
+    labelFname = join(genomesDir, db, "vcfDescs.txt")
+    ret = []
+    if isfile(labelFname):
+        for line in open(labelFname):
+            if line.startswith("#"):
+                continue
+            fields = string.split(line.rstrip("\n"), "\t")
+            if len(fields)==4:
+                shortLabel, fname, desc, hasAF = fields
+            else:
+                print labelFname, line
+                assert(False)
+
+            fpath = join(genomesDir, db, fname)
+            if not isfile(fpath):
+                print "Error: Cannot find VCF file %s" % fpath
+                continue
+            hasAF = (hasAF=="1")
+            ret.append( (shortLabel, fname, desc, hasAF) )
+    return ret
+        
 
 def lineFileNext(fh):
     """ 
@@ -52,13 +80,22 @@ ofh = open(tmpFname, "w")
 ofh.write("\t".join(fields)+"\n")
 for subDir in os.listdir(genomesDir):
     infoFname = join(genomesDir, subDir, "genomeInfo.tab")
+    varDbs = readVarDbs(subDir)
+    if len(varDbs)!=0:
+        varDescStr = "- SNPs: "+(", ".join([row[0] for row in varDbs]))
+    else:
+        varDescStr = ""
+
     if not isfile(infoFname):
         continue
     for row in lineFileNext(open(infoFname)):
         newRow = []
         rowDict = row._asdict()
         for field in fields:
-            newRow.append(rowDict.get(field, ""))
+            val = rowDict.get(field, "")
+            if field=="description":
+                val += varDescStr
+            newRow.append(val)
         ofh.write("\t".join(newRow)+"\n")
 ofh.close()
 
