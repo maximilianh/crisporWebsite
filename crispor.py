@@ -857,6 +857,7 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
             print(""" Min. frequency: """)
             print("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq)
         print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
+        print("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database?</a></small>" % contactEmail)
 
 
     print "</div>"
@@ -2991,7 +2992,8 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
 
-<br><i>Wondering which score is best for you? Have a look at the <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper</a><small> (and email us any questions)</small></i>
+<!-- <br><i>Wondering which score is best for you? Have a look at the <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper</a><small> (and email us any questions)</small></i> -->
+<br><i>New version V4, Dec 2016: Support for genome variants, Cpf1, Off-target primers, microhomology. <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3072,7 +3074,7 @@ function clearInput() {
         if (jQuery.inArray(valSel, ucscTrackDbs)!=-1)
             {
             $("#trackHubNote").css('visibility', 'visible');
-            $("#hgTracksLink").attr("href", "http://genome-test.soe.ucsc.edu/cgi-bin/hgTracks?db="+valSel+"&crispr=show");
+            $("#hgTracksLink").attr("href", "http://genome.ucsc.edu/cgi-bin/hgTracks?db="+valSel+"&crispr=show");
             }
         else
             $("#trackHubNote").css('visibility', 'hidden');
