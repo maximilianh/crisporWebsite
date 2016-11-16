@@ -135,7 +135,7 @@ ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
 pamDesc = [ ('NGG','20bp-NGG - Cas9 S. Pyogenes'),
-         ('TTTN','TTTN-23bp - Cpf1 F. novicida'),
+         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus and Lachnospiraceae'),
          ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
          ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
@@ -302,7 +302,7 @@ def setupPamInfo(pam):
     global GUIDELEN
     global cpf1Mode
     global addGenePlasmids
-    if pam=="TTTN":
+    if pamIsCpf1(pam):
         GUIDELEN = 23
         cpf1Mode = True
     elif pam=="NNGRRT":
@@ -584,6 +584,9 @@ def makeTempFile(prefix, suffix):
         fh = tempfile.NamedTemporaryFile(prefix="primer3In", suffix=".txt")
     return fh
 
+def pamIsCpf1(pam):
+    return (pam in ["TTN", "TTTN"])
+        
 def saveSeqOrgPamToCookies(seq, org, pam):
     " create a cookie with seq, org and pam and print it"
     cookies=Cookie.SimpleCookie()
@@ -858,6 +861,8 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
             print("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq)
         print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
         print("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database?</a></small>" % contactEmail)
+    else:
+        print("<small style=''><a href='mailto:%s'>Suggest a genome variants database to show on this page</a></small>" % contactEmail)
 
 
     print "</div>"
@@ -1115,14 +1120,15 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             otSeqNoPam = otSeq[:len(otSeq)-len(pam)]
             if len(otSeqNoPam)==19:
                 otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
-            if pam!="TTTN":
+            if pamIsCpf1(pam):
+                # Cpf1 has no scores yet
+                mitScore=0.0
+                cfdScore=0.0
+            else:
                 # MIT score must not include the PAM
                 mitScore = calcHitScore(guideNoPam, otSeqNoPam)
                 # CFD score must include the PAM
                 cfdScore = calcCfdScore(guideSeq, otSeq)
-            else:
-                mitScore=0.0
-                cfdScore=0.0
 
             mitOtScores.append(mitScore)
             if cfdScore != None:
@@ -1142,7 +1148,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         otCounts.append( str(otCount) )
 
     # calculate the guide scores
-    if pam=="TTTN":
+    if pamIsCpf1(pam):
         guideScore = -1
         guideCfdScore = -1
     else:
@@ -1163,7 +1169,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
         otDescStr = "&thinsp;-&thinsp;".join(otCounts)
         last12DescStr = "&thinsp;-&thinsp;".join(last12MmCounts)
 
-    if pam=="TTTN":
+    if pamIsCpf1(pam):
         # sort by edit dist if using Cfp1
         posList.sort(key=operator.itemgetter(3))
     else:
@@ -1575,7 +1581,7 @@ def printTableHead(batchId, chrom, org):
     " print guide score table description and columns "
     # one row per guide sequence
     if not cpf1Mode:
-        print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>) as on <a href="http://crispr.mit.org">http://crispr.mit.org</a>. Click on a column title to rank by a different score.<br>'''
+        print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         print('''
         <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> See our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>, figures 4 and 5.<br>''')
         #print('''References for scores:
@@ -1833,7 +1839,7 @@ def findOtCutoff(otData):
 
 def printNoEffScoreFoundWarn(effScoresCount):
     if effScoresCount==0 and not cpf1Mode:
-        print('<div style="text-align:left"><strong>Note:</strong> No guide could be scored for efficiency.')
+        print('<div style="text-align:left; background-color: aliceblue; padding:5px; border: 1px solid black"><strong>Note:</strong> No guide could be scored for efficiency.')
         print("This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence.</div><br>")
 
 
@@ -2742,7 +2748,7 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
     # -p 4 = use four threads
     # --mm = use mmap
     maxOcc = MAXOCC # meaning in BWA: includes any PAM, in bowtie we have the PAM in the input sequence
-    cmd = "$BIN/bowtie %(genomePath)s -f %(bwFaFname)s  -v 3 -y -t -k %(maxOcc)d -m %(maxOcc)d dummy --max tooManyHits.txt --mm --refout --maxbts=2000 -p 4" % locals()
+    cmd = "$BIN/bowtie -e 1000 %(genomePath)s -f %(bwFaFname)s  -v 3 -y -t -k %(maxOcc)d -m %(maxOcc)d dummy --max tooManyHits.txt --mm --refout --maxbts=2000 -p 4" % locals()
     runCmd(cmd)
     os.chdir(oldCwd)
 
@@ -2779,7 +2785,7 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
         logging.debug("off-target minScore = %f" % minScore )
 
         # check if this match passes the off-target score limit
-        if pamPat=="TTTN":
+        if pamIsCpf1(pamPat):
             otScore = 0.0
         else:
             tSeqNoPam = tSeq[:-pamLen]
@@ -3187,14 +3193,14 @@ def readDbInfo(org):
     return dbInfo
 
 def printQueryNotFoundNote(dbInfo):
-    print "<div class='title'>Query sequence, not present in the genome of %s</div>" % dbInfo.scientificName
-    print "<div class='substep'>"
-    print "<em><strong>Note:</strong>The query sequence was not found in the selected genome."
+    print "<div class='title'>Query sequence, not present in the selected genome, %s (%s)</div>" % (dbInfo.scientificName, dbInfo.name)
+    print "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue'>"
+    print "<strong>Warning:</strong> The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
     print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
     print "When reading the list of guide sequences and off-targets below, bear in mind that the software cannot distinguish off-targets from on-targets now, so some 0-mismatch targets are expected. In this case, the scores of guide sequences are too low.<br>"
-    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'. Include more flanking sequence > 50bp to obtain the scores.<p>"
-    print "</em></div>"
+    print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'. Include more flanking sequence > 50bp to obtain the scores."
+    print "</div>"
 
 def getOfftargets(seq, org, pam, batchId, startDict, queue):
     """ write guides to fasta and run bwa or use cached results.
@@ -3255,7 +3261,7 @@ def startAjaxWait(batchId):
     """ % locals()
 
 def showPamWarning(pam):
-    if pam=="TTTN":
+    if pamIsCpf1(pam):
         print '<div style="text-align:left">'
         print "<strong>Note:</strong> You are using the Cpf1 enzyme."
         print "Note that currently there are no on- or off-target scores for Cpf1 so no scores are shown below and the guides are not sorted."
@@ -3372,7 +3378,11 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
         errAbort("%s not found" % vcfFname)
     tb = tabix.open(vcfFname)
     chrom = chrom.replace("chr","")
+    #try:
     records = tb.query(chrom, start+1, end) # VCF is 1-based
+    #except tabix.TabixError:
+        #records = []
+        
 
     varDict = defaultdict(list)
     for rec in records:
@@ -3731,10 +3741,14 @@ def downloadFile(params):
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores)
 
-    if position=="?":
-        queryDesc = org+"_unknownLoc"
+    if batchName!="":
+        queryDesc = batchName+"_"
     else:
-        queryDesc = org+"_"+position.strip(":+-").replace(":","_")
+        queryDesc = ""
+    if position=="?":
+        queryDesc += org+"_unknownLoc"
+    else:
+        queryDesc += org+"_"+position.strip(":+-").replace(":","_")
         print org, position, queryDesc
 
     fileFormat = params.get("format", "tsv")
@@ -4973,7 +4987,7 @@ Command line interface for the Crispor tool.
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
     parser.add_option("", "--bowtie", dest="bowtie", \
-        action="store_true", help="new: use bowtie as the aligner")
+        action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
     parser.add_option("", "--skipAlign", dest="skipAlign", \
         action="store_true", help="do not align the input sequence. The on-target will be a random match with 0 mismatches.")
     parser.add_option("", "--noEffScores", dest="noEffScores", \
