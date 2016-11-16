@@ -9,7 +9,7 @@
 
 import sys, logging
 pam = sys.argv[1]
-isCpf1 = (pam=="TTTN")
+isCpf1 = (pam in ["TTTN", "TTN"])
 pamLen = len(pam)
 #maxX1 = int(sys.argv[2])
 
