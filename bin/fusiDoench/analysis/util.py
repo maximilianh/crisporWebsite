@@ -22,34 +22,6 @@ import util
 import sys
 
 
-def concatenate_feature_sets(feature_sets):
-    '''
-    Given a dictionary of sets of features, each in a Pandas.DataFrame,
-    concatenate them together to form one big np.array, and get the dimension
-    of each set
-    Returns: inputs, dim
-    '''
-    assert feature_sets != {}, "no feature sets present"
-    F = feature_sets[feature_sets.keys()[0]].shape[0]
-    for set in feature_sets.keys():
-        F2 = feature_sets[set].shape[0]
-        assert F == F2, "not same # individuals for features %s and %s" % (feature_sets.keys()[0], set)
-
-    N = feature_sets[feature_sets.keys()[0]].shape[0]
-    inputs = np.zeros((N, 0))
-    feature_names = []
-    dim = {}
-    dimsum = 0
-    for set in feature_sets.keys():
-        inputs_set = feature_sets[set].values
-        dim[set] = inputs_set.shape[1]
-        dimsum += dim[set]
-        inputs = np.hstack((inputs, inputs_set))
-        feature_names.extend(feature_sets[set].columns.tolist())
-
-    return inputs, dim, dimsum, feature_names
-
-
 def extract_individual_level_data(one_result):
     '''
     Extract predictions and truth for each fold

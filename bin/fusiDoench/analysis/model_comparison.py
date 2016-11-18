@@ -2,7 +2,6 @@ import predict as pd
 import copy
 import os
 import numpy as np
-import util
 import shutil
 import pickle
 import pylab as plt
@@ -438,6 +437,33 @@ def save_final_model_V3(filename=None, include_position=True):
     
     return model
 
+def concatenate_feature_sets(feature_sets):
+    '''
+    Given a dictionary of sets of features, each in a Pandas.DataFrame,
+    concatenate them together to form one big np.array, and get the dimension
+    of each set
+    Returns: inputs, dim
+    '''
+    assert feature_sets != {}, "no feature sets present"
+    F = feature_sets[feature_sets.keys()[0]].shape[0]
+    for set in feature_sets.keys():
+        F2 = feature_sets[set].shape[0]
+        assert F == F2, "not same # individuals for features %s and %s" % (feature_sets.keys()[0], set)
+
+    N = feature_sets[feature_sets.keys()[0]].shape[0]
+    inputs = np.zeros((N, 0))
+    feature_names = []
+    dim = {}
+    dimsum = 0
+    for set in feature_sets.keys():
+        inputs_set = feature_sets[set].values
+        dim[set] = inputs_set.shape[1]
+        dimsum += dim[set]
+        inputs = np.hstack((inputs, inputs_set))
+        feature_names.extend(feature_sets[set].columns.tolist())
+
+    return inputs, dim, dimsum, feature_names
+
 
 def predict(seq, aa_cut=0, percent_peptide=0, model=None, model_file=None):
     assert not (model is None and model_file is None), "you have to specify either a model or a model_file"
@@ -459,7 +485,7 @@ def predict(seq, aa_cut=0, percent_peptide=0, model=None, model_file=None):
     Xdf = pandas.DataFrame(columns=[u'30mer', u'Strand'], data=[[seq, 'NA']])
     gene_position = pandas.DataFrame(columns=[u'Percent Peptide', u'Amino Acid Cut position'], data=[[percent_peptide, aa_cut]])
     feature_sets = feat.featurize_data(Xdf, learn_options, pandas.DataFrame(), gene_position)
-    inputs, dim, dimsum, feature_names = util.concatenate_feature_sets(feature_sets)
+    inputs, dim, dimsum, feature_names = concatenate_feature_sets(feature_sets)
 
     # call to scikit-learn, returns a vector of predicted values
     return model.predict(inputs)[0]
