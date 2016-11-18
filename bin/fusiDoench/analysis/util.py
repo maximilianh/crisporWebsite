@@ -42,24 +42,6 @@ def extract_individual_level_data(one_result):
         all_pred = np.concatenate((all_pred, these_pred))            
     return all_true_ranks, all_pred
 
-def spearmanr_nonan(x,y):
-    '''
-    same as scipy.stats.spearmanr, but if all values are unique, returns 0 instead of nan
-    (Output: rho, pval)
-    '''
-    r, p = st.spearmanr(x, y)
-    if np.isnan(p):
-        if len(np.unique(x))==1 or len(np.unique(y))==1:
-            print "WARNING: spearmanr is nan due to unique values, setting to 0"
-            p = 0.0
-            r = 0.0
-        else:
-            raise Exception("found nan spearman")
-    assert not np.isnan(r)
-    return r, p
-
-
-
 def impute_gene_position(gene_position):
     '''
     Some amino acid cut position and percent peptide are blank because of stop codons, but
