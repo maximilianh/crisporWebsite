@@ -4,7 +4,6 @@ import os
 import numpy as np
 import shutil
 import pickle
-import pylab as plt
 import pandas
 
 import local_multiprocessing
