@@ -3,7 +3,8 @@ import sklearn
 from sklearn.linear_model import ARDRegression, LinearRegression
 from sklearn.metrics import roc_curve, auc
 import sklearn.linear_model
-import util
+
+import util_new as util
 import metrics as ranking_metrics
 import predict
 

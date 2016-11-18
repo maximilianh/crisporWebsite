@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-import util
+import util_new as util
 import time
 import metrics as ranking_metrics
 import models.regression
