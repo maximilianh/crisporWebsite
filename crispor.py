@@ -2697,6 +2697,11 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     # as it is our signal that the job is complete
     shutil.move(bedFnameTmp, bedFname)
     queue.startStep(batchId, "done", "Job completed")
+
+    # remove the temporary files
+    tempFnames = [saFname, matchesBedFname, filtMatchesBedFname]
+    for tfn in tempFnames:
+        os.remove(tfn)
     return bedFname
 
 def makeVariants(seq):
