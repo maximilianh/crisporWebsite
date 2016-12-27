@@ -5164,7 +5164,7 @@ Command line interface for the Crispor tool.
     parser.add_option("", "--noEffScores", dest="noEffScores", \
         action="store_true", help="do not calculate the efficiency scores")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
-        action="store", type="float", help="minimum off-target score for alternative PAMs, default %default", \
+        action="store", type="float", help="minimum MIT off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
     parser.add_option("", "--worker", dest="worker", \
         action="store_true", help="Run as worker process: watches job queue and runs jobs")
