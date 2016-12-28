@@ -49,6 +49,11 @@ hitScoreM = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.7
 def calcHitScore(string1,string2):
     " see 'Scores of single hits' on http://crispr.mit.edu/about "
     # The Patrick Hsu weighting scheme
+    # S. aureus requires 21bp long guides. We fudge by using only last 20bp
+    if len(string1)==21 and len(string2)==21:
+        string1 = string1[-20:]
+        string2 = string2[-20:]
+
     assert(len(string1)==len(string2)==20)
 
     dists = [] # distances between mismatches, for part 2
@@ -115,7 +120,7 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore, passX1Score = sys.argv[1:]
-    isCpf1 = (pamPat=="TTTN")
+    isCpf1 = (pamPat in ["TTTN", "TTN"])
 
     passX1Score = int(passX1Score)
     altScore = float(altScore)
@@ -151,7 +156,7 @@ def main():
                         guideSeq = guideSeqs[seqId]
                         if patMatch(pamGenomeSeq, altPat):
                             #print guideSeq, seq[:20], len(guideSeq)
-                            hitScore = calcHitScore(guideSeq, seq[:20])
+                            hitScore = calcHitScore(guideSeq, seq[:-pamLen])
                             if hitScore > altScore:
                                 doesPass = True
                                 break

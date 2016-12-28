@@ -27,6 +27,7 @@ or
 Install required R libraries:
    
     sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
+    sudo Rscript -e 'source("https://bioconductor.org/biocLite.R"); biocLite(c("limma"));'
 
 When you run crispor.py, it should show the usage message:
 ```
@@ -51,18 +52,23 @@ Options:
   -h, --help            show this help message and exit
   -d, --debug           show debug messages, do not delete temp directory
   -t, --test            run internal tests
-  -p PAM, --pam=PAM     PAM-motif to use, default NGG
+  -p PAM, --pam=PAM     PAM-motif to use, default NGG. TTTN triggers special
+                        Cpf1 behavior: no scores anymore + the PAM is assumed
+                        to be 5' of the guide. Common PAMs are:
+                        NGG,TTTN,NGA,NGCG,NNAGAA,NGGNG,NNGRRT,NNNNGMTT,NNNNACA
   -o OFFTARGETFNAME, --offtargets=OFFTARGETFNAME
                         write offtarget info to this filename
   -m MAXOCC, --maxOcc=MAXOCC
-                        MAXOCC parameter, 20mers with more matches are
+                        MAXOCC parameter, guides with more matches are
                         excluded
   --mm=MISMATCHES       maximum number of mismatches, default 4
-  --gap                 allow a gap in the match
+  --bowtie              new: use bowtie as the aligner. Do not use. Bowtie
+                        misses many off-targets.
   --skipAlign           do not align the input sequence. The on-target will be
                         a random match with 0 mismatches.
+  --noEffScores         do not calculate the efficiency scores
   --minAltPamScore=MINALTPAMSCORE
-                        minimum off-target score for alternative PAMs, default
+                        minimum MIT off-target score for alternative PAMs, default
                         1.0
   --worker              Run as worker process: watches job queue and runs jobs
   --clear               clear the worker job table and exit

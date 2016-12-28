@@ -9,7 +9,7 @@
 
 import sys, logging
 pam = sys.argv[1]
-isCpf1 = (pam=="TTTN")
+isCpf1 = (pam in ["TTTN", "TTN"])
 pamLen = len(pam)
 #maxX1 = int(sys.argv[2])
 
@@ -56,12 +56,14 @@ for line in sys.stdin:
     startPos = pos-1
     if cigar=="20M":
         endPos = startPos+20
+    elif cigar=="21M":
+        endPos = startPos+21
     elif cigar=="23M":
         endPos = startPos+23
     elif cigar=="19M":
         endPos = startPos+19
     else:
-        logging.error("cigar %s was not 20M, 23M or 19M, line %s" % (cigar, line))
+        logging.error("cigar %s was not 20M, 21M, 23M or 19M, line %s" % (cigar, line))
         assert(False) # cigar was not 20M or 19M or 23M?
 
     if not isCpf1:
