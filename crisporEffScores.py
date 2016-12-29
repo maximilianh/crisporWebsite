@@ -131,6 +131,8 @@ def calcCrisprScanScores(seqs):
     """ input is a 35bp long sequence: 6bp 5', 20bp guide, 3 bp PAM and 6bp 3'
     >>> calcCrisprScanScores(["TCCTCTGGTGGCGCTGCTGGATGGACGGGACTGTA"])
     [77]
+    >>> calcCrisprScanScores(["TCCTCTNGTGGCGCTGCTGGATGGACGGGACTGTA"])
+    [77]
     """
     scores = []
     for seq in seqs:
@@ -360,6 +362,8 @@ def calcChariScores(seqs, baseDir="."):
     input seqs have lengths 21bp: 20 bp guide + 1bp first from PAM
     >>> calcChariScores(["CTTCTTCAAGGTAACTGCAGA", "CTTCTTCAAGGTAACTGGGGG"])
     ([0.54947621, 0.58604487], [80, 81])
+    >>> calcChariScores(["CTTCTTCAAGGNAACTGCAGA"])
+    ([0.9025848], [88])
     """
     # this is a rewritten version of scoreMySites.py in the Chari2015 suppl files
     chariDir = join(binDir, "src", "sgRNA.Scorer.1.0")
@@ -544,13 +548,11 @@ def sendFusiRequest(seqs):
 def trimSeqs(seqs, fiveFlank, threeFlank):
     """ given a list of 100bp sequences, return a list of sequences with the
     given number of basepairs 5' and 3' added from the middle position (pos 50) of
-    the sequences. Remove all sequences that contain an "N" character.
+    the sequences.
     """
     trimSeqs = []
     for s in seqs:
         seq = s[50+fiveFlank:50+threeFlank].upper()
-        if "N" in seq:
-            continue
         trimSeqs.append(seq)
     return trimSeqs
 
@@ -638,6 +640,10 @@ def calcAllBaeScores(seqs):
     """
     run seqs through calcMicroHomolScore()
     PAM-site has to start at the nucleotide exactly in the middle of the sequence.
+    >>> calcAllBaeScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])[:2]
+    ([7829], [46])
+    >>> calcAllBaeScores(["AGCAGGATAGTCCTTCCGAGTGGANNNAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])[:2]
+    ([6646], [45])
     """
     mhScores, oofScores, allMhSeqs = [], [], []
     for seq in seqs:
@@ -734,6 +740,8 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
+    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTANCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
     [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
     scores = {}
@@ -906,6 +914,10 @@ def calcFusiDoench(seqs):
     model= pickle.load(f) # if this fails, install sklearn like this: pip install scikit-learn==0.16.1
     res = []
     for seq in seqs:
+        if "N" in seq:
+            res.append(-1) # can't do Ns
+            continue
+
         pam = seq[25:27]
         if pam!="GG":
             #res.append(-1)
@@ -927,6 +939,8 @@ def calcWuCrisprScore(seqs):
     20bp guide, 3bp PAM, 7bp 3' sequence.
     >>> calcWuCrisprScore(["ggtgcagctcgagcaacaggcggc"])
     [93]
+    >>> calcWuCrisprScore(["ggtgcagctngagcaacaggcggc"])
+    [0]
     """
 
     for s in seqs:
@@ -945,11 +959,9 @@ def calcWuCrisprScore(seqs):
     oldCwd = os.getcwd()
     wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
     logging.debug("Running wu-crisp in %s" % wuCrispDir)
-    print("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
     cmd = "perl wu-crispr.pl -f %s > /dev/null" % tmpPath
     logging.debug("Running %s" % cmd)
-    print("Running %s" % cmd)
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
 
