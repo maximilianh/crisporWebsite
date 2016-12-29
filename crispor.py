@@ -2570,9 +2570,15 @@ def calcGuideEffScores(seq, extSeq, pam):
 
         else:
             effScores = crisporEffScores.calcAllScores(longSeqs)
+            # make sure the "N bug" reported by Alberto does never happen again
+            for scoreName, scores in effScores.iteritems():
+                if len(scores)!=len(longSeqs):
+                    print "Internal error when calculating score %s" % scoreName
+                    assert(False)
 
     else:
         effScores = {}
+
     scoreNames = effScores.keys()
 
     # reformat to rows, write all scores to file
