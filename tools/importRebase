@@ -43,8 +43,8 @@ def convRebase(filename):
             site = ""
             company = ""
             continue
-        if line.startswith("<2>"):
-            name = line.strip().replace("<2>","")
+        if line.startswith("<1>"):
+            name = line.strip().replace("<1>","")
             continue
         if line.startswith("<5>"):
             site = line.strip().replace("<5>","")

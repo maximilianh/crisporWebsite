@@ -120,7 +120,7 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore, passX1Score = sys.argv[1:]
-    isCpf1 = (pamPat=="TTTN")
+    isCpf1 = (pamPat in ["TTTN", "TTN"])
 
     passX1Score = int(passX1Score)
     altScore = float(altScore)
