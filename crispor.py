@@ -73,7 +73,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.0"
+versionStr = "4.1"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -142,6 +142,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
          ('NGGNG','20bp-NGGNG - Cas9 S. Thermophilus'),
          ('NNGRRT','21bp-NNG(A/G)(A/G)T - Cas9 S. Aureus'),
+         ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
        ]
@@ -314,7 +315,7 @@ def setupPamInfo(pam):
     if pamIsCpf1(pam):
         GUIDELEN = 23
         cpf1Mode = True
-    elif pam=="NNGRRT":
+    elif pam=="NNGRRT" or pam=="NNNRRT":
         addGenePlasmids = addGenePlasmidsAureus
         GUIDELEN = 21
         cpf1Mode = False
@@ -1167,8 +1168,10 @@ def makePosList(countDict, guideSeq, pam, inputPos):
             otCount += 1
             guideNoPam = guideSeq[:len(guideSeq)-len(pam)]
             otSeqNoPam = otSeq[:len(otSeq)-len(pam)]
+
             if len(otSeqNoPam)==19:
                 otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
+
             if pamIsCpf1(pam):
                 # Cpf1 has no scores yet
                 mitScore=0.0
@@ -1180,8 +1183,8 @@ def makePosList(countDict, guideSeq, pam, inputPos):
                 # PAMs represent only ~10% of all cleaveage events.
                 # We divide the MIT score by 5 to make sure that these off-targets 
                 # are not ranked among the top but still appear in the list somewhat
-                #if pam=="NGG" and otSeq[-2:]!="GG":
-                #        mitScore = mitScore * 0.2
+                if pam=="NGG" and otSeq[-2:]!="GG":
+                    mitScore = mitScore * 0.2
 
                 # CFD score must include the PAM
                 cfdScore = calcCfdScore(guideSeq, otSeq)
@@ -2258,31 +2261,6 @@ def printHeader(batchId, title):
 
     # activate tooltipster
    #theme: 'tooltipster-shadow',
-    print ("""
-    <script> 
-    $(function(){ alert("edy");});
-    $(document).ready(function() { 
-        $('.tooltipster').tooltipster({ 
-            minWidth: 0,
-            contentAsHTML: true,
-            maxWidth:400,
-            arrow: false,
-            interactive: true,
-            speed : 0
-        }); });
-    $(document).ready(function() {
-        $('.tooltipsterInteract').tooltipster({
-            minWidth: 0,
-            contentAsHTML: true,
-            maxWidth:400,
-            interactive: true,
-            onlyOne: true,
-            arrow: false,
-            speed : 0
-        }); });
-
-    </script> """)
-
     # activate jqueryUI tooltips
     print ("""
     <script>
@@ -3169,7 +3147,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
         Sequence name (optional): <input type="text" name="name" size="20"><br>
 
         Enter a single genomic sequence, &lt; %d bp, typically an exon
-        <img src="%simage/info-small.png" title="CRISPOR conserves the lowercase and uppercase format of your sequence, allowing to highlight sequence features of interest such as ATG or STOP codons.<br>Avoid using cDNA sequences as input, CRISPR guides that straddle splice sites are unlikely to work.<br>You can paste a single 20bp guide and even multiple guides, separated by N characters." class="tooltipster">
+        <img src="%simage/info-small.png" title="CRISPOR conserves the lowercase and uppercase format of your sequence, allowing to highlight sequence features of interest such as ATG or STOP codons.<br>Avoid using cDNA sequences as input, CRISPR guides that straddle splice sites are unlikely to work.<br>You can paste a single >23bp sequence and even multiple sequences, separated by N characters." class="tooltipster">
     <br>
     <small><a href="javascript:clearInput()">Clear Box</a> - </small>
     <small><a href="javascript:resetToExample()">Reset to default</a></small>
@@ -3201,7 +3179,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     <div class="substep">
     <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
         Step 3
-        <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Nature 2015. The HF1 variant was described by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>." class="tooltipsterInteract">
+        <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Cas9-HF1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, eSpCas1.1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4714946/'>Slaymaker 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>, SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25830891/'>Ran 2015</a> and KKH-SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/26524662/'>Kleinstiver 2015</a>." class="tooltipsterInteract">
         </div>
         Select a Protospacer Adjacent Motif (PAM)
     </div>
@@ -3762,8 +3740,7 @@ def printTeforBodyStart():
                 <ul class='navi'>
                 <li><a href='http://tefor.net'>Home</a></li>
                 <li><a href='./crispor.py'>CRISPOR</a></li>
-                <li><a href='http://tefor.net/pages/blog'>News</a></li>
-                <li><a href='http://tefor.net/pages/events'>Events</a></li>
+                <li><a href='http://tefor.net/pages/services/overview.php#'>Services</a></li>
                 <li><a href='http://tefor.net/pages/partners'>Partners</a></li>
                 <li><a href='http://tefor.net/pages/contacts'>Contacts</a></li>
                 </ul>
@@ -3781,6 +3758,29 @@ def printTeforBodyEnd():
     print """Feedback: <a href='mailto:%s'>email</a> - <a href="downloads/">Downloads/local installation</a></div>""" % (contactEmail)
 
     print '</div>'
+    print ("""
+<script> 
+$('.tooltipster').tooltipster({ 
+    minWidth: 0,
+    contentAsHTML: true,
+    maxWidth:400,
+    arrow: false,
+    interactive: true,
+    speed : 0
+});
+
+$('.tooltipsterInteract').tooltipster({
+    minWidth: 0,
+    contentAsHTML: true,
+    maxWidth:400,
+    interactive: true,
+    onlyOne: true,
+    arrow: false,
+    speed : 0
+});
+
+    </script> """)
+
     print '''
 <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -4893,9 +4893,7 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         primerPosList.append( ( (len(targetSeq)-len(rSeq)), len(targetSeq) ) )
 
     guideStartOnTarget = 1000-lPos
-    #guideLen = guideEnd-guideStart
     guideEndOnTarget = guideStartOnTarget+GUIDELEN+PAMLEN
-    #print "XX", pamId, lPos, guideStart, len(targetSeq), guideStartOnTarget, flankSeq.find(guideSeq), targetSeq.find(guideSeq)
     annots = defaultdict(dict)
     annots[(guideStartOnTarget, guideEndOnTarget)]["css"] = {"font-weight":"bold", "background-color" : "yellow"}
     targetHtml = markupSeq(targetSeq, primerPosList, [], annots)
