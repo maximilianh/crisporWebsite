@@ -4094,23 +4094,14 @@ def makeCrispressoFname(batchName, batchId):
     fname = "_".join(fnameDesc)+".txt"
     return fname
 
-def otPrimerPage(params):
-    " print a page with all primers for all off-targets "
-    # initialize everything
-    batchId, pamId = params["batchId"], params["pamId"]
-    inSeq, db, pam, position, extSeq = readBatchParams(batchId)
+def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches):
+    " return a list of off-target primers sorted by CFD score "
     targetChrom, targetStart, targetEnd, strand = parsePos(position)
     chromSizes = parseChromSizes(db)
-    batchBase = join(batchDir, batchId)
     setupPamInfo(pam)
 
     guideSeq, pamSeq, pamPlusSeq, guideSeqWPam, guideStrand, guideSeqHtml, guideStart, guideEnd \
         = findGuideSeq(inSeq, pam, pamId)
-
-    otBedFname = batchBase+".bed"
-    pamOtMatches = parseOfftargets(otBedFname)
-
-    otMatches = pamOtMatches[pamId]
 
     # get the coords
     coords = []
@@ -4140,17 +4131,8 @@ def otPrimerPage(params):
 
     # sequences -> primers
     # check the input parameters: ampLen, tm
-    ampLen = params.get("ampLen", "140")
-    if not ampLen.isdigit():
-        errAbort("ampLen parameter must be a number")
-    ampLen = int(ampLen)
     ampMin = ampLen-110
     ampRange = "%d-%d" % (ampMin, ampLen)
-
-    tm = params.get("tm", "60")
-    if not tm.isdigit():
-        errAbort("tm parameter must be a number")
-    tm = int(tm)
 
     primers = runPrimer3(targetSeqs, 1000, GUIDELEN+len(pamSeq), ampRange, tm)
 
@@ -4160,6 +4142,56 @@ def otPrimerPage(params):
         score, otSeq = nameToOtScoreSeq[name]
         scoredPrimers.append( (score, name, primerInfo) )
     scoredPrimers.sort(reverse=True)
+
+    return scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml
+
+def makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
+    " yield the crispresso rows "
+    for score, seqName, primerInfo in scoredPrimers:
+        flankSeq = nameToSeq[seqName]
+        score, otSeq = nameToOtScoreSeq[seqName]
+        lSeq, lTm, lPos, rSeq, rTm, rPos = primerInfo
+        if lSeq is None:
+            continue
+        ampSeq = flankSeq[lPos:rPos+1]
+        row = [seqName, ampSeq, otSeq, "NA", "NA"]
+        yield row
+
+def otPrimerPage(params):
+    " print a page with all primers for all off-targets "
+    # initialize everything
+    batchId, pamId = params["batchId"], params["pamId"]
+
+    ampLen = params.get("ampLen", "140")
+    if not ampLen.isdigit():
+        errAbort("ampLen parameter must be a number")
+    ampLen = int(ampLen)
+
+    tm = params.get("tm", "60")
+    if not tm.isdigit():
+        errAbort("tm parameter must be a number")
+    tm = int(tm)
+
+    inSeq, db, pam, position, extSeq = readBatchParams(batchId)
+
+    batchBase = join(batchDir, batchId)
+    otBedFname = batchBase+".bed"
+    pamOtMatches = parseOfftargets(otBedFname)
+    otMatches = pamOtMatches[pamId]
+
+    scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
+        designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches)
+
+    if "downloadCrispresso" in params:
+        fname = makeCrispressoFname(batchName, batchId)
+
+        #print "Content-type: text/html\n"
+        print "Content-Disposition: attachment; filename=\"%s\"" % fname
+        print "" # = end of http headers
+
+        for row in makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
+            print "\t".join(row)
+        sys.exit(0)
 
     # primers -> table rows
     primerTable = []
@@ -4185,22 +4217,6 @@ def otPrimerPage(params):
             primerTable.append( (baseName+"_R", "Primer3: not found at this Tm", "N.d.", otScore) )
         else:
             primerTable.append( (baseName+"_R", prefixRev+rSeq, rTm[:4], otScore) )
-    if "downloadCrispresso" in params:
-        fname = makeCrispressoFname(batchName, batchId)
-
-        print "Content-Disposition: attachment; filename=\"%s\"" % fname
-        print "" # = end of http headers
-
-        for score, seqName, primerInfo in scoredPrimers:
-            flankSeq = nameToSeq[seqName]
-            score, otSeq = nameToOtScoreSeq[seqName]
-            lSeq, lTm, lPos, rSeq, rTm, rPos = primerInfo
-            if lSeq is None:
-                continue
-            ampSeq = flankSeq[lPos:rPos+1]
-            row = [seqName, ampSeq, otSeq, "NA", "NA"]
-            print "\t".join(row)
-        sys.exit(0)
 
     prefix = ""
     if batchName!="":
@@ -4237,7 +4253,7 @@ def otPrimerPage(params):
             continue
         ampSeq = flankSeq[lPos:rPos+1]
         ulCoords = [(0, len(lSeq)), (rPos-lPos-len(rSeq), rPos-lPos+1)]
-        boldCoords = [(1000-lPos, 1000-lPos+GUIDELEN+len(pamSeq) )]
+        boldCoords = [(1000-lPos, 1000-lPos+GUIDELEN+len(pam) )]
         print("<td>%s</td> " % seqName)
         print("<td><tt>")
         print markupSeq(ampSeq, ulCoords, boldCoords)
@@ -4327,7 +4343,8 @@ def printBody(params):
         printCrisporBodyStart()
         primerDetailsPage(params)
     elif "batchId" in params and "pamId" in params and "otPrimers" in params:
-        printCrisporBodyStart()
+        if "downloadCrispresso" not in params:
+            printCrisporBodyStart()
         otPrimerPage(params)
     elif "batchId" in params and "pamId" in params and "showMh" in params:
         printCrisporBodyStart()
@@ -5346,13 +5363,21 @@ Command line interface for the Crispor tool.
         action="store", type="float", help="minimum MIT off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
     parser.add_option("", "--worker", dest="worker", \
-        action="store_true", help="Run as worker process: watches job queue and runs jobs")
+        action="store_true", help="Run as worker process for web server: watches job queue and runs jobs")
     #parser.add_option("", "--user", dest="user", \
         #action="store", help="for the --worker option: switch to this user at program start")
     parser.add_option("", "--clear", dest="clear", \
         action="store_true", help="clear the worker job table and exit")
     parser.add_option("-g", "--genomeDir", dest="genomeDir", \
         action="store", help="directory with genomes, default %default", default=genomesDir)
+    parser.add_option("", "--tempDir", dest="tempDir", \
+        action="store", help="temp directory for command line. If not specified, remove all temp files on exit")
+    parser.add_option("", "--crispressoDir", dest="crispressoDir", \
+        action="store", help="write a crispresso file for each guide to this directory. Filename is <seqId>_<pamId>.txt")
+    parser.add_option("", "--ampLen", dest="ampLen", type="int", default=140, \
+        action="store", help="crispresso: amplicon length, default %default")
+    parser.add_option("", "--tm", dest="tm", type="int", default=60, \
+        action="store", help="crispresso: Tm for PCR, default %default")
 
     #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
@@ -5564,12 +5589,21 @@ def mainCommandLine():
     # make a directory for the temp files
     # and put it into a global variable, so all functions will use it
     global batchDir
-    batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
-    logging.debug("Created directory %s" % batchDir)
-    if options.debug:
-        logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+
+    if options.tempDir:
+        batchDir = options.tempDir
+        if not isdir(batchDir):
+            errAbort("%s is not a directory or does not exist." % batchDir)
     else:
-        atexit.register(delBatchDir)
+        batchDir = tempfile.mkdtemp(dir=TEMPDIR, prefix="crispor")
+        logging.debug("Created directory %s" % batchDir)
+        if options.debug:
+            logging.info("debug-mode, temporary directory %s will not be deleted" % batchDir)
+        else:
+            atexit.register(delBatchDir)
+
+    if options.crispressoDir and not isdir(options.crispressoDir):
+        errAbort("%s does not exist" % options.crispressoDir)
 
     # prepare output files
     guideFh = open(join(batchDir, "guideInfo.tab"), "w")
@@ -5588,16 +5622,33 @@ def mainCommandLine():
         logging.info("running on sequence ID '%s'" % seqId)
         # get the other parameters and write to a new batch
         seq = seq.upper()
-        pam = options.pam
-        batchId, position, extSeq = newBatch(seqId, seq, org, pam, skipAlign)
+        pamPat = options.pam
+        batchId, position, extSeq = newBatch(seqId, seq, org, pamPat, skipAlign)
         logging.debug("Temporary output directory: %s/%s" % (batchDir, batchId))
 
         if position=="?":
             logging.error("no match found for sequence %s in genome %s" % (inSeqFname, org))
 
-        startDict, endSet = findAllPams(seq, pam)
-        otBedFname = getOfftargets(seq, org, pam, batchId, startDict, ConsQueue())
+        startDict, endSet = findAllPams(seq, pamPat)
+
+        otBedFname = getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
         otMatches = parseOfftargets(otBedFname)
+
+        if options.crispressoDir:
+            pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat), True))
+            for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
+                cPath = join(options.crispressoDir, "crispresso_%s_%s.txt" % (seqId, pamId))
+                logging.info("Writing Crispresso table for seq %s, PAM %s to %s" % (seqId, pamId, cPath))
+                ampLen = options.ampLen
+                tm = options.tm
+
+                scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
+                    designOfftargetPrimers(seq, org, pamPat, position, extSeq, pamId, ampLen, tm, otMatches[pamId])
+
+                cFh = open(cPath, "w")
+                for row in makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
+                    cFh.write("\t".join(row))
+                    cFh.write("\n")
 
         if options.noEffScores or cpf1Mode:
             effScores = {}
@@ -5605,7 +5656,7 @@ def mainCommandLine():
             effScores = readEffScores(batchId)
 
         guideData, guideScores, hasNotFound, pamIdToSeq = \
-            mergeGuideInfo(seq, startDict, pam, otMatches, position, effScores)
+            mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores)
 
         for row in iterGuideRows(guideData, seqId=seqId):
             guideFh.write("\t".join(row))
@@ -5625,7 +5676,7 @@ def mainCommandLine():
         shutil.move(offtargetFh.name, options.offtargetFname)
         logging.info("off-target info written to %s" % options.offtargetFname)
 
-    if not options.debug:
+    if not options.debug and not options.tempDir:
        shutil.rmtree(batchDir)
 
 def sendStatus(batchId):
