@@ -4800,7 +4800,7 @@ def cgiGetSelfUrl(changeParams, anchor=None, onlyParams=None):
         newParams = mergeParamDicts(cgiSubs, changeParams)
     else:
         newParams = mergeParamDicts(cgiParams, changeParams)
-    paramStrs = ["%s=%s" % (key, val) for key, val in newParams.iteritems()]
+    paramStrs = ["%s=%s" % (key, urllib.quote(val)) for key, val in newParams.iteritems()]
     paramStr = "&".join(paramStrs)
     url = basename(__file__)+"?"+paramStr
     if anchor is not None:
