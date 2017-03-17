@@ -11,7 +11,7 @@ import hashlib, base64, string, logging, operator, urllib, sqlite3, time
 import traceback, json, pwd, pickle
 
 from datetime import datetime
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, OrderedDict
 from os.path import join, isfile, basename, dirname, isdir, abspath
 from StringIO import StringIO
 from itertools import product
@@ -73,7 +73,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.1"
+versionStr = "4.2"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -260,6 +260,21 @@ addGenePlasmidInfo = {
 "52963": ("CACC", "AAAC", "", "BsmBI (aka Esp3l)", "https://www.addgene.org/static/data/plasmids/52/52963/52963-attachment_IPB7ZL_hJcbm.pdf")
 }
 
+# the barcodes for subpool tagging for oligo pool tables
+satMutBarcodes = [
+   ("0",  "No Subpool barcode"),
+   ("1",  "Subpool 1: CGGGTTCCGT/GCTTAGAATAGAA"),
+   ("2",  "Subpool 2: GTTTATCGGGC/ACTTACTGTACC"),
+   ("3",  "Subpool 3: ACCGATGTTGAC/CTCGTAATAGC"),
+   ("4",  "Subpool 4: GAGGTCTTTCATGC/CACAACATA"),
+   ("5",  "Subpool 5: TATCCCGTGAAGCT/TTCGGTTAA"),
+   ("6",  "Subpool 6: TAGTAGTTCAGACGC/ATGTACCC"),
+   ("7",  "Subpool 7: GGATGCATGATCTAG/CATCAAGC"),
+   ("8",  "Subpool 8: ATGAGGACGAATCT/CACCTAAAG"),
+   ("9",  "Subpool 9: GGTAGGCACG/TAAACTTAGAACC"),
+   ("10", "Subpool 10: AGTCATGATTCAG/GTTGCAAGTCTAG"),
+]
+
 # Restriction enzyme supplier codes
 rebaseSuppliers = {
 "B":"Life Technologies",
@@ -292,7 +307,7 @@ scoreDescs = {
 }
 
 # the headers for the guide and offtarget output files
-guideHeaders = ["guideId", "guideSeq", "mitSpecScore", "offtargetCount", "guideGenomeMatchGeneLocus"]
+guideHeaders = ["guideId", "targetSeq", "mitSpecScore", "offtargetCount", "targetGenomeGeneLocus"]
 offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchPos", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "strand", "locusDesc"]
 
 # a file crispor.conf in the directory of the script allows to override any global variable
@@ -546,13 +561,13 @@ def errAbort(msg):
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
 # and +
-notOkChars = re.compile(r'[^a-zA-Z0-9-_:+.]')
+notOkChars = re.compile(r'[^+a-zA-Z0-9:_.-]')
 
 def checkVal(key, str):
     """ remove special characters from input string, to protect against injection attacks """
     if len(str) > 10000:
 	errAbort("input parameter %s is too long" % key)
-    if notOkChars.search(str):
+    if notOkChars.search(str)!=None:
 	errAbort("input parameter %s contains an invalid character" % key)
     return str
 
@@ -1670,7 +1685,8 @@ def printTableHead(batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         print('''
-        <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> See our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>, figures 4 and 5.<br>''')
+        <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> If you use this software, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
+        print('<a href="%s">Export guides for a lentiviral saturation-mutagenesis screen</a><br>' % cgiGetSelfUrl({"satMut":"1"}, onlyParams=["batchId"]))
         #print('''References for scores:
         #<a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench/Fusi 2016</a>,
         #<a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>''')
@@ -3811,11 +3827,24 @@ def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
     else:
         return guideSeq+pamSeq+pamPlusSeq
 
-def iterGuideRows(guideData, addHeaders=False, seqId=None):
+def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None):
     "yield rows from guide data. Need to know if for Cpf1 or not "
     headers = list(tuple(guideHeaders)) # make a copy of the list
     for scoreName in scoreNames:
         headers.append(scoreDescs[scoreName][0]+"EffScore")
+
+    if satMutOpt:
+        headers.append("Oligonucleotide")
+        headers.append("AdapterHandle+PrimerFw")
+        headers.append("AdapterHandle+PrimerRev")
+        oligoPrefix, oligoSuffix, primerFwPrefix, primerRevPrefix, batchId, genome, position, ampLen, tm = satMutOpt
+
+        batchBase = join(batchDir, batchId)
+        otBedFname = batchBase+".bed"
+        otMatches = parseOfftargets(otBedFname)
+
+        guideData.sort(key=operator.itemgetter(3)) # sort by position
+
     if seqId != None:
         headers.insert(0, "seqId")
     if addHeaders:
@@ -3835,6 +3864,27 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None):
         row = [guideDesc, fullSeq, guideScore, otCount, ontargetDesc]
         for scoreName in scoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
+
+        if satMutOpt:
+            oligo = oligoPrefix+guideSeq+oligoSuffix
+            row.append(oligo)
+
+            chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
+            lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq = \
+                designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
+
+            fwPrimer = lSeq
+            if fwPrimer!=None:
+                fwPrimer = primerFwPrefix + fwPrimer
+
+            revPrimer = rSeq
+            if revPrimer!=None:
+                revPrimer = primerRevPrefix + revPrimer
+
+            row.append(fwPrimer)
+            row.append(revPrimer)
+
+
         row = [str(x) for x in row]
         if seqId != None:
             row.insert(0, seqId)
@@ -3882,12 +3932,13 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
 
     return otRows
 
-def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position):
+def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position, optFields=None):
     """ given rows, writes a XLS binary stream to outFile, if xlwt is available
     Otherwise writes a tab-sep file.
     colWidths is a list of widths of columns, in Arial characters.
     """
     if xlwtLoaded and not fileFormat=="tsv":
+        seqStyle = xlwt.easyxf('font: name Courier New')
         charSize = 269 # see http://reliablybroken.com/b/2011/10/widths-heights-with-xlwt-python/
         wb = xlwt.Workbook()
         ws = wb.add_sheet(title)
@@ -3903,18 +3954,31 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         ws.write(4, 0, "# Position")
         ws.write(4, 1, position)
         ws.write(5, 0, "# Version")
-
         #http://stackoverflow.com/questions/4530069/python-how-to-get-a-value-of-datetime-today-that-is-timezone-aware
         FORMAT='%Y-%m-%dT%H:%M:%S%Z'
         dateStr=time.strftime(FORMAT, time.localtime())
 
         ws.write(5, 1, "CRISPOR %s, %s" % (versionStr, dateStr))
-        skipRows = 7
+
+        curRow = 6
+        if optFields is not None:
+            for key, val in optFields.iteritems():
+                ws.write(curRow, 0, "# %s" % key)
+                ws.write(curRow, 1, val)
+                curRow+=1
+
+        skipRows = curRow + 1
+
+        seqCols = [1, 7, 8, 9] # columns with sequences -> fixed width font
 
         for rowCount, row in enumerate(rows):
             if rowCount==65534:
                 ws.write(rowCount+skipRows, 0, "WARNING: cannot write more than 65535 rows to an Excel file. Switch to .tsv format to get all off-targets.")
                 break
+
+            isHeader = False
+            if "Id" in row[0]:
+                isHeader = True
 
             for colCount, col in enumerate(row):
                 if col.isdigit():
@@ -3925,7 +3989,10 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
                         col = float(col)
                     except ValueError:
                         pass
-                ws.write(rowCount+skipRows, colCount, col)
+                if colCount in seqCols and not isHeader:
+                    ws.write(rowCount+skipRows, colCount, col, seqStyle)
+                else:
+                    ws.write(rowCount+skipRows, colCount, col)
 
         # set sizes in characters per column
         for colId, colWidth in enumerate(colWidths):
@@ -4085,6 +4152,74 @@ def downloadFile(params):
         doReverse = (not cpf1Mode)
         otRows.sort(key=operator.itemgetter(4), reverse=doReverse)
         xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position)
+
+    elif params["format"]=="crispressocount":
+        errAbort("not done yet!")
+
+    elif params["format"]=="crispressopooled":
+        errAbort("not done yet!")
+
+    elif params["download"]=="satMut":
+        print "Content-Disposition: attachment; filename=\"satMutagenesis-%s.%s\"" % (queryDesc, fileFormat)
+        #print "Content-type: text/html\n"
+        
+        print "" # = end of http headers
+
+        # checking input arg: barcode
+        barcode = params.get("barcode", "0")
+        if not barcode.isdigit():
+            errAbort("'barcode' parameter must be a number, it is: %s" % barcode)
+        barcode = barcode
+
+        barcodeDict = dict(satMutBarcodes)
+        if not barcode in barcodeDict:
+            errAbort("'barcode' parameter is not a valid number")
+
+        # check the input parameters: ampLen, tm
+        ampLen = params.get("ampLen", "100")
+        if not ampLen.isdigit():
+            errAbort("ampLen parameter must be a number")
+        ampLen = int(ampLen)
+
+        tm = params.get("tm", "60")
+        if not tm.isdigit():
+            errAbort("tm parameter must be a number")
+        tm = int(tm)
+
+        barcodeLabel = barcodeDict[barcode]
+        if barcode=="0":
+            barcodePre, barcodePost = "", ""
+        else:
+            barcodePre, barcodePost = barcodeLabel.split()[-1].split("/")
+
+        optFields = OrderedDict()
+        optFields["Subpool Barcode"] = barcodeLabel
+
+        prePrimer = "GGAAAGG"
+        pre = "ACGAAACACCG"
+        post = "GTTTTAGAGCTAGAAATA"
+        postPrimer = "GCAAGTTAAAATAAGGC"
+
+        optFields["Subpool Prefix"] = barcodePre
+        optFields["pLentiGuidePre primer"] = prePrimer
+        optFields["pLentiGuidePre"] = pre
+        optFields["pLentiGuidePost"] = post
+        optFields["pLentiGuidePost primer"] = postPrimer
+        optFields["Subpool Suffix"] = barcodePost
+        optFields["Oligonucl. structure"] = "Subpool Prefix + pLentiGuidePre Primer + pLentiGuidePre + sgRNA + pLentiGuide Post + pLentiGuidePost Primer + Subpool Suffix"
+        fullPrefix = barcodePre+prePrimer+pre
+        fullSuffix = post+postPrimer+barcodePost
+
+        primerFwPrefix = 'TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG'
+        primerRevPrefix = 'GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG'
+        #primerRevPrefix = 'GTCTCGTGGGCTCGG'
+
+        satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
+        guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
+        xlsWrite(guideRows, "guides", sys.stdout, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, optFields=optFields)
+
+    else:
+        errAbort("invalid value for download parameter")
 
 def makeCrispressoFname(batchName, batchId):
     fnameDesc = ["crisporAmplicons"]
@@ -4334,11 +4469,64 @@ def microHomPage(params):
         print "</tr>"
     print "</table>"
 
+def printSatMutPage(params):
+    " special form for sat mutagenesis downloads, for our Nat Prot paper "
+    defBarcode = "1"
+    barcode = params.get("barcode", defBarcode)
+
+    print "<h3>Download of oligonucleotides for a Lentiviral Saturation Mutagenesis Screen</h3>"
+    print("""
+    This page allows you to download the complete list of all guides in your input sequence in a format ready for ordering a custom oligonucleotide pool and for cloning into the plasmid Lentiguide-puro. <p> You can use Excel filters or command line programs like AWK to filter the list of guides below for only
+the ones with certain specificity or efficiency scores, e.g. to include only guides with a specificy score > 50.<p>
+
+<strong>Subpool barcodes:</strong> to test all guides in a region using a lentiviral vector in cells, a custom
+oligonucleotide pool is ordered from a supplier. As the minimum order is
+several thousand guides and it is cheaper to order more oligos, subsets of oligos can be
+tagged with a "barcode" (unrelated to Illumina sequencing index barcodes) so they
+can be selectively amplified from the pool.<p>
+    <form id="paramForm" action="%(action)s" method="GET">
+    Subpool barcode:
+    """ % {"action": basename(__file__)})
+
+    printDropDown("barcode", satMutBarcodes, barcode)
+    print("<p>")
+
+    formats = [
+        ("xls", "Excel Table (XLS)"),
+        ("tsv", "Tab-separated Text (TSV)"),
+        ("crispressocount", "Input for CrispressoCount"),
+        ("crispressopooled", "Input for CrispressoPooled")
+    ]
+
+    print("<strong>PCR primers:</strong> the table includes two primers for each target for validating cleavage with high-throughput sequencing. Both primers are prefixed with Illumina Adapters. The forward primer prefix is TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and the reverse prefix is GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG. These prefixes are already added to the primers in the Excel/Tab-sep tables table.<p>")
+    ampLen = "150"
+    tm = "60"
+    printAmpLenAndTm(ampLen, tm)
+    print "<p>"
+
+    print("<strong>File format:</strong><ul><li>Excel tables include a header with information how the oligonucleotides were constructed.<li>Tab-seperated files have not header and are easier to process than Excel tables with command line tools like AWK, otherwise the content is the same.<li>The CrispressoPooled file contains the PCR amplicons in Crispresso format. It can be used to quantify cleavage of a given guide.<li>The CRISPRessoCount file contains the target sequences, one per line. Using this file, CrispressoCount can quantify the abundance of a guide in the cell pool, e.g. after selection and subsequent sequencing.</ul>")
+
+    print("File format:")
+    printDropDown("format", formats, "xls")
+    print("<p>")
+
+    printHiddenFields(params, {"download":"satMut"})
+
+    #print("The output table consists of the guide target sequences with their scores, the oligonucleotides to order and the possible sequencing primers for targeted PCR amplification of the target.")
+
+    print("""
+    <input id="submitForm" style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Download">
+    </form>
+    """)
+
 def printBody(params):
     " main dispatcher function "
 
     if len(params)==0:
         printForm(params)
+    elif "satMut" in params and "batchId" in params:
+        printCrisporBodyStart()
+        printSatMutPage(params)
     elif "batchId" in params and "pamId" in params and "pam" in params:
         printCrisporBodyStart()
         primerDetailsPage(params)
@@ -4414,8 +4602,10 @@ PRIMER_THERMODYNAMIC_PARAMETERS_PATH=bin/src/primer3-2.3.6/src/primer3_config/
     runCmd(cmdLine, ignoreExitCode=True)
 
     ret = {}
+    #print "<br>".join(open(p3OutFh.name).read().splitlines())
     for p3 in iterParseBoulder(p3OutFh.name):
-        if p3["PRIMER_LEFT_NUM_RETURNED"]=="0" or p3["PRIMER_RIGHT_NUM_RETURNED"]=="0":
+        if "PRIMER_LEFT_NUM_RETURNED" not in p3 or "PRIMER_RIGHT_NUM_RETURNED" not in p3 or \
+            p3["PRIMER_LEFT_NUM_RETURNED"]=="0" or p3["PRIMER_RIGHT_NUM_RETURNED"]=="0":
         #if "PRIMER_LEFT_0_SEQUENCE" not in p3 or "PRIMER_RIGHT_0_SEQUENCE" not in p3:
             #errAbort("No primer found for this Tm. Please contact us if you think there should be a primer found.")
             ret[seqId] = None, None, None, None, None, None
@@ -4574,7 +4764,7 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen,
     lSeq, lTm, lPos, rSeq, rTm, rPos = primers.values()[0]
 
     if lSeq==None or rSeq==None:
-        return None, None, None, None, None, None, flankSeq, ampRange
+        return None, None, None, None, None, None, flankSeq, ampRange, flankSeq
 
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq
@@ -4792,6 +4982,8 @@ def printHiddenFields(params, changeParams):
 
 def cgiGetSelfUrl(changeParams, anchor=None, onlyParams=None):
     """ create a URL to myself with different parameters than what we have.
+    changeParams is a dict with the new arguments.
+    onlyParams is an optional list of CGI variables that should be exported.
     """
     if onlyParams:
         cgiSubs = {}
@@ -4800,7 +4992,7 @@ def cgiGetSelfUrl(changeParams, anchor=None, onlyParams=None):
         newParams = mergeParamDicts(cgiSubs, changeParams)
     else:
         newParams = mergeParamDicts(cgiParams, changeParams)
-    paramStrs = ["%s=%s" % (key, val) for key, val in newParams.iteritems()]
+    paramStrs = ["%s=%s" % (key, urllib.quote(val)) for key, val in newParams.iteritems()]
     paramStr = "&".join(paramStrs)
     url = basename(__file__)+"?"+paramStr
     if anchor is not None:
@@ -4844,15 +5036,16 @@ def findGuideSeq(inSeq, pam, pamId):
                 guideStart, guideEnd
     errAbort("pamId %s not found? This is a bug." % pamId)
 
-def findOntargetPos(batchBase, pamId, position):
+def findOntargetPos(otMatches, pamId, position):
     " find position of guide sequence in genome at MM0 "
-    otBedFname = batchBase+".bed"
-    otMatches = parseOfftargets(otBedFname)
     if pamId not in otMatches or 0 not in otMatches[pamId]:
         errAbort("No perfect match found for guide sequence in the genome. Cannot design primers for a non-matching guide sequence.<p>Are you sure you have selected the right genome? <p> If you have selected the right genome and entered a cDNA as the query sequence, please note that sequences that overlap a splice site are not part of the genome and cannot be used as guide sequences.")
 
     matchList = otMatches[pamId][0] # = get all matches with 0 mismatches
+    isUnique = True
     if len(matchList)>1:
+        # this only gets executed if there are multiple exact matches for the target
+        # we iterate over all offs and try find the correct one. 
         targetChrom, targetStart, targetEnd, strand = parsePos(position)
 
         filtMatch = None
@@ -4868,19 +5061,51 @@ def findOntargetPos(batchBase, pamId, position):
             errAbort("Multiple matches for this guide, but no single match is within the target sequence? Please contact us at %s, this looks like a bug or at the very least an issue that was not tested." % contactEmail)
 
         chrom, start, end = filtMatch[:3]
-        gene = filtMatch[6]
-        print("<strong>Warning</strong>: Found multiple perfect matches for this guide sequence in the genome. For the PCR, we are using the on-target match in the input sequence %s:%d-%d (gene: %s), but this guide will not be specific. Is this a polyploid organism? Try selecting another guide sequence or email %s to discuss your strategy or modifications to this software.<p>" % (chrom, start+1, end, gene, contactEmail))
+        isUnique = False
 
         matchList = [filtMatch]
 
     global batchName
     batchName = batchName.replace(" ", "_")
 
-    chrom, start, end, seq, strand, segType, segName, x1Count = \
-        matchList[0]
+    chrom, start, end, seq, strand, segType, segName, x1Count = matchList[0]
     start = int(start)
     end = int(end)
-    return chrom, start, end, strand
+    return chrom, start, end, strand, segName, isUnique
+
+def printAmpLenAndTm(ampLen, tm):
+    " print form fields for amplicon length and TM "
+    print ("Maximum amplicon length:")
+    dropDownSizes = [
+        ("100", "100 bp"),
+        ("150", "150 bp"),
+        ("200", "200 bp"),
+        ("300", "300 bp"),
+        ("400", "400 bp"),
+        ("500", "500 bp"),
+        ("600", "600 bp")
+    ]
+
+    printDropDown("ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()""")
+
+    print ("&nbsp;&nbsp;&nbsp; Primer Tm:")
+    tmList = [
+        ("56", "56 deg."),
+        ("57", "57 deg."),
+        ("58", "58 deg."),
+        ("59", "59 deg."),
+        ("60", "60 deg."),
+        ("61", "61 deg."),
+        ("62", "62 deg."),
+        ("63", "63 deg."),
+        ("64", "64 deg."),
+        ("65", "65 deg."),
+        ("66", "66 deg."),
+        ("67", "67 deg."),
+        ("68", "68 deg."),
+        ("70", "70 deg."),
+    ]
+    printDropDown("tm", tmList, tm, onChange="""$('#submitPcrForm').click()""")
 
 def printValidationPcrSection(batchId, genome, pamId, position, params,
         guideStart, guideEnd, primerGuideName, guideSeq):
@@ -4899,7 +5124,13 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
     tm = int(tm)
 
     print "<h2 id='ontargetPcr'>On-target site PCR</h2>"
-    chrom, start, end, strand = findOntargetPos(batchBase, pamId, position)
+    otBedFname = batchBase+".bed"
+    otMatches = parseOfftargets(otBedFname)
+    chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
+    if not isUnique:
+        print "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue'>"
+        print("<strong>Warning</strong>: Found multiple perfect matches for this guide sequence in the genome. For the PCR, we are using the on-target match in the input sequence %s:%d-%d (gene: %s), but this guide will not be specific. Is this a polyploid organism? Try selecting another guide sequence or email %s to discuss your strategy or modifications to this software.<p>" % (chrom, start+1, end, gene, contactEmail))
+        print "</div>"
 
     lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq = \
         designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
@@ -4951,37 +5182,8 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
 
     print("""<form id="ampLenForm" action="%s" method="GET">""" %
         basename(__file__))
-    print ("Maximum amplicon length:")
-    dropDownSizes = [
-        ("100", "100 bp"),
-        ("150", "150 bp"),
-        ("200", "200 bp"),
-        ("300", "300 bp"),
-        ("400", "400 bp"),
-        ("500", "500 bp"),
-        ("600", "600 bp")
-    ]
 
-    printDropDown("ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()""")
-
-    print ("&nbsp;&nbsp;&nbsp; Primer Tm:")
-    tmList = [
-        ("56", "56 deg."),
-        ("57", "57 deg."),
-        ("58", "58 deg."),
-        ("59", "59 deg."),
-        ("60", "60 deg."),
-        ("61", "61 deg."),
-        ("62", "62 deg."),
-        ("63", "63 deg."),
-        ("64", "64 deg."),
-        ("65", "65 deg."),
-        ("66", "66 deg."),
-        ("67", "67 deg."),
-        ("68", "68 deg."),
-        ("70", "70 deg."),
-    ]
-    printDropDown("tm", tmList, tm, onChange="""$('#submitPcrForm').click()""")
+    printAmpLenAndTm(ampLen, tm)
 
     printHiddenFields(params, {"ampLen":None, "tm":None})
 
@@ -5098,12 +5300,14 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
     printPrimerTable(primers["T7"])
 
     # T7 from primers, in vitro
-    print "<h3>Mice, Zebrafish, Xenopus: T7 in vitro transcription from overlapping oligonucleotides</h3>"
+    print "<h3 id='overlapOligo'>Mice, Zebrafish, Xenopus: T7 in vitro transcription from overlapping oligonucleotides</h3>"
     print "Template for <i>in vitro</i> synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
 
     printPrimerTable(primers["T7iv"])
 
     #print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.<p>')
+    print("""T7 RNA polymerase starts transcription most efficiently if the first two nucleotides to be transcribed are GG. A common recommendation is to add GG if our guide is 5'-N20-(NGG)-3', to add G if your guide is 5'-GN19-(NGG)-3' and to not add anything if your guide is 5'-GGN18-(NGG)-3'.<p>""")
+
     print('One protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.cell.com/cell-reports/abstract/S2211-1247(13)00312-4">Bassett et al. Cell Rep 2013</a>. We also provide our own <a href="downloads/prot/sgRnaSynthProtocol.pdf">optimized protocol</a> for T7 guide expression.<p>')
 
     print('''<a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a> prefixed guides with GG to ensure high efficiency in vitro transcription by T7 RNA polymerase. It has been shown by other authors that the 5' nucleotides of the guide have little or no role in target specificity and it is therefore generally accepted that prefixing guides with GG should not affect activity.<br>''')
