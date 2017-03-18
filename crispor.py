@@ -1664,8 +1664,8 @@ def printDownloadTableLinks(batchId, addTsv=False):
     print "<small>Excel tables: ",
     print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;' % batchId,
     print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a></small>' % batchId,
-    print "<small>Plasmid Editor: ",
-    print '<a href="crispor.py?batchId=%s&download=genbank">Guides</a></small>' % batchId,
+    #print "<small>Plasmid Editor: ",
+    #print '<a href="crispor.py?batchId=%s&download=genbank">Guides</a></small>' % batchId,
 
     if addTsv:
         print "<br><small>Tab-sep format: ",
@@ -3584,6 +3584,15 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
 
     return varDict
 
+def showSeqDownloadMenu():
+    " show a little dropdown menu so user can get annotated sequence in genbank format "
+    print """<div>Open annotated sequence with: """
+
+    myUrl = cgiGetSelfUrl({"download":"serialcloner"})
+    print "<a href='%s'>SerialCloner</a>" % myUrl
+
+    print "</div>"
+
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
     # retrieve sequence if not provided
@@ -3721,7 +3730,10 @@ def crisprSearch(params):
     varHtmls = varDictToHtml(varDict, seq, varShortLabel)
     showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, position, pamIdToSeq)
 
+    showSeqDownloadMenu()
+
     showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls)
+
 
     print '<br><a class="neutral" href="crispor.py">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:150;">New Query</div></a>'
@@ -4021,10 +4033,12 @@ def seqToGenbankLines(seq):
         lines.append(" ".join(parts[i:i+6]))
     return lines
 
-def genbankWrite(batchId, desc, seq, org, position, guideData, ofh):
+def genbankWrite(batchId, fileFormat, desc, seq, org, position, guideData, ofh):
     " write a description of the current job in genbank format to ofh "
-    ofh.write("""LOCUS       %s    %d bp      DNA     linear   1/1/17\n""" % (desc, len(seq)))
+    ofh.write("""LOCUS       %s    %d bp      DNA     circular   1/1/17\n""" % (desc, len(seq)))
+    #ofh.write("""LOCUS       %s    %d bp      DNA     linear   1/1/17\n""" % (desc, len(seq)))
     ofh.write("""DEFINITION Sequence exported from CRISPOR.org, genome %s, position %s, batchID %s\n""" % (org, position, batchId))
+    ofh.write("""           Target software: %s\n""" % (fileFormat))
     ofh.write("""ACCESSION NOACC\n""")
     ofh.write("""VERSION NOACC.1 GI:123456789\n""")
     ofh.write("""SOURCE %s\n""" % org)
@@ -4034,7 +4048,6 @@ def genbankWrite(batchId, desc, seq, org, position, guideData, ofh):
     ofh.write("""COMMENT     SerialCloner_Comments=CRISPOR exported sequence\n""")
     ofh.write("""COMMENT     SerialCloner_Ends=0,0,,0,\n""")
     ofh.write("""FEATURES             Location/Qualifiers\n""")
-
 
     i = 1
     guideData.sort(key=operator.itemgetter(3)) # sort by position
@@ -4107,6 +4120,11 @@ def genbankWrite(batchId, desc, seq, org, position, guideData, ofh):
         #guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
             #guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
+def writeHttpAttachmentHeader(fname):
+    " write the http header for attachments "
+    print "Content-Disposition: attachment; filename=\"%s\"" % (fname)
+    print "" # = end of http headers
+
 def downloadFile(params):
     " "
     batchId = params["batchId"]
@@ -4127,42 +4145,50 @@ def downloadFile(params):
         queryDesc = batchName+"_"
     else:
         queryDesc = ""
+
     if position=="?":
         queryDesc += org+"_unknownLoc"
     else:
-        queryDesc += org+"_"+position.strip(":+-").replace(":","_")
-        print org, position, queryDesc
+        queryDesc += org+"_"+position.strip(":+-").replace(":","-")
+        #print org, position, queryDesc
 
     fileFormat = params.get("format", "tsv")
+    if not fileFormat in ["tsv", "xls"]:
+        errAbort("Invalid fileFormat argument")
+
     if params["download"]=="guides":
-        print "Content-Disposition: attachment; filename=\"guides_%s.%s\"" % (queryDesc, fileFormat)
-        print "" # = end of http headers
+        writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat))
         xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position)
-    elif params["download"]=="genbank":
-        print "Content-Disposition: attachment; filename=\"%s.gb\"" % (queryDesc)
-        print "" # = end of http headers
+    #elif params["download"]=="genbank":
+        #print "Content-Disposition: attachment; filename=\"%s.gb\"" % (queryDesc)
+        #print "" # = end of http headers
         # https://designer.genomecompiler.com/plasmid_iframe?file_url=http%3A%2F%2Ftefor.net%2FcrisporDev%2FcrisporMax%2Fcrispor.py%3FbatchId%3D3TeBYMvGLsICUasefwi6%26download%3Dgenbank
-        genbankWrite(batchId, queryDesc, seq, org, position, guideData, sys.stdout)
+        #genbankWrite(batchId, queryDesc, seq, org, position, guideData, sys.stdout)
 
     elif params["download"]=="offtargets":
-        print "Content-Disposition: attachment; filename=\"offtargets-%s.%s\"" % (queryDesc, fileFormat)
-        print "" # = end of http headers
+        writeHttpAttachmentHeader("offtargets_%s.%s" % (queryDesc, fileFormat))
         skipRepetitive = (fileFormat=="xls")
         otRows = list(iterOfftargetRows(guideData, addHeaders=True, skipRepetitive=skipRepetitive))
         doReverse = (not cpf1Mode)
         otRows.sort(key=operator.itemgetter(4), reverse=doReverse)
         xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position)
 
-    elif params["format"]=="crispressocount":
+    elif params.get("format")=="crispressocount":
         errAbort("not done yet!")
 
-    elif params["format"]=="crispressopooled":
+    elif params.get("format")=="crispressopooled":
         errAbort("not done yet!")
+
+    elif params["download"] in ["serialcloner"]:
+        fileFormat = params['download']
+        ext = "gbk"
+        fileName = "crispor_%s-%s.%s" % (queryDesc, fileFormat, ext)
+        writeHttpAttachmentHeader(fileName)
+        genbankWrite(batchId, fileFormat, queryDesc, seq, org, position, guideData, sys.stdout)
 
     elif params["download"]=="satMut":
         print "Content-Disposition: attachment; filename=\"satMutagenesis-%s.%s\"" % (queryDesc, fileFormat)
         #print "Content-type: text/html\n"
-        
         print "" # = end of http headers
 
         # checking input arg: barcode
@@ -5932,6 +5958,7 @@ def mainCgi():
     params = cgiGetParams()
     batchId = None
 
+    #print "Content-type: text/html\n"
     if "batchId" in params and "download" in params:
         downloadFile(params)
         return
