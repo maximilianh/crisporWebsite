@@ -170,6 +170,10 @@ GUIDELEN=None
 # length of the PAM sequence
 PAMLEN=None
 
+# input sequences are extended by X basepairs so we can calculate the efficiency scores
+# and can better design primers
+FLANKLEN=100
+
 # the name of the currently processed batch, assigned only once 
 # in readBatchParams and only for json-type batches
 batchName = ""
@@ -262,17 +266,17 @@ addGenePlasmidInfo = {
 
 # the barcodes for subpool tagging for oligo pool tables
 satMutBarcodes = [
-   ("0",  "No Subpool barcode"),
-   ("1",  "Subpool 1: CGGGTTCCGT/GCTTAGAATAGAA"),
-   ("2",  "Subpool 2: GTTTATCGGGC/ACTTACTGTACC"),
-   ("3",  "Subpool 3: ACCGATGTTGAC/CTCGTAATAGC"),
-   ("4",  "Subpool 4: GAGGTCTTTCATGC/CACAACATA"),
-   ("5",  "Subpool 5: TATCCCGTGAAGCT/TTCGGTTAA"),
-   ("6",  "Subpool 6: TAGTAGTTCAGACGC/ATGTACCC"),
-   ("7",  "Subpool 7: GGATGCATGATCTAG/CATCAAGC"),
-   ("8",  "Subpool 8: ATGAGGACGAATCT/CACCTAAAG"),
-   ("9",  "Subpool 9: GGTAGGCACG/TAAACTTAGAACC"),
-   ("10", "Subpool 10: AGTCATGATTCAG/GTTGCAAGTCTAG"),
+   (0,  "No Subpool barcode"),
+   (1,  "Subpool 1: CGGGTTCCGT/GCTTAGAATAGAA"),
+   (2,  "Subpool 2: GTTTATCGGGC/ACTTACTGTACC"),
+   (3,  "Subpool 3: ACCGATGTTGAC/CTCGTAATAGC"),
+   (4,  "Subpool 4: GAGGTCTTTCATGC/CACAACATA"),
+   (5,  "Subpool 5: TATCCCGTGAAGCT/TTCGGTTAA"),
+   (6,  "Subpool 6: TAGTAGTTCAGACGC/ATGTACCC"),
+   (7,  "Subpool 7: GGATGCATGATCTAG/CATCAAGC"),
+   (8,  "Subpool 8: ATGAGGACGAATCT/CACCTAAAG"),
+   (9,  "Subpool 9: GGTAGGCACG/TAAACTTAGAACC"),
+   (10, "Subpool 10: AGTCATGATTCAG/GTTGCAAGTCTAG"),
 ]
 
 # Restriction enzyme supplier codes
@@ -592,6 +596,24 @@ def cgiGetParams():
         if len(set(cgiParams["pam"])-set("ACTGNMKRY"))!=0:
             errAbort("Illegal character in PAM-sequence. Only ACTGMKRY and N allowed.")
     return cgiParams
+
+def cgiGetStr(params, argName, default=None):
+    val = params.get(argName, None)
+    if val==None and default==None:
+        errAbort("'%s' parameter must be specified" % argName)
+    if val==None:
+        return default
+    return val
+
+def cgiGetNum(params, argName, default):
+    " get CGI parameter which must be a number "
+    val = params.get(argName, None)
+    if val==None:
+        return default
+    if not val.isdigit():
+        errAbort("'%s' parameter must be a number" % argName)
+    val = int(val)
+    return val
 
 transTab = string.maketrans("-=/+_", "abcde")
 
@@ -960,8 +982,10 @@ def iterOneDelSeqs(seq):
         doneSeqs.add(delSeq)
 
 def flankSeqIter(seq, startDict, pamLen, doFilterNs):
-    """ given a seq and dictionary of pos -> strand and the length of the pamSite
+    """ given a seq and dictionary of pamPos -> strand and the length of the pamSite
     yield tuples of (name, pamStart, guideStart, strand, flankSeq, pamSeq)
+
+    flankSeq is the guide sequence (=flanking the PAM).
 
     if doFilterNs is set, will not return any sequences that contain an N character
     pamPlusSeq are the 5bp after the PAM. If not enough space, pamPlusSeq is None
@@ -1387,7 +1411,7 @@ def parseChromSizes(genome):
         ret[chrom] = int(size)
     return ret
 
-def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
+def extendAndGetSeq(db, chrom, start, end, strand, flank=FLANKLEN):
     """ extend (start, end) by flank and get sequence for it using twoBitTwoFa.
     Return None if not possible to extend.
     #>>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
@@ -1417,7 +1441,7 @@ def extendAndGetSeq(db, chrom, start, end, strand, flank=100):
         seq = revComp(seq)
     return seq
 
-def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, extFlank=100):
+def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, extFlank=FLANKLEN):
     """ extend (start,end) by extUpstream and extDownstream and return the subsequence
     at this position in seq.
     Return None if there is not enough space to extend (start, end).
@@ -3185,10 +3209,10 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     printOrgDropDown(lastorg, genomes)
     print """
     <div id="trackHubNote" style="margin-bottom:5px">
-    <small>Note: we have pre-calculated all exonic guides for this species. Have a look at the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
+    <small>Note: pre-calculated exonic guides for this species are on the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
     </div>
     """
-    print '<small style="float:left">Missing a genome? Send us <a href="mailto:%s">email</a></small>' % (contactEmail)
+    print '<small style="float:left">We have %d genomes, but not the one you need? Send its FASTA/GFF address to <a href="mailto:%s">CRISPOR support</a></small>' % (len(genomes), contactEmail)
     print """
     </div>
     <div class="windowstep subpanel" style="width:50%%; height:158px">
@@ -3586,12 +3610,34 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
 
 def showSeqDownloadMenu():
     " show a little dropdown menu so user can get annotated sequence in genbank format "
-    print """<div>Open annotated sequence with: """
+    print """<div><small>Download for: """
+
+    htmls = []
 
     myUrl = cgiGetSelfUrl({"download":"serialcloner"})
-    print "<a href='%s'>SerialCloner</a>" % myUrl
+    html = "<a href='%s'>SerialCloner</a>" % myUrl
+    htmls.append(html)
 
-    print "</div>"
+    myUrl = cgiGetSelfUrl({"download":"ape"})
+    html = "<a href='%s'>ApE</a>" % myUrl
+    htmls.append(html)
+
+    myUrl = cgiGetSelfUrl({"download":"genomecompiler"})
+    backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
+    html = "<a href='%s'>GenomeCompiler</a>" % backUrl
+    htmls.append(html)
+
+    myUrl = cgiGetSelfUrl({"download":"benchling"})
+    html = "<a href='%s'>Benchling</a>" % myUrl
+    htmls.append(html)
+
+    myUrl = cgiGetSelfUrl({"download":"snapgene"})
+    html = "<a href='%s'>SnapGene</a>" % myUrl
+    htmls.append(html)
+
+    print " - ".join(htmls)
+
+    print "</small></div>"
 
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
@@ -4035,18 +4081,28 @@ def seqToGenbankLines(seq):
 
 def genbankWrite(batchId, fileFormat, desc, seq, org, position, guideData, ofh):
     " write a description of the current job in genbank format to ofh "
-    ofh.write("""LOCUS       %s    %d bp      DNA     circular   1/1/17\n""" % (desc, len(seq)))
-    #ofh.write("""LOCUS       %s    %d bp      DNA     linear   1/1/17\n""" % (desc, len(seq)))
-    ofh.write("""DEFINITION Sequence exported from CRISPOR.org, genome %s, position %s, batchID %s\n""" % (org, position, batchId))
-    ofh.write("""           Target software: %s\n""" % (fileFormat))
+    if fileFormat=="serialcloner":
+        ofh.write("""LOCUS       %s    %d bp      DNA     circular   1/1/17\n""" % (desc, len(seq)))
+    else:
+        ofh.write("""LOCUS       %s    %d bp      DNA     linear   1/1/17\n""" % (desc, len(seq)))
+
+    batchUrl = "http://crispor.org/crispor.py?batchId=%s" % batchId
+    seqDesc = """Sequence exported from CRISPOR.org, genome %s, position %s. View full CRISPOR results at %s\n""" % (org, position, batchUrl
+    )
+
+    ofh.write("""DEFINITION %s""" % seqDesc)
+    ofh.write("""           Export for: %s\n""" % (fileFormat))
     ofh.write("""ACCESSION NOACC\n""")
     ofh.write("""VERSION NOACC.1 GI:123456789\n""")
     ofh.write("""SOURCE %s\n""" % org)
     ofh.write("""  ORGANISM %s\n""" % org)
-    ofh.write("""COMMENT     Serial Cloner Genbank Format\n""")
-    ofh.write("""COMMENT     SerialCloner_Type=DNA\n""")
-    ofh.write("""COMMENT     SerialCloner_Comments=CRISPOR exported sequence\n""")
-    ofh.write("""COMMENT     SerialCloner_Ends=0,0,,0,\n""")
+
+    if fileFormat=="serialcloner":
+        ofh.write("""COMMENT     Serial Cloner Genbank Format\n""")
+        ofh.write("""COMMENT     SerialCloner_Type=DNA\n""")
+        ofh.write("""COMMENT     SerialCloner_Comments=%s\n""" % seqDesc)
+        ofh.write("""COMMENT     SerialCloner_Ends=0,0,,0,\n""")
+
     ofh.write("""FEATURES             Location/Qualifiers\n""")
 
     i = 1
@@ -4070,23 +4126,31 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, guideData, ofh):
 
         colorHex = scoreToColor(guideScore)
         guideDesc = intToExtPamId(pamId)
-        descStr = "Name: %s, MIT-Spec-Score: %s" % (guideDesc, guideScore)
+        if fileFormat=="serialcloner":
+            descStr = "%s: Spec %s, Eff: %s/%s" % (guideDesc, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
+            desc2 = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s" % (guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
+        else:
+            descStr = "Guide: %s, MIT-Spec-Score: %s" % (guideDesc, guideScore)
+
 
         #ofh.write("""FEATURES             Location/Qualifiers\n""")
         if strand=="+":
             ofh.write("""     misc_feature    %d..%d\n""" % (start, end))
         else:
             ofh.write("""     misc_feature    complement(%d..%d)\n""" % (start, end))
-        ofh.write("""                     /label=Guide%d\n""" % i)
+        #ofh.write("""                     /label=Guide%d\n""" % i)
+        ofh.write("""                     /label=%s\n""" % guideDesc)
         ofh.write('''                     /note="%s"\n''' % descStr)
-        ofh.write("""                     /SerialCloner_Color=&h%s\n""" % colorHex.replace("#", ""))
-        ofh.write("""                     /SerialCloner_Show=True\n""")
-        ofh.write("""                     /SerialCloner_Protect=True\n""")
-        ofh.write("""                     /SerialCloner_Arrow=True\n""")
-        ofh.write("""                     /SerialCloner_Desc=More comments for Serial Cloner only. Really useful? Max 30 chars.\n""")
-        ofh.write("""                     /ApEinfo_fwdcolor=%s\n""" % colorHex)
-        ofh.write("""                     /ApEinfo_revcolor=%s\n""" % colorHex)
-        ofh.write("""                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0} width 5 offset 0\n""")
+        if fileFormat=="serialcloner":
+            ofh.write("""                     /SerialCloner_Color=&h%s\n""" % colorHex.replace("#", ""))
+            ofh.write("""                     /SerialCloner_Show=True\n""")
+            ofh.write("""                     /SerialCloner_Protect=True\n""")
+            ofh.write("""                     /SerialCloner_Arrow=True\n""")
+            ofh.write("""                     /SerialCloner_Desc=%s\n""" % desc2)
+        else:
+            ofh.write("""                     /ApEinfo_fwdcolor=%s\n""" % colorHex)
+            ofh.write("""                     /ApEinfo_revcolor=%s\n""" % colorHex)
+            ofh.write("""                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0} width 5 offset 0\n""")
         i += 1
         # SnapGene: /note="color: #31849b; direction: RIGHT"
         # /ApEinfo_revcolor=#b7e6d7
@@ -4116,18 +4180,50 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, guideData, ofh):
     ofh.write("""//\n""")
     ofh.close()
 
-    #for guideRow in guideData:
-        #guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
-            #guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
-
 def writeHttpAttachmentHeader(fname):
     " write the http header for attachments "
-    print "Content-Disposition: attachment; filename=\"%s\"" % (fname)
+    print 'Content-Disposition: attachment; filename="%s"' % (fname)
     print "" # = end of http headers
 
-def downloadFile(params):
-    " "
-    batchId = params["batchId"]
+def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
+    " write saturation mutagenesis table of all guides, scores, primers and amplicons around them to outFh "
+    seq, org, pam, position, guideData = readBatchAndGuides(batchId)
+
+    barcodeDict = dict(satMutBarcodes)
+    barcodeLabel = barcodeDict[barcodeId]
+    if barcodeId=="0":
+        barcodePre, barcodePost = "", ""
+    else:
+        barcodePre, barcodePost = barcodeLabel.split()[-1].split("/")
+
+    optFields = OrderedDict()
+    optFields["Subpool Barcode"] = barcodeLabel
+
+    prePrimer = "GGAAAGG"
+    pre = "ACGAAACACCG"
+    post = "GTTTTAGAGCTAGAAATA"
+    postPrimer = "GCAAGTTAAAATAAGGC"
+
+    optFields["Subpool Prefix"] = barcodePre
+    optFields["pLentiGuidePre primer"] = prePrimer
+    optFields["pLentiGuidePre"] = pre
+    optFields["pLentiGuidePost"] = post
+    optFields["pLentiGuidePost primer"] = postPrimer
+    optFields["Subpool Suffix"] = barcodePost
+    optFields["Oligonucl. structure"] = "Subpool Prefix + pLentiGuidePre Primer + pLentiGuidePre + sgRNA + pLentiGuide Post + pLentiGuidePost Primer + Subpool Suffix"
+    fullPrefix = barcodePre+prePrimer+pre
+    fullSuffix = post+postPrimer+barcodePost
+
+    primerFwPrefix = 'TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG'
+    primerRevPrefix = 'GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG'
+    #primerRevPrefix = 'GTCTCGTGGGCTCGG'
+
+    satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
+    guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
+    xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, optFields=optFields)
+
+def readBatchAndGuides(batchId):
+    " parse the input file, the batchId-json file and the offtargets and link everything together "
     seq, org, pam, position, extSeq = readBatchParams(batchId)
     setupPamInfo(pam)
     uppSeq = seq.upper()
@@ -4140,6 +4236,54 @@ def downloadFile(params):
     otMatches = parseOfftargets(otBedFname)
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores)
+    return seq, org, pam, position, guideData
+
+def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
+    " design primers with approx ampLen and tm around each guide's target "
+    inSeq, db, pamPat, position, extSeq = readBatchParams(batchId)
+    batchBase = join(batchDir, batchId)
+    otBedFname = batchBase+".bed"
+    otMatches = parseOfftargets(otBedFname)
+
+    startDict, endSet = findAllPams(inSeq, pamPat)
+    pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
+
+    if outType=="primers":
+        headers = ["guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence"]
+    else:
+        headers = ["#guideId", "ampliconSequence"]
+
+    ofh.write("\t".join(headers))
+    ofh.write("\n")
+    
+    for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
+        # ? similar to microHomPage
+        #guideSeq, pamSeq, pamPlusSeq, guideSeqWPam, guideStrand, guideSeqHtml, guideStart, guideEnd \
+            #= findGuideSeq(inSeq, pam, pamId)
+        # get guide +- 100 bp
+        #longSeq = getExtSeq(inSeq, guideStart, guideEnd, strand, 100-GUIDELEN, 100, extSeq=extSeq)
+
+        chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
+
+        note = ""
+        if not isUnique:
+            note = "warning: guide has no unique match in genome"
+
+        lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq = \
+            designPrimer(db, chrom, start, end, strand, 0, batchId, ampLen, tm)
+
+        pamName = intToExtPamId(pamId)
+        if outType=="primers":
+            row = [pamName, lSeq, lTm, rSeq, rTm, targetSeq]
+        else:
+            row = [pamName, targetSeq]
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+
+def downloadFile(params):
+    " "
+    batchId = params["batchId"]
+    seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
         queryDesc = batchName+"_"
@@ -4147,25 +4291,22 @@ def downloadFile(params):
         queryDesc = ""
 
     if position=="?":
-        queryDesc += org+"_unknownLoc"
+        queryDesc += org+"-unknownLoc"
     else:
-        queryDesc += org+"_"+position.strip(":+-").replace(":","-")
+        queryDesc += org+"-"+position.strip(":+-").replace(":","-")
         #print org, position, queryDesc
+
+    fileType = params["download"]
 
     fileFormat = params.get("format", "tsv")
     if not fileFormat in ["tsv", "xls"]:
         errAbort("Invalid fileFormat argument")
 
-    if params["download"]=="guides":
+    if fileType=="guides":
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat))
         xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position)
-    #elif params["download"]=="genbank":
-        #print "Content-Disposition: attachment; filename=\"%s.gb\"" % (queryDesc)
-        #print "" # = end of http headers
-        # https://designer.genomecompiler.com/plasmid_iframe?file_url=http%3A%2F%2Ftefor.net%2FcrisporDev%2FcrisporMax%2Fcrispor.py%3FbatchId%3D3TeBYMvGLsICUasefwi6%26download%3Dgenbank
-        #genbankWrite(batchId, queryDesc, seq, org, position, guideData, sys.stdout)
 
-    elif params["download"]=="offtargets":
+    elif fileType=="offtargets":
         writeHttpAttachmentHeader("offtargets_%s.%s" % (queryDesc, fileFormat))
         skipRepetitive = (fileFormat=="xls")
         otRows = list(iterOfftargetRows(guideData, addHeaders=True, skipRepetitive=skipRepetitive))
@@ -4173,76 +4314,57 @@ def downloadFile(params):
         otRows.sort(key=operator.itemgetter(4), reverse=doReverse)
         xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position)
 
-    elif params.get("format")=="crispressocount":
-        errAbort("not done yet!")
+    elif fileType=="targetSeqs":
+        writeHttpAttachmentHeader("targetSeqs_%s.txt" % (queryDesc))
+        for guideRow in guideData:
+            guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
+                guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            fullSeq = concatGuideAndPam(guideSeq, pamSeq)
+            row = [fullSeq]
+            print "\t".join(row)
 
-    elif params.get("format")=="crispressopooled":
-        errAbort("not done yet!")
+    elif fileType=="amplicons":
+        fname = makeCrispressoFname(batchName, batchId)
+        #writeHttpAttachmentHeader("amplicons_%s.txt" % (queryDesc))
+        writeHttpAttachmentHeader(fname)
+        pamId = cgiGetStr(params, "pamId")
+        writeAmpliconFile(params, batchId, pamId, sys.stdout)
 
-    elif params["download"] in ["serialcloner"]:
+    elif fileType=="ontargetAmplicons":
+        writeHttpAttachmentHeader("ontargetAmplicons_%s.tsv" % (queryDesc))
+        ampLen = cgiGetNum(params, "ampLen", 140)
+        tm = cgiGetNum(params, "tm", 60)
+        writeOntargetAmpliconFile("amplicons", batchId, ampLen, tm, sys.stdout)
+
+    elif fileType=="ontargetPrimers":
+        writeHttpAttachmentHeader("ontargetPrimers_%s.tsv" % (queryDesc))
+        ampLen = cgiGetNum(params, "ampLen", 140)
+        tm = cgiGetNum(params, "tm", 60)
+        writeOntargetAmpliconFile("primers", batchId, ampLen, tm, sys.stdout)
+
+    elif fileType=="satMut":
+        fileName = "satMutagenesis-%s.%s" % (queryDesc, fileFormat)
+
+        barcodeId = cgiGetNum(params, "barcode", 0)
+        barcodeDict = dict(satMutBarcodes)
+        if not barcodeId in barcodeDict:
+            errAbort("'barcodeId' parameter is not a valid index in our barcode table.")
+
+        ampLen = cgiGetNum(params, "ampLen", 140)
+        tm = cgiGetNum(params, "tm", 60)
+
+        writeHttpAttachmentHeader(fileName)
+        writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
+
+    elif fileType in ["serialcloner"]:
         fileFormat = params['download']
         ext = "gbk"
+        if fileFormat=="serialcloner":
+            ext = "gb"
         fileName = "crispor_%s-%s.%s" % (queryDesc, fileFormat, ext)
+
         writeHttpAttachmentHeader(fileName)
         genbankWrite(batchId, fileFormat, queryDesc, seq, org, position, guideData, sys.stdout)
-
-    elif params["download"]=="satMut":
-        print "Content-Disposition: attachment; filename=\"satMutagenesis-%s.%s\"" % (queryDesc, fileFormat)
-        #print "Content-type: text/html\n"
-        print "" # = end of http headers
-
-        # checking input arg: barcode
-        barcode = params.get("barcode", "0")
-        if not barcode.isdigit():
-            errAbort("'barcode' parameter must be a number, it is: %s" % barcode)
-        barcode = barcode
-
-        barcodeDict = dict(satMutBarcodes)
-        if not barcode in barcodeDict:
-            errAbort("'barcode' parameter is not a valid number")
-
-        # check the input parameters: ampLen, tm
-        ampLen = params.get("ampLen", "100")
-        if not ampLen.isdigit():
-            errAbort("ampLen parameter must be a number")
-        ampLen = int(ampLen)
-
-        tm = params.get("tm", "60")
-        if not tm.isdigit():
-            errAbort("tm parameter must be a number")
-        tm = int(tm)
-
-        barcodeLabel = barcodeDict[barcode]
-        if barcode=="0":
-            barcodePre, barcodePost = "", ""
-        else:
-            barcodePre, barcodePost = barcodeLabel.split()[-1].split("/")
-
-        optFields = OrderedDict()
-        optFields["Subpool Barcode"] = barcodeLabel
-
-        prePrimer = "GGAAAGG"
-        pre = "ACGAAACACCG"
-        post = "GTTTTAGAGCTAGAAATA"
-        postPrimer = "GCAAGTTAAAATAAGGC"
-
-        optFields["Subpool Prefix"] = barcodePre
-        optFields["pLentiGuidePre primer"] = prePrimer
-        optFields["pLentiGuidePre"] = pre
-        optFields["pLentiGuidePost"] = post
-        optFields["pLentiGuidePost primer"] = postPrimer
-        optFields["Subpool Suffix"] = barcodePost
-        optFields["Oligonucl. structure"] = "Subpool Prefix + pLentiGuidePre Primer + pLentiGuidePre + sgRNA + pLentiGuide Post + pLentiGuidePost Primer + Subpool Suffix"
-        fullPrefix = barcodePre+prePrimer+pre
-        fullSuffix = post+postPrimer+barcodePost
-
-        primerFwPrefix = 'TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG'
-        primerRevPrefix = 'GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG'
-        #primerRevPrefix = 'GTCTCGTGGGCTCGG'
-
-        satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
-        guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
-        xlsWrite(guideRows, "guides", sys.stdout, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, optFields=optFields)
 
     else:
         errAbort("invalid value for download parameter")
@@ -4306,8 +4428,8 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
 
     return scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml
 
-def makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
-    " yield the crispresso rows "
+def makeCrispressoOfftargetRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
+    " yield the crispresso off-target rows "
     for score, seqName, primerInfo in scoredPrimers:
         flankSeq = nameToSeq[seqName]
         score, otSeq = nameToOtScoreSeq[seqName]
@@ -4318,20 +4440,10 @@ def makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
         row = [seqName, ampSeq, otSeq, "NA", "NA"]
         yield row
 
-def otPrimerPage(params):
-    " print a page with all primers for all off-targets "
-    # initialize everything
-    batchId, pamId = params["batchId"], params["pamId"]
-
-    ampLen = params.get("ampLen", "140")
-    if not ampLen.isdigit():
-        errAbort("ampLen parameter must be a number")
-    ampLen = int(ampLen)
-
-    tm = params.get("tm", "60")
-    if not tm.isdigit():
-        errAbort("tm parameter must be a number")
-    tm = int(tm)
+def writeAmpliconFile(params, batchId, pamId, outFh):
+    " create the table of off-target amplicons for crispressoPooled and write to outFh "
+    ampLen = cgiGetNum(params, "ampLen", 140)
+    tm = cgiGetNum(params, "tm", 60)
 
     inSeq, db, pam, position, extSeq = readBatchParams(batchId)
 
@@ -4343,16 +4455,27 @@ def otPrimerPage(params):
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
         designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches)
 
-    if "downloadCrispresso" in params:
-        fname = makeCrispressoFname(batchName, batchId)
+    for row in makeCrispressoOfftargetRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
+        outFh.write("\t".join(row))
+        outFh.write("\n")
 
-        #print "Content-type: text/html\n"
-        print "Content-Disposition: attachment; filename=\"%s\"" % fname
-        print "" # = end of http headers
+def otPrimerPage(params):
+    " print a page with all primers for all off-targets "
+    # initialize everything
+    batchId, pamId = params["batchId"], params["pamId"]
 
-        for row in makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
-            print "\t".join(row)
-        sys.exit(0)
+    ampLen = cgiGetNum(params, "ampLen", 140)
+    tm = cgiGetNum(params, "tm", 60)
+
+    inSeq, db, pam, position, extSeq = readBatchParams(batchId)
+
+    batchBase = join(batchDir, batchId)
+    otBedFname = batchBase+".bed"
+    pamOtMatches = parseOfftargets(otBedFname)
+    otMatches = pamOtMatches[pamId]
+
+    scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
+        designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches)
 
     # primers -> table rows
     primerTable = []
@@ -4394,7 +4517,7 @@ def otPrimerPage(params):
 
     print("<h2 id='primers'>%sPCR primers for off-targets of %s</h2>" % (prefix, guideSeqHtml))
     print("<p>In the table below, Illumina Nextera Handle sequences have been added and highlighted in bold. Primers for the on-target have been added for convenience. The table below is sorted by the CFD off-target score. Sites with very low CFD scores &lt; 0.02 are unlikely to be cleaved, see our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>, Figure 2.</p>")
-    print("<p>In the protocol by Matthew Canver, Harvard, two PCRs are run: one PCR to amplify the potential off-target, then a second PCR to add the Illumina barcode. Please <a href='downloads/prot/canverProtocol.pdf'>click here</a> to download the protocol. Alternatively, you can have a look at <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3988262/#S8'>Fu et al, 2014</a>.</p>")
+    print("<p>In the protocol by Matthew Canver, Harvard, two PCRs are run: one PCR to amplify the potential off-target, then a second PCR to extend the handles with Illumina barcodes. Please <a href='downloads/prot/canverProtocol.pdf'>click here</a> to download the protocol. Alternatively, you can have a look at <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3988262/#S8'>Fu et al, 2014</a>.</p>")
 
     if pamId not in pamOtMatches:
         errAbort("pamId %s not valid" % pamId)
@@ -4426,9 +4549,9 @@ def otPrimerPage(params):
     print("<h2 id='crispresso'>Input file for Crispresso</h2>")
     print("<p><a href='http://crispresso.rocks/'>Crispresso</a>, written by Luca Pinello, is a software package to quantify the Cas9-induced mutations on off- or on-targets.</p>")
     
-    downloadUrl = cgiGetSelfUrl({"downloadCrispresso":"1"})
-    print("<p><a href='%s'>Click here</a> to download an input file for Crispresso, which includes the names, amplicon and guide sequences. Keep a copy of this file.</p>" % downloadUrl)
-    print("Then after sequencing, Crispresso can be run using the CRISPRessoPooled utility, this will map the reads to these amplicons and analyse the mutations:<br>")
+    downloadUrl = cgiGetSelfUrl({"download":"amplicons"})
+    print("<p><a href='%s'>Click here</a> to download an amplicon input file for Crispresso. For each off-target, it includes the off-target name, its PCR amplicon and the guide sequence. Keep a copy of this file.</p>" % downloadUrl)
+    print("After sequencing, run CRISPRessoPooled. The tool will map the reads to the amplicons and analyse the mutations:<br>")
     fname = makeCrispressoFname(batchName, batchId)
     print("<tt>CRISPRessoPooled -r1 Reads1.fastq.gz -r2 Reads2.fastq.gz -f %s --name MY_EXPERIMENT</tt></p>" % fname)
 
@@ -4460,7 +4583,7 @@ def microHomPage(params):
     #gEnd = gStart+GUIDELEN
     strand = pamId[-1]
 
-    # extend guide to +-50bp
+    # extend guide to get +- 50 bp around it
     longSeq = getExtSeq(inSeq, guideStart, guideEnd, strand, 50-GUIDELEN, 50, extSeq=extSeq)
     mh, oof, mhSeqs = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs([longSeq], -40, 40))
     mhSeqs1 = mhSeqs[0]
@@ -4517,31 +4640,42 @@ can be selectively amplified from the pool.<p>
     printDropDown("barcode", satMutBarcodes, barcode)
     print("<p>")
 
-    formats = [
-        ("xls", "Excel Table (XLS)"),
-        ("tsv", "Tab-separated Text (TSV)"),
-        ("crispressocount", "Input for CrispressoCount"),
-        ("crispressopooled", "Input for CrispressoPooled")
-    ]
-
     print("<strong>PCR primers:</strong> the table includes two primers for each target for validating cleavage with high-throughput sequencing. Both primers are prefixed with Illumina Adapters. The forward primer prefix is TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and the reverse prefix is GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG. These prefixes are already added to the primers in the Excel/Tab-sep tables table.<p>")
     ampLen = "150"
     tm = "60"
     printAmpLenAndTm(ampLen, tm)
     print "<p>"
 
-    print("<strong>File format:</strong><ul><li>Excel tables include a header with information how the oligonucleotides were constructed.<li>Tab-seperated files have not header and are easier to process than Excel tables with command line tools like AWK, otherwise the content is the same.<li>The CrispressoPooled file contains the PCR amplicons in Crispresso format. It can be used to quantify cleavage of a given guide.<li>The CRISPRessoCount file contains the target sequences, one per line. Using this file, CrispressoCount can quantify the abundance of a guide in the cell pool, e.g. after selection and subsequent sequencing.</ul>")
+    outTypes = [
+        ("satMut", "Saturation mutagenesis screen oligonucleotides"),
+        ("targetSeqs", "Selection Analysis: guide sequences (CrispressoCount)"),
+        ("ontargetPrimers", "On-target sequencing: primers for PCR, one pair for each target"),
+        ("ontargetAmplicons", "Cleavage Validation/Analysis: guide Target flanking PCR Amplicons (CrispressoPooled)")
+    ]
+
+    print("<strong>Output file:</strong><ul><li>Saturation Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Microarray Supplier<li>Selection Analysis: A list of all guide target sequences, to quantify guides after selection, e.g. for CrispressoCount.</li><li>Cleavage Analysis: for each guide target, one pair of primers and the PCR amplicon sequence, e.g. for CrispressoCount, to quantify DNA cleavage of a given guide.</ul>")
+
+    print("Output file:")
+    printDropDown("download", outTypes, "satMut")
+    print("<p>")
+
+    formats = [
+        ("xls", "Excel (xls)"),
+        ("tsv", "Tab-separated (tsv)"),
+    ]
+
+    print("<strong>File format:</strong> Excel tables include a header with information how the oligonucleotides were constructed.<br>Tab-separated files have no header and are easier to process than Excel tables with command line tools like AWK, otherwise the content is the same.<br>Analysis files are only available in tab-separated format.<br>")
 
     print("File format:")
     printDropDown("format", formats, "xls")
     print("<p>")
 
-    printHiddenFields(params, {"download":"satMut"})
+    printHiddenFields(params, {"satMut":None})
 
     #print("The output table consists of the guide target sequences with their scores, the oligonucleotides to order and the possible sequencing primers for targeted PCR amplification of the target.")
 
     print("""
-    <input id="submitForm" style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Download">
+    <input id="submitForm" style="" type="submit" name="submit" value="Download">
     </form>
     """)
 
@@ -4557,8 +4691,7 @@ def printBody(params):
         printCrisporBodyStart()
         primerDetailsPage(params)
     elif "batchId" in params and "pamId" in params and "otPrimers" in params:
-        if "downloadCrispresso" not in params:
-            printCrisporBodyStart()
+        printCrisporBodyStart()
         otPrimerPage(params)
     elif "batchId" in params and "pamId" in params and "showMh" in params:
         printCrisporBodyStart()
@@ -5032,6 +5165,7 @@ def printDropDown(name, nameValList, default, onChange=None):
         addStr = """ onchange="%s" """ % onChange
     print('<select id="dropdown" name="%s"%s>' % (name, addStr))
     for name, desc in nameValList:
+        name = str(name)
         addString = ""
         if default is not None and str(name)==str(default):
             addString = ' selected="selected"'
@@ -5319,7 +5453,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
     # T7 from plasmids
     if not cpf1Mode:
         print "<h3>Mouse, Zebrafish, Xenopus: cloning into a plasmid and T7 in vitro transcription</h3>"
-        print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned in a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
+        print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned into a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
 
         print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid <a href='https://www.addgene.org/42250/'>DR274</a> generated by the Joung lab.<p>" % guideSeq
 
@@ -5602,14 +5736,17 @@ Command line interface for the Crispor tool.
         action="store", help="directory with genomes, default %default", default=genomesDir)
     parser.add_option("", "--tempDir", dest="tempDir", \
         action="store", help="temp directory for command line. If not specified, remove all temp files on exit")
-    parser.add_option("", "--crispressoDir", dest="crispressoDir", \
-        action="store", help="write a crispresso file for each guide to this directory. Filename is <seqId>_<pamId>.txt")
+    parser.add_option("", "--ampliconDir", dest="ampDir", \
+        action="store", help="For each guide, write a file with the off-target amplicons to this directory. Filename is <seqId>_<pamId>.txt")
+    parser.add_option("", "--satMut", dest="satMut", \
+        action="store", help="write saturation mutagenesis oligos to this tab-sep file")
+    parser.add_option("", "--ontargetPrimers", dest="ontargetPrimers", \
+        action="store", help="write on-target primers and amplicons, one per guide, to this tab-sep file")
     parser.add_option("", "--ampLen", dest="ampLen", type="int", default=140, \
-        action="store", help="crispresso: amplicon length, default %default")
-    parser.add_option("", "--tm", dest="tm", type="int", default=60, \
-        action="store", help="crispresso: Tm for PCR, default %default")
+        action="store", help="for --ampliconDir/--satMut: amplicon length, default %default")
+    parser.add_option("", "--ampTm", dest="tm", type="int", default=60, \
+        action="store", help="for --ampliconDir/--satMut: Tm for PCR, default %default")
 
-    #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
     (options, args) = parser.parse_args()
 
     if len(args)==0 and not options.test and not options.worker and not options.clear:
@@ -5832,8 +5969,8 @@ def mainCommandLine():
         else:
             atexit.register(delBatchDir)
 
-    if options.crispressoDir and not isdir(options.crispressoDir):
-        errAbort("%s does not exist" % options.crispressoDir)
+    if options.ampDir and not isdir(options.ampDir):
+        errAbort("%s does not exist" % options.ampDir)
 
     # prepare output files
     guideFh = open(join(batchDir, "guideInfo.tab"), "w")
@@ -5864,10 +6001,10 @@ def mainCommandLine():
         otBedFname = getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
         otMatches = parseOfftargets(otBedFname)
 
-        if options.crispressoDir:
+        if options.ampDir:
             pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat), True))
             for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
-                cPath = join(options.crispressoDir, "crispresso_%s_%s.txt" % (seqId, pamId))
+                cPath = join(options.ampDir, "crispresso_%s_%s.txt" % (seqId, pamId))
                 logging.info("Writing Crispresso table for seq %s, PAM %s to %s" % (seqId, pamId, cPath))
                 ampLen = options.ampLen
                 tm = options.tm
@@ -5876,9 +6013,17 @@ def mainCommandLine():
                     designOfftargetPrimers(seq, org, pamPat, position, extSeq, pamId, ampLen, tm, otMatches[pamId])
 
                 cFh = open(cPath, "w")
-                for row in makeCrispressoRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
+                for row in makeCrispressoOfftargetRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
                     cFh.write("\t".join(row))
                     cFh.write("\n")
+
+        if options.satMut:
+            smFh = open(options.satMut, "w")
+            writeSatMutFile(0, options.ampLen, options.tm, batchId, "tsv", smFh)
+
+        if options.ontargetPrimers:
+            otAmpFh = open(options.ontargetPrimers, "w")
+            writeOntargetAmpliconFile("primers", batchId, options.ampLen, options.tm, otAmpFh)
 
         if options.noEffScores or cpf1Mode:
             effScores = {}
