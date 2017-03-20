@@ -1825,7 +1825,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
-    print '<th style="width:180px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
+    print '<th style="width:210px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
 
     print ('+ Restriction Enzymes')
     htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA.<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
@@ -2091,13 +2091,13 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print "<br>"
 
         if len(mutEnzymes)!=0:
-            print "Enzymes: <i>",
+            print "<div style='margin-top: 3px'>Enzymes: <i>",
             print ", ".join([x.split("/")[0] for x,y,z in mutEnzymes.keys()])
-            print "</i><br>"
+            print "</i></div>"
 
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
-            print('<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
+            print('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
 
         print "</small>"
         print "</td>"
@@ -2247,6 +2247,7 @@ def linkLocalFiles(listFname):
 def printHeader(batchId, title):
     " print the html header "
 
+    print '''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'''
     print "<html><head>"
 
     if title==None:
@@ -2272,6 +2273,10 @@ def printHeader(batchId, title):
 <script src='%sjs/jquery-ui.min.js'></script>
 """ % (HTMLPREFIX, HTMLPREFIX))
 
+    #print('<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic" />')
+    #print('<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css" />')
+    #print('<link rel="stylesheet" href="//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">')
+
     linkLocalFiles("includes.txt")
 
     print '<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLPREFIX
@@ -2286,18 +2291,28 @@ def printHeader(batchId, title):
     print '<link rel="stylesheet" type="text/css" href="%sstyle/plain.css" />' % HTMLPREFIX
     print '<link rel="stylesheet" type="text/css"  href="%sstyle/jquery-ui.css" />' % HTMLPREFIX
     print '<script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>'
-    print '<script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.6.2/chosen.jquery.min.js"</script>'
+    print '<script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.6.2/chosen.jquery.min.js"></script>'
 
     # override the main TEFOR css
-    print '<style>'
-    print 'body { text-align: left; float: left} '
-    print 'div.contentcentral { text-align: left; float: left} '
-    # for chosen.js
-    print '''
-    .chosen-container { width: 600px }
-    .chosen-container .chosen-results li.active-result { float: left}
-'''
-    print '</style>'
+    print("""
+<style>
+
+select { font-size: 85%; }
+normalize { font-size: 80%; }
+
+body {
+   /* font-family: 'Roboto', sans-serif; */
+   text-align: left;
+   float: left;
+}
+div.contentcentral { text-align: left; float: left}
+
+/* for chosen.js */
+.chosen-container { width: 600px }
+.chosen-container .chosen-results li.active-result { float: left}
+
+</style>
+""")
 
     # activate tooltipster
    #theme: 'tooltipster-shadow',
@@ -3610,7 +3625,7 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
 
 def showSeqDownloadMenu():
     " show a little dropdown menu so user can get annotated sequence in genbank format "
-    print """<div><small>Download for: """
+    print """<div style="padding-top:4px"><small>Download for: """
 
     htmls = []
 
@@ -4249,7 +4264,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
 
     if outType=="primers":
-        headers = ["guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence"]
+        headers = ["guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence", "guideSequence"]
     else:
         headers = ["#guideId", "ampliconSequence", "guideSequence"]
 
@@ -4274,7 +4289,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
 
         pamName = intToExtPamId(pamId)
         if outType=="primers":
-            row = [pamName, lSeq, lTm, rSeq, rTm, targetSeq]
+            row = [pamName, lSeq, lTm, rSeq, rTm, targetSeq, guideSeq]
         else:
             row = [pamName, targetSeq, guideSeq]
         ofh.write("\t".join(row))
@@ -4653,7 +4668,11 @@ can be selectively amplified from the pool.<p>
         ("ontargetAmplicons", "Cleavage Validation/Analysis: guide Target flanking PCR Amplicons (CrispressoPooled)")
     ]
 
-    print("<strong>Output file:</strong><ul><li>Saturation Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Microarray Supplier<li>Selection Analysis: A list of all guide target sequences, to quantify guides after selection, e.g. for CrispressoCount.</li><li>Cleavage Analysis: for each guide target, one pair of primers and the PCR amplicon sequence, e.g. for CrispressoCount, to quantify DNA cleavage of a given guide.</ul>")
+    print("<strong>Output file:</strong><ul>")
+    print("<li>Saturation Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Oligonucleotide Array Supplier")
+    print("<li>Selection Analysis: the list of all guide target sequences in the input sequence, to quantify guides after selection, e.g. for CrispressoCount.</li>")
+    print("<li>On-target sequencing primers: one forward and one reverse primer for every target in the input sequence.</li>")
+    print("<li>Cleavage Analysis: for each guide (and the pair of primers), a table with the PCR amplicon sequence and the guide, e.g. for CrispressoPooled, to quantify DNA cleavage of a given guide.</ul>")
 
     print("Output file:")
     printDropDown("download", outTypes, "satMut")
@@ -5501,7 +5520,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
         print "<br>"
         if "mammCellsNote" in primers:
-            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined.<br>")
+            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined. For a full discussion about G- prefixing, see above, under 'overlapping nucleotides'.<br>")
 
         printPrimerTable(primers["mammCells"])
 
