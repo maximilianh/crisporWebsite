@@ -4251,7 +4251,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
     if outType=="primers":
         headers = ["guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence"]
     else:
-        headers = ["#guideId", "ampliconSequence"]
+        headers = ["#guideId", "ampliconSequence", "guideSequence"]
 
     ofh.write("\t".join(headers))
     ofh.write("\n")
@@ -4276,7 +4276,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
         if outType=="primers":
             row = [pamName, lSeq, lTm, rSeq, rTm, targetSeq]
         else:
-            row = [pamName, targetSeq]
+            row = [pamName, targetSeq, guideSeq]
         ofh.write("\t".join(row))
         ofh.write("\n")
 
