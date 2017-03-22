@@ -955,7 +955,7 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
             lastEnd = end
             texts.append(spacer)
             score = guideScores[pamId]
-            color = scoreToColor(score)
+            color = scoreToColor(score)[0]
 
             texts.append('''<a class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (classStr, color, pamId,pamId))
             texts.append(name)
@@ -1525,7 +1525,7 @@ def readEnzymes():
     for line in open(join(baseDir, fname)):
         if line.startswith("#"):
             continue
-        seq, name, suppliers = line.rstrip("\n").split("\t")
+        seq, name, suppliers = line.rstrip("\n").rstrip("\r").split("\t")
         suppliers = tuple(suppliers.split(","))
         enzList.setdefault(len(seq), []).append( (name, suppliers, seq) )
     return enzList
@@ -1709,8 +1709,9 @@ def printTableHead(batchId, chrom, org, varHtmls):
     # one row per guide sequence
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
+        #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
         print('''
-        <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> If you use this software, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
+        If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
         #print('''References for scores:
         #<a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench/Fusi 2016</a>,
         #<a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>''')
@@ -1948,13 +1949,13 @@ def printTableHead(batchId, chrom, org, varHtmls):
 
 def scoreToColor(guideScore):
     if guideScore > 50:
-        color = "#32cd32"
+        color = ("#32cd32", "green")
     elif guideScore > 20:
-        color = "#ffff00"
+        color = ("#ffff00", "yellow")
     elif guideScore==-1:
-        color = "black"
+        color = ("black", "black")
     else:
-        color = "#aa0114"
+        color = ("#aa0114", "red")
     return color
 
 def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
@@ -2032,7 +2033,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         guideScore, guideCfdScore, effScores, pamStart, guideStart, strand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
-        color = scoreToColor(guideScore)
+        color = scoreToColor(guideScore)[0]
 
         classStr = cssClassesFromSeq(guideSeq)
         print '<tr id="%s" class="%s" style="border-left: 5px solid %s">' % (pamId, classStr, color)
@@ -3633,7 +3634,7 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
 
 def showSeqDownloadMenu():
     " show a little dropdown menu so user can get annotated sequence in genbank format "
-    print """<div style="padding-top:4px"><small>Download for: """
+    print """<div style="padding-top:4px"><small>Download: """
 
     htmls = []
 
@@ -3645,9 +3646,11 @@ def showSeqDownloadMenu():
     html = "<a href='%s'>ApE</a>" % myUrl
     htmls.append(html)
 
-    myUrl = cgiGetSelfUrl({"download":"genomecompiler"})
+    #myUrl = "http://crispor.tefor.net/"+cgiGetSelfUrl({"download":"genomecompiler"})
+    myUrl = "http://tefor.net/crisporDev/crisporMax/"+cgiGetSelfUrl({"download":"genomecompiler"})
+    #backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
     backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
-    html = "<a href='%s'>GenomeCompiler</a>" % backUrl
+    html = "<a target=_blank href='%s'>GenomeCompiler</a>" % backUrl
     htmls.append(html)
 
     myUrl = cgiGetSelfUrl({"download":"benchling"})
@@ -4112,29 +4115,36 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
     if fileFormat=="serialcloner":
         # a bug in serial cloner means that we cannot use the linear format
         ofh.write("""LOCUS       %s    %d bp      DNA     circular   1/1/17\n""" % (desc, len(seq)))
+    #elif fileFormat=="genomecompiler":
+        #ofh.write("""LOCUS       hg19-chr7-5569176-5569415         239 bp  DNA linear   GCC\n""")
+        #ofh.write("""DEFINITION  test\n""")
     else:
         ofh.write("""LOCUS       %s    %d bp      DNA     linear   1/1/17\n""" % (desc, len(seq)))
 
     batchUrl = "http://crispor.org/crispor.py?batchId=%s" % batchId
-    seqDesc = """Sequence exported from CRISPOR.org, genome %s, position %s. View full CRISPOR results at %s""" % (org, position, batchUrl
+    seqDesc = """Sequence exported from CRISPOR.org V%s, genome %s, position %s. View full CRISPOR results at %s""" % (versionStr, org, position, batchUrl
     )
 
-    if fileFormat=="ape":
+    if fileFormat in ["ape"]:
         seqDesc += " Features indicate PAMs. Click the little triangles next to the features to show scores and guide sequences."
 
-    ofh.write("""DEFINITION %s""" % seqDesc)
-    ofh.write("""           Export for: %s\n""" % (fileFormat))
-    ofh.write("""ACCESSION NOACC\n""")
-    ofh.write("""VERSION NOACC.1 GI:123456789\n""")
+    if fileFormat!="genomecompiler":
+        ofh.write("""DEFINITION %s""" % seqDesc)
+        ofh.write("""           Export for: %s\n""" % (fileFormat))
+    else:
+        ofh.write("""DEFINITION %s\n""" % desc)
+
+    ofh.write("""ACCESSION\n""")
+    ofh.write("""VERSION\n""")
     ofh.write("""SOURCE %s\n""" % org)
     ofh.write("""  ORGANISM %s\n""" % org)
 
-    if fileFormat=="serialcloner":
+    if fileFormat in ["serialcloner"]:
         ofh.write("""COMMENT     Serial Cloner Genbank Format\n""")
         ofh.write("""COMMENT     SerialCloner_Type=DNA\n""")
         ofh.write("""COMMENT     SerialCloner_Comments=%s\n""" % seqDesc)
         ofh.write("""COMMENT     SerialCloner_Ends=0,0,,0,\n""")
-    elif fileFormat=="ape":
+    elif fileFormat in ["ape"]:
         ofh.write("""COMMENT     %s\n""" % seqDesc)
 
     ofh.write("""FEATURES             Location/Qualifiers\n""")
@@ -4153,55 +4163,75 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             otCount = len(otData)
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
-        if strand=="+":
-            start = startPos + 1
-            end   = startPos + len(pamSeq)
-        else:
-            start = startPos + 1
-            end = startPos + len(pamSeq)
 
-        colorHex = scoreToColor(guideScore)
+        if fileFormat in []:
+            # this code annotates the guide sequence
+            start = guideStart + 1
+            end = start + len(guideSeq)
+        else:
+            # most viewers don't handle overlaps well. We highlight only the PAM in these cases
+            if strand=="+":
+                start = startPos + 1
+                end   = startPos + len(pamSeq)
+            else:
+                start = startPos + 1
+                end = startPos + len(pamSeq)
+
+        colorHex, colorName = scoreToColor(guideScore)
         guideName = intToExtPamId(pamId)
         descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
+        guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
         guideDesc = "guide: %s" % guideSeq
         longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, for primers see %s" % (guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]), guideSeq, guideUrl)
-        #descStr = "%s, MIT-Spec: %s" % (guideName, guideScore)
 
 
-        #ofh.write("""FEATURES             Location/Qualifiers\n""")
+        featType = "misc_feature"
+
+        if fileFormat in ["genomecompiler"]:
+            # genomecompiler does not store colors in the genbank file. 
+            # we use the feature type to simulate colors
+            if colorName=="green":
+                featType = "promoter"
+            elif colorName=="red":
+                featType = "terminator"
+            elif colorName=="yellow":
+                featType = "misc_feature"
+
         if strand=="+":
-            ofh.write("""     misc_feature    %d..%d\n""" % (start, end))
+            ofh.write("""     %s    %d..%d\n""" % (featType, start, end))
         else:
-            ofh.write("""     misc_feature    complement(%d..%d)\n""" % (start, end))
+            ofh.write("""     %s    complement(%d..%d)\n""" % (featType, start, end))
         #ofh.write("""                     /label=Guide%d\n""" % i)
 
         if fileFormat in ["serialcloner"]:
             # serialcloner has no label
             ofh.write('''                     /note="%s"\n''' % descStr)
         elif fileFormat in ["ape"]:
+            # ape can use multiple note lines
             ofh.write('''                     /locus_tag="%s"\n''' % descStr)
             ofh.write('''                     /note=MIT Specificity: %s\n''' % guideScore)
             ofh.write('''                     /note=Efficiency: Doench2016 %s Mor-Mat. %s\n''' % (str(effScores["fusi"]), str(effScores["crisprScan"])))
             ofh.write('''                     /note=Guide %s\n''' % guideSeq)
+        elif fileFormat=='benchling':
+            ofh.write('''                     /note="%s"\n''' % guideSeqDescSeq)
         elif fileFormat=='genomecompiler':
-            ofh.write('''                     /label="%s"\n''' % descStr)
-            ofh.write('''                     /note=MIT Specificity: %s\n''' % guideScore)
-            ofh.write('''                     /note=Efficiency: Doench2016 %s Mor-Mat. %s\n''' % (str(effScores["fusi"]), str(effScores["crisprScan"])))
-            ofh.write('''                     /note=Guide %s\n''' % guideSeq)
-
+            ofh.write('''                     /label="%s"\n''' % guideName)
+            ofh.write('''                     /note="%s"\n''' % guideSeqDescSeq)
         else:
             ofh.write('''                     /label="%s"\n''' % guideName)
 
+        # additional feature lines for some editors
         if fileFormat=="serialcloner":
             ofh.write("""                     /SerialCloner_Color=&h%s\n""" % colorHex.replace("#", ""))
             ofh.write("""                     /SerialCloner_Show=True\n""")
             ofh.write("""                     /SerialCloner_Protect=True\n""")
             ofh.write("""                     /SerialCloner_Arrow=True\n""")
             ofh.write("""                     /SerialCloner_Desc=%s\n""" % longDesc)
-        else:
+        elif fileFormat in ["ape", "benchling"]:
             ofh.write("""                     /ApEinfo_fwdcolor=%s\n""" % colorHex)
             ofh.write("""                     /ApEinfo_revcolor=%s\n""" % colorHex)
             ofh.write("""                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0} width 5 offset 0\n""")
+
         i += 1
         # SnapGene: /note="color: #31849b; direction: RIGHT"
         # /ApEinfo_revcolor=#b7e6d7
@@ -4430,7 +4460,7 @@ def downloadFile(params):
         writeHttpAttachmentHeader(fileName)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
 
-    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta"]:
+    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling"]:
         fileFormat = params['download']
         ext = "gbk"
         if fileFormat=="serialcloner":
@@ -4441,7 +4471,11 @@ def downloadFile(params):
             ext = "fa"
         fileName = "crispor_%s-%s.%s" % (queryDesc, fileFormat, ext)
 
-        writeHttpAttachmentHeader(fileName)
+        if fileFormat!="genomecompiler":
+            writeHttpAttachmentHeader(fileName)
+        else:
+            print("Content-type: text/plain\n")
+
         if fileFormat!="fasta":
             genbankWrite(batchId, fileFormat, queryDesc, seq, org, position, pam, guideData, sys.stdout)
         else:
@@ -4874,7 +4908,7 @@ def parseFastaAsList(fileObj):
     parts = []
     seqId = None
     for line in fileObj:
-        line = line.rstrip("\n")
+        line = line.rstrip("\n").rstrip("\r")
         if line.startswith(">"):
             if seqId!=None:
                 seqs.append( (seqId, "".join(parts)) )
@@ -4892,7 +4926,7 @@ def parseFasta(fileObj):
     parts = []
     seqId = None
     for line in fileObj:
-        line = line.rstrip("\n")
+        line = line.rstrip("\n").rstrip("\r")
         if line.startswith(">"):
             if seqId!=None:
                 seqs[seqId]  = "".join(parts)
