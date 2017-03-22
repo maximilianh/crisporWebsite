@@ -3663,6 +3663,10 @@ def showSeqDownloadMenu(batchId):
     html = "<a href='%s'>SnapGene</a>" % myUrl
     htmls.append(html)
 
+    myUrl = baseUrl+"&download=genbank"
+    html = "<a href='%s'>Genbank</a>" % myUrl
+    htmls.append(html)
+
     myUrl = baseUrl+"&download=fasta"
     html = "<a href='%s'>FASTA</a>" % myUrl
     htmls.append(html)
@@ -4123,7 +4127,6 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
         # a bug in serial cloner means that we cannot use the linear format
         writeLn(ofh, """LOCUS       %s    %d bp      DNA     circular   1/1/17""" % (desc, len(seq)))
     elif fileFormat=="snapgene":
-        nl = "\r"
         writeLn(ofh, "LOCUS       Exported                 239 bp ds-DNA     linear   SYN 22-MAR-2017")
     else:
         writeLn(ofh, """LOCUS       %s    %d bp      DNA     linear   1/1/17""" % (desc, len(seq)))
@@ -4135,8 +4138,8 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
     if fileFormat in ["ape"]:
         seqDesc += " Features indicate PAMs. Click the little triangles next to the features to show scores and guide sequences."
 
-    # genomecompiler plasmid viewer can't show more than ~30 characters as the seq definition line
     if fileFormat=="genomecompiler":
+        # genomecompiler plasmid viewer can't show more than ~30 characters as the seq definition line
         writeLn(ofh, """DEFINITION %s""" % desc)
     else:
         writeLn(ofh, """DEFINITION %s""" % seqDesc)
@@ -4153,9 +4156,11 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
         writeLn(ofh, """COMMENT     SerialCloner_Comments=%s""" % seqDesc)
         writeLn(ofh, """COMMENT     SerialCloner_Ends=0,0,,0,""")
     elif fileFormat in ["ape", "genomecompiler"]:
+        # ape does not show the definition line, only the comment block
         writeLn(ofh, """COMMENT     %s""" % seqDesc)
 
     if fileFormat=="snapgene":
+        # this tells snapgene that the file is really in snapgene format
         writeLn(ofh, """KEYWORDS    snapgene3""")
         writeLn(ofh, """REFERENCE   1  (bases 1 to 239)""")
         writeLn(ofh, """  AUTHORS   .""")
@@ -4216,7 +4221,6 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             writeLn(ofh, """     %s    %d..%d""" % (featType, start, end))
         else:
             writeLn(ofh, """     %s    complement(%d..%d)""" % (featType, start, end))
-        #writeLn(ofh, """                     /label=Guide%d""" % i)
 
         if fileFormat in ["serialcloner"]:
             # serialcloner has no label
@@ -4250,32 +4254,11 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
                 writeLn(ofh, '''                     /note="color: %s; direction: RIGHT"''' % colorHex)
             else:
                 writeLn(ofh, '''                     /note="color: %s; direction: LEFT"''' % colorHex)
-            #writeLn(ofh, """                     /ApEinfo_fwdcolor=%s""" % colorHex)
-            #writeLn(ofh, """                     /ApEinfo_fwdcolor=%s""" % colorHex)
-            #writeLn(ofh, """                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0} width 5 offset 0""")
         else:
             writeLn(ofh, '''                     /label="%s"''' % guideName)
             writeLn(ofh, '''                     /note="%s"''' % longDesc)
 
         i += 1
-        # SnapGene: /note="color: #31849b; direction: RIGHT"
-        # /ApEinfo_revcolor=#b7e6d7
-        # /ApEinfo_fwdcolor=#b7e6d7
-        # Benchling does not show the /note lines!
-        #     PAM             347..349
-        #                     /note="on peut ajouter ici des commentaires pour SNAPGENE"
-        #                     /note="on peut ajouter ici des commentaires pour SNAPGENE"
-        #                     /SerialCloner_Color=&hFF0080
-        #                     /SerialCloner_Show=True
-        #                     /SerialCloner_Protect=True
-        #                     /SerialCloner_Arrow=True
-        #                     /SerialCloner_Desc=on peut ajouter ici des commentaires pour Serial CLoner avec moins de 30 caracteres par ligne \
-        #                     /SerialCloner_Desc=on peut ajouter ici des commentaires pour Serial CLoner avec moins de 30 caracteres par ligne \ 
-        #                     /label=sgIDE_111_1
-        #                     /ApEinfo_fwdcolor=pink
-        #                     /ApEinfo_revcolor=pink
-        #                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0} width 5 offset 0
-
 
     writeLn(ofh, """ORIGIN""")
     i = 1
@@ -4485,7 +4468,7 @@ def downloadFile(params):
         writeHttpAttachmentHeader(fileName)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
 
-    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene"]:
+    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank"]:
         fileFormat = params['download']
         ext = "gbk"
         if fileFormat=="serialcloner":
@@ -4881,6 +4864,8 @@ def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm):
     p3InFh = makeTempFile("primer3In", ".txt")
     # values from https://www.ncbi.nlm.nih.gov/tools/primer-blast/
     # MAX_END_STABILITY is strange but it seems to be set that way by NCBI
+    primer3ConfigDir = abspath(join(baseDir, "bin", "src", "primer3-2.3.6", "src", "primer3_config"))
+
     conf = """PRIMER_TASK=generic
 PRIMER_PICK_LEFT_PRIMER=1
 PRIMER_PICK_RIGHT_PRIMER=1
@@ -4893,7 +4878,7 @@ PRIMER_MAX_SIZE=25
 PRIMER_MAX_END_STABILITY=9
 PRIMER_PRODUCT_SIZE_RANGE=%(prodSizeRange)s
 SEQUENCE_TARGET=%(targetStart)s,%(targetLen)s
-PRIMER_THERMODYNAMIC_PARAMETERS_PATH=bin/src/primer3-2.3.6/src/primer3_config/
+PRIMER_THERMODYNAMIC_PARAMETERS_PATH=%(primer3ConfigDir)s
 """ % locals()
 
     for seqId, seq in seqs:
