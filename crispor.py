@@ -4878,7 +4878,7 @@ PRIMER_MAX_SIZE=25
 PRIMER_MAX_END_STABILITY=9
 PRIMER_PRODUCT_SIZE_RANGE=%(prodSizeRange)s
 SEQUENCE_TARGET=%(targetStart)s,%(targetLen)s
-PRIMER_THERMODYNAMIC_PARAMETERS_PATH=%(primer3ConfigDir)s
+PRIMER_THERMODYNAMIC_PARAMETERS_PATH=%(primer3ConfigDir)s/
 """ % locals()
 
     for seqId, seq in seqs:
