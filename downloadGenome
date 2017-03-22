@@ -6,5 +6,5 @@ if [ "$1" == "" ] || ["$2" == "" ]; then
     echo For full list of codes, see: http://crispor.tefor.net/genomes/genomeInfo.all.tab
     exit
 else
-    wget -r -nH --cut-dirs=2 --no-parent --reject="index.html*"  crispor.tefor.net/genomes/$1/ -P /$2/$1
+    wget -r -nH --cut-dirs=2 --no-parent --reject="index.html*"  crispor.tefor.net/genomes/$1/ -P $2/$1
 fi
