@@ -3634,18 +3634,18 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
 
 def showSeqDownloadMenu(batchId):
     " show a little dropdown menu so user can get annotated sequence in genbank format "
-    print """<div style="padding-top:4px"><small>Download: """
+    print """<div style="padding-top:4px"><small>Download for: """
 
     htmls = []
 
     baseUrl = "crispor.py?batchId=%s" % batchId
 
     myUrl = baseUrl+"&download=serialcloner"
-    html = "<a href='%s'>SerialCloner</a>" % myUrl
+    html = "<a href='%s'>SerialCloner</a> (<a target=_blank href='http://serialbasics.free.fr/Serial_Cloner-Download.html'>free</a>)" % myUrl
     htmls.append(html)
 
     myUrl = baseUrl+"&download=ape"
-    html = "<a href='%s'>ApE</a>" % myUrl
+    html = '<a href="%s">ApE</a> (<a target=_blank href="http://biologylabs.utah.edu/jorgensen/wayned/ape/">free</a>)' % myUrl
     htmls.append(html)
 
     #myUrl = "http://crispor.tefor.net/"+cgiGetSelfUrl({"download":"genomecompiler"})
@@ -3661,6 +3661,14 @@ def showSeqDownloadMenu(batchId):
 
     myUrl = baseUrl+"&download=snapgene"
     html = "<a href='%s'>SnapGene</a>" % myUrl
+    htmls.append(html)
+
+    myUrl = baseUrl+"&download=genbank"
+    html = "<a href='%s'>Geneious</a>" % myUrl
+    htmls.append(html)
+
+    myUrl = baseUrl+"&download=vnti"
+    html = "<a href='%s'>Vector NTI</a>" % myUrl
     htmls.append(html)
 
     myUrl = baseUrl+"&download=genbank"
@@ -3941,6 +3949,8 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None):
 
     if seqId != None:
         headers.insert(0, "#seqId")
+    else:
+        headers[0] = "#"+headers[0]
 
     if addHeaders:
         yield headers
@@ -4116,10 +4126,18 @@ def seqToGenbankLines(seq):
         lines.append(" ".join(parts[i:i+6]))
     return lines
 
-def writeLn(fh, line):
+def writeLn(fh, line, indent=None):
     " write line to file, using \r\n "
-    fh.write(line)
-    fh.write("\r\n")
+    if indent==None:
+        fh.write(line)
+        fh.write("\r\n")
+    else:
+        lineSize = 80-indent
+        parts = [line[i:i+lineSize] for i in range(0, len(line), lineSize)]
+        spacer = "".join(([" "]*indent))
+        for p in parts:
+            fh.write(spacer+p)
+            fh.write("\r\n")
 
 def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, ofh):
     " write a description of the current job in genbank format to ofh "
@@ -4132,32 +4150,34 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
         writeLn(ofh, """LOCUS       %s    %d bp      DNA     linear   1/1/17""" % (desc, len(seq)))
 
     batchUrl = "http://crispor.org/crispor.py?batchId=%s" % batchId
-    seqDesc = """Sequence exported from CRISPOR.org V%s, genome %s, position %s. View full CRISPOR results at %s""" % (versionStr, org, position, batchUrl
-    )
+    seqDesc1 = """Sequence exported from CRISPOR.org V%s""" % versionStr
+    seqDesc2 = "Genome %s, position %s. View full CRISPOR results at %s""" % (org, position, batchUrl)
 
     if fileFormat in ["ape"]:
-        seqDesc += " Features indicate PAMs. Click the little triangles next to the features to show scores and guide sequences."
+        seqDesc2 += " Features indicate PAMs. Click the little triangles next to the features to show scores and guide sequences."
 
     if fileFormat=="genomecompiler":
         # genomecompiler plasmid viewer can't show more than ~30 characters as the seq definition line
-        writeLn(ofh, """DEFINITION %s""" % desc)
+        writeLn(ofh, """DEFINITION  %s""" % desc)
     else:
-        writeLn(ofh, """DEFINITION %s""" % seqDesc)
-        writeLn(ofh, """           Export for: %s""" % (fileFormat))
+        writeLn(ofh, """DEFINITION  %s""" % seqDesc1)
+        writeLn(ofh, seqDesc2, indent=12)
+        writeLn(ofh, """             Export for: %s""" % (fileFormat))
 
-    writeLn(ofh, """ACCESSION""")
-    writeLn(ofh, """VERSION""")
-    writeLn(ofh, """SOURCE %s""" % org)
-    writeLn(ofh, """  ORGANISM %s""" % org)
+    #writeLn(ofh, """ACCESSION""")
+    #writeLn(ofh, """VERSION""")
+    writeLn(ofh, """SOURCE      %s""" % org)
+    writeLn(ofh, """  ORGANISM  %s""" % org)
 
     if fileFormat in ["serialcloner"]:
         writeLn(ofh, """COMMENT     Serial Cloner Genbank Format""")
         writeLn(ofh, """COMMENT     SerialCloner_Type=DNA""")
-        writeLn(ofh, """COMMENT     SerialCloner_Comments=%s""" % seqDesc)
+        writeLn(ofh, """COMMENT     SerialCloner_Comments=%s""" % seqDesc1+" "+seqDesc2)
         writeLn(ofh, """COMMENT     SerialCloner_Ends=0,0,,0,""")
-    elif fileFormat in ["ape", "genomecompiler"]:
+    elif fileFormat in ["ape", "genomecompiler", "vnti"]:
         # ape does not show the definition line, only the comment block
-        writeLn(ofh, """COMMENT     %s""" % seqDesc)
+        writeLn(ofh, """COMMENT     %s""" % seqDesc1)
+        writeLn(ofh, seqDesc2, indent=12)
 
     if fileFormat=="snapgene":
         # this tells snapgene that the file is really in snapgene format
@@ -4254,9 +4274,18 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
                 writeLn(ofh, '''                     /note="color: %s; direction: RIGHT"''' % colorHex)
             else:
                 writeLn(ofh, '''                     /note="color: %s; direction: LEFT"''' % colorHex)
+        elif fileFormat in ["vnti"]:
+            writeLn(ofh, '''/label="%s"''' % guideName, indent=21)
+            writeLn(ofh, '''/note="%s"''' % descStr, indent=21)
+            writeLn(ofh, '''/MITSpecScore="%s"''' % str(guideScore), indent=21)
+            # longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, full details/primers at %s" % (guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]), guideSeq, guideUrl)
+            writeLn(ofh, '''/Doench2016Eff="%s"''' % str(effScores["fusi"]), indent=21)
+            writeLn(ofh, '''/Mor-MateosEff="%s"''' % str(effScores["crisprScan"]), indent=21)
+            writeLn(ofh, '''/guide_sequence="%s"''' % guideSeq, indent=21)
+            writeLn(ofh, '''/url="%s"''' % guideUrl, indent=21)
         else:
-            writeLn(ofh, '''                     /label="%s"''' % guideName)
-            writeLn(ofh, '''                     /note="%s"''' % longDesc)
+            writeLn(ofh, '''/label="%s"''' % guideName, indent=21)
+            writeLn(ofh, '''/note="%s"''' % longDesc, indent=21)
 
         i += 1
 
@@ -4468,9 +4497,9 @@ def downloadFile(params):
         writeHttpAttachmentHeader(fileName)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
 
-    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank"]:
+    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti"]:
         fileFormat = params['download']
-        ext = "gbk"
+        ext = "gb"
         if fileFormat=="serialcloner":
             ext = "xdna"
         elif fileFormat=="ape":
@@ -4479,6 +4508,8 @@ def downloadFile(params):
             ext = "dna"
         elif fileFormat=="fasta":
             ext = "fa"
+        elif fileFormat=="vnti":
+            ext = "gb"
         fileName = "crispor_%s-%s.%s" % (queryDesc, fileFormat, ext)
 
         if fileFormat!="genomecompiler":
