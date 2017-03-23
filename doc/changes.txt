@@ -1,4 +1,4 @@
-Version 4:
+Version 4.2:
 * off-targets sorted by CFD score, CFD score is shown (Virginie Virolle)
 * off-target excel export now includes the strand (Max)
 * PCR product length and TM configurable (Jean-Marie Hermel)
