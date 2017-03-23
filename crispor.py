@@ -4852,7 +4852,7 @@ can be selectively amplified from the pool.<br>
 def printBody(params):
     " main dispatcher function "
 
-    if len(params)==0 or "seq" in params:
+    if len(params)==0 or ("seq" in params and not "org" in params):
         printForm(params)
     elif "satMut" in params and "batchId" in params:
         printCrisporBodyStart()
