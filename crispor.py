@@ -3176,6 +3176,14 @@ def printForm(params):
        lastseq = DEFAULTSEQ
        lastpam = DEFAULTPAM
 
+    # SerialCloner is sending us the sequence via a HTTP get parameter
+    if "seq" in params:
+        lastseq = params["seq"]
+
+    seqName = ""
+    if "seqName" in params:
+        seqName = params["seqName"]
+
     printTeforBodyStart()
     print """
 <form id="main-form" method="post" action="%s">
@@ -3197,8 +3205,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
 
-<!-- <br><i>Wondering which score is best for you? Have a look at the <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper</a><small> (and email us any questions)</small></i> -->
-<br><i>New version V4.1, Jan 2017: Genome variants, Cpf1, Off-target primers, microhomology. <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New version V4.2, Apr 2017: Genome variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3208,7 +3215,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
             Step 1
         </div>
             
-        Sequence name (optional): <input type="text" name="name" size="20"><br>
+        Sequence name (optional): <input type="text" name="name" size="20" value="%s"><br>
 
         Enter a single genomic sequence, &lt; %d bp, typically an exon
         <img src="%simage/info-small.png" title="CRISPOR conserves the lowercase and uppercase format of your sequence, allowing to highlight sequence features of interest such as ATG or STOP codons.<br>Avoid using cDNA sequences as input, CRISPR guides that straddle splice sites are unlikely to work.<br>You can paste a single >23bp sequence and even multiple sequences, separated by N characters." class="tooltipster">
@@ -3228,7 +3235,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
         </div>
         Select a genome
     </div>
-    """% (scriptName, HTMLPREFIX, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
+    """% (scriptName, HTMLPREFIX, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
 
     printOrgDropDown(lastorg, genomes)
     print """
@@ -4845,7 +4852,7 @@ can be selectively amplified from the pool.<br>
 def printBody(params):
     " main dispatcher function "
 
-    if len(params)==0:
+    if len(params)==0 or ("seq" in params and not "org" in params):
         printForm(params)
     elif "satMut" in params and "batchId" in params:
         printCrisporBodyStart()
@@ -5450,7 +5457,7 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         errAbort("tm parameter must be a number")
     tm = int(tm)
 
-    print "<h2 id='ontargetPcr'>On-target site PCR</h2>"
+    print "<h2 id='ontargetPcr'>PCR to amplify on-target sites</h2>"
     otBedFname = batchBase+".bed"
     otMatches = parseOfftargets(otBedFname)
     chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
@@ -5572,7 +5579,7 @@ def printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStartOnTarget, 
             allSitePos.add( (guideStartOnTarget, guideEndOnTarget) )
 
             
-        print ",".join(guideHtmls)
+        print ", ".join(guideHtmls)
         print "</tt></td>"
 
         supplNames = [rebaseSuppliers.get(x, x) for x in suppliers]
@@ -5599,10 +5606,10 @@ def printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStartOnTarget, 
         #annots[(guideStart, guideEnd)]["css"] = {"font-weight":"bold"}
         fragLens.append( str(len(targetSeq) - lastEnd)+"bp" )
 
-        print("Enzyme: <strong>%s</strong>, Site: %s, Restriction fragment lengths: %s<br>" % (enzName, pat, ", ".join(fragLens)))
+        print("<div style='margin-top: 6px'>Enzyme: <strong>%s</strong>, Site: %s, Restriction fragment lengths: %s<br>" % (enzName, pat, ", ".join(fragLens)))
         print "<tt>"
         print markupSeq(targetSeq, [], [(guideStartOnTarget, guideEndOnTarget)], annots)
-        print "</tt><br>"
+        print "</tt><br></div>"
 
 def printCloningSection(batchId, primerGuideName, guideSeq, params):
     " print the cloning/expression section of the primer page "
@@ -5615,11 +5622,9 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     primers = makeHelperPrimers(primerGuideName, guideSeq, plasmid)
 
-    #print "<p>Depending on the biological system studied, different options are available for expression of Cas9 and guide RNAs. In zebrafish embryos, guide RNAs and Cas9 are usually made by in vitro transcription with T7 and co-injected. In mammalian cells, guide RNAs and Cas9 are usually expressed from transfected plasmid and typically driven by U6 and CMV promoters."
-
     # T7 from plasmids
     if not cpf1Mode:
-        print "<h3>Mouse, Zebrafish, Xenopus: cloning into a plasmid and T7 in vitro transcription</h3>"
+        print "<h3 id='t7plasmid'>T7 <i>in vitro</i> expression from a plasmid</h3>"
         print 'To produce guide RNA by in vitro transcription with T7 RNA polymerase, the guide RNA sequence can be cloned into a variety of plasmids (see <a href="http://addgene.org/crispr/empty-grna-vectors/">AddGene website</a>).<br>'
 
         print "For the guide sequence %s, the following primers should be ordered for cloning into the BsaI-digested plasmid <a href='https://www.addgene.org/42250/'>DR274</a> generated by the Joung lab.<p>" % guideSeq
@@ -5627,12 +5632,11 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
     printPrimerTable(primers["T7"])
 
     # T7 from primers, in vitro
-    print "<h3 id='overlapOligo'>Mice, Zebrafish, Xenopus: T7 in vitro transcription from overlapping oligonucleotides</h3>"
+    print "<h3 id='t7oligo'>T7 <i>in vitro</i> expression from overlapping oligonucleotides</h3>"
     print "Template for <i>in vitro</i> synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
 
     printPrimerTable(primers["T7iv"])
 
-    #print('The protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a>.<p>')
     print("""T7 RNA polymerase starts transcription most efficiently if the first two nucleotides to be transcribed are GG. A common recommendation is to add GG if our guide is 5'-N20-(NGG)-3', to add G if your guide is 5'-GN19-(NGG)-3' and to not add anything if your guide is 5'-GGN18-(NGG)-3'.<p>""")
 
     print('One protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.cell.com/cell-reports/abstract/S2211-1247(13)00312-4">Bassett et al. Cell Rep 2013</a>. We also provide our own <a href="downloads/prot/sgRnaSynthProtocol.pdf">optimized protocol</a> for T7 guide expression.<p>')
@@ -5642,7 +5646,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
     print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our optimized protocol for T7 guide expression.<p>')
 
     # MAMMALIAN CELLS
-    print "<h3 id='cellCultures'>In cell cultures: cloning into a plasmid</h3>"
+    print "<h3 id='u6plasmid'>Cloning into a plasmid and expression from U6</h3>"
     if "tttt" in guideSeq.lower():
         print "The guide sequence %s contains the motif TTTT, which terminates RNA polymerase. This guide sequence cannot be transcribed in mammalian cells." % guideSeq
     else:
@@ -5650,7 +5654,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
         print "<br>"
         if not cpf1Mode:
-            print("""<p><form style="margin-bottom: 0px" id="plasmidForm" action="%s#cellCultures" method="GET">""" %
+            print("""<p><form style="margin-bottom: 0px" id="plasmidForm" action="%s#u6plasmid" method="GET">""" %
                 basename(__file__))
             print "Select your Addgene plasmid: "
 
@@ -5677,22 +5681,22 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
 
     if not cpf1Mode:
-        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print "<h3 id='ciona'>Direct PCR for <i>Ciona intestinalis</i></i></h3>"
         print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
             ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
             ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
         ]
 
-    print "<h3>Batch sgRNA library cloning into lentiviral vectors</h3>"
-    print ("""Todo: Matt can add some description here""")
+    print "<h3 id='gibson'>Cloning with Gibson assembly into pLenti-puro</h3>"
+    print ("""Order the following oligonucleotide to clone with Gibson assemly into the vector <a href='https://www.addgene.org/52963/'>pLenti-puro</a>. The exact protocol for this is in preparation by Matt Canver.""")
     lentiPrimers = [
         ("batchOligo%s" % primerGuideName, "<i>GGAAAGGACGAAACACCG</i>"+guideSeq+"<i>GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGC</i>"),
     ]
 
     printPrimerTable(lentiPrimers, seqType="Oligonucleotide")
 
-    print "<h4 id='primerSummary'>Summary of main cloning/expression primers</h4>"
+    print "<h3 id='primerSummary'>Summary of main cloning/expression primers</h3>"
     printPrimerTableAll(primers)
 
 def primerDetailsPage(params):
@@ -5749,11 +5753,16 @@ def primerDetailsPage(params):
     print("Contents:<br>")
     print("<ul>")
     print("<li><a href='#cloning'>Cloning or expression of guide RNA</a>")
+    print("<ul><li><a href='#t7plasmid'>T7 <i>in vitro</i> expression from a plasmid</a></li></ul>")
+    print("<ul><li><a href='#t7oligo'>T7 <i>in vitro</i> expression from overlapping oligonucleotides</a></li></ul>")
+    print("<ul><li><a href='#u6plasmid'>U6 expression from an Addgene plasmid</a></li></ul>")
+    print("<ul><li><a href='#ciona'>Direct PCR for <i>C. intestinalis</i></a></li></ul>")
+    print("<ul><li><a href='#gibson'>Cloning with Gibson assembly into pLenti-puro</a></li></ul>")
     print("<ul><li><a href='#primerSummary'>Summary of main cloning/expression primers</a></li></ul>")
-    print("<li><a href='#ontargetPcr'>On-target site PCR</a></li>")
+    print("<li><a href='#ontargetPcr'>PCR to amplify on-target sites</a></li>")
     if len(mutEnzymes)!=0:
-        print("<li><a href='#restrSites'>Restriction sites</a></li>")
-    print("<li><a href='#offtargetPcr'>Off-target sites PCR</a></li>")
+        print("<li><a href='#restrSites'>Restriction sites for PCR validation</a></li>")
+    print("<li><a href='#offtargetPcr'>PCR to amplify off-target sites</a></li>")
     print("</ul>")
     print("<hr>")
 
@@ -5768,7 +5777,7 @@ def primerDetailsPage(params):
         printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStartOnTarget, guideEndOnTarget)
         print "<hr>"
 
-    print("<h2 id='offtargetPcr'>Off-target primers</h2>")
+    print("<h2 id='offtargetPcr'>PCR to amplify off-target sites</h2>")
     offtUrl = cgiGetSelfUrl({"otPrimers":"1"}, onlyParams=["batchId", "pamId"])
     print("<p>Primers for all off-targets can be downloaded from the <a href='%s'>Off-target PCR</a> page.</p>" % offtUrl)
 
