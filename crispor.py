@@ -4479,7 +4479,7 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
     # T7 plasmids
     if guideSeq.lower().startswith("g"):
         primers["T7"].append((guideRnaFw, "TAG<b>%s</b>" % guideSeq))
-        primers["T7"].append((guideRnaRv, "AAAC<b>%s</b>" % revComp(guideSeq[2:])))
+        primers["T7"].append((guideRnaRv, "AAAC<b>%s</b>" % revComp(guideSeq[1:])))
     else:
         primers["T7"].append((guideRnaFw, "TAGG<b>%s</b>" % guideSeq))
         primers["T7"].append((guideRnaRv, "AAAC<b>%s</b>" % revComp(guideSeq)))
