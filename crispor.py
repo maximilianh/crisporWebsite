@@ -907,7 +907,10 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId  in lines[y]:
-            guideSeq = pamIdToSeq[pamId]
+            guideSeq = pamIdToSeq.get(pamId)
+            if guideSeq==None:
+                # when there is an N in the guide, the PAM is valid, but the guide is not
+                continue
             classStr = cssClassesFromSeq(guideSeq, suffix="Seq")
 
             spacer = "".join([" "]*((start-lastEnd)))
@@ -3124,7 +3127,7 @@ Site should be back online at the original URL during Jan 16 2016<p></strong> --
 </span>
 
 <!-- <br><i>Wondering which score is best for you? Have a look at the <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper</a><small> (and email us any questions)</small></i> -->
-<br><i>New version V4, Dec 2016: Support for genome variants, Cpf1, Off-target primers, microhomology. <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New version V4, Mar 2017: Support for genome variants, Cpf1, Off-target primers, microhomology. <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
