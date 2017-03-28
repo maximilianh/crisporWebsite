@@ -2,14 +2,14 @@ import predict as pd
 import copy
 import os
 import numpy as np
-import util
 import shutil
 import pickle
-import pylab as plt
 import pandas
+
 import local_multiprocessing
 import load_data
 import features.featurization as feat
+import util_new as util
 
 def check_feature_set_dims(feature_sets):
     F2 = None
@@ -437,7 +437,6 @@ def save_final_model_V3(filename=None, include_position=True):
         pickle.dump((model, learn_options), f, -1)
     
     return model
-
 
 def predict(seq, aa_cut=0, percent_peptide=0, model=None, model_file=None):
     assert not (model is None and model_file is None), "you have to specify either a model or a model_file"

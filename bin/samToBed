@@ -4,11 +4,13 @@
 # similar to gawk 'BEGIN {OFS="\t"; FS="\t"} {strand="+"; if (and($2,16)==16) {strand="-"}; print $3,$4,$4+20,$1,strand}'
 # but will extend the end or start by pamlen
 
-# first arg is length of PAM site to extract
-# second arg is maximum value of the X1 tag
+# first arg is the PAM sequence
+# Cpf1 PAM TTTN is handled
 
 import sys, logging
-pamLen = int(sys.argv[1])
+pam = sys.argv[1]
+isCpf1 = (pam in ["TTTN", "TTN"])
+pamLen = len(pam)
 #maxX1 = int(sys.argv[2])
 
 # example input:
@@ -54,16 +56,26 @@ for line in sys.stdin:
     startPos = pos-1
     if cigar=="20M":
         endPos = startPos+20
+    elif cigar=="21M":
+        endPos = startPos+21
+    elif cigar=="23M":
+        endPos = startPos+23
     elif cigar=="19M":
         endPos = startPos+19
     else:
-        logging.error("cigar %s was not 20M or 19M, line %s" % (cigar, line))
-        assert(False) # cigar was not 20M or 19M?
+        logging.error("cigar %s was not 20M, 21M, 23M or 19M, line %s" % (cigar, line))
+        assert(False) # cigar was not 20M or 19M or 23M?
 
-    if strand=="+":
-        endPos += pamLen
+    if not isCpf1:
+        if strand=="+":
+            endPos += pamLen
+        else:
+            startPos -= pamLen
     else:
-        startPos -= pamLen
+        if strand=="+":
+            startPos -= pamLen
+        else:
+            endPos += pamLen
 
     if startPos < 0:
         continue
@@ -73,5 +85,3 @@ for line in sys.stdin:
 
     row = [rName, str(startPos), str(endPos), name, mmCount, strand]
     print "\t".join(row)
-
-

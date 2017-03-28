@@ -4,7 +4,7 @@
 # output as a bed file
 # CAREFUL: input sequences have to be on a single line. This is different from normal fasta files.
 
-# arguments: guideSeqFaFname mainPat altPats altMinScore passX1Score
+# arguments: guideSeqFaFname pamPat altPats altMinScore passX1Score
 
 # 2nd input fasta is fasta read from stdin, with |-separated fields in the ID line:
 # 0 = sequence ID
@@ -22,10 +22,10 @@
 #TCGAAAGTGGTAAGAATTTA
 
 # example output:
-# format: (seqId, strand, mismatchCount, seq, x1Score, hitScore (or 0, if it was a mainPat match or X1score) 
+# format: (seqId, strand, mismatchCount, seq, x1Score, hitScore (or 0, if it was a pamPat match or X1score) 
 
-# mainPat: 
-# mainPattern, all sequences that end with this pattern get through
+# pamPat: 
+# pam IUPAC pattern, all sequences that end with this pattern get through
 # altPats: comma-sep list of patterns, all sequences with this pattern get only through
 #          if they have >altMaxScore. The score is the hitScore as defined in Hsu et al 2013, 
 #          see below
@@ -49,6 +49,11 @@ hitScoreM = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.7
 def calcHitScore(string1,string2):
     " see 'Scores of single hits' on http://crispr.mit.edu/about "
     # The Patrick Hsu weighting scheme
+    # S. aureus requires 21bp long guides. We fudge by using only last 20bp
+    if len(string1)==21 and len(string2)==21:
+        string1 = string1[-20:]
+        string2 = string2[-20:]
+
     assert(len(string1)==len(string2)==20)
 
     dists = [] # distances between mismatches, for part 2
@@ -114,15 +119,17 @@ def parseFasta(ifh):
         yield seqId, seq
 
 def main():
-    guideSeqFnames, mainPat, altPats, altScore, passX1Score = sys.argv[1:]
+    guideSeqFnames, pamPat, altPats, altScore, passX1Score = sys.argv[1:]
+    isCpf1 = (pamPat in ["TTTN", "TTN"])
+
     passX1Score = int(passX1Score)
     altScore = float(altScore)
 
     altPats = altPats.split(",") # convert to list
-    patLen = len(mainPat)
+    pamLen = len(pamPat)
 
     if len(altPats)>0 and altPats!=["na"]:
-        assert(len(mainPat)==len(altPats[0]))
+        assert(len(pamPat)==len(altPats[0]))
 
     guideSeqs = dict()
     for guideSeqFname in guideSeqFnames.split(","):
@@ -136,22 +143,20 @@ def main():
         if int(x1Score)>passX1Score:
             doesPass = True
         else:
-            suffix = seq[-len(mainPat):]
-            #print suffix, mainPat, seq
-            if patMatch(suffix, mainPat):
+            if isCpf1:
+                pamGenomeSeq = seq[:pamLen]
+            else:
+                pamGenomeSeq = seq[-pamLen:]
+
+            if patMatch(pamGenomeSeq, pamPat):
                 doesPass = True
             else:
                 for altPat in altPats:
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
-                        if patMatch(suffix, altPat):
-                            # gapped sequences cannot be scored, assign pseudo-score of 9999
-                            if len(guideSeq)==19:
-                                doesPass = True
-                                hitScore = 9999
-                                break
-
-                            hitScore = calcHitScore(guideSeq, seq[:20])
+                        if patMatch(pamGenomeSeq, altPat):
+                            #print guideSeq, seq[:20], len(guideSeq)
+                            hitScore = calcHitScore(guideSeq, seq[:-pamLen])
                             if hitScore > altScore:
                                 doesPass = True
                                 break
