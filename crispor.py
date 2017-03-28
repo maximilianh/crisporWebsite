@@ -2647,7 +2647,7 @@ def calcGuideEffScores(seq, extSeq, pam):
             longSeqs.append(longSeq)
             guideIds.append(pamId)
 
-    if len(longSeqs)>0:
+    if len(longSeqs)>0 and not clusterJob:
         if cpf1Mode:
             mh, oof, mhSeqs = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs(longSeqs, -50, 50))
             effScores = {}
