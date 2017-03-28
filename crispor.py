@@ -51,7 +51,8 @@ TEMPDIR = os.environ.get("TMPDIR", "/tmp")
 # XX a temporary hack for cluster jobs at UCSC:
 # - default to ramdisk
 # - don't to bwasw
-# - will trigger auto-ontarget: any perfect match is the on-target
+#   - this will trigger auto-ontarget: any perfect match is the on-target
+# - do not calculate efficiency scores
 clusterJob = False
 if isdir("/scratch/tmp"):
     TEMPDIR = "/dev/shm/"
@@ -392,7 +393,7 @@ def getTwoBitFname(db):
     locPath = join("/scratch", "data", db, db+".2bit")
     if isfile(locPath):
         return locPath
-    path = join(genomesDir, db, db+"2.bit")
+    path = join(genomesDir, db, db+".2bit")
     return path
     #"%(genomeDir)s/%(genome)s/%(genome)s.2bit" % locals()
 
@@ -1985,8 +1986,8 @@ def calcGuideEffScores(seq, extSeq, pam):
             longSeqs.append(longSeq)
             guideIds.append(pamId)
 
-    if len(longSeqs)>0:
-        effScores = crisporEffScores.calcAllScores(longSeqs, skipScores=["wuCrispr"])
+    if len(longSeqs)>0 and not clusterJob:
+        effScores = crisporEffScores.calcAllScores(longSeqs)
     else:
         effScores = {}
     scoreNames = effScores.keys()
