@@ -2777,7 +2777,8 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     # remove the temporary files
     tempFnames = [saFname, matchesBedFname, filtMatchesBedFname]
     for tfn in tempFnames:
-        os.remove(tfn)
+        if isfile(tfn):
+            os.remove(tfn)
     return bedFname
 
 def makeVariants(seq):
@@ -3587,10 +3588,11 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
         errAbort("%s not found" % vcfFname)
     tb = tabix.open(vcfFname)
     chrom = chrom.replace("chr","")
-    #try:
-    records = tb.query(chrom, start+1, end) # VCF is 1-based
-    #except tabix.TabixError:
-        #records = []
+    try:
+        records = tb.query(chrom, start+1, end) # VCF is 1-based
+    except tabix.TabixError:
+        sys.stderr.write("Chromosome in query does not exist in VCF file? chrom: %s, VCF file: %s\n" % (chrom, vcfFname))
+        records = []
         
 
     varDict = defaultdict(list)
