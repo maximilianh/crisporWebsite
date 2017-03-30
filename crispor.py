@@ -966,7 +966,10 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId  in lines[y]:
-            guideSeq = pamIdToSeq[pamId]
+            guideSeq = pamIdToSeq.get(pamId)
+            if guideSeq==None:
+                # when there is an N in the guide, the PAM is valid, but the guide is not
+                continue
             classStr = cssClassesFromSeq(guideSeq, suffix="Seq")
 
             spacer = "".join([" "]*((start-lastEnd)))
@@ -2793,7 +2796,8 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     # remove the temporary files
     tempFnames = [saFname, matchesBedFname, filtMatchesBedFname]
     for tfn in tempFnames:
-        os.remove(tfn)
+        if isfile(tfn):
+            os.remove(tfn)
     return bedFname
 
 def makeVariants(seq):
@@ -3604,10 +3608,11 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
         errAbort("%s not found" % vcfFname)
     tb = tabix.open(vcfFname)
     chrom = chrom.replace("chr","")
-    #try:
-    records = tb.query(chrom, start+1, end) # VCF is 1-based
-    #except tabix.TabixError:
-        #records = []
+    try:
+        records = tb.query(chrom, start+1, end) # VCF is 1-based
+    except tabix.TabixError:
+        sys.stderr.write("Chromosome in query does not exist in VCF file? chrom: %s, VCF file: %s\n" % (chrom, vcfFname))
+        records = []
         
 
     varDict = defaultdict(list)
@@ -3696,6 +3701,10 @@ def showSeqDownloadMenu(batchId):
 
     myUrl = baseUrl+"&download=vnti"
     html = "<a href='%s'>Vector NTI</a>" % myUrl
+    htmls.append(html)
+
+    myUrl = baseUrl+"&download=lasergene"
+    html = "<a href='%s'>LaserGene</a>" % myUrl
     htmls.append(html)
 
     myUrl = baseUrl+"&download=genbank"
@@ -4026,10 +4035,11 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
     " yield bulk offtarget rows for the tab-sep download file "
     otRows = []
 
+    headers = list(offtargetHeaders) # clone list
+    if seqId:
+        headers.insert(0, "seqId")
+
     if addHeaders:
-        headers = list(offtargetHeaders) # clone list
-        if seqId:
-            headers.insert(0, "seqId")
         otRows.append(headers)
 
     skipCount = 0
@@ -4301,7 +4311,9 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
                 writeLn(ofh, '''                     /note="color: %s; direction: RIGHT"''' % colorHex)
             else:
                 writeLn(ofh, '''                     /note="color: %s; direction: LEFT"''' % colorHex)
-        elif fileFormat in ["vnti"]:
+        # vector NTI treats attributes as a key-val list
+        # lasergene shows all attributes, vector NTI is the most complete way to show all data
+        elif fileFormat in ["vnti", "lasergene"]:
             writeLn(ofh, '''/label="%s"''' % guideName, indent=21)
             writeLn(ofh, '''/note="%s"''' % descStr, indent=21)
             writeLn(ofh, '''/MITSpecScore="%s"''' % str(guideScore), indent=21)
@@ -4524,7 +4536,7 @@ def downloadFile(params):
         writeHttpAttachmentHeader(fileName)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
 
-    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti"]:
+    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti", "lasergene"]:
         fileFormat = params['download']
         ext = "gb"
         if fileFormat=="serialcloner":
@@ -6236,9 +6248,6 @@ def mainCommandLine():
             logging.info("Writing guide sequences to %s" % guideFname)
             writeTargetSeqs(guideData, gFh)
 
-
-
-
         if options.noEffScores or cpf1Mode:
             effScores = {}
         else:
@@ -6252,7 +6261,7 @@ def mainCommandLine():
             guideFh.write("\n")
 
         if options.offtargetFname:
-            for row in iterOfftargetRows(guideData, seqId=seqId):
+            for row in iterOfftargetRows(guideData, seqId=seqId, skipRepetitive=False):
                 offtargetFh.write("\t".join(row))
                 offtargetFh.write("\n")
 
