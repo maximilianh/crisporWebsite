@@ -3109,9 +3109,8 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!-- <strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
-Site temporarily moved to UCSC. The performance here is somewhat slower.<br>
-Site should be back online at the original URL during Jan 16 2016<p></strong> -->
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: Sat.-mutagenesis and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.</div>
+ <div style="text-align:left; margin-left: 50px">
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -5531,7 +5530,7 @@ def mainCgi():
 
         title = "CRISPOR"
         if "org" in params:
-            title = "CRISPOR: "+org
+            title = "CRISPOR: "+params["org"]
 
         printHeader(batchId, title)
         printTeforBodyStart()
