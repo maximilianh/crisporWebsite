@@ -1152,8 +1152,13 @@ def parsePos(text):
         else:
             chrom, posRange, strand = fields
         posRange = posRange.replace(",","")
-        start, end = posRange.split("-")
-        start, end = int(start), int(end)
+        if "-" in posRange:
+            start, end = posRange.split("-")
+            start, end = int(start), int(end)
+        else:
+            # if the end position is not specified (as by default done by UCSC outlinks), use start+23
+            start = int(posRange)
+            end = start+23
     else:
         chrom, start, end, strand = "", 0, 0, "+"
     return chrom, start, end, strand
@@ -3192,9 +3197,8 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!-- <strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
-Site temporarily moved to UCSC. The performance here is somewhat slower.<br>
-Site should be back online at the original URL during Jan 16 2016<p></strong> -->
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: Sat.-mutagenesis and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.</div>
+ <div style="text-align:left; margin-left: 50px">
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -5693,8 +5697,8 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
 
     if not cpf1Mode:
-        print "<h3 id='ciona'>Direct PCR for <i>Ciona intestinalis</i></i></h3>"
-        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
             ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
             ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
@@ -6329,7 +6333,7 @@ def mainCgi():
 
         title = "CRISPOR"
         if "org" in params:
-            title = "CRISPOR: "+org
+            title = "CRISPOR: "+params["org"]
 
         printHeader(batchId, title)
 

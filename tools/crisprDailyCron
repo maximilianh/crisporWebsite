@@ -1,0 +1,2 @@
+#!/bin/sh
+if [ `/usr/local/bin/crisprWaiting | wc -l` -gt 10 ]; then /data/www/crispor/tools/crisprWaiting | mail -s 'crispor queue long' max@soe.ucsc.edu; fi
