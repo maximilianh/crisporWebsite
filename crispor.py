@@ -1106,8 +1106,13 @@ def parsePos(text):
         else:
             chrom, posRange, strand = fields
         posRange = posRange.replace(",","")
-        start, end = posRange.split("-")
-        start, end = int(start), int(end)
+        if "-" in posRange:
+            start, end = posRange.split("-")
+            start, end = int(start), int(end)
+        else:
+            # if the end position is not specified (as by default done by UCSC outlinks), use start+23
+            start = int(posRange)
+            end = start+23
     else:
         chrom, start, end, strand = "", 0, 0, "+"
     return chrom, start, end, strand
@@ -4972,7 +4977,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     if not cpf1Mode:
         print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
-        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
             ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
             ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
