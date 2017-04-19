@@ -3419,9 +3419,22 @@ def getSeq(db, posStr):
     genomeDir = genomesDir # pull in global var
     twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
     binPath = join(binDir, "twoBitToFa")
+
+    chromSizes = parseChromSizes(db)
+    if chrom not in chromSizes:
+        errAbort("Sorry, the chromosome '%s' is not valid in the genome %s. Check upper/lowercase, e.g. for most mammalian genomes, " \
+            "it is chrX not chrx, and chr1, not Chr1." % (cgi.escape(chrom), db))
+    if start<0 or end<0 or start>chromSizes[chrom] or end>chromSizes[chrom]:
+        errAbort("Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0." % (start, end))
+
     cmd = [binPath, twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     seqStr = proc.stdout.read()
+
+    retCode = proc.wait()
+    if retCode!=0:
+        errAbort("Error on sequence retrieval. This looks like a bug. Please contact us and tell us the input and genome, we will fix this error.")
+
     # remove fasta header line
     lines = seqStr.splitlines()
     if len(lines)>0:
