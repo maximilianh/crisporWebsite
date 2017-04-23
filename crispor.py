@@ -1657,7 +1657,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     " print guide score table description and columns "
     # one row per guide sequence
     if not cpf1Mode:
-        print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
+        print '''<div class='substep'>Ranked by default from highest to lowest MIT specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         print('''
         <b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br> See our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>, figures 4 and 5.<br>''')
         #print('''References for scores:
@@ -3114,8 +3114,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: Sat.-mutagenesis and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.</div>
- <div style="text-align:left; margin-left: 50px">
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.<br>
+Apr 2017: the search was down for one day on Apr 21. It is back up now, all submitted jobs should be complete now.</div>
+
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -3468,7 +3469,8 @@ def printStatus(batchId):
     print("Job Status: <tt>%s</tt><p>" % status)
 
     if not errorState:
-        print("<small>This page will refresh every 10 seconds</small>")
+        print("<p><small>This page will refresh every 10 seconds</small><br>")
+        print("<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>. Delays can be caused by certain sequences or server problems. We are glad if you let us know.</small></p>" % contactEmail)
 
 def readVarDbs(db):
     """ find all possible variant VCFs and return as list of (shortLabel, fname, label, hasAF) 
