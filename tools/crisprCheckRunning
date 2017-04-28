@@ -1,0 +1,5 @@
+#!/bin/bash
+count=`ps aux | grep ' /data/www/crispor ' | grep -v grep | wc -l`
+if [[ "$count" -ne 2 ]]; then
+        echo only $count processes running
+fi
