@@ -526,6 +526,9 @@ class JobQueue:
 # ====== FUNCTIONS =====
 contentLineDone = False
 
+# the queue workers should be able to never abort
+doAbort = True
+
 def errAbort(msg):
     " print err msg and exit "
     if commandLineMode:
@@ -539,7 +542,9 @@ def errAbort(msg):
     print(msg+"<p>")
     print("If you think this is a bug or you have any other suggestions, please do not hesitate to email %s" % contactEmail)
     print('</div>')
-    sys.exit(0)  # cgi must not exit with 1
+
+    if doAbort:
+        sys.exit(0)  # cgi must not exit with 1
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
 # and +
@@ -3114,8 +3119,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.<br>
-Apr 2017: the search was down for one day on Apr 21. It is back up now, all submitted jobs should be complete now.</div>
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br>
+April 30, 2017: job processing was unavailable for half a day this week. It is all back and the bug that caused this should be fixed now.<br>
+</div>
 
 
  <div style="text-align:left; margin-left: 50px">
@@ -3426,7 +3432,7 @@ def getSeq(db, posStr):
         errAbort("Sorry, the chromosome '%s' is not valid in the genome %s. Check upper/lowercase, e.g. for most mammalian genomes, " \
             "it is chrX not chrx, and chr1, not Chr1." % (cgi.escape(chrom), db))
     if start<0 or end<0 or start>chromSizes[chrom] or end>chromSizes[chrom]:
-        errAbort("Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0." % (start, end))
+        errAbort("Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0." % (start, end, db))
 
     cmd = [binPath, twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -5270,6 +5276,9 @@ def runQueueWorker():
 
     q = JobQueue()
     print("Job queue: %s" % JOBQUEUEDB)
+
+    global doAbort
+    doAbort = False
 
     while True:
         if q.waitCount()==0:
