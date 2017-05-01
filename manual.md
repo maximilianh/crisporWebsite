@@ -23,11 +23,13 @@ The input sequence can be annotated with variants, mostly SNPs, found in the gen
 Guide list {#guidelist}
 ==========
 
-Shown below the input sequence are the guide target sequences, one per PAM. Usually, for spCas9, the targets are 20bp long. Each 20bp sequence in the input sequence is aligned against the whole genome allowing at most four mismatches and the results are summarized as a table. The table has the following columns:
+Shown below the input sequence are the guide target sequences, one per PAM. Usually, for spCas9, the targets are 20bp long. Each 20bp sequence in the input sequence is aligned against the whole genome allowing at most four mismatches and the results are summarized as a table. The table has the columns described below. To sort by one of them, click its name in the first row.
 
 Column 1: the "name" of the target, simply the position on the input sequence and the strand. You can sort by position by clicking the first row with the description "Position/Strand" in the table.
 
 Column 2: the target sequence with the variants (if available for this genome) underneath. High GC content targets are flagged, as are low-GC content targets. Various studies have reported that both cases lead to low target efficiency. Also shown in this columns are restriction enzymes that overlap the three basepairs 5' of the PAM site. Finally, one of the most important features of CRISPR is available here, under the link "PCR primers" (see the [Primers section](#primers) below). 
+
+This column allows to filter the guides by the first nucleotide, as some RNA expression promoters require certain nucleotides directly 3'. Some labs only use targets that start with G- for the U6 promoter or A- for the U3 promoter. In this way, no further sequence changes are necessary. In our lab, we do not select guides, but simply prefix them with the required nucleotide (see below).
 
 Column 3: the specificity score is a prediction of how much an RNA guide sequence for this target may lead to off-target cleavage somewhere else in the genome. The score ranges from 0-100 with 100 being the best, meaning the search could not find a single sequence in the genome that differs from the target at four positions. This score uses the formula from the MIT Crispr Website but with a better and more sensitive search engine. We think that good guides should have a specificity score of at least 50, based on the data from whole-genome off-target assays, see Figure 3a in the [CRISPOR paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2). The coloring red/yellow/green is based on the score (>50 = green, >30 = yellow). You should really avoid guides with very low scores, unless you can validate the off-targets with special assays or you can cross the animals until you are sure that no off-targets are left. 
 
