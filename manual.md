@@ -39,7 +39,12 @@ Column 6: the number of possible off-targets in the genome, for each number of m
 
 Why only search up to four mismatches? When we looked at real off-targets, around 90% of them had not more than four mismatches. While you can increase the number of allowed mismatches using the command line version of CRISPOR to five or even six mismatches, the large majority of the predicted locations will be false positives, most guides would require thousands of PCRs to check for off-targets. See Figure 1 of the [CRISPOR paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2)
 
-Column 7: here we list the locations of all off-targets, whether they fall into an exon, intron or between genes and the closest gene. For some genomes, there is no gene annotation. This is the case when we could not find a valid gene model (GFF) file for the genome. You will have to contact us by email, if you have a gene model file or want us to add one.
+Column 7: here we list the locations of all possible off-targets, whether they fall into an exon, intron or between genes and the closest gene. You can hover with your mouse over these to show where the mismatches are. By default only the three most likely off-targets are shown, click on "show all" to see more.
+
+All off-targets are sorted by an "off-target score" which tries to predict what the most likely off-targets are. The score is based on where the mismatches are (close to PAM = less likely) and what the exact nucleotide change is. We have benchmarked four different scores (Figure 2 of the [CRISPOR paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2)) and found the CFD score slightly more effective than the MIT score, compared to the two others. The mouse-over shows both scores.
+
+For some genomes, there is no gene annotation. This is the case when we could not find a valid gene model (GFF) file for the genome. You will have to contact us by email, if you have a gene model file or want us to add one.
+
 
 Primers
 =======
