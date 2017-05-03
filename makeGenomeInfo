@@ -82,9 +82,11 @@ for subDir in os.listdir(genomesDir):
     infoFname = join(genomesDir, subDir, "genomeInfo.tab")
     varDbs = readVarDbs(subDir)
     if len(varDbs)!=0:
-        varDescStr = "- SNPs: "+(", ".join([row[0] for row in varDbs]))
+        varDescStr = " + SNPs: "+(", ".join([row[0] for row in varDbs]))
     else:
         varDescStr = ""
+    if len(varDescStr)>30:
+        varDescStr = varDescStr[:30]+"..."
 
     if not isfile(infoFname):
         continue
