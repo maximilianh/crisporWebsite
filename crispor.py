@@ -495,7 +495,13 @@ class JobQueue:
     def waitCount(self):
         " return number of waiting jobs "
         sql = 'SELECT count(*) FROM queue WHERE isRunning=0'
-        count = self.conn.execute(sql).next()[0]
+        count = None
+        while count is None:
+            try:
+                count = self.conn.execute(sql).next()[0]
+            except sqlite3.OperationalError:
+                time.sleep(1+random.random()/10)
+                pass
         return count
 
     def popJob(self):
@@ -3120,7 +3126,6 @@ def printForm(params):
 <form id="main-form" method="post" action="%s">
 
 <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br>
-April 30, 2017: job processing was unavailable for half a day this week. It is all back and the bug that caused this should be fixed now.<br>
 </div>
 
 
@@ -3476,7 +3481,7 @@ def printStatus(batchId):
 
     if not errorState:
         print("<p><small>This page will refresh every 10 seconds</small><br>")
-        print("<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>. Delays can be caused by certain sequences or server problems. We are glad if you let us know.</small></p>" % contactEmail)
+        print("<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>." % contactEmail)
 
 def readVarDbs(db):
     """ find all possible variant VCFs and return as list of (shortLabel, fname, label, hasAF) 
