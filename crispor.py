@@ -1170,8 +1170,13 @@ def parsePos(text):
         else:
             chrom, posRange, strand = fields
         posRange = posRange.replace(",","")
-        start, end = posRange.split("-")
-        start, end = int(start), int(end)
+        if "-" in posRange:
+            start, end = posRange.split("-")
+            start, end = int(start), int(end)
+        else:
+            # if the end position is not specified (as by default done by UCSC outlinks), use start+23
+            start = int(posRange)
+            end = start+23
     else:
         chrom, start, end, strand = "", 0, 0, "+"
     return chrom, start, end, strand
@@ -1731,8 +1736,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
-        print('''
-        If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
+        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
         #print('''References for scores:
         #<a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench/Fusi 2016</a>,
         #<a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>''')
@@ -3211,9 +3215,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!-- <strong>Web server maintenance at TEFOR.NET: Jan 13 - Jan 15 2016<br>
-Site temporarily moved to UCSC. The performance here is somewhat slower.<br>
-Site should be back online at the original URL during Jan 16 2016<p></strong> -->
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.<br>
+Apr 2017: the search was down for one day on Apr 21. It is back up now, all submitted jobs should be complete now.</div>
+
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -3517,9 +3521,22 @@ def getSeq(db, posStr):
     #twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
     twoBitFname = getTwoBitFname(db)
     binPath = join(binDir, "twoBitToFa")
+
+    chromSizes = parseChromSizes(db)
+    if chrom not in chromSizes:
+        errAbort("Sorry, the chromosome '%s' is not valid in the genome %s. Check upper/lowercase, e.g. for most mammalian genomes, " \
+            "it is chrX not chrx, and chr1, not Chr1." % (cgi.escape(chrom), db))
+    if start<0 or end<0 or start>chromSizes[chrom] or end>chromSizes[chrom]:
+        errAbort("Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0." % (start, end))
+
     cmd = [binPath, twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     seqStr = proc.stdout.read()
+
+    retCode = proc.wait()
+    if retCode!=0:
+        errAbort("Error on sequence retrieval. This looks like a bug. Please contact us and tell us the input and genome, we will fix this error.")
+
     # remove fasta header line
     lines = seqStr.splitlines()
     if len(lines)>0:
@@ -3553,7 +3570,8 @@ def printStatus(batchId):
     print("Job Status: <tt>%s</tt><p>" % status)
 
     if not errorState:
-        print("<small>This page will refresh every 10 seconds</small>")
+        print("<p><small>This page will refresh every 10 seconds</small><br>")
+        print("<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>. Delays can be caused by certain sequences or server problems. We are glad if you let us know.</small></p>" % contactEmail)
 
 def readVarDbs(db):
     """ find all possible variant VCFs and return as list of (shortLabel, fname, label, hasAF) 
@@ -5713,8 +5731,8 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
 
     if not cpf1Mode:
-        print "<h3 id='ciona'>Direct PCR for <i>Ciona intestinalis</i></i></h3>"
-        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://dx.doi.org/10.1101/04163">Gandhi et al. 2016</a> following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
             ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
             ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
@@ -6349,7 +6367,7 @@ def mainCgi():
 
         title = "CRISPOR"
         if "org" in params:
-            title = "CRISPOR: "+org
+            title = "CRISPOR: "+params["org"]
 
         printHeader(batchId, title)
 
