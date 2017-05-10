@@ -1837,7 +1837,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
-    print '<th style="width:210px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
+    print '<th style="width:220px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
 
     print ('+ Restriction Enzymes')
     htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA.<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
@@ -2109,7 +2109,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
-            print('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank">PCR primers</a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
+            print('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>PCR primers</strong></a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
 
         print "</small>"
         print "</td>"
@@ -2217,7 +2217,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 print "\n".join(otLinks[3:])
 
                 print '''<a style="float:right;text-decoration:underline" href="%s?batchId=%s&pamId=%s&otPrimers=1" id="%s">''' % (myName, batchId, urllib.quote(pamId), cssPamId)
-                print 'Off-target primers</a>'
+                print '<strong>Off-target primers</strong></a>'
 
                 print '</div>'
 
