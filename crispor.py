@@ -90,7 +90,16 @@ doEffScoring = True
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
-#TEMPDIR = "/dev/shm/"
+
+# XX a temporary hack for cluster jobs at UCSC:
+# - default to ramdisk
+# - don't to bwasw
+#   - this will trigger auto-ontarget: any perfect match is the on-target
+# - do not calculate efficiency scores
+clusterJob = False
+if isdir("/scratch/tmp"):
+    TEMPDIR = "/dev/shm/"
+    clusterJob = True
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
@@ -555,6 +564,15 @@ contentLineDone = False
 
 # the queue workers should be able to never abort
 doAbort = True
+
+def getTwoBitFname(db):
+    " return the name of the twoBit file for a genome "
+    # at UCSC, try to use local disk, if possible
+    locPath = join("/scratch", "data", db, db+".2bit")
+    if isfile(locPath):
+        return locPath
+    path = join(genomesDir, db, db+".2bit")
+    return path
 
 def errAbort(msg):
     " print err msg and exit "
@@ -1215,7 +1233,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
             # is this the on-target?
             # if we got a genome position, use it. Otherwise use a random off-target with 0MMs
-            # as the on-target
+            # as the on-target ("auto-ontarget")
             if editDist==0 and \
                 ((chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC) \
                 or (inChrom=='' and foundOneOntarget==False and x1Count < MAXOCC)):
@@ -2522,6 +2540,7 @@ def writePamFlank(seq, startDict, pam, faFname):
 def runCmd(cmd, ignoreExitCode=False):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
     cmd = cmd.replace("$BIN", binDir)
+    cmd = cmd.replace("$PYTHON", sys.executable)
     cmd = cmd.replace("$SCRIPT", scriptDir)
     cmd = "set -o pipefail; " + cmd
     debug("Running %s" % cmd)
@@ -2646,7 +2665,7 @@ def calcGuideEffScores(seq, extSeq, pam):
             longSeqs.append(longSeq)
             guideIds.append(pamId)
 
-    if len(longSeqs)>0:
+    if len(longSeqs)>0 and not clusterJob:
         if cpf1Mode:
             mh, oof, mhSeqs = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs(longSeqs, -50, 50))
             effScores = {}
@@ -2721,7 +2740,7 @@ def readEffScores(batchId):
         allScoreNames = row._fields[3:]
         for scoreName in allScoreNames:
             score = rowDict[scoreName]
-            if "." in score:
+            if "." in score or "e" in score:
                 score = float(score)
             else:
                 score = int(score)
@@ -3510,7 +3529,8 @@ def getSeq(db, posStr):
     if end-start > MAXSEQLEN and db!="noGenome":
         errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
     genomeDir = genomesDir # pull in global var
-    twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
+    #twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
+    twoBitFname = getTwoBitFname(db)
     binPath = join(binDir, "twoBitToFa")
 
     chromSizes = parseChromSizes(db)
@@ -5040,22 +5060,22 @@ def findBestMatch(genome, seq):
     """ find best match for input sequence from batchId in genome and return as
     a string "chrom:start-end:strand or None if not found "
     """
-    if genome=="noGenome":
+    if genome=="noGenome" or clusterJob:
         return None, None, None, None
 
     # write seq to tmp file
-    tmpFaFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".fa")
+    tmpFaFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".fa")
     tmpFaFh.write(">tmp\n%s" % seq)
     tmpFaFh.flush()
     logging.debug("seq: %s" % open(tmpFaFh.name).read())
     faFname = tmpFaFh.name
 
     # create temp SAM file
-    tmpSamFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".sam")
+    tmpSamFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".sam")
     samFname = tmpSamFh.name
 
-    genomeDir = genomesDir # make local var
-    cmd = "$BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
+    cmd = "$BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
