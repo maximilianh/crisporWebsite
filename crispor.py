@@ -1050,7 +1050,14 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
     if dbInfo.server.startswith("Ensembl"):
         baseUrl = "www.ensembl.org"
         urlLabel = "Ensembl"
-        if dbInfo.server=="EnsemblPlants":
+
+        # link back to archive, if possible
+        if dbInfo.description.startswith("Ensembl "):
+            ensVersion = dbInfo.description.split()[1]
+            if ensVersion.isdigit():
+                baseUrl = "e%s.ensembl.org" % ensVersion
+
+        elif dbInfo.server=="EnsemblPlants":
             baseUrl = "plants.ensembl.org"
         elif dbInfo.server=="EnsemblMetazoa":
             baseUrl = "metazoa.ensembl.org"
@@ -4111,7 +4118,8 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
 
         ws.write(5, 1, "CRISPOR %s, %s" % (versionStr, dateStr))
 
-        curRow = 6
+        startRow = 6
+        curRow = startRow
         if optFields is not None:
             for key, val in optFields.iteritems():
                 ws.write(curRow, 0, "# %s" % key)
@@ -4123,7 +4131,7 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         seqCols = [1, 7, 8, 9] # columns with sequences -> fixed width font
 
         for rowCount, row in enumerate(rows):
-            if rowCount==65534:
+            if rowCount==65534-startRow:
                 ws.write(rowCount+skipRows, 0, "WARNING: cannot write more than 65535 rows to an Excel file. Switch to .tsv format to get all off-targets.")
                 break
 
@@ -6350,6 +6358,7 @@ def mainCgi():
     # save seq/org/pam into a cookie, if they were provided
     if "seq" in params and "org" in params and "pam" in params:
         seq, org, pam = params["seq"], params["org"], params["pam"]
+        seq, warnMsg = cleanSeq(seq, org)
         saveSeqOrgPamToCookies(seq, org, pam)
 
     # print headers
