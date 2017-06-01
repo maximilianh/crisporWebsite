@@ -3214,7 +3214,7 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br>
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.3</a>.
 </div>
 
 
@@ -3231,7 +3231,7 @@ def printForm(params):
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
 
-<br><i>New version V4.2, Apr 2017: Genome variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>Version V4.2, Apr 2017: Genome variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis <a href="downloads/changes.html">and more</a></i>
 
  </div>
 
@@ -4090,7 +4090,7 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
 
     return otRows
 
-def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position, optFields=None):
+def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position, batchId, optFields=None):
     """ given rows, writes a XLS binary stream to outFile, if xlwt is available
     Otherwise writes a tab-sep file.
     colWidths is a list of widths of columns, in Arial characters.
@@ -4111,14 +4111,19 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         ws.write(2, 1, org)
         ws.write(4, 0, "# Position")
         ws.write(4, 1, position)
+
         ws.write(5, 0, "# Version")
         #http://stackoverflow.com/questions/4530069/python-how-to-get-a-value-of-datetime-today-that-is-timezone-aware
         FORMAT='%Y-%m-%dT%H:%M:%S%Z'
         dateStr=time.strftime(FORMAT, time.localtime())
-
         ws.write(5, 1, "CRISPOR %s, %s" % (versionStr, dateStr))
 
-        startRow = 6
+        ws.write(6, 0, "# Results")
+        url = "http://crispor.org/crispor.py?batchId=%s" % batchId
+        #ws.write(6, 1, xlwt.Formula('HYPERLINK("%s";"Link")' % (url)))
+        ws.write(6, 1, url)
+
+        startRow = 7
         curRow = startRow
         if optFields is not None:
             for key, val in optFields.iteritems():
@@ -4394,7 +4399,7 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
 
     satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
     guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
-    xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, optFields=optFields)
+    xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, batchId, optFields=optFields)
 
 def readBatchAndGuides(batchId):
     " parse the input file, the batchId-json file and the offtargets and link everything together "
@@ -4507,7 +4512,7 @@ def downloadFile(params):
 
     if fileType=="guides":
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat))
-        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position)
+        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position, batchId)
 
     elif fileType=="offtargets":
         writeHttpAttachmentHeader("offtargets_%s.%s" % (queryDesc, fileFormat))
@@ -4515,7 +4520,7 @@ def downloadFile(params):
         otRows = list(iterOfftargetRows(guideData, addHeaders=True, skipRepetitive=skipRepetitive))
         doReverse = (not cpf1Mode)
         otRows.sort(key=operator.itemgetter(4), reverse=doReverse)
-        xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position)
+        xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position, batchId)
 
     elif fileType=="targetSeqs":
         writeHttpAttachmentHeader("targetSeqs_%s.txt" % (queryDesc))
