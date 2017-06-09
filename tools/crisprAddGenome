@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import logging, sys, optparse, os, shutil, glob, json, urllib2
+import logging, sys, optparse, os, shutil, glob, json, urllib2, subprocess
 from collections import namedtuple
 from os.path import join, isdir, isfile, getsize, basename
 
@@ -46,6 +46,7 @@ parser.add_option("", "--geneTable", dest="geneTable", action="store", help="in 
 parser.add_option("", "--symFixFile", dest="symFixFile", action="store", help="in UCSC mode: add a file with some manual geneId<tab>symbol mappings to fix the provided ones")
 parser.add_option("", "--desc", dest="desc", action="store", help="in manual mode: description of genome, a | separated string of dbName, scientificName, commonName, dbVersion. Make sure to quote this string. Example: 'hg19|Homo sapiens|Human|Feb 2009 (GRCh37)'")
 parser.add_option("", "--gff", dest="gffFname", action="store", help="read gene models from this gff3 file")
+parser.add_option("-u", "--altGff", dest="altGff", action="store_true", help="use UCSC gff3 converter instead of tophat's")
 parser.add_option("", "--baseDir", dest="baseDir", action="store", help="baseDir for genomes, default is %default", default=crisprGenomeDir)
 #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
 #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
@@ -60,8 +61,8 @@ def runCmd(cmd, mustRun=True):
     " wrapper around os.system that prints error messages "
     if debugMode:
         print cmd
-    cmd = "set -e -o pipefail; " + cmd
-    ret = os.system(cmd)
+    #cmd = "bash -e -o pipefail -c " + cmd
+    ret = subprocess.call(["/bin/bash", "-e", "-o", "pipefail", cmd.split(" "))
     if ret!=0 and mustRun:
         print "Could not run command %s" % cmd
         sys.exit(0)
@@ -489,24 +490,32 @@ def selectManualGenome(taxIds, options):
     Rec = namedtuple("genomeDesc", headers)
     return [Rec(name, description, commonName, scName, url, server)]
 
-def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname):
+def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
     " convert gff3 to genePred and segments "
     if gff3Fname.endswith(".gz"):
         catCmd = "zcat"
     else:
         catCmd = "cat"
 
-    cmd = "%(catCmd)s %(gff3Fname)s | gffread /dev/stdin -T -o /dev/stdout | gtfToGenePred -allErrors stdin %(gpFname)s" % locals()
+    if useAltProg:
+        # optimized for NCBI RefSeq GFFs
+        cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -geneNameAttr=gene -rnaNameAttr=transcript_id" % \
+            locals()
+    else:
+        cmd = "%(catCmd)s %(gff3Fname)s | gffread /dev/stdin -T -o /dev/stdout | gtfToGenePred -allErrors stdin %(gpFname)s" % locals()
+
     logging.info("converting gff3 to genePred: %s" % cmd)
     runCmd(cmd, mustRun=False)
+    if not isfile(gpFname):
+        raise Exception("Problem occured when converting to genePred file")
 
     cmd = "genePredToBed %(gpFname)s stdout | bedToExons stdin stdout | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(chromSizesFname)s | bedSort stdin %(segFname)s" % locals()
     logging.info("converting genePred to segment names: %s" % cmd)
     runCmd(cmd)
 
-def getFasta(genomeRows, gff3Fname, options):
+def getFastaAndGff(genomeRows, gff3Fname, options):
     """
-    download fasta file and index it
+    download fasta file and index it. Also convert gff to genePred
     """
     for row in genomeRows:
         db = row.name
@@ -564,7 +573,10 @@ def getFasta(genomeRows, gff3Fname, options):
             gpTmp = join(dbTmpDir, db+".gp")
             segTmp = join(dbTmpDir, "%s.segments.bed" % db)
 
-            convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp)
+            useAltGffConv = False
+            if options.altGff:
+                useAltGffConv = True
+            convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv)
             outFnames.extend([gpTmp, segTmp])
 
         indexFasta(faTmp, db, twoBitTmp, sizesTmp)
@@ -598,7 +610,7 @@ elif site=="ens":
 
 elif site=="fasta":
     genomeRows = selectManualGenome(taxIds, options)
-    getFasta(genomeRows, options.gffFname, options)
+    getFastaAndGff(genomeRows, options.gffFname, options)
 else:
     raise Exception("site has to be ucsc or ens")
     
