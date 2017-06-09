@@ -517,6 +517,9 @@ def getFasta(genomeRows):
             # local file, just copy
             shutil.copy(row.url, faTmp)
 
+        line1 = open(faTmp).readline()
+        assert("|" not in line1) # I use | as a separator in crispor
+
         printMsg("Converting to 2bit")
         twoBitTmp = join(dbTmpDir, db+".2bit")
         cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
