@@ -1077,9 +1077,17 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
         start = start+1
         url = "%s/?name=%s:%d..%d" % (dbInfo.server, chrom, start, end)
     else:
-        #return "unknown genome browser server %s, please email services@tefor.net" % dbInfo.server
-        urlLabel = None
-        url = "javascript:void(0)"
+        chrom, start, end, strand = parsePos(pos)
+        if chrom is not None and chrom.startswith("NC_"):
+            start = start+1
+            url = "https://www.ncbi.nlm.nih.gov/nuccore/%s?report=graph&log$=seqview&v=%d-%d" % \
+            (chrom, start, end)
+            urlLabel = "NCBI "
+
+        else:
+            #return "unknown genome browser server %s, please email services@tefor.net" % dbInfo.server
+            urlLabel = None
+            url = "javascript:void(0)"
 
     classStr = ""
     if len(cssClasses)!=0:
