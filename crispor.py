@@ -1913,7 +1913,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
         oofName="Out-of- Frame"
         oofDesc = "Click score for details"
 
-    print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oofScore" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
+    print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
 
     htmlHelp(scoreDescs["oof"][1])
     print "<br><br><small>%s</small>" % oofDesc
