@@ -135,7 +135,6 @@ ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
 pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
-         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus / Lachnospiraceae'),
          #('TTN','TTN-23bp - Cpf1 F. Novicida'), # Jean-Paul: various people have shown that it's not usable yet
          ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
          ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
@@ -145,6 +144,9 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
+         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus / Lachnospiraceae'),
+         ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
+         ('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
        ]
 
 DEFAULTPAM = 'NGG'
@@ -593,8 +595,8 @@ def cgiGetParams():
             cgiParams[key] = val
 
     if "pam" in cgiParams:
-        if len(set(cgiParams["pam"])-set("ACTGNMKRY"))!=0:
-            errAbort("Illegal character in PAM-sequence. Only ACTGMKRY and N allowed.")
+        if len(set(cgiParams["pam"])-set("ACTGNMKRYV"))!=0:
+            errAbort("Illegal character in PAM-sequence. Only ACTGMKRYV and N allowed.")
     return cgiParams
 
 def cgiGetStr(params, argName, default=None):
@@ -633,7 +635,8 @@ def makeTempFile(prefix, suffix):
     return fh
 
 def pamIsCpf1(pam):
-    return (pam in ["TTN", "TTTN"])
+    " if you change this, also change bin/filterFaToBed! "
+    return (pam in ["TTN", "TTTN", "TYCV", "TATV"])
         
 def saveSeqOrgPamToCookies(seq, org, pam):
     " create a cookie with seq, org and pam and print it"
@@ -671,6 +674,8 @@ def matchNuc(pat, nuc):
     elif pat=="R" and nuc in ["A", "G"]:
         return True
     elif pat=="Y" and nuc in ["C", "T"]:
+        return True
+    elif pat=="V" and nuc in "ACG":
         return True
     else:
         return False
@@ -760,7 +765,7 @@ def cleanSeq(seq, db):
     return seq, "<br>".join(msgs)
 
 revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' , 'M' : 'K', 'K' : 'M',
-    "R" : "Y" , "Y":"R" , "g":"c", "a":"t", "c":"g","t":"a", "n":"n"}
+    "R" : "Y" , "Y":"R" , "g":"c", "a":"t", "c":"g","t":"a", "n":"n", "V" : "B", "v":"b"}
 
 def revComp(seq):
     " rev-comp a dna sequence with UIPAC characters "
@@ -957,7 +962,11 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
             spacer = "".join([" "]*((start-lastEnd)))
             lastEnd = end
             texts.append(spacer)
+
             score = guideScores[pamId]
+            # XX How can this happen for non-Cpf1 enzymes? Can this ever happen?
+            if score is None and not cpf1Mode:
+                continue
             color = scoreToColor(score)[0]
 
             texts.append('''<a class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (classStr, color, pamId,pamId))
@@ -2109,7 +2118,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         scriptName = basename(__file__)
         if otData!=None and subOptMatchCount <= MAXOCC:
-            print('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>PCR primers</strong></a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
+            print('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>Cloning / PCR primers</strong></a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
 
         print "</small>"
         print "</td>"
@@ -2782,7 +2791,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     # remove the temporary files
     tempFnames = [saFname, matchesBedFname, filtMatchesBedFname]
     for tfn in tempFnames:
-        if isfile(tfn):
+        if isfile(tfn) and not DEBUG:
             os.remove(tfn)
     return bedFname
 
@@ -3258,7 +3267,7 @@ def printForm(params):
     <div class="substep">
     <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
         Step 3
-        <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Cas9-HF1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, eSpCas1.1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4714946/'>Slaymaker 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>, SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25830891/'>Ran 2015</a> and KKH-SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/26524662/'>Kleinstiver 2015</a>." class="tooltipsterInteract">
+        <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Cas9-HF1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, eSpCas1.1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4714946/'>Slaymaker 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>, SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25830891/'>Ran 2015</a> and KKH-SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/26524662/'>Kleinstiver 2015</a>, modified As-Cpf1s by <a href='http://biorxiv.org/content/early/2016/12/04/091611'>Gao et al. 2017</a>." class="tooltipsterInteract">
         </div>
         Select a Protospacer Adjacent Motif (PAM)
     </div>
@@ -3623,6 +3632,10 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
             afList = [None] * len(altAllList)
             
         for altAll, allFreq in zip(altAllList, afList):
+            # 1000 genomes had <CN0> at AAAAATTTTTAAAAATTAGCTGG
+            # no idea what this is supposed to represent. issue #7
+            if "<" in altAll:
+                continue
             if minFreq is not None and allFreq is not None:
                 allFreq = float(allFreq)
                 if not allFreq > minFreq:
@@ -3650,6 +3663,7 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
                 relPos = seqLen - relPos - len(refAll)
                 refAll = revComp(refAll)
                 altAlls = []
+                print "XX2", altAll
                 for altAll in altAll.split(","):
                     altAlls.append(revComp(altAll))
                 altAll = ",".join(altAlls)
