@@ -3690,7 +3690,6 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
                 relPos = seqLen - relPos - len(refAll)
                 refAll = revComp(refAll)
                 altAlls = []
-                print "XX2", altAll
                 for altAll in altAll.split(","):
                     altAlls.append(revComp(altAll))
                 altAll = ",".join(altAlls)
