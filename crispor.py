@@ -90,7 +90,16 @@ doEffScoring = True
 
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
-#TEMPDIR = "/dev/shm/"
+
+# XX a temporary hack for cluster jobs at UCSC:
+# - default to ramdisk
+# - don't to bwasw
+#   - this will trigger auto-ontarget: any perfect match is the on-target
+# - do not calculate efficiency scores
+clusterJob = False
+if isdir("/scratch/tmp"):
+    TEMPDIR = "/dev/shm/"
+    clusterJob = True
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
@@ -518,7 +527,13 @@ class JobQueue:
     def waitCount(self):
         " return number of waiting jobs "
         sql = 'SELECT count(*) FROM queue WHERE isRunning=0'
-        count = self.conn.execute(sql).next()[0]
+        count = None
+        while count is None:
+            try:
+                count = self.conn.execute(sql).next()[0]
+            except sqlite3.OperationalError:
+                time.sleep(1+random.random()/10)
+                pass
         return count
 
     def popJob(self):
@@ -549,6 +564,18 @@ class JobQueue:
 # ====== FUNCTIONS =====
 contentLineDone = False
 
+# the queue workers should be able to never abort
+doAbort = True
+
+def getTwoBitFname(db):
+    " return the name of the twoBit file for a genome "
+    # at UCSC, try to use local disk, if possible
+    locPath = join("/scratch", "data", db, db+".2bit")
+    if isfile(locPath):
+        return locPath
+    path = join(genomesDir, db, db+".2bit")
+    return path
+
 def errAbort(msg):
     " print err msg and exit "
     if commandLineMode:
@@ -563,7 +590,9 @@ def errAbort(msg):
     print("If you think this is a bug or you have any other suggestions, please do not hesitate to contact us %s<p>" % contactEmail)
     print("Please also send us the full URL of the page where you see the error. Thanks!")
     print('</div>')
-    sys.exit(0)  # cgi must not exit with 1
+
+    if doAbort:
+        sys.exit(0)  # cgi must not exit with 1
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
 # and +
@@ -1213,7 +1242,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
             # is this the on-target?
             # if we got a genome position, use it. Otherwise use a random off-target with 0MMs
-            # as the on-target
+            # as the on-target ("auto-ontarget")
             if editDist==0 and \
                 ((chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC) \
                 or (inChrom=='' and foundOneOntarget==False and x1Count < MAXOCC)):
@@ -1727,8 +1756,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
-        print('''
-        If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
+        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
         #print('''References for scores:
         #<a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench/Fusi 2016</a>,
         #<a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>''')
@@ -2521,6 +2549,7 @@ def writePamFlank(seq, startDict, pam, faFname):
 def runCmd(cmd, ignoreExitCode=False):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
     cmd = cmd.replace("$BIN", binDir)
+    cmd = cmd.replace("$PYTHON", sys.executable)
     cmd = cmd.replace("$SCRIPT", scriptDir)
     cmd = "set -o pipefail; " + cmd
     debug("Running %s" % cmd)
@@ -2645,7 +2674,7 @@ def calcGuideEffScores(seq, extSeq, pam):
             longSeqs.append(longSeq)
             guideIds.append(pamId)
 
-    if len(longSeqs)>0:
+    if len(longSeqs)>0 and not clusterJob:
         if cpf1Mode:
             mh, oof, mhSeqs = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs(longSeqs, -50, 50))
             effScores = {}
@@ -2720,7 +2749,7 @@ def readEffScores(batchId):
         allScoreNames = row._fields[3:]
         for scoreName in allScoreNames:
             score = rowDict[scoreName]
-            if "." in score:
+            if "." in score or "e" in score:
                 score = float(score)
             else:
                 score = int(score)
@@ -3206,8 +3235,9 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: Sat.-mutagenesis and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us for feedback or bugs reports.</div>
- <div style="text-align:left; margin-left: 50px">
+<!-- <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br> -->
+</div>
+
 
  <div style="text-align:left; margin-left: 50px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -3508,7 +3538,8 @@ def getSeq(db, posStr):
     if end-start > MAXSEQLEN and db!="noGenome":
         errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
     genomeDir = genomesDir # pull in global var
-    twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
+    #twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
+    twoBitFname = getTwoBitFname(db)
     binPath = join(binDir, "twoBitToFa")
 
     chromSizes = parseChromSizes(db)
@@ -3516,7 +3547,7 @@ def getSeq(db, posStr):
         errAbort("Sorry, the chromosome '%s' is not valid in the genome %s. Check upper/lowercase, e.g. for most mammalian genomes, " \
             "it is chrX not chrx, and chr1, not Chr1." % (cgi.escape(chrom), db))
     if start<0 or end<0 or start>chromSizes[chrom] or end>chromSizes[chrom]:
-        errAbort("Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0." % (start, end))
+        errAbort("Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0." % (start, end, db))
 
     cmd = [binPath, twoBitFname, "-seq="+chrom, "-start="+str(start), "-end="+str(end), "stdout"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -3559,7 +3590,8 @@ def printStatus(batchId):
     print("Job Status: <tt>%s</tt><p>" % status)
 
     if not errorState:
-        print("<small>This page will refresh every 10 seconds</small>")
+        print("<p><small>This page will refresh every 10 seconds</small><br>")
+        print("<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>." % contactEmail)
 
 def readVarDbs(db):
     """ find all possible variant VCFs and return as list of (shortLabel, fname, label, hasAF) 
@@ -5042,22 +5074,22 @@ def findBestMatch(genome, seq):
     """ find best match for input sequence from batchId in genome and return as
     a string "chrom:start-end:strand or None if not found "
     """
-    if genome=="noGenome":
+    if genome=="noGenome" or clusterJob:
         return None, None, None, None
 
     # write seq to tmp file
-    tmpFaFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".fa")
+    tmpFaFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".fa")
     tmpFaFh.write(">tmp\n%s" % seq)
     tmpFaFh.flush()
     logging.debug("seq: %s" % open(tmpFaFh.name).read())
     faFname = tmpFaFh.name
 
     # create temp SAM file
-    tmpSamFh = tempfile.NamedTemporaryFile(prefix="crisporBestMatch", suffix=".sam")
+    tmpSamFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".sam")
     samFname = tmpSamFh.name
 
-    genomeDir = genomesDir # make local var
-    cmd = "$BIN/bwa bwasw -T 20 %(genomeDir)s/%(genome)s/%(genome)s.fa %(faFname)s > %(samFname)s" % locals()
+    bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
+    cmd = "$BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
@@ -5724,12 +5756,13 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
 
     if not cpf1Mode:
-        print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print "<h3 id='ciona'>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
         print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
             ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
             ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
         ]
+        printPrimerTable(ciPrimers)
 
     print "<h3 id='gibson'>Cloning with Gibson assembly into pLenti-puro</h3>"
     print ("""Order the following oligonucleotide to clone with Gibson assemly into the vector <a href='https://www.addgene.org/52963/'>pLenti-puro</a>. The exact protocol for this is in preparation by Matt Canver.""")
@@ -6025,6 +6058,9 @@ def runQueueWorker():
 
     q = JobQueue()
     print("Job queue: %s" % JOBQUEUEDB)
+
+    global doAbort
+    doAbort = False
 
     while True:
         if q.waitCount()==0:

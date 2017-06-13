@@ -1,0 +1,2 @@
+#!/bin/sh
+echo 'select * from queue;' | sqlite3 /tmp/crisporJobs.db  -separator $'\t' | less
