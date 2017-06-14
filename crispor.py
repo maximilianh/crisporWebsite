@@ -3784,6 +3784,11 @@ def crisprSearch(params):
 
     setupPamInfo(pam)
 
+    if cpf1Mode and org=="noGenome":
+        errAbort("You selected no genome, so only efficiency scoring is active. "
+           "You also selected the enzyme Cpf1 or a derivative. "
+           "However, this does not work, because no efficiency score has been published yet for Cpf1.")
+
     # check if minFreq was specified
     minFreq = params.get("minFreq", "0.0")
     try:
