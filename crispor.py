@@ -1073,11 +1073,14 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
         elif dbInfo.server=="EnsemblProtists":
             baseUrl = "protists.ensembl.org"
         org = dbInfo.scientificName.replace(" ", "_")
+        pos = pos.replace(":+","").replace(":-","") # remove the strand
         url = "http://%s/%s/Location/View?r=%s" % (baseUrl, org, pos)
     elif dbInfo.server=="ucsc":
         urlLabel = "UCSC"
         if pos[0].isdigit():
             pos = "chr"+pos
+        # remove the strand 
+        pos = pos.replace(":+","").replace(":-","")
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
     # some limited support for gbrowse
     elif dbInfo.server.startswith("http://"):
@@ -3695,7 +3698,6 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
                 altAll = ",".join(altAlls)
             if varId != ".":
                 attribs["varId"] = varId
-        #infoDict["dbg"] = "%s:rel=%d:abs=%s:%s->%s" % (chrom, relPos, varPos, refAll, altAll)
             varInfo = (chrom, varPos, refAll, altAll, attribs)
             varDict[relPos].append(varInfo)
 
