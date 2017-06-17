@@ -12,7 +12,7 @@ import traceback, json, pwd, pickle
 
 from datetime import datetime
 from collections import defaultdict, namedtuple, OrderedDict
-from os.path import join, isfile, basename, dirname, isdir, abspath
+from os.path import join, isfile, basename, dirname, isdir, abspath, relpath
 from StringIO import StringIO
 from itertools import product
 
@@ -73,7 +73,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.2"
+versionStr = "4.3"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -324,6 +324,17 @@ scoreDescs = {
 # the headers for the guide and offtarget output files
 guideHeaders = ["guideId", "targetSeq", "mitSpecScore", "offtargetCount", "targetGenomeGeneLocus"]
 offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchPos", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "strand", "locusDesc"]
+
+# library descriptions
+libLabels = [
+    # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4486245/
+    ("human_brunello" , "Human, Brunello, Doench Nat Bio 2016 (recommended)"),
+    ("human_avana" , "Human, Avana, Doench Nat Bio 2016"),
+    ("human_geckov2" , "Human, GeCKO V2, Sanjana Nat Meth 2014"),
+    ("mouse_brie" , "Mouse, Brie, Doench Nat Bio 2016 (recommended)"),
+    ("mouse_geckov2" , "Mouse, GeCKO V2, Sanjana Nat Meth 2014"),
+    ("mouse_asiago" , "Mouse, Asiago, Doench Nat Bio 2016"),
+]
 
 # a file crispor.conf in the directory of the script allows to override any global variable
 myDir = dirname(__file__)
@@ -596,15 +607,16 @@ def errAbort(msg):
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
 # and +
-notOkChars = re.compile(r'[^+a-zA-Z0-9:_.-]')
+notOkChars = re.compile(r'[^+a-zA-Z0-9:\n\r_. -]')
 
-def checkVal(key, str):
+def checkVal(key, inStr):
     """ remove special characters from input string, to protect against injection attacks """
-    if len(str) > 10000:
+    if len(inStr) > 10000:
 	errAbort("input parameter %s is too long" % key)
-    if notOkChars.search(str)!=None:
-	errAbort("input parameter %s contains an invalid character" % key)
-    return str
+    matchObj =notOkChars.search(inStr)
+    if matchObj!=None:
+	errAbort("input parameter %s contains an invalid character %s (ASCII %d)" % (key, repr(matchObj.group()), ord(matchObj.group())))
+    return inStr
 
 def cgiGetParams():
     " get CGI parameters and return as dict "
@@ -962,7 +974,7 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
             print("""&nbsp; Min. frequency: """)
             print("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq)
         print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
-        print("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can add it.</a></small>" % contactEmail)
+        print("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can probably add it.</a></small>" % contactEmail)
 
     if position=="?":
         print("<small style=''>Input sequence not in genome, cannot show genome variants.</small>")
@@ -1732,15 +1744,15 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
 def printDownloadTableLinks(batchId, addTsv=False):
     print '<div id="downloads" style="text-align:right">'
     print "<small>Excel tables: ",
-    print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;' % batchId,
-    print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>' % batchId,
-    print('<a href="crispor.py?batchId=%s&satMut=1">Saturation-mutagenesis</a></small><br>' % batchId)
+    print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;/&nbsp;' % batchId,
+    print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>&nbsp;/&nbsp;' % batchId,
+    print('<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis</a></small><br>' % batchId)
     #print "<small>Plasmid Editor: ",
     #print '<a href="crispor.py?batchId=%s&download=genbank">Guides</a></small>' % batchId,
 
     if addTsv:
         print "<small>Tab-sep format: ",
-        print '<a href="crispor.py?batchId=%s&download=guides&format=tsv">Guides</a>&nbsp;' % batchId,
+        print '<a href="crispor.py?batchId=%s&download=guides&format=tsv">Guides</a>&nbsp;/&nbsp;' % batchId,
         print '<a href="crispor.py?batchId=%s&download=offtargets&format=tsv">Off-targets</a></small>' % batchId,
 
     print '</div>'
@@ -3102,6 +3114,8 @@ def lineFileNext(fh):
         strips "#"-prefix from header line
     """
     line1 = fh.readline()
+    while line1.startswith("##"):
+        line1 = fh.readline()
     line1 = line1.strip("\n").strip("#")
     headers = line1.split("\t")
     Record = namedtuple('tsvRec', headers)
@@ -3235,7 +3249,7 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!-- <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturation-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br> -->
+<!-- <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturating-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br> -->
 </div>
 
 
@@ -3252,7 +3266,7 @@ def printForm(params):
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
 
-<br><i>New version V4.2, Apr 2017: Genome variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New version V4.3, June 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3262,6 +3276,8 @@ def printForm(params):
             Step 1
         </div>
             
+        Planning a lentiviral screen? Use <a href="crispor.py?libDesign=1">CRISPOR Batch</a><br>
+
         Sequence name (optional): <input type="text" name="name" size="20" value="%s"><br>
 
         Enter a single genomic sequence, &lt; %d bp, typically an exon
@@ -3695,7 +3711,6 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
                 relPos = seqLen - relPos - len(refAll)
                 refAll = revComp(refAll)
                 altAlls = []
-                print "XX2", altAll
                 for altAll in altAll.split(","):
                     altAlls.append(revComp(altAll))
                 altAll = ",".join(altAlls)
@@ -4385,12 +4400,11 @@ def writeHttpAttachmentHeader(fname):
     print 'Content-Disposition: attachment; filename="%s"' % (fname)
     print "" # = end of http headers
 
-def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
-    " write saturation mutagenesis table of all guides, scores, primers and amplicons around them to outFh "
-    seq, org, pam, position, guideData = readBatchAndGuides(batchId)
-
+def buildPoolOptions(barcodeId):
+    " return a list of pool settings and a dictionary with pool options "
     barcodeDict = dict(satMutBarcodes)
     barcodeLabel = barcodeDict[barcodeId]
+
     if int(barcodeId)==0:
         barcodePre, barcodePost = "", ""
     else:
@@ -4416,9 +4430,20 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
 
     primerFwPrefix = 'TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG'
     primerRevPrefix = 'GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG'
-    #primerRevPrefix = 'GTCTCGTGGGCTCGG'
 
-    satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
+    satMutOpt = [fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix]
+
+    return satMutOpt, optFields
+
+def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
+    " write saturating mutagenesis table of all guides, scores, primers and amplicons around them to outFh "
+    seq, org, pam, position, guideData = readBatchAndGuides(batchId)
+
+    satMutOpt, optFields = buildPoolOptions(barcodeId)
+    satMutOpt.extend( [batchId, org, position, ampLen, tm] )
+
+    #satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
+
     guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
     xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, optFields=optFields)
 
@@ -4863,7 +4888,7 @@ def printSatMutPage(params):
 
     printBackLink()
 
-    print "<h3>Oligonucleotides for a Lentiviral Saturation Mutagenesis Screen</h3>"
+    print "<h3>Oligonucleotides for a Lentiviral Saturating Mutagenesis Screen</h3>"
     print("""
     <p>This page allows you to download the complete list of all guides in your input sequence in a format ready for ordering a custom oligonucleotide pool and for cloning into the plasmid Lentiguide-puro. <br> You can use Excel filters or command line programs like AWK to filter the list of oligos below for only
 the guides with certain specificity or efficiency scores, e.g. to include only guides with a specificy score > 50.</p>
@@ -4887,14 +4912,14 @@ can be selectively amplified from the pool.<br>
     print "</p>"
 
     outTypes = [
-        ("satMut", "Saturation mutagenesis screen oligonucleotides"),
+        ("satMut", "saturating mutagenesis screen oligonucleotides"),
         ("targetSeqs", "Selection Analysis: guide sequences (CrispressoCount)"),
         ("ontargetPrimers", "On-target sequencing: PCR primers, one pair for each guide target"),
         ("ontargetAmplicons", "Cleavage Validation/Analysis: PCR Amplicons and guide sequence (CrispressoPooled)")
     ]
 
     print("<p><strong>Output file:</strong><ul>")
-    print("<li>Saturation Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Oligonucleotide Array Supplier")
+    print("<li>Saturating Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Oligonucleotide Array Supplier")
     print("<li>Selection Analysis: the list of all guide target sequences in the input sequence, to quantify guides after selection, e.g. for CrispressoCount.</li>")
     print("<li>On-target sequencing primers: one forward and one reverse primer for every target in the input sequence.</li>")
     print("<li>Cleavage Analysis: for each guide (and the pair of primers), a table with the PCR amplicon sequence and the guide, e.g. for CrispressoPooled, to quantify DNA cleavage of a given guide.</ul>")
@@ -4924,6 +4949,246 @@ can be selectively amplified from the pool.<br>
     </form>
     """)
 
+def printLibForm(params):
+    """
+    """
+    sampleGenes = "PITX2\nMTOR\nTP53\nABO\n3661\nNM_134261"
+    print("""<form id="libForm" action="%s" method="POST">""" % basename(__file__))
+
+    #print("Organism: ")
+    #printDropDown("org", [("human", "Human"),("mouse", "Mouse")], "human")
+    #print("<br>")
+
+    url = "crispor.py"
+    print("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url)
+
+    print("<h2>CRISPOR Batch: Paste a list of genes to download a list of pre-computed guides</h2>")
+
+    print("Note: if you are planning a saturating mutagenesis screen, e.g. of a non-coding sequence, this is not the right tool. Submit your sequence on the normal <a href='crispor.py'>CRISPOR</a> page, then use the link 'Saturating mutagenesis' at the top of the guide table to get oligonucleotides of all guides in the input sequence.")
+
+    print("Both tools are best used in conjunction with our wet-lab <a href='http://biorxiv.org/content/early/2017/04/07/125245'>protocol</a><p>")
+
+    print("<strong>Lentiviral screen library:</strong>")
+    printDropDown("libName", libLabels, "geckov2")
+    print("<br>")
+
+    print("<strong>Number of guides per gene:</strong> ")
+    printDropDown("guideCount", [(1,1), (2,2), (3,3), (4,4), (5,5), (6,6)], "3")
+    print("<br>")
+
+    print("<strong>Number of non-targeting control guides: </strong>")
+    print("""<input id="ctrlCount" type="text" size="5" name="ctrlCount" value="10" />""")
+    print("<br>")
+
+    print("<strong>Subpool barcode: </strong>")
+    printDropDown("barcode", satMutBarcodes, "1")
+    print("<p>")
+
+    print("""
+    Enter a list of gene symbols, Entrez Gene IDs or Refseq IDs, one per line:<br>
+    <small>You may need to <a href='https://discover.nci.nih.gov/matchminer/MatchMinerLookup.jsp'>convert old symbols</a>.</small>
+    <small>Type 'all' below to get all guides in the library and no gene filtering</small>
+    <textarea tabindex="1" style="width:100%%" name="geneIds" rows="25" \
+    placeholder="Paste a list of gene symbols here">%s</textarea><p>""" % sampleGenes)
+
+    print("""<input id="submitGenes" type="submit" name="submit" value="Submit">""")
+    #print('<input type="hidden" name="libDesign" value="1">')
+    print("""</form>""")
+
+def getControls(org):
+    " return controls as a list "
+    dbFname = "screenData/%s_controls.sqlite" % (org)
+    conn = sqlite3.Connection(dbFname)
+    cur = conn.cursor()
+    sql = "SELECT guideSeq from guides"
+    try:
+        cur.execute(sql)
+    except sqlite3.OperationalError:
+        errAbort("Cannot open the file %s" % dbFname)
+
+    rows = cur.fetchall()
+    guideList = []
+    for guideSeq in rows:
+        guideList.append(guideSeq[0])
+    return guideList
+
+def getLibGuides(org, libName, geneIdStr):
+    " return a dict with geneId -> list of guide sequences "
+    dbFname = "screenData/%s.sqlite" % (libName)
+    conn = sqlite3.Connection(dbFname)
+    cur = conn.cursor()
+
+    guideData = defaultdict(list) # geneId -> guideRows
+    orderedGenes = [] # ordered list of guideIds in guideData
+    inSearchIds = geneIdStr.split("\n")
+    notFoundGenes = []
+    for inId in inSearchIds:
+        inId = inId.strip().split()[0]
+        if inId.lower()=="all":
+            sql = "SELECT geneSym, entrezId, refseqId, guideSeq, pam from guides"
+            try:
+                cur.execute(sql)
+            except sqlite3.OperationalError:
+                errAbort("Cannot open the file %s" % dbFname)
+        else:
+            if inId.isdigit():
+                searchField = "entrezId"
+            elif inId.startswith("NM_"):
+                searchField = "refseqId"
+            else:
+                searchField = "geneSym"
+
+            sql = "SELECT geneSym, entrezId, refseqId, guideSeq, pam from guides WHERE %s = ?" % searchField
+            try:
+                cur.execute(sql, (inId,))
+            except sqlite3.OperationalError:
+                errAbort("Cannot open the file %s" % dbFname)
+
+        rows = cur.fetchall()
+
+        if len(rows)==0:
+            notFoundGenes.append(inId)
+            continue
+
+        # reformat to dict gene -> seq
+        doneGenes = set()
+        for geneSym, entrezId, refseqId, guideSeq, pam in rows:
+            guideData[geneSym].append( (entrezId, refseqId, guideSeq, pam) )
+            if geneSym not in doneGenes:
+                orderedGenes.append(geneSym)
+                doneGenes.add(geneSym)
+
+    return guideData, orderedGenes, notFoundGenes
+
+def createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount):
+    " write a table with lenti lib guides and oligos to temp/lenti/ and return its filename"
+
+    hasher = hashlib.sha1(geneIdStr+str(guideCount)+org+libName+str(barcodeId)+str(controlCount))
+    lentiJobId = base64.urlsafe_b64encode(hasher.digest()[0:20]).translate(transTab)[:20]
+
+    outFname = join(lentiTemp, lentiJobId+".tsv")
+
+    if isfile(outFname) and not DEBUG:
+        return outFname
+
+    ofh = open(outFname, "w")
+
+    ofh.write("## CRISPOR %s library extractor\n" % versionStr)
+    ofh.write("## Organism\t%s\n" % org)
+    ofh.write("## Library\t%s\n" % libName)
+    ofh.write("## Number of guides per gene\t%d\n" % guideCount)
+
+    barcodeDict = dict(satMutBarcodes)
+    satMutOpt, optFields = buildPoolOptions(barcodeId)
+    oligoPrefix, oligoSuffix = satMutOpt[:2]
+
+    for label, val in optFields.iteritems():
+        ofh.write("## %s\t%s\n" % (label, val))
+
+    guideData, orderedGenes, notFoundGenes = getLibGuides(org, libName, geneIdStr)
+    ofh.write("## Not found genes\t%s\n" % ", ".join(notFoundGenes))
+
+    ofh.write("guideId\tentrezId\trefseqId\tguideSeq\toligoSeq\tpam\n")
+
+    for geneSym in orderedGenes:
+        guideRows = guideData[geneSym]
+        for guideId, (entrezId, refseqId, guideSeq, pam) in enumerate(guideRows):
+            row = ["%s_%d" % (geneSym, guideId+1), str(entrezId), refseqId,
+                guideSeq, "%s%s%s" % (oligoPrefix, guideSeq, oligoSuffix), pam]
+            ofh.write("\t".join(row))
+            ofh.write("\n")
+            
+            if guideId+1 >= guideCount:
+                break
+
+    ctrls = getControls(org)
+    for ctrlId, guideSeq in enumerate(ctrls[:controlCount]):
+        row = ["control_%d" % (ctrlId), "", "", guideSeq, "%s%s%s" % (oligoPrefix, guideSeq, oligoSuffix), ""]
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+        
+    ofh.close()
+
+    return ofh.name
+
+def printLibGuides(params):
+    """
+    print a table with the guides we have on file for a list of gene IDs
+    """
+    lentiTemp = join(batchDir, "lenti")
+    if not isdir(lentiTemp):
+        os.makedirs(lentiTemp)
+    
+    geneIdStr = cgiGetStr(params, "geneIds", "").strip()
+    guideCount = cgiGetNum(params, "guideCount", 3)
+    #org = cgiGetStr(params, "org", "human")
+    libName = cgiGetStr(params, "libName", "geckov2")
+    barcodeId = cgiGetNum(params, "barcode", 1)
+    org = libName.split("_")[0]
+    controlCount = cgiGetNum(params, "ctrlCount", 10)
+
+    # need to check libName, as it's used to open a file
+    validNames = dict(libLabels)
+    if libName not in validNames:
+        errAbort("Invalid library name")
+
+    tabFname = createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount)
+
+    for line in open(tabFname):
+        if "Not found genes" in line:
+            notFoundGenes = line.strip("\n").split("\t")[1].split(",")
+
+    url = "crispor.py?libDesign=1"
+    print("<p><a href='%s'>&larr; return to the CRISPOR Batch input page</a></p>" % url)
+
+    #print("Organism: %s<br>" % org)
+    libLabel = dict(libLabels)[libName].split("(")[0] # strip the 'recommended' note
+    print("<strong>Library:</strong> %s<br>" % libLabel)
+    print("<strong>Number of guides per gene:</strong> %d<br>" % guideCount)
+    print("<strong>Number of non-targeting controls:</strong> %d (all controls are from the GeCKOV2 library)<br> " % controlCount)
+
+    barcodeDict = dict(satMutBarcodes)
+    satMutOpt, optFields = buildPoolOptions(barcodeId)
+    oligoPrefix, oligoSuffix = satMutOpt[:2]
+
+    for label, val in optFields.iteritems():
+        print("<strong>%s:</strong> %s<br>\n" % (label, val))
+    print("<p>")
+
+    print("For details on these sequences, see our <a href='http://biorxiv.org/content/early/2017/04/07/125245'>protocol</a><p>")
+
+    if len(notFoundGenes)!=0 and notFoundGenes!=[""]:
+        print("Input gene identifiers that were not found: %s<p>" % ",".join(notFoundGenes))
+
+    print("<a href='%s'>Download table</a><p>" % relpath(tabFname, dirname(abspath(__file__))))
+
+    print('<table class="libTable">')
+    print("<tr><th style='width:10em'>ID of guide</th>")
+    print("<th style='width:10em'>Target Entrez ID</th>")
+    print("<th style='width:10em'>Target Refseq ID</th>")
+    print("<th style='width:14em'>Guide RNA<br>(click to show in CRISPOR)</th>")
+    print("<th style='width:40em'>Full oligonucleotide including guide RNA</th>")
+    print("</tr>")
+
+    genomeDbs = {
+        "human" : "hg19",
+        "mouse" : "mm10"
+    }
+    genomeDb = genomeDbs.get(org)
+
+    for row in lineFileNext(open(tabFname)):
+        print('<tr>')
+        print('<td>%s</td>' % (row.guideId))
+        print('<td>%s</td>' % (row.entrezId))
+        print('<td>%s</td>' % (row.refseqId))
+        if row.pam!="":
+            print('<td><tt><a target=_blank href="crispor.py?org=%s&seq=%s&pam=NGG">%s</a></tt></td>' % (genomeDb, row.guideSeq+row.pam, row.guideSeq))
+        else:
+            print('<td><tt>%s</tt></td>' % row.guideSeq)
+        print('<td><tt>%s</tt></td>' % (row.oligoSeq))
+        print('</tr>')
+    print('</table>')
+
 def printBody(params):
     " main dispatcher function "
 
@@ -4945,6 +5210,12 @@ def printBody(params):
          "batchId" in params:
         printCrisporBodyStart()
         crisprSearch(params)
+    elif "libDesign" in params:
+        printCrisporBodyStart()
+        printLibForm(params)
+    elif "geneIds" in params:
+        printCrisporBodyStart()
+        printLibGuides(params)
     else:
         errAbort("Unrecognized CGI parameters.")
 
@@ -5764,8 +6035,14 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         ]
         printPrimerTable(ciPrimers)
 
-    print "<h3 id='gibson'>Cloning with Gibson assembly into pLenti-puro</h3>"
-    print ("""Order the following oligonucleotide to clone with Gibson assemly into the vector <a href='https://www.addgene.org/52963/'>pLenti-puro</a>. The exact protocol for this is in preparation by Matt Canver.""")
+    print "<h3 id='gibson'>Lentiviral vectors: cloning with Gibson assembly</h3>"
+    print ("""Order the following oligonucleotide to clone with Gibson assembly into the vector <a href='https://www.addgene.org/52963/'>pLentiGuide-puro</a>. See the <a href="http://biorxiv.org/content/early/2017/04/07/125245">protocol by Matt Canver</a>.<br>""")
+    print ("""To clone with restriction enzymes into this vector, see the section <a href="#u6plasmid">U6 expression from an AddGene plasmid</a> and choose pLentiGuide-puro from the list of AddGene plasmids.<br>""")
+
+    satMutUrl = cgiGetSelfUrl({"satMut":"1"}, onlyParams=["batchId"])
+    print ("""If you use lentiviral vectors, you may be interested in our tools for <a href="%s">saturating mutagenesis</a>"""
+    """ and for <a href="crispor.py?libDesign=1">gene knockout libraries</a>."""  % satMutUrl)
+
     lentiPrimers = [
         ("batchOligo%s" % primerGuideName, "<i>GGAAAGGACGAAACACCG</i>"+guideSeq+"<i>GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGC</i>"),
     ]
@@ -5815,6 +6092,15 @@ def primerDetailsPage(params):
             border-color: #DDDDDD;
             border-collapse: collapse;
         }
+
+        table.libTable td {
+            border-width: 1px;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        table.libTable td {
+            border-color: #DDDDDD;
+        }
     </style>
     """
 
@@ -5833,12 +6119,13 @@ def primerDetailsPage(params):
     print("<ul><li><a href='#t7oligo'>T7 <i>in vitro</i> expression from overlapping oligonucleotides</a></li></ul>")
     print("<ul><li><a href='#u6plasmid'>U6 expression from an Addgene plasmid</a></li></ul>")
     print("<ul><li><a href='#ciona'>Direct PCR for <i>C. intestinalis</i></a></li></ul>")
-    print("<ul><li><a href='#gibson'>Cloning with Gibson assembly into pLenti-puro</a></li></ul>")
+    print("<ul><li><a href='#gibson'>Lentiviral vectors: Cloning with Gibson assembly</a></li></ul>")
     print("<ul><li><a href='#primerSummary'>Summary of main cloning/expression primers</a></li></ul>")
     print("<li><a href='#ontargetPcr'>PCR to amplify on-target sites</a></li>")
     if len(mutEnzymes)!=0:
         print("<li><a href='#restrSites'>Restriction sites for PCR validation</a></li>")
     print("<li><a href='#offtargetPcr'>PCR to amplify off-target sites</a></li>")
+    print("<li><a href='#satMut'>Saturating mutagenesis using all guides</a></li>")
     print("</ul>")
     print("<hr>")
 
@@ -5856,6 +6143,10 @@ def primerDetailsPage(params):
     print("<h2 id='offtargetPcr'>PCR to amplify off-target sites</h2>")
     offtUrl = cgiGetSelfUrl({"otPrimers":"1"}, onlyParams=["batchId", "pamId"])
     print("<p>Primers for all off-targets can be downloaded from the <a href='%s'>Off-target PCR</a> page.</p>" % offtUrl)
+
+    print("<h2 id='satMut'>Saturating mutagenesis using all guides</h2>")
+    satMutUrl = cgiGetSelfUrl({"satMut":"1"}, onlyParams=["batchId"])
+    print("<p>Oligonucleotides of all guides for cloning into a lentiviral vector can be downloaded from the <a href='%s'>Saturating mutagenesis page</a>.</p>" % satMutUrl)
 
     print "<hr>"
 
@@ -5991,7 +6282,7 @@ Command line interface for the Crispor tool.
     parser.add_option("", "--ampliconDir", dest="ampDir", \
         action="store", help="For each guide, write a file with the off-target amplicons to this directory. Filename is <seqId>_<pamId>.txt")
     parser.add_option("", "--satMutDir", dest="satMutDir", \
-        action="store", help="write saturation mutagenesis files to this directory, one per input sequence: ontargetAmplicons.tsv, satMutOligos.tsv, ontargetPrimers.tsv and targetSeqs.txt")
+        action="store", help="write saturating mutagenesis files to this directory, one per input sequence: ontargetAmplicons.tsv, satMutOligos.tsv, ontargetPrimers.tsv and targetSeqs.txt")
     #parser.add_option("", "--ontargetPrimers", dest="ontargetPrimers", \
         #action="store", help="write on-target primers and amplicons, one per guide, to this tab-sep file")
     parser.add_option("", "--ampLen", dest="ampLen", type="int", default=140, \
@@ -6276,7 +6567,7 @@ def mainCommandLine():
         if options.satMutDir:
             satMutFname = join(options.satMutDir, seqId+"_satMutOligos.tsv")
             smFh = open(satMutFname, "w")
-            logging.info("Writing saturation mutagenesis oligos to %s" % satMutFname)
+            logging.info("Writing saturating mutagenesis oligos to %s" % satMutFname)
             writeSatMutFile(0, options.ampLen, options.tm, batchId, "tsv", smFh)
 
             primerFname = join(options.satMutDir, seqId+"_ontargetPrimers.tsv")

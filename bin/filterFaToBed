@@ -85,7 +85,7 @@ def calcHitScore(string1,string2):
 # END ---- MIT offtarget scoring
 
 def patMatch(seq, pat):
-    " return true if pat does not match seq, both have to be same length "
+    " return true if pat matches seq, both have to be same length "
     assert(len(seq)==len(pat))
     for x in range(0, len(pat)):
         patChar = pat[x]

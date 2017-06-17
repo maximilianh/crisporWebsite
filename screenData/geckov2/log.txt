@@ -1,0 +1,21 @@
+ 
+csvformat -T Human_GeCKOv2_Library_A_09Mar2015.csv.gz | cut -f1,3 | sed -e 's/NonTargetingControlGuideForHuman_[0-9]*/control/g' | grep -v gene_id > HumanLibA.tsv
+csvformat -T Human_GeCKOv2_Library_B_09Mar2015.csv.gz | cut -f1,3 | sed -e 's/NonTargetingControlGuideForHuman_[0-9]*/control/g' | grep -v gene_id > HumanLibB.tsv
+cat HumanLibA.tsv HumanLibB.tsv | grep -v gene_id | sort > Human_GeCKOv2.tsv
+
+echo 'create table guides (geneId text, guideSeq text);' | sqlite3 human_geckov2.sqlite
+echo -e '.mode tabs\n.import Human_GeCKOv2.tsv guides\n' | sqlite3 human_geckov2.sqlite 
+echo 'CREATE INDEX index_name ON guides (geneId);' | sqlite3 human_geckov2.sqlite
+
+csvformat -T Mouse_GeCKOv2_Library_A_09Mar2015.csv.gz | cut -f1,3 | sed -e 's/NonTargetingControlGuideForMouse_[0-9]*/control/g' | grep -v gene_id > MouseLibA.tsv
+csvformat -T Mouse_GeCKOv2_Library_B_09Mar2015.csv.gz | cut -f1,3 | sed -e 's/NonTargetingControlGuideForMouse_[0-9]*/control/g' | grep -v gene_id > MouseLibB.tsv
+cat MouseLibA.tsv MouseLibB.tsv | grep -v gene_id | sort > Mouse_GeCKOv2.tsv
+
+
+echo 'create table guides (geneId text, guideSeq text);' | sqlite3 mouse_geckov2.sqlite
+echo -e '.mode tabs\n.import Mouse_GeCKOv2.tsv guides\n' | sqlite3 mouse_geckov2.sqlite 
+echo 'CREATE INDEX index_name ON guides (geneId);' | sqlite3 mouse_geckov2.sqlite
+
+csvformat -T Human_GeCKOv2_Library_A_09Mar2015.csv.gz | cut -f1,3 | sed -e 's/NonTargetingControlGuideForHuman_[0-9]*/control/g' > HumanLibA.tsv
+crisprConvScreen Mouse_GeCKOv2.tsv mouse_geckov2.sqlite -g none -c mouse_controls.sqlite
+crisprConvScreen Human_GeCKOv2.tsv human_geckov2.sqlite -c human_controls.sqlite

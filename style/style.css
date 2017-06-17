@@ -93,28 +93,6 @@ div.networking_panel_horizontal
     box-shadow:         0 0 15px 3px rgba(47, 129, 203, 0.1);
     -webkit-box-shadow: 0 0 15px 3px rgba(47, 129, 203, 0.1);
 }
-div.networking_panel
-{
-    float:right;
-    display:inline-box;
-    position:fixed;
-    right:2.5%;
-    background-color: rgba(300,300,300,0.9);
-    
-    margin:10px;
-    margin-top:0px;
-    margin-left:0px;
-    
-    padding:10px;
-    padding-left:5px;
-    padding-right:5px;
-    
-    border-radius:5px;
-    
-    -moz-box-shadow:    0 0 15px 3px rgba(47, 129, 203, 0.1);
-    box-shadow:         0 0 15px 3px rgba(47, 129, 203, 0.1);
-    -webkit-box-shadow: 0 0 15px 3px rgba(47, 129, 203, 0.1);
-}
 @media screen and (max-width: 1300px)
 {
     div.networking_panel
