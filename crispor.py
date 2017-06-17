@@ -262,12 +262,12 @@ addGenePlasmidsAureus = [
 ]
 
 # list of AddGene primer 5' and 3' extensions, one for each AddGene plasmid
-# format: prefixFw, prefixRw, suffix, restriction enzyme, link to protocol
+# format: prefixFw, prefixRw, u6-G-suffix, restriction enzyme, link to protocol
 addGenePlasmidInfo = {
 "43860" : ("ACACC", "AAAAC", "G", "BsmBI", "https://www.addgene.org/static/data/plasmids/43/43860/43860-attachment_T35tt6ebKxov.pdf"),
 "49330" : ("TTC", "AAC", "", "Bsp QI", "http://bio.biologists.org/content/3/1/42#sec-9"),
 "42230" : ("CACC", "AAAC", "", "Bbs1", "https://www.addgene.org/static/data/plasmids/52/52961/52961-attachment_B3xTwla0bkYD.pdf"),
-"52961" : ("CACC", "AAAC", "", "Bbs1", "https://www.addgene.org/static/data/plasmids/52/52961/52961-attachment_B3xTwla0bkYD.pdf"),
+"52961" : ("CACC", "AAAC", "G", "BsmBI", "https://www.addgene.org/static/data/plasmids/52/52961/52961-attachment_B3xTwla0bkYD.pdf"),
 "61591" : ("CACC", "AAAC", "", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61591/61591-attachment_it03kn5x5O6E.pdf"),
 "61592" : ("CACC", "AAAC", "", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61592/61592-attachment_iAbvIKnbqNRO.pdf"),
 "61593" : ("CACC", "AAAC", "", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61592/61592-attachment_iAbvIKnbqNRO.pdf"),
@@ -1089,18 +1089,28 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
     if dbInfo.server.startswith("Ensembl"):
         baseUrl = "www.ensembl.org"
         urlLabel = "Ensembl"
-        if dbInfo.server=="EnsemblPlants":
+
+        # link back to archive, if possible
+        if dbInfo.description.startswith("Ensembl "):
+            ensVersion = dbInfo.description.split()[1]
+            if ensVersion.isdigit():
+                baseUrl = "e%s.ensembl.org" % ensVersion
+
+        elif dbInfo.server=="EnsemblPlants":
             baseUrl = "plants.ensembl.org"
         elif dbInfo.server=="EnsemblMetazoa":
             baseUrl = "metazoa.ensembl.org"
         elif dbInfo.server=="EnsemblProtists":
             baseUrl = "protists.ensembl.org"
         org = dbInfo.scientificName.replace(" ", "_")
+        pos = pos.replace(":+","").replace(":-","") # remove the strand
         url = "http://%s/%s/Location/View?r=%s" % (baseUrl, org, pos)
     elif dbInfo.server=="ucsc":
         urlLabel = "UCSC"
         if pos[0].isdigit():
             pos = "chr"+pos
+        # remove the strand 
+        pos = pos.replace(":+","").replace(":-","")
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
     # some limited support for gbrowse
     elif dbInfo.server.startswith("http://"):
@@ -1109,9 +1119,17 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
         start = start+1
         url = "%s/?name=%s:%d..%d" % (dbInfo.server, chrom, start, end)
     else:
-        #return "unknown genome browser server %s, please email services@tefor.net" % dbInfo.server
-        urlLabel = None
-        url = "javascript:void(0)"
+        chrom, start, end, strand = parsePos(pos)
+        if chrom is not None and chrom.startswith("NC_"):
+            start = start+1
+            url = "https://www.ncbi.nlm.nih.gov/nuccore/%s?report=graph&log$=seqview&v=%d-%d" % \
+            (chrom, start, end)
+            urlLabel = "NCBI "
+
+        else:
+            #return "unknown genome browser server %s, please email services@tefor.net" % dbInfo.server
+            urlLabel = None
+            url = "javascript:void(0)"
 
     classStr = ""
     if len(cssClasses)!=0:
@@ -1937,7 +1955,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
         oofName="Out-of- Frame"
         oofDesc = "Click score for details"
 
-    print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oofScore" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
+    print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
 
     htmlHelp(scoreDescs["oof"][1])
     print "<br><br><small>%s</small>" % oofDesc
@@ -3716,7 +3734,6 @@ def findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq):
                 altAll = ",".join(altAlls)
             if varId != ".":
                 attribs["varId"] = varId
-        #infoDict["dbg"] = "%s:rel=%d:abs=%s:%s->%s" % (chrom, relPos, varPos, refAll, altAll)
             varInfo = (chrom, varPos, refAll, altAll, attribs)
             varDict[relPos].append(varInfo)
 
@@ -3804,6 +3821,11 @@ def crisprSearch(params):
         print ("</script>")
 
     setupPamInfo(pam)
+
+    if cpf1Mode and org=="noGenome":
+        errAbort("You selected no genome, so only efficiency scoring is active. "
+           "You also selected the enzyme Cpf1 or a derivative. "
+           "However, this does not work, because no efficiency score has been published yet for Cpf1.")
 
     # check if minFreq was specified
     minFreq = params.get("minFreq", "0.0")
@@ -4132,7 +4154,7 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
 
     return otRows
 
-def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position, optFields=None):
+def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position, batchId, optFields=None):
     """ given rows, writes a XLS binary stream to outFile, if xlwt is available
     Otherwise writes a tab-sep file.
     colWidths is a list of widths of columns, in Arial characters.
@@ -4153,14 +4175,20 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         ws.write(2, 1, org)
         ws.write(4, 0, "# Position")
         ws.write(4, 1, position)
+
         ws.write(5, 0, "# Version")
         #http://stackoverflow.com/questions/4530069/python-how-to-get-a-value-of-datetime-today-that-is-timezone-aware
         FORMAT='%Y-%m-%dT%H:%M:%S%Z'
         dateStr=time.strftime(FORMAT, time.localtime())
-
         ws.write(5, 1, "CRISPOR %s, %s" % (versionStr, dateStr))
 
-        curRow = 6
+        ws.write(6, 0, "# Results")
+        url = "http://crispor.org/crispor.py?batchId=%s" % batchId
+        #ws.write(6, 1, xlwt.Formula('HYPERLINK("%s";"Link")' % (url)))
+        ws.write(6, 1, url)
+
+        startRow = 7
+        curRow = startRow
         if optFields is not None:
             for key, val in optFields.iteritems():
                 ws.write(curRow, 0, "# %s" % key)
@@ -4172,7 +4200,7 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         seqCols = [1, 7, 8, 9] # columns with sequences -> fixed width font
 
         for rowCount, row in enumerate(rows):
-            if rowCount==65534:
+            if rowCount==65534-startRow:
                 ws.write(rowCount+skipRows, 0, "WARNING: cannot write more than 65535 rows to an Excel file. Switch to .tsv format to get all off-targets.")
                 break
 
@@ -4445,7 +4473,7 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
     #satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
 
     guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
-    xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, optFields=optFields)
+    xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, batchId, optFields=optFields)
 
 def readBatchAndGuides(batchId):
     " parse the input file, the batchId-json file and the offtargets and link everything together "
@@ -4558,7 +4586,7 @@ def downloadFile(params):
 
     if fileType=="guides":
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat))
-        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position)
+        xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position, batchId)
 
     elif fileType=="offtargets":
         writeHttpAttachmentHeader("offtargets_%s.%s" % (queryDesc, fileFormat))
@@ -4566,7 +4594,7 @@ def downloadFile(params):
         otRows = list(iterOfftargetRows(guideData, addHeaders=True, skipRepetitive=skipRepetitive))
         doReverse = (not cpf1Mode)
         otRows.sort(key=operator.itemgetter(4), reverse=doReverse)
-        xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position)
+        xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position, batchId)
 
     elif fileType=="targetSeqs":
         writeHttpAttachmentHeader("targetSeqs_%s.txt" % (queryDesc))
@@ -6018,7 +6046,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
         print "<br>"
         if "mammCellsNote" in primers:
-            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined. For a full discussion about G- prefixing, see above, under 'overlapping nucleotides'.<br>")
+            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined. For a full discussion about G- prefixing, see the discussion of G-prefixing under <a href='#t7oligo'>overlapping oligonucleotides</a>.<br>")
 
         printPrimerTable(primers["mammCells"])
 
@@ -6676,6 +6704,7 @@ def mainCgi():
     # save seq/org/pam into a cookie, if they were provided
     if "seq" in params and "org" in params and "pam" in params:
         seq, org, pam = params["seq"], params["org"], params["pam"]
+        seq, warnMsg = cleanSeq(seq, org)
         saveSeqOrgPamToCookies(seq, org, pam)
 
     # print headers

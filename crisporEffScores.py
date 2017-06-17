@@ -785,7 +785,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
     scores["chariRank"] = chariScores[1]
 
     logging.debug("OOF scores")
-    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -40, 40))
+    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
     scores["oof"] = oof
     scores["mh"] = mh
 
