@@ -17,5 +17,6 @@ echo -e '.mode tabs\n.import Mouse_GeCKOv2.tsv guides\n' | sqlite3 mouse_geckov2
 echo 'CREATE INDEX index_name ON guides (geneId);' | sqlite3 mouse_geckov2.sqlite
 
 csvformat -T Human_GeCKOv2_Library_A_09Mar2015.csv.gz | cut -f1,3 | sed -e 's/NonTargetingControlGuideForHuman_[0-9]*/control/g' > HumanLibA.tsv
-crisprConvScreen Mouse_GeCKOv2.tsv mouse_geckov2.sqlite -g none -c mouse_controls.sqlite
-crisprConvScreen Human_GeCKOv2.tsv human_geckov2.sqlite -c human_controls.sqlite
+
+../../tools/crisprConvScreen Mouse_GeCKOv2.tsv mouse_geckov2.sqlite -g none -c mouse_controls.sqlite
+../../tools/crisprConvScreen Human_GeCKOv2.tsv human_geckov2.sqlite -c ../human_controls.sqlite -g ../hgnc_complete_set.txt 

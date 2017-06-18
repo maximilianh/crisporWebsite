@@ -7,8 +7,9 @@ in2csv "SuppTables/STable 03 AsiagoLibrary.xlsx" -t | grep -v Barcode | csvcut -
 in2csv "SuppTables/STable 21 Brunello.xlsx" | grep -v Target | csvcut -c 3,2,4,8,10 | csvformat -T > human_brunello.tsv
 in2csv "SuppTables/STable 22 Brie.xlsx" -t | grep -v Target | csvcut -c 2,1,3,7,9 | csvformat -T > mouse_brie.tsv
 in2csv "SuppTables/STable 02 AvanaLibrary.xlsx" > avana.tsv
-../crisprConvScreen human_avana.tsv ../human_avana.sqlite  -g ../hgnc_complete_set.txt 
-#../crisprConvScreen human_brunello.tsv ../human_brunello.sqlite  -g ../hgnc_complete_set.txt 
 in2csv "SuppTables/STable 22 Brie.xlsx" -t | grep -v Target | csvcut -c 2,1,3,7,9 | csvformat -T > mouse_brie.tsv
-../crisprConvScreen mouse_brie.tsv ../mouse_brie.sqlite  -g none
-../crisprConvScreen mouse_asiago.tsv ../mouse_asiago.sqlite  -g none
+
+../../tools/crisprConvScreen human_avana.tsv ../human_avana.sqlite  -g ../hgnc_complete_set.txt 
+../../tools/crisprConvScreen human_brunello.tsv ../human_brunello.sqlite  -g ../hgnc_complete_set.txt 
+../../tools/crisprConvScreen mouse_brie.tsv ../mouse_brie.sqlite  -g none
+../../tools/crisprConvScreen mouse_asiago.tsv ../mouse_asiago.sqlite  -g none
