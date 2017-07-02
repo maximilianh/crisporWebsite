@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import logging, sys, optparse, os, shutil, glob, json, urllib2, subprocess
+import logging, sys, optparse, os, shutil, glob, json, urllib2, subprocess, urllib, gzip
 from collections import namedtuple
 from os.path import *
 
@@ -22,7 +22,7 @@ debugMode = False
 
 ENSGRELEASE = "26"
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta <taxId1> <taxId2> ... - add genome to crispr site
+parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|refseq <taxId1> <taxId2> ... - add genome to crispr site
 
 queries UCSC or ensembl database for all assemblies of genome, 
 takes the newest one, downloads it, indexes it with bwa,
@@ -34,6 +34,12 @@ if mode is "fasta":
 - ! fasta file seq IDs must not include | or other strange characters (fix this in code?)
 - downloads or copies fasta file, indexes it
 - takes genome info from the --desc option
+
+if mode is "ucsc":
+- accepts UCSC db identifiers instead of taxonId
+
+if mode is "refseq":
+- only accepts a single Refseq assembly identifier, e.g. GCF_000203835.1
 
 Example:
 sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
@@ -67,19 +73,48 @@ def runCmd(cmd, mustRun=True):
     if debugMode:
         print cmd
     #cmd = "bash -e -o pipefail -c " + cmd
-    ret = subprocess.call(["/bin/bash", "-e", "-o", "pipefail", cmd.split(" "))
+    args = ["/bin/bash", "-e", "-o", "pipefail", "-c"]
+    args.append(cmd)
+    print args
+    ret = subprocess.call(args)
     if ret!=0 and mustRun:
         print "Could not run command %s" % cmd
         sys.exit(0)
     return ret
     
-def sqlConnect(db, host=None, user=None, passwd=None):
-    """ connect to sql server specified in hg.conf with given db. Like jksql.c. """
-    cfg = parseHgConf()
-    if host==None:
-        host, user, passwd = cfg["db.host"], cfg["db.user"], cfg["db.password"]
-    elif host=="public":
-        host, user, passwd = "genome-mysql.cse.ucsc.edu", "genomep", "password"
+def lineFileNext(fh, skipLines=0):
+    """
+        parses tab-sep file with headers as field names
+        yields collection.namedtuples
+        strips "#"-prefix from header line
+    """
+    for i in range(skipLines):
+        fh.readline()
+    line1 = fh.readline()
+    line1 = line1.strip("\n").strip("#")
+    headers = line1.split("\t")
+    headers = [h.strip() for h in headers]
+    Record = namedtuple('tsvRec', headers)
+   
+    for line in fh:
+        line = line.rstrip("\n")
+        fields = line.split("\t")
+        try:
+            rec = Record(*fields)
+        except Exception, msg:
+            logging.error("Exception occured while parsing line, %s" % msg)
+            logging.error("Filename %s" % fh.name)
+            logging.error("Line was: %s" % repr(line))
+            logging.error("Does number of fields match headers?")
+            logging.error("Headers are: %s" % headers)
+            #raise Exception("wrong field count in line %s" % line)
+            continue
+        # convert fields to correct data type
+        yield rec
+
+def sqlConnect(db):
+    """ connect to ucsc sql server"""
+    host, user, passwd = "genome-mysql.cse.ucsc.edu", "genomep", "password"
     conn = MySQLdb.connect(host=host, user=user, passwd=passwd, db=db)
     return conn
 
@@ -152,7 +187,7 @@ def hConnectCentral():
     if centralHost is None:
         errAbort("Could not find central.host in hg.conf. Installation error.")
 
-    conn = sqlConnect(centralDb, host=centralHost, user=centralUser, passwd=centralPwd)
+    conn = sqlConnect(centralDb)
 
     centralConn = conn
     return conn
@@ -743,6 +778,94 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
 
         writeGenomeInfo(row)
 
+def getRefseqIndex():
+    " return path of local copy of refseq assembly index or download "
+    fname = "/tmp/assembly_summary_refseq.txt"
+    if isfile(fname):
+        return fname
+    url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt"
+    logging.info("Downloading %s" % url)
+    data = urllib2.urlopen(url).read()
+    ofh = open(fname, "w")
+    ofh.write(data)
+    ofh.close()
+    return fname
+
+def getRefseqInfo(acc, options):
+    " get info about assembly via eutils "
+    fname = getRefseqIndex()
+
+    for row in lineFileNext(open(fname), skipLines=1):
+        if row.assembly_accession==acc:
+            #name, scName, commonName, description = descs
+            name = acc
+            # description : mis-nomer, description should be called "version"
+            scName = row.organism_name
+            commonName = row.organism_name
+            description = row.asm_name
+            url = acc
+            server = "refseq"
+            ftpUrl = row.ftp_path
+
+            headers = ["name", "description", "genome", "scientificName", "url", "server"]
+            Rec = namedtuple("genomeDesc", headers)
+            return Rec(name, description, scName, scName, url, server), ftpUrl
+
+    assert(False) # not found
+
+def getRefseqGenome(ftpUrl, genomeInfo, options):
+    " download refseq genome and index it "
+    db = genomeInfo.name
+    dbTmpDir = join(tmpDir, db)
+    if not isdir(dbTmpDir):
+        os.makedirs(dbTmpDir)
+    finalDbDir = join(crisprGenomeDir, db)
+    sizesTmp = join(dbTmpDir, db+".sizes")
+    faTmp = join(dbTmpDir, db+".fa")
+    gffTmp = join(dbTmpDir, db+".gff")
+
+    baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+genomeInfo.description+"_genomic"
+    faFtpUrl = baseFtp + ".fna.gz"
+    printMsg("Downloading genome and uncompressing (for bwa)")
+    cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
+    runCmd(cmd)
+
+    gffFtpUrl = baseFtp + ".gff.gz"
+    printMsg("Downloading gff")
+    cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
+    runCmd(cmd)
+
+    cmd = "gunzip %s.gz" % (gffTmp)
+    runCmd(cmd)
+
+    seqLine = open(faTmp).readline()
+    assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
+
+    printMsg("Converting to 2bit")
+    twoBitTmp = join(dbTmpDir, db+".2bit")
+    cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
+    runCmd(cmd)
+
+    outFnames = []
+
+    printMsg("Making chrom sizes")
+    cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
+    runCmd(cmd)
+
+    gpTmp = join(dbTmpDir, db+".gp")
+    segTmp = join(dbTmpDir, "%s.segments.bed" % db)
+
+    convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, True)
+    outFnames.extend([gpTmp, segTmp])
+
+    indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+
+    outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
+    outFnames.extend([sizesTmp, twoBitTmp])
+    moveToDest(outFnames, finalDbDir)
+
+    writeGenomeInfo(genomeInfo)
+
 # ----------- MAIN --------------
 if args==[]:
     parser.print_help()
@@ -772,6 +895,13 @@ elif site=="ens":
 elif site=="fasta":
     genomeRows = selectManualGenome(taxIds, options)
     getFastaAndGff(genomeRows, options.gffFname, options)
+
+elif site=="refseq":
+    assert(len(taxIds)==1)
+    acc = taxIds[0]
+    genomeInfo, ftpUrl = getRefseqInfo(acc, options)
+    getRefseqGenome(ftpUrl, genomeInfo, options)
+
 else:
     raise Exception("site has to be ucsc or ens")
     

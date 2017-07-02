@@ -73,7 +73,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.3"
+versionStr = "4.4"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -3267,11 +3267,11 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!-- <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Mar 2017: lentiviral saturating-mutagenesis assistant and Genbank sequence export now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.2</a>. Do not hesitate to contact us with feedback.<br> -->
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Batch for genome-wide lentiviral KO screens, saturation-mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
 </div>
 
 
- <div style="text-align:left; margin-left: 50px">
+ <div style="text-align:left; margin-left: 10px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
 
 <span class="introtext">
@@ -3279,7 +3279,7 @@ def printForm(params):
         <img src="%simage/info-small.png" style="vertical-align:text-top;">
     </div>
     <div class="about-us"><br>
-    CRISPOR v3.0 uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
+    CRISPOR v4.0 uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
     It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
