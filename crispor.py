@@ -1716,7 +1716,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
     hasNotFound = False
     pamIdToSeq = {}
 
-    pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat), True))
+    pamSeqs = list(flankSeqIter(seq.upper(), startDict, len(pamPat), True))
 
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
         # matches in genome
@@ -3294,7 +3294,7 @@ def printForm(params):
             Step 1
         </div>
             
-        Planning a lentiviral screen? Use <a href="crispor.py?libDesign=1">CRISPOR Batch</a><br>
+        Planning a lentiviral gene knockout screen? Use <a href="crispor.py?libDesign=1">CRISPOR Batch</a><br>
 
         Sequence name (optional): <input type="text" name="name" size="20" value="%s"><br>
 
@@ -4045,7 +4045,7 @@ def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
     else:
         return guideSeq+pamSeq+pamPlusSeq
 
-def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None):
+def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None):
     "yield rows from guide data. Need to know if for Cpf1 or not "
     headers = list(tuple(guideHeaders)) # make a copy of the list
     for scoreName in scoreNames:
@@ -4074,6 +4074,10 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None):
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+        if minSpec and guideScore < minSpec:
+            continue
+        if minFusi and effScores["fusi"] < minFusi:
+            continue
 
         otCount = 0
         if otData!=None:
@@ -4463,7 +4467,7 @@ def buildPoolOptions(barcodeId):
 
     return satMutOpt, optFields
 
-def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
+def writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat, outFh):
     " write saturating mutagenesis table of all guides, scores, primers and amplicons around them to outFh "
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
@@ -4472,7 +4476,7 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, outFh):
 
     #satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
 
-    guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt)
+    guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt, minSpec=minSpec, minFusi=minFusi)
     xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, batchId, optFields=optFields)
 
 def readBatchAndGuides(batchId):
@@ -4491,11 +4495,10 @@ def readBatchAndGuides(batchId):
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores)
     return seq, org, pam, position, guideData
 
-def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
+def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minFusi=0):
     """ design primers with approx ampLen and tm around each guide's target.
     outType can be "primers" or "amplicons"
     """
-
     inSeq, db, pamPat, position, extSeq = readBatchParams(batchId)
     batchBase = join(batchDir, batchId)
     otBedFname = batchBase+".bed"
@@ -4503,6 +4506,9 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
 
     startDict, endSet = findAllPams(inSeq, pamPat)
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
+
+    allEffScores = readEffScores(batchId)
+    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(inSeq, startDict, pamPat, otMatches, position, allEffScores, sortBy="pos")
 
     if outType=="primers":
         headers = ["#guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence", "guideSequence"]
@@ -4512,14 +4518,18 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
     ofh.write("\t".join(headers))
     ofh.write("\n")
     
-    for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
-        # ? similar to microHomPage
-        #guideSeq, pamSeq, pamPlusSeq, guideSeqWPam, guideStrand, guideSeqHtml, guideStart, guideEnd \
-            #= findGuideSeq(inSeq, pam, pamId)
-        # get guide +- 100 bp
-        #longSeq = getExtSeq(inSeq, guideStart, guideEnd, strand, 100-GUIDELEN, 100, extSeq=extSeq)
+    #for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
+    for guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, \
+            ontargetDesc, subOptMatchCount in guideData:
+
+        if guideScore < minSpec:
+            continue
+        if effScores["fusi"] < minFusi:
+            continue
 
         chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
+        effScores = allEffScores[pamId]
 
         note = ""
         if not isUnique:
@@ -4536,11 +4546,16 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
         ofh.write("\t".join(row))
         ofh.write("\n")
 
-def writeTargetSeqs(guideData, ofh):
+def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
     " write the guide sequences and their pam to ofh "
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+        if minSpec and guideScore < minSpec:
+            continue
+        if minFusi and effScores["fusi"] < minFusi:
+            continue
+
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [fullSeq]
         ofh.write("\t".join(row))
@@ -4598,25 +4613,34 @@ def downloadFile(params):
 
     elif fileType=="targetSeqs":
         writeHttpAttachmentHeader("targetSeqs_%s.txt" % (queryDesc))
-        writeTargetSeqs(guideData, sys.stdout)
+        minSpec = cgiGetNum(params, "minSpec", 0)
+        minFusi = cgiGetNum(params, "minFusi", 0)
+        writeTargetSeqs(guideData, sys.stdout, minSpec=minSpec, minFusi=minFusi)
 
     elif fileType=="amplicons":
+        # write amplicons of all off-targets for a single guide
         fname = makeCrispressoFname(batchName, batchId)
         writeHttpAttachmentHeader(fname)
         pamId = cgiGetStr(params, "pamId")
         writeAmpliconFile(params, batchId, pamId, sys.stdout)
 
     elif fileType=="ontargetAmplicons":
+        # design primers around all targets in input sequence
         writeHttpAttachmentHeader("ontargetAmplicons_%s.tsv" % (queryDesc))
         ampLen = cgiGetNum(params, "ampLen", 140)
         tm = cgiGetNum(params, "tm", 60)
-        writeOntargetAmpliconFile("amplicons", batchId, ampLen, tm, sys.stdout)
+        minSpec = cgiGetNum(params, "minSpec", 0)
+        minFusi = cgiGetNum(params, "minFusi", 0)
+        writeOntargetAmpliconFile("amplicons", batchId, ampLen, tm, sys.stdout, minSpec, minFusi)
+
 
     elif fileType=="ontargetPrimers":
         writeHttpAttachmentHeader("ontargetPrimers_%s.tsv" % (queryDesc))
         ampLen = cgiGetNum(params, "ampLen", 140)
         tm = cgiGetNum(params, "tm", 60)
-        writeOntargetAmpliconFile("primers", batchId, ampLen, tm, sys.stdout)
+        minSpec = cgiGetNum(params, "minSpec", 0)
+        minFusi = cgiGetNum(params, "minFusi", 0)
+        writeOntargetAmpliconFile("primers", batchId, ampLen, tm, sys.stdout, minSpec, minFusi)
 
     elif fileType=="satMut":
         fileName = "satMutOligos-%s.%s" % (queryDesc, fileFormat)
@@ -4630,7 +4654,9 @@ def downloadFile(params):
         tm = cgiGetNum(params, "tm", 60)
 
         writeHttpAttachmentHeader(fileName)
-        writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
+        minSpec = cgiGetNum(params, "minSpec", 0)
+        minFusi = cgiGetNum(params, "minFusi", 0)
+        writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat, sys.stdout)
 
     elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti", "lasergene"]:
         fileFormat = params['download']
@@ -4918,10 +4944,11 @@ def printSatMutPage(params):
 
     print "<h3>Oligonucleotides for a Lentiviral Saturating Mutagenesis Screen</h3>"
     print("""
-    <p>This page allows you to download the complete list of all guides in your input sequence in a format ready for ordering a custom oligonucleotide pool and for cloning into the plasmid Lentiguide-puro. <br> You can use Excel filters or command line programs like AWK to filter the list of oligos below for only
-the guides with certain specificity or efficiency scores, e.g. to include only guides with a specificy score > 50.</p>
+    <p>This page allows you to download the complete list of all guides in your input sequence in a format ready for ordering a custom oligonucleotide pool and for cloning into the plasmid Lentiguide-puro.<br>""")
+    #<br> You can use Excel filters or command line programs like AWK to filter the list of oligos below
+    #, e.g. to include only guides with a specificy score > 50.</p>
 
-<p><strong>Subpool barcodes:</strong> to test all guides in a region using a lentiviral vector in cells, a custom
+    print("""<p><strong>Subpool barcodes:</strong> to test all guides in a region using a lentiviral vector in cells, a custom
 oligonucleotide pool is ordered from a supplier. As the minimum order is
 several thousand guides and it is cheaper to order more oligos, subsets of oligos can be
 tagged with a "barcode" (unrelated to Illumina sequencing index barcodes) so they
@@ -4938,6 +4965,16 @@ can be selectively amplified from the pool.<br>
     tm = "60"
     printAmpLenAndTm(ampLen, tm)
     print "</p>"
+
+    print("<strong>Filter: minimum specificity score</strong>")
+    print("""<input id="minSpec" type="text" size="5" name="minSpec" value="10" /><br>""")
+    print("""<small>A minimal value of 10 will remove only the guides in repeated regions. For screens, many users do not care a lot about off-targets. Increase this if you want to more aggressively remove guides with many predicted off-targets.</small>""")
+    print("<br>")
+
+    print("<strong>Filter: minimum Doench2016 efficiency score</strong>")
+    print("""<input id="minFusi" type="text" size="5" name="minFusi" value="10" /><br>""")
+    print("""<small>A minimal value of 10 will only remove the least efficient guides. Increase this if want to enrich more for predicted high efficiency guides.</small>""")
+    print("<br>")
 
     outTypes = [
         ("satMut", "saturating mutagenesis screen oligonucleotides"),
@@ -5038,7 +5075,7 @@ def getControls(org):
     guideList = []
     for guideSeq in rows:
         guideList.append(guideSeq[0])
-    return guideList
+    return list(set(guideList))
 
 def getLibGuides(org, libName, geneIdStr):
     " return a dict with geneId -> list of guide sequences "
@@ -5066,7 +5103,7 @@ def getLibGuides(org, libName, geneIdStr):
             else:
                 searchField = "geneSym"
 
-            sql = "SELECT geneSym, entrezId, refseqId, guideSeq, pam from guides WHERE %s = ?" % searchField
+            sql = "SELECT geneSym, entrezId, refseqId, guideSeq, pam from guides WHERE %s = ? COLLATE NOCASE" % searchField
             try:
                 cur.execute(sql, (inId,))
             except sqlite3.OperationalError:
@@ -5187,6 +5224,9 @@ def printLibGuides(params):
 
     if len(notFoundGenes)!=0 and notFoundGenes!=[""]:
         print("Input gene identifiers that were not found: %s<p>" % ",".join(notFoundGenes))
+
+    if guideCount>4 and "gecko" not in libName:
+        print("Note: you asked for %d guides per gene but this library includes only four guides per gene, so the maximum number of guides per genes below is four.<p>" % guideCount)
 
     print("<a href='%s'>Download table</a><p>" % relpath(tabFname, dirname(abspath(__file__))))
 
@@ -5831,7 +5871,7 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         errAbort("tm parameter must be a number")
     tm = int(tm)
 
-    print "<h2 id='ontargetPcr'>PCR to amplify on-target sites</h2>"
+    print "<h2 id='ontargetPcr'>PCR to amplify the on-target site</h2>"
     otBedFname = batchBase+".bed"
     otMatches = parseOfftargets(otBedFname)
     chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
@@ -6020,7 +6060,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
     print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our optimized protocol for T7 guide expression.<p>')
 
     # MAMMALIAN CELLS
-    print "<h3 id='u6plasmid'>Cloning into a plasmid and expression from U6</h3>"
+    print "<h3 id='u6plasmid'>U6 expression from an Addgene plasmid</h3>"
     if "tttt" in guideSeq.lower():
         print "The guide sequence %s contains the motif TTTT, which terminates RNA polymerase. This guide sequence cannot be transcribed in mammalian cells." % guideSeq
     else:
@@ -6055,7 +6095,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
 
     if not cpf1Mode:
-        print "<h3 id='ciona'>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
+        print "<h3 id='ciona'>Direct PCR for <i>C. intestinalis</i></h3>"
         print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
             ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
@@ -6149,7 +6189,7 @@ def primerDetailsPage(params):
     print("<ul><li><a href='#ciona'>Direct PCR for <i>C. intestinalis</i></a></li></ul>")
     print("<ul><li><a href='#gibson'>Lentiviral vectors: Cloning with Gibson assembly</a></li></ul>")
     print("<ul><li><a href='#primerSummary'>Summary of main cloning/expression primers</a></li></ul>")
-    print("<li><a href='#ontargetPcr'>PCR to amplify on-target sites</a></li>")
+    print("<li><a href='#ontargetPcr'>PCR to amplify the on-target site</a></li>")
     if len(mutEnzymes)!=0:
         print("<li><a href='#restrSites'>Restriction sites for PCR validation</a></li>")
     print("<li><a href='#offtargetPcr'>PCR to amplify off-target sites</a></li>")
@@ -6174,7 +6214,7 @@ def primerDetailsPage(params):
 
     print("<h2 id='satMut'>Saturating mutagenesis using all guides</h2>")
     satMutUrl = cgiGetSelfUrl({"satMut":"1"}, onlyParams=["batchId"])
-    print("<p>Oligonucleotides of all guides for cloning into a lentiviral vector can be downloaded from the <a href='%s'>Saturating mutagenesis page</a>.</p>" % satMutUrl)
+    print("<p>Oligonucleotides of all guides for pooled cloning into a lentiviral vector can be downloaded from the <a href='%s'>Saturating mutagenesis page</a>.</p>" % satMutUrl)
 
     print "<hr>"
 
