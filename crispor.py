@@ -3289,7 +3289,7 @@ def printForm(params):
     <small>Note: pre-calculated exonic guides for this species are on the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
     </div>
     """
-    print '<small style="float:left">We have %d genomes, but not the one you need? Send its FASTA/GFF address to <a href="mailto:%s">CRISPOR support</a></small>' % (len(genomes), contactEmail)
+    print '<small style="float:left">We have %d genomes, but not the one you need? Send its FASTA/GFF URL to <a href="mailto:%s">CRISPOR support</a></small>' % (len(genomes), contactEmail)
     print """
     </div>
     <div class="windowstep subpanel" style="width:50%%; height:158px">
@@ -3838,7 +3838,7 @@ def crisprSearch(params):
 
         print "<div class='title'><em>"
         if batchName!="":
-            print batchName+":"
+            print batchName.encode("utf8")+":"
 
         print "%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name)
         print '<span style="text-decoration:underline">'
@@ -4522,7 +4522,7 @@ def downloadFile(params):
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
-        queryDesc = batchName+"_"
+        queryDesc = batchName.encode("ascii", "ignore")+"_"
     else:
         queryDesc = ""
 
