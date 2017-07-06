@@ -794,7 +794,7 @@ def cleanSeq(seq, db):
 
     msgs = []
     if len(seq)>MAXSEQLEN and db!="noGenome":
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than 1kbp</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % MAXSEQLEN)
+        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than %d bp</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % (MAXSEQLEN, MAXSEQLEN))
         seq = seq[:MAXSEQLEN]
     if len(seq)>MAXSEQLEN_NOGENOME and db=="noGenome":
         msgs.append("<strong>Sorry, this tool cannot handle sequences longer than %d bp when specifying 'No Genome'.</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % (MAXSEQLEN_NOGENOME, MAXSEQLEN_NOGENOME))
@@ -3267,7 +3267,7 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Batch for genome-wide lentiviral KO screens, saturation-mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Genome-wide for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
 </div>
 
 
@@ -3294,7 +3294,7 @@ def printForm(params):
             Step 1
         </div>
             
-        Planning a lentiviral gene knockout screen? Use <a href="crispor.py?libDesign=1">CRISPOR Batch</a><br>
+        Planning a lentiviral gene knockout screen? Use <a href="crispor.py?libDesign=1">CRISPOR Genome-wide</a><br>
 
         Sequence name (optional): <input type="text" name="name" size="20" value="%s"><br>
 
@@ -5027,7 +5027,7 @@ def printLibForm(params):
     url = "crispor.py"
     print("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url)
 
-    print("<h2>CRISPOR Batch: Paste a list of genes to download a list of pre-computed guides</h2>")
+    print("<h2>CRISPOR Genome-Wide Assistant: Paste a list of genes to download a list of pre-computed guides</h2>")
 
     print("Note: if you are planning a saturating mutagenesis screen, e.g. of a non-coding sequence, this is not the right tool. Submit your sequence on the normal <a href='crispor.py'>CRISPOR</a> page, then use the link 'Saturating mutagenesis' at the top of the guide table to get oligonucleotides of all guides in the input sequence.")
 
@@ -6636,7 +6636,7 @@ def mainCommandLine():
             satMutFname = join(options.satMutDir, seqId+"_satMutOligos.tsv")
             smFh = open(satMutFname, "w")
             logging.info("Writing saturating mutagenesis oligos to %s" % satMutFname)
-            writeSatMutFile(0, options.ampLen, options.tm, batchId, "tsv", smFh)
+            writeSatMutFile(0, options.ampLen, options.tm, batchId, None, None, "tsv", smFh)
 
             primerFname = join(options.satMutDir, seqId+"_ontargetPrimers.tsv")
             pFh = open(primerFname, "w")
