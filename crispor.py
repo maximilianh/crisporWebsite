@@ -267,7 +267,7 @@ addGenePlasmidInfo = {
 "43860" : ("ACACC", "AAAAC", "G", "BsmBI", "https://www.addgene.org/static/data/plasmids/43/43860/43860-attachment_T35tt6ebKxov.pdf"),
 "49330" : ("TTC", "AAC", "", "Bsp QI", "http://bio.biologists.org/content/3/1/42#sec-9"),
 "42230" : ("CACC", "AAAC", "", "Bbs1", "https://www.addgene.org/static/data/plasmids/52/52961/52961-attachment_B3xTwla0bkYD.pdf"),
-"52961" : ("CACC", "AAAC", "G", "BsmBI", "https://www.addgene.org/static/data/plasmids/52/52961/52961-attachment_B3xTwla0bkYD.pdf"),
+"52961" : ("CACC", "AAAC", "", "BsmBI", "https://www.addgene.org/static/data/plasmids/52/52961/52961-attachment_B3xTwla0bkYD.pdf"),
 "61591" : ("CACC", "AAAC", "", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61591/61591-attachment_it03kn5x5O6E.pdf"),
 "61592" : ("CACC", "AAAC", "", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61592/61592-attachment_iAbvIKnbqNRO.pdf"),
 "61593" : ("CACC", "AAAC", "", "BsaI", "https://www.addgene.org/static/data/plasmids/61/61592/61592-attachment_iAbvIKnbqNRO.pdf"),
@@ -2342,8 +2342,8 @@ def printHeader(batchId, title):
 <meta property='fb:admins' content='692090743' />
 <meta name="google-site-verification" content="OV5GRHyp-xVaCc76rbCuFj-CIizy2Es0K3nN9FbIBig" />
 <meta property='og:type' content='website' />
-<meta property='og:url' content='http://tefor.net/crispor/crispor.py' />
-<meta property='og:image' content='http://tefor.net/crispor/image/CRISPOR.png' />
+<meta property='og:url' content='http://crispor.org/' />
+<meta property='og:image' content='http://crispor.tefor.net/image/CRISPOR.png' />
 
 """
 
@@ -3270,7 +3270,6 @@ def printForm(params):
 <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Genome-wide for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
 </div>
 
-
  <div style="text-align:left; margin-left: 10px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
 
@@ -3324,7 +3323,7 @@ def printForm(params):
     <small>Note: pre-calculated exonic guides for this species are on the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
     </div>
     """
-    print '<small style="float:left">We have %d genomes, but not the one you need? Send its FASTA/GFF address to <a href="mailto:%s">CRISPOR support</a></small>' % (len(genomes), contactEmail)
+    print '<small style="float:left">We have %d genomes, but not the one you need? Send its FASTA/GFF URL to <a href="mailto:%s">CRISPOR support</a></small>' % (len(genomes), contactEmail)
     print """
     </div>
     <div class="windowstep subpanel" style="width:50%%; height:158px">
@@ -3756,7 +3755,7 @@ def showSeqDownloadMenu(batchId):
     htmls.append(html)
 
     #myUrl = "http://crispor.tefor.net/"+cgiGetSelfUrl({"download":"genomecompiler"})
-    myUrl = "http://tefor.net/crisporDev/crisporMax/crispor.py?batchId=%s&download=genomecompiler" % batchId
+    myUrl = "http://crispor.tefor.net/crispor.py?batchId=%s&download=genomecompiler" % batchId
     #backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
     backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
     html = "<a target=_blank href='%s'>GenomeCompiler</a>" % backUrl
@@ -3874,7 +3873,7 @@ def crisprSearch(params):
 
         print "<div class='title'><em>"
         if batchName!="":
-            print batchName+":"
+            print batchName.encode("utf8")+":"
 
         print "%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name)
         print '<span style="text-decoration:underline">'
@@ -3967,20 +3966,20 @@ def printTeforBodyStart():
     print """<div style="float:left">"""
     #print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
     print "</div>"
-    #<div style="position: absolute; left:50px; top:30px"><a href='http://tefor.net/'><img style='width:60px' src='%simage/logo_tefor.png' alt=''></a></div>
-    print """ %s
-<div id='navi' style="margin-top:0; margin-bottom:0; margin-left:120px">
-        <div id='menu' class='default'>
-                <ul class='navi'>
-                <li><a href='http://tefor.net'>Home</a></li>
-                <li><a href='./crispor.py'>CRISPOR</a></li>
-                <li><a href='http://tefor.net/pages/services/overview.php#'>Services</a></li>
-                <li><a href='http://tefor.net/pages/partners'>Partners</a></li>
-                <li><a href='http://tefor.net/pages/contacts'>Contacts</a></li>
-                </ul>
-        </div>
-</div>
-    """ % HTMLPREFIX
+    #print ("""<div style="position: absolute; left:50px; top:30px"><a href='http://tefor.net/'><img style='width:60px' src='%simage/logo_tefor.png' alt=''></a></div>""" % HTMLPREFIX)
+    #print """ %s
+#<div id='navi' style="margin-top:0; margin-bottom:0; margin-left:120px">
+        #<div id='menu' class='default'>
+                #<ul class='navi'>
+                #<li><a href='http://tefor.net'>Home</a></li>
+                #<li><a href='./crispor.py'>CRISPOR</a></li>
+                #<li><a href='http://tefor.net/pages/services/overview.php#'>Services</a></li>
+                #<li><a href='http://tefor.net/pages/partners'>Partners</a></li>
+                #<li><a href='http://tefor.net/pages/contacts'>Contacts</a></li>
+                #</ul>
+        #</div>
+#</div>
+    #""" % HTMLPREFIX
 
     print '<div id="bd">'
     print '<div class="centralpanel" style="margin-left:0px">'
@@ -4583,7 +4582,7 @@ def downloadFile(params):
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
-        queryDesc = batchName+"_"
+        queryDesc = batchName.encode("ascii", "ignore")+"_"
     else:
         queryDesc = ""
 
