@@ -1760,11 +1760,11 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
     return guideData, guideScores, hasNotFound, pamIdToSeq
 
 def printDownloadTableLinks(batchId, addTsv=False):
-    print '<div id="downloads" style="text-align:right">'
-    print "<small>Excel tables: ",
+    print '<div id="downloads" style="text-align:left">'
+    print "Download as Excel tables: ",
     print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;/&nbsp;' % batchId,
     print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>&nbsp;/&nbsp;' % batchId,
-    print('<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis</a></small><br>' % batchId)
+    print('<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis assistant</a><br>' % batchId)
     #print "<small>Plasmid Editor: ",
     #print '<a href="crispor.py?batchId=%s&download=genbank">Guides</a></small>' % batchId,
 
