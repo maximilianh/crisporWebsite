@@ -5766,9 +5766,10 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print "<h3>In <i>Ciona intestinalis</i> from overlapping oligonucleotides</i></h3>"
         print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
-            ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
-            ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
+            ("ciGuideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
+            ("ciGuideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
         ]
+        printPrimerTable(ciPrimers)
 
     print "<h3 id='gibson'>Cloning with Gibson assembly into pLenti-puro</h3>"
     print ("""Order the following oligonucleotide to clone with Gibson assembly into the vector <a href='https://www.addgene.org/52963/'>pLenti-puro</a>. The exact protocol for this is in preparation by Matt Canver.""")
