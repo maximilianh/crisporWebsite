@@ -3795,6 +3795,11 @@ def showSeqDownloadMenu(batchId):
 
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
+    db = params["org"]
+    twoBitFname = getTwoBitFname(db)
+    if not isfile(twoBitFname):
+        errAbort("Sorry, a genome assembly called %s is not on Crispor yet. Please send us an email if you want us to add it." % db)
+
     # retrieve sequence if not provided
     if "pos" in params and not "seq" in params:
         params["seq"] = getSeq(params["org"], params["pos"])
