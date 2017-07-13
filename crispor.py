@@ -5031,7 +5031,7 @@ def printLibForm(params):
     url = "crispor.py"
     print("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url)
 
-    print("<h2>CRISPOR Genome-Wide Assistant: Paste a list of genes to download a list of pre-computed guides</h2>")
+    print("<h2>CRISPOR Batch Gene Targeting Assistant: Paste a list of genes to download a list of guides</h2>")
 
     print("Note: if you are planning a saturating mutagenesis screen, e.g. of a non-coding sequence, this is not the right tool. Submit your sequence on the normal <a href='crispor.py'>CRISPOR</a> page, then use the link 'Saturating mutagenesis' at the top of the guide table to get oligonucleotides of all guides in the input sequence.")
 
@@ -5045,7 +5045,7 @@ def printLibForm(params):
     printDropDown("guideCount", [(1,1), (2,2), (3,3), (4,4), (5,5), (6,6)], "3")
     print("<br>")
 
-    print("<strong>Number of non-targeting control guides: </strong>")
+    print("<strong>Number of non-targeting control guides (max: 1000): </strong>")
     print("""<input id="ctrlCount" type="text" size="5" name="ctrlCount" value="10" />""")
     print("<br>")
 
@@ -5054,7 +5054,7 @@ def printLibForm(params):
     print("<p>")
 
     print("""
-    Enter a list of gene symbols, Entrez Gene IDs or Refseq IDs, one per line:<br>
+    Enter a list of gene symbols, Entrez Gene IDs or Refseq IDs, one per line (case-insensitive):<br>
     <small>You may need to <a href='https://discover.nci.nih.gov/matchminer/MatchMinerLookup.jsp'>convert old symbols</a>.</small>
     <small>Type 'all' below to get all guides in the library and no gene filtering</small>
     <textarea tabindex="1" style="width:100%%" name="geneIds" rows="25" \
