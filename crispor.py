@@ -806,7 +806,8 @@ def cleanSeq(seq, db):
     return seq, "<br>".join(msgs)
 
 revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' , 'M' : 'K', 'K' : 'M',
-    "R" : "Y" , "Y":"R" , "g":"c", "a":"t", "c":"g","t":"a", "n":"n", "V" : "B", "v":"b"}
+    "R" : "Y" , "Y":"R" , "g":"c", "a":"t", "c":"g","t":"a", "n":"n", "V" : "B", "v":"b", 
+    "B" : "V", "b": "v"}
 
 def revComp(seq):
     " rev-comp a dna sequence with UIPAC characters "
@@ -840,6 +841,11 @@ def findPams (seq, pam, strand, startDict, endSet):
     ({}, set([]))
     >>> findPams("CCCCCCCCCCCCCCCCCCCCCCCCCAA", "NAA", "-", {}, set())
     ({}, set([]))
+    >>> findPams("GTTGTGTTTTACAATGCAGAGAGTGGAGGATGCTTTTTATACATTGGTGAGAGAGATCCGACAGTACAGATTGAAAAAAATCAGCAAAGAAGAAAAGACTCCTGGCTGTGTGAAAATTAAAAAATGCGTTATAATGTAATCTGGTAAGTTGAGCATATTCATTCTGGTACAAAGCAGATGTCTTCAGAGGTAACA", "TATV", "-", {}, set())
+    ({129: '-', 37: '-'}, set([41, 133]))
+    >>> findPams("GTTGTGTTTTACAATGCAGAGAGTGGAGGATGCTTTTTATACATTGGTGAGAGAGATCCGACAGTACAGATTGAAAAAAATCAGCAAAGAAGAAAAGACTCCTGGCTGTGTGAAAATTAAAAAATGCGTTATAATGTAATCTGGTAAGTTGAGCATATTCATTCTGGTACAAAGCAGATGTCTTCAGAGGTAACA", "TATV", "+", {}, set())
+    ({129: '+', 37: '+'}, set([41, 133]))
+
 
     """
     assert(cpf1Mode is not None)
@@ -944,7 +950,7 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
 
     print "<div class='substep'>"
     print '<a id="seqStart"></a>'
-    print "Found %d possible guide sequences in input (%d bp). Click on a PAM %s match to show its guide sequence.<br>" % (len(guideScores), len(seq), pam)
+    print "Found %d possible guide sequences in input (%d bp). Click on a PAM %s match to show its %d bp guide sequence.<br>" % (len(guideScores), len(seq), pam, GUIDELEN)
 
     if not cpf1Mode:
         print "Shown below are the PAM site and the expected cleavage position located -3bp 5' of the PAM site.<br>"
@@ -1904,7 +1910,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
-    print '<th style="width:220px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
+    print '<th style="width:230px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
 
     print ('+ Restriction Enzymes')
     htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA.<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
@@ -3795,10 +3801,12 @@ def showSeqDownloadMenu(batchId):
 
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
-    db = params["org"]
-    twoBitFname = getTwoBitFname(db)
-    if not isfile(twoBitFname):
-        errAbort("Sorry, a genome assembly called %s is not on Crispor yet. Please send us an email if you want us to add it." % db)
+    # check if db name is valid
+    if "org" in params:
+        db = params["org"]
+        twoBitFname = getTwoBitFname(db)
+        if not isfile(twoBitFname):
+            errAbort("Sorry, a genome assembly called %s is not on Crispor yet. Please send us an email if you want us to add it." % db)
 
     # retrieve sequence if not provided
     if "pos" in params and not "seq" in params:
