@@ -2684,6 +2684,11 @@ def annotateBedWithPos(inBed, outBed):
         ofh.write("\n")
     ofh.close()
 
+def findAllGuides(seq, pam):
+    startDict, endSet = findAllPams(seq, pam)
+    pamInfo = list(flankSeqIter(seq, startDict, len(pam), False))
+    return pamInfo
+
 def calcGuideEffScores(seq, extSeq, pam):
     """ given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores. 
@@ -2696,8 +2701,7 @@ def calcGuideEffScores(seq, extSeq, pam):
     if extSeq:
         extSeq = extSeq.upper()
 
-    startDict, endSet = findAllPams(seq, pam)
-    pamInfo = list(flankSeqIter(seq, startDict, len(pam), False))
+    pamInfo = findAllGuides(seq, pam)
 
     guideIds = []
     guides = []
@@ -3273,7 +3277,7 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Genome-wide for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Batch for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
 </div>
 
  <div style="text-align:left; margin-left: 10px">
@@ -3299,7 +3303,7 @@ def printForm(params):
             Step 1
         </div>
             
-        Planning a lentiviral gene knockout screen? Use <a href="crispor.py?libDesign=1">CRISPOR Genome-wide</a><br>
+        Planning a lentiviral gene knockout screen? Use <a href="crispor.py?libDesign=1">CRISPOR Batch</a><br>
 
         Sequence name (optional): <input type="text" name="name" size="20" value="%s"><br>
 
