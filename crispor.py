@@ -153,9 +153,9 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
-         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus / Lachnospiraceae'),
-         ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
-         ('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
+         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus / Lachnospiraceae')
+         #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
+         #('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
        ]
 
 DEFAULTPAM = 'NGG'
@@ -4179,7 +4179,7 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
     Otherwise writes a tab-sep file.
     colWidths is a list of widths of columns, in Arial characters.
     """
-    if xlwtLoaded and not fileFormat=="tsv":
+    if xlwtLoaded and fileFormat in ["xls"]:
         seqStyle = xlwt.easyxf('font: name Courier New')
         charSize = 269 # see http://reliablybroken.com/b/2011/10/widths-heights-with-xlwt-python/
         wb = xlwt.Workbook()
@@ -4247,6 +4247,23 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
             ws.col(colId).width = charSize*colWidth
 
         wb.save(outFile)
+
+    elif fileFormat=="html":
+        outFile.write('<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">\n')
+        outFile.write("<table class='pure-table'>\n")
+        headDone = False
+        for row in rows:
+            if headDone:
+                tag = "td"
+            else:
+                tag = "th"
+
+            outFile.write("<tr>\n")
+            for field in row:
+                outFile.write("<%s>%s</%s>" % (tag, field, tag))
+            outFile.write("</tr>\n")
+            headDone = True
+        outFile.write("</table>\n")
 
     else:
         # raw ASCII tsv output mode
@@ -4443,9 +4460,12 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
     writeLn(ofh, "//")
     ofh.close()
 
-def writeHttpAttachmentHeader(fname):
+def writeHttpAttachmentHeader(fname, doDownload=True):
     " write the http header for attachments "
-    print 'Content-Disposition: attachment; filename="%s"' % (fname)
+    if doDownload:
+        print 'Content-Disposition: attachment; filename="%s"' % (fname)
+    else:
+        print 'Content-type: text/html'
     print "" # = end of http headers
 
 def buildPoolOptions(barcodeId):
@@ -4612,15 +4632,19 @@ def downloadFile(params):
     fileType = params["download"]
 
     fileFormat = params.get("format", "tsv")
-    if not fileFormat in ["tsv", "xls"]:
+    if not fileFormat in ["tsv", "xls", "html"]:
         errAbort("Invalid fileFormat argument")
 
+    doDownload = True
+    if fileFormat=="html":
+        doDownload = False
+
     if fileType=="guides":
-        writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat))
+        writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat), doDownload)
         xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position, batchId)
 
     elif fileType=="offtargets":
-        writeHttpAttachmentHeader("offtargets_%s.%s" % (queryDesc, fileFormat))
+        writeHttpAttachmentHeader("offtargets_%s.%s" % (queryDesc, fileFormat), doDownload)
         skipRepetitive = (fileFormat=="xls")
         otRows = list(iterOfftargetRows(guideData, addHeaders=True, skipRepetitive=skipRepetitive))
         doReverse = (not cpf1Mode)
@@ -4628,7 +4652,7 @@ def downloadFile(params):
         xlsWrite(otRows, "offtargets", sys.stdout, [9,28,28,5], fileFormat, seq, org, pam, position, batchId)
 
     elif fileType=="targetSeqs":
-        writeHttpAttachmentHeader("targetSeqs_%s.txt" % (queryDesc))
+        writeHttpAttachmentHeader("targetSeqs_%s.txt" % (queryDesc), doDownload)
         minSpec = cgiGetNum(params, "minSpec", 0)
         minFusi = cgiGetNum(params, "minFusi", 0)
         writeTargetSeqs(guideData, sys.stdout, minSpec=minSpec, minFusi=minFusi)
@@ -4636,13 +4660,13 @@ def downloadFile(params):
     elif fileType=="amplicons":
         # write amplicons of all off-targets for a single guide
         fname = makeCrispressoFname(batchName, batchId)
-        writeHttpAttachmentHeader(fname)
+        writeHttpAttachmentHeader(fname, doDownload)
         pamId = cgiGetStr(params, "pamId")
         writeAmpliconFile(params, batchId, pamId, sys.stdout)
 
     elif fileType=="ontargetAmplicons":
         # design primers around all targets in input sequence
-        writeHttpAttachmentHeader("ontargetAmplicons_%s.tsv" % (queryDesc))
+        writeHttpAttachmentHeader("ontargetAmplicons_%s.tsv" % (queryDesc), doDownload)
         ampLen = cgiGetNum(params, "ampLen", 140)
         tm = cgiGetNum(params, "tm", 60)
         minSpec = cgiGetNum(params, "minSpec", 0)
@@ -4651,7 +4675,7 @@ def downloadFile(params):
 
 
     elif fileType=="ontargetPrimers":
-        writeHttpAttachmentHeader("ontargetPrimers_%s.tsv" % (queryDesc))
+        writeHttpAttachmentHeader("ontargetPrimers_%s.tsv" % (queryDesc), doDownload)
         ampLen = cgiGetNum(params, "ampLen", 140)
         tm = cgiGetNum(params, "tm", 60)
         minSpec = cgiGetNum(params, "minSpec", 0)
@@ -4669,7 +4693,7 @@ def downloadFile(params):
         ampLen = cgiGetNum(params, "ampLen", 140)
         tm = cgiGetNum(params, "tm", 60)
 
-        writeHttpAttachmentHeader(fileName)
+        writeHttpAttachmentHeader(fileName, doDownload)
         minSpec = cgiGetNum(params, "minSpec", 0)
         minFusi = cgiGetNum(params, "minFusi", 0)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat, sys.stdout)
@@ -4983,8 +5007,8 @@ can be selectively amplified from the pool.<br>
     print "</p>"
 
     print("<strong>Filter: minimum specificity score</strong>")
-    print("""<input id="minSpec" type="text" size="5" name="minSpec" value="10" /><br>""")
-    print("""<small>A minimal value of 10 will remove only the guides in repeated regions. For screens, many users do not care a lot about off-targets. Increase this if you want to more aggressively remove guides with many predicted off-targets.</small>""")
+    print("""<input id="minSpec" type="text" size="5" name="minSpec" value="30" /><br>""")
+    print("""<small>A minimal value of 30 will remove only the guides in repeated regions. For screens, many researchers do not care a lot about off-targets. Increase this threshold if you want to more aggressively remove guides with many predicted off-targets.</small>""")
     print("<br>")
 
     print("<strong>Filter: minimum Doench2016 efficiency score</strong>")
@@ -5010,14 +5034,15 @@ can be selectively amplified from the pool.<br>
     print("</p>")
 
     formats = [
+        ("html", "Do not download, display as webpage"),
         ("xls", "Excel (xls)"),
         ("tsv", "Tab-separated (tsv)"),
     ]
 
-    print("<p><strong>File format:</strong> Excel tables include a header with information how the oligonucleotides were constructed.<br>Tab-separated files have no header and are easier to process than Excel tables with command line tools like AWK, otherwise the content is the same.<br>Analysis files are only available in tab-separated format.<br>")
+    print("<p><strong>File format:</strong> Excel tables include a header with information how the oligonucleotides were constructed.<br>Tab-separated files have no header and are easier to process than Excel tables with command line tools like AWK, otherwise the content is the same.<br>Cleavage analysis files are only available in tab-separated format.<br>")
 
     print("File format:")
-    printDropDown("format", formats, "xls")
+    printDropDown("format", formats, "html")
     print("<br>")
 
     printHiddenFields(params, {"satMut":None})
@@ -6067,7 +6092,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     printPrimerTable(primers["T7iv"])
 
-    print("""T7 RNA polymerase starts transcription most efficiently if the first two nucleotides to be transcribed are GG. A common recommendation is to add GG if our guide is 5'-N20-(NGG)-3', to add G if your guide is 5'-GN19-(NGG)-3' and to not add anything if your guide is 5'-GGN18-(NGG)-3'.<p>""")
+    print("""T7 RNA polymerase starts transcription most efficiently if the first two nucleotides to be transcribed are GG. A common recommendation is to add the prefix GG- if our guide does not start with G (5'-N20-(NGG)-3'), to add G- if your guide starts with a single G (5'-GN19-(NGG)-3') and to not add anything if your guide starts with GG already (5'-GGN18-(NGG)-3').<p>""")
 
     print('One protocol for template preparation from oligonucleotides and in-vitro transcription can be found in <a href="http://www.cell.com/cell-reports/abstract/S2211-1247(13)00312-4">Bassett et al. Cell Rep 2013</a>. We also provide our own <a href="downloads/prot/sgRnaSynthProtocol.pdf">optimized protocol</a> for T7 guide expression.<p>')
 
