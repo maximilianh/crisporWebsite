@@ -5441,13 +5441,13 @@ def printAmpLenAndTm(ampLen, tm):
     " print form fields for amplicon length and TM "
     print ("Maximum amplicon length:")
     dropDownSizes = [
-        ("100", "100 bp"),
-        ("150", "150 bp"),
-        ("200", "200 bp"),
-        ("300", "300 bp"),
-        ("400", "400 bp"),
-        ("500", "500 bp"),
-        ("600", "600 bp")
+        ("100", "100 bp - for >= 75bp paired reads"),
+        ("150", "150 bp - for >= 75bp paired reads "),
+        ("200", "200 bp - for >= 150bp paired reads"),
+        ("300", "300 bp - for >= 200bp paired reads"),
+        ("400", "400 bp - for >= 300bp paired reads"),
+        ("500", "500 bp - for >= 300bp paired reads"),
+        ("600", "600 bp - for Sanger reads")
     ]
 
     printDropDown("ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()""")
