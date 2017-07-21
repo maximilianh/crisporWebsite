@@ -1456,7 +1456,6 @@ def calcCfdScore(guideSeq, otSeq):
     1.0
     >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "aaaaGaGaGGGGGGGGGGGGGGG")
     0.5140384614450001
-
     # mismatches:      *               !!
     >>> calcCfdScore("ATGGTCGGACTCCCTGCCAGAGG", "ATGGTGGGACTCCCTGCCAGAGG")
     0.5
@@ -1464,6 +1463,8 @@ def calcCfdScore(guideSeq, otSeq):
     # mismatches:    *  ** *          
     >>> calcCfdScore("ATGGTCGGACTCCCTGCCAGAGG", "ATGATCCAAATCCCTGCCAGAGG")
     0.53625000020625
+
+    >>> calcCfdScore("ATGTGGAGATTGCCACCTACCGG", "ATCTGGAGATTGCCACCTACAGG")
 
     """
     global mm_scores, pam_scores
