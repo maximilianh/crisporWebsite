@@ -1,0 +1,4 @@
+in2csv STable\ 02\ AvanaLibrary.xlsx > STable\ 02\ AvanaLibrary.csv
+in2csv 'STable 03 AsiagoLibrary.xlsx' > 'STable 03 AsiagoLibrary.csv'
+in2csv 'STable 21 Brunello.xlsx' > 'STable 21 Brunello.csv'
+in2csv 'STable 22 Brie.xlsx' > 'STable 22 Brie.csv'

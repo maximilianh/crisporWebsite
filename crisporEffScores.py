@@ -735,7 +735,7 @@ def forceWrapper(func, seqs):
     except:
         return [-1]*len(seqs)
 
-def calcAllScores(seqs, addOpt=[], doAll=False):
+def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
@@ -773,8 +773,11 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     logging.debug("CrisprScan score")
     scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
 
-    logging.debug("wuCrispr score")
-    scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
+    if not "wuCrispr" in skipScores:
+        logging.debug("wuCrispr score")
+        scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
+    else:
+        scores["wuCrispr"] = [-1]*len(seqs)
 
     logging.debug("Chari score")
     chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
@@ -782,7 +785,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False):
     scores["chariRank"] = chariScores[1]
 
     logging.debug("OOF scores")
-    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -40, 40))
+    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
     scores["oof"] = oof
     scores["mh"] = mh
 
