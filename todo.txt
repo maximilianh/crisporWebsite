@@ -1,1 +1,2 @@
 What is site-seq and circle-seq?
+- add note to crispor batch and sat mut assistant about meaning of barcode?
