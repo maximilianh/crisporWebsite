@@ -1293,6 +1293,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
             if len(otSeqNoPam)==19:
                 otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
+                guideNoPam = "A"+guideNoPam
 
             if pamIsCpf1(pam):
                 # Cpf1 has no scores yet
@@ -6369,9 +6370,11 @@ Command line interface for the Crispor tool.
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
-        action="store", type="int", help="MAXOCC parameter, guides with more matches are excluded")
+        action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed")
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
+    parser.add_option("", "--shortGuides", dest="shortGuides", \
+        action="store_true", help="Use 19bp guides for Cas9. Careful: 19bp guides are less efficient.")
     parser.add_option("", "--bowtie", dest="bowtie", \
         action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
     parser.add_option("", "--skipAlign", dest="skipAlign", \
@@ -6581,9 +6584,10 @@ def handleOptions(options):
 
     if options.pam:
         setupPamInfo(options.pam)
-    #if options.shortGuides:
-    #    global GUIDELEN
-    #    GUIDELEN=19
+
+    if options.shortGuides:
+        global GUIDELEN
+        GUIDELEN=19
 
 def mainCommandLine():
     " main entry if called from command line "
@@ -6645,7 +6649,7 @@ def mainCommandLine():
     # as explained the docs
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
-        logging.info("running on sequence ID '%s'" % seqId)
+        logging.info("running on sequence '%s', guideLen=%d" % (seqId, GUIDELEN))
         # get the other parameters and write to a new batch
         seq = seq.upper()
         pamPat = options.pam
