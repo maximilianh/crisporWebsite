@@ -3,6 +3,7 @@
 # can be run as a CGI or from the command line
 
 # OOF scores are WRONG for Cpf1! -> where is the cut site?
+# OOF scores should not be shown for Cpf1... staggered cut!
 
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
@@ -5359,12 +5360,14 @@ def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm):
     # MAX_END_STABILITY is strange but it seems to be set that way by NCBI
     primer3ConfigDir = abspath(join(baseDir, "bin", "src", "primer3-2.3.6", "src", "primer3_config"))
 
+    # PRIMER_MAX_POLY_X=4 suggested by Chiang.Hu@cchmc.org
     conf = """PRIMER_TASK=generic
 PRIMER_PICK_LEFT_PRIMER=1
 PRIMER_PICK_RIGHT_PRIMER=1
 PRIMER_MIN_TM=%(minTm)d
 PRIMER_OPT_TM=%(optTm)d
 PRIMER_MAX_TM=%(maxTm)d
+PRIMER_MAX_POLY_X=4
 PRIMER_MIN_SIZE=18
 PRIMER_OPT_SIZE=20
 PRIMER_MAX_SIZE=25
