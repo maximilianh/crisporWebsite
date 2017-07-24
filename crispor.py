@@ -1458,7 +1458,6 @@ def calcCfdScore(guideSeq, otSeq):
     1.0
     >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "aaaaGaGaGGGGGGGGGGGGGGG")
     0.5140384614450001
-
     # mismatches:      *               !!
     >>> calcCfdScore("ATGGTCGGACTCCCTGCCAGAGG", "ATGGTGGGACTCCCTGCCAGAGG")
     0.5
@@ -1466,6 +1465,8 @@ def calcCfdScore(guideSeq, otSeq):
     # mismatches:    *  ** *          
     >>> calcCfdScore("ATGGTCGGACTCCCTGCCAGAGG", "ATGATCCAAATCCCTGCCAGAGG")
     0.53625000020625
+
+    >>> calcCfdScore("ATGTGGAGATTGCCACCTACCGG", "ATCTGGAGATTGCCACCTACAGG")
 
     """
     global mm_scores, pam_scores
@@ -5871,10 +5872,10 @@ def printAmpLenAndTm(ampLen, tm):
     print ("Maximum amplicon length:")
     dropDownSizes = [
         ("100", "100 bp - for >= 75bp paired reads"),
-        ("150", "150 bp - for >= 75bp paired reads "),
-        ("200", "200 bp - for >= 150bp paired reads"),
+        ("150", "150 bp - for >= 100bp paired reads "),
+        ("200", "200 bp - for >= 125bp paired reads"),
         ("300", "300 bp - for >= 200bp paired reads"),
-        ("400", "400 bp - for >= 300bp paired reads"),
+        ("400", "400 bp - for >= 250bp paired reads"),
         ("500", "500 bp - for >= 300bp paired reads"),
         ("600", "600 bp - for Sanger reads")
     ]
