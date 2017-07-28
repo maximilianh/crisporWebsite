@@ -3,6 +3,7 @@
 # can be run as a CGI or from the command line
 
 # OOF scores are WRONG for Cpf1! -> where is the cut site?
+# OOF scores should not be shown for Cpf1... staggered cut!
 
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
@@ -1296,6 +1297,7 @@ def makePosList(countDict, guideSeq, pam, inputPos):
 
             if len(otSeqNoPam)==19:
                 otSeqNoPam = "A"+otSeqNoPam # should not change the score a lot, weight0 is very low
+                guideNoPam = "A"+guideNoPam
 
             if pamIsCpf1(pam):
                 # Cpf1 has no scores yet
@@ -5365,12 +5367,14 @@ def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm):
     primer3ConfigDir = abspath(join(baseDir, "bin", "src", "primer3-2.3.6", "src", "primer3_config"))
     # PRIMER_MAX_POLY suggested by Yueh-Chiang.Hu@cchmc.org
 
+    # PRIMER_MAX_POLY_X=4 suggested by Chiang.Hu@cchmc.org
     conf = """PRIMER_TASK=generic
 PRIMER_PICK_LEFT_PRIMER=1
 PRIMER_PICK_RIGHT_PRIMER=1
 PRIMER_MIN_TM=%(minTm)d
 PRIMER_OPT_TM=%(optTm)d
 PRIMER_MAX_TM=%(maxTm)d
+PRIMER_MAX_POLY_X=4
 PRIMER_MIN_SIZE=18
 PRIMER_OPT_SIZE=20
 PRIMER_MAX_SIZE=25
@@ -6388,9 +6392,11 @@ Command line interface for the Crispor tool.
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
-        action="store", type="int", help="MAXOCC parameter, guides with more matches are excluded")
+        action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed")
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
+    parser.add_option("", "--shortGuides", dest="shortGuides", \
+        action="store_true", help="Use 19bp guides for Cas9. Careful: 19bp guides are less efficient.")
     parser.add_option("", "--bowtie", dest="bowtie", \
         action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
     parser.add_option("", "--skipAlign", dest="skipAlign", \
@@ -6600,9 +6606,10 @@ def handleOptions(options):
 
     if options.pam:
         setupPamInfo(options.pam)
-    #if options.shortGuides:
-    #    global GUIDELEN
-    #    GUIDELEN=19
+
+    if options.shortGuides:
+        global GUIDELEN
+        GUIDELEN=19
 
 def mainCommandLine():
     " main entry if called from command line "
@@ -6664,7 +6671,7 @@ def mainCommandLine():
     # as explained the docs
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
-        logging.info("running on sequence ID '%s'" % seqId)
+        logging.info("running on sequence '%s', guideLen=%d" % (seqId, GUIDELEN))
         # get the other parameters and write to a new batch
         seq = seq.upper()
         pamPat = options.pam
