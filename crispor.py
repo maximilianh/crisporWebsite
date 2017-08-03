@@ -684,7 +684,11 @@ def saveSeqOrgPamToCookies(seq, org, pam):
     " create a cookie with seq, org and pam and print it"
     cookies=Cookie.SimpleCookie()
     expires = 365 * 24 * 60 * 60
-    cookies['lastseq'] = seq
+    if len(seq)<3000:
+        cookies['lastseq'] = seq
+    else:
+        cookies['lastseq'] = "(last sequence was too long, could not be saved in Internet Browser cookie)"
+
     cookies['lastseq']['expires'] = expires
     cookies['lastorg'] = org
     cookies['lastorg']['expires'] = expires
@@ -1026,7 +1030,7 @@ def showSeqAndPams(seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, mi
     print '''</div>'''
 
     if cpf1Mode:
-        print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">Cpf1 has a staggered site: cleavage occurs after the 18th base on the non-targeted strand which has the TTTN PAM motif (indicate by "\\" in the schema above). Cleavage occurs after the 23rd base on the targeted strand which has the AAAN motif (indicated by "/" in the schema above). See <a target=_blank href="http://www.sciencedirect.com/science/article/pii/S0092867415012003">Zetsche et al 2015</a>, in particular <a target=_blank href="http://www.sciencedirect.com/science?_ob=MiamiCaptionURL&_method=retrieve&_eid=1-s2.0-S0092867415012003&_image=1-s2.0-S0092867415012003-gr3.jpg&_cid=272196&_explode=defaultEXP_LIST&_idxType=defaultREF_WORK_INDEX_TYPE&_alpha=defaultALPHA&_ba=&_rdoc=1&_fmt=FULL&_issn=00928674&_pii=S0092867415012003&md5=11771263f3e390e444320cacbcfae323">Fig 3</a>.</div>')
+        print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">Cpf1 has a staggered site: cleavage occurs usually - but not always - after the 18th base on the non-targeted strand which has the TTTN PAM motif (indicate by "\\" in the schema above). Cleavage mostly occurs after the 23rd base on the targeted strand which has the AAAN motif (indicated by "/" in the schema above). See <a target=_blank href="http://www.sciencedirect.com/science/article/pii/S0092867415012003">Zetsche et al 2015</a>, in particular <a target=_blank href="http://www.sciencedirect.com/science?_ob=MiamiCaptionURL&_method=retrieve&_eid=1-s2.0-S0092867415012003&_image=1-s2.0-S0092867415012003-gr3.jpg&_cid=272196&_explode=defaultEXP_LIST&_idxType=defaultREF_WORK_INDEX_TYPE&_alpha=defaultALPHA&_ba=&_rdoc=1&_fmt=FULL&_issn=00928674&_pii=S0092867415012003&md5=11771263f3e390e444320cacbcfae323">Fig 3</a>.</div>')
     
 def iterOneDelSeqs(seq):
     """ given a seq, create versions with each bp removed. Avoid duplicates 
@@ -1916,7 +1920,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     print '<th style="width:230px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
 
     print ('+ Restriction Enzymes')
-    htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA.<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
+    htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA using PCR and Restrictrion frament length polymorphism (RFLP).<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
     print '<br>'
 
     if varHtmls is not None:
@@ -1943,7 +1947,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
         else:
            print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)-1) # -1 because proxGc is in scoreNames but has no col
 
-        htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.")
+        htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect.")
 
         if cgiParams.get("showAllScores", "0")=="0":
             print("""<a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>""" % cgiGetSelfUrl({"showAllScores":"1"}, anchor="otTable"))
@@ -4768,7 +4772,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
                 nameToOtScoreSeq[name] = (otScore, otSeq)
 
     # coords -> sequences
-    flankSeqs = getGenomeSeqs(db, coords)
+    flankSeqs = getGenomeSeqs(db, coords, doRepeatMask=True)
     targetSeqs = [(x[3], x[4]) for x in flankSeqs] # strip coords, keep name+seq
     nameToSeq = dict(targetSeqs)
 
@@ -5361,6 +5365,7 @@ def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm):
     # values from https://www.ncbi.nlm.nih.gov/tools/primer-blast/
     # MAX_END_STABILITY is strange but it seems to be set that way by NCBI
     primer3ConfigDir = abspath(join(baseDir, "bin", "src", "primer3-2.3.6", "src", "primer3_config"))
+    # PRIMER_MAX_POLY suggested by Yueh-Chiang.Hu@cchmc.org
 
     # PRIMER_MAX_POLY_X=4 suggested by Chiang.Hu@cchmc.org
     conf = """PRIMER_TASK=generic
@@ -5374,6 +5379,7 @@ PRIMER_MIN_SIZE=18
 PRIMER_OPT_SIZE=20
 PRIMER_MAX_SIZE=25
 PRIMER_MAX_END_STABILITY=9
+PRIMER_MAX_POLY=4
 PRIMER_PRODUCT_SIZE_RANGE=%(prodSizeRange)s
 SEQUENCE_TARGET=%(targetStart)s,%(targetLen)s
 PRIMER_THERMODYNAMIC_PARAMETERS_PATH=%(primer3ConfigDir)s/
@@ -5510,7 +5516,17 @@ def findBestMatch(genome, seq):
     logging.debug("Found best match at %s:%d-%d:%s" % (chrom, start, end, strand))
     return chrom, start, end, strand
 
-def getGenomeSeqs(genome, coordList):
+def maskLowercase(seq):
+    " replace all lowercase letters with 'N' "
+    newSeq = []
+    for c in seq:
+        if c.islower():
+            newSeq.append("N")
+        else:
+            newSeq.append(c)
+    return "".join(newSeq)
+
+def getGenomeSeqs(genome, coordList, doRepeatMask=False):
     """ return dict of genome sequences,
     coordList has format (chrom, start, end, name)
     returns list (chrom, start, end, name, seq)
@@ -5523,7 +5539,10 @@ def getGenomeSeqs(genome, coordList):
     seqs = []
     for coordTuple in coordList:
         chrom, start, end, name = coordTuple
-        seqs.append((chrom, start, end, name, tbf[chrom][start:end]) )
+        seq = tbf[chrom][start:end]
+        if doRepeatMask:
+            seq = maskLowercase(seq)
+        seqs.append((chrom, start, end, name, seq) )
     return seqs
 
 def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen, tm):
@@ -5538,7 +5557,7 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen,
         errAbort("Not enough space on genome sequence to design primer. Need at least 1kbp on each side of the input sequence to design primers. Please design primers manually, choose a more recent genome assembly with longer contig sequences or paste a shorter input sequence (e.g. just the guide sequence alone with the PAM). Still questions? Email %s" % contactEmail)
 
     # get 1kbp of flanking sequence
-    flankSeq = getGenomeSeqs(genome, [(chrom, flankStart, flankEnd, "seq")])[0][-1]
+    flankSeq = getGenomeSeqs(genome, [(chrom, flankStart, flankEnd, "seq")], doRepeatMask=True)[0][-1]
 
     # try to get some good heuristics for the primer placement
     # primers must not overlap the target but also not be 
@@ -6103,7 +6122,9 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     print('''<a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4038517/?report=classic">Gagnon et al. PLoS ONE 2014</a> prefixed guides with GG to ensure high efficiency in vitro transcription by T7 RNA polymerase. It has been shown by other authors that the 5' nucleotides of the guide have little or no role in target specificity and it is therefore generally accepted that prefixing guides with GG should not affect activity.<br>''')
 
-    print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our optimized protocol for T7 guide expression.<p>')
+    print('However, in our lab, we found that in vitro transcription with T7 RNA polymerase is efficient enough when the sequence starts with a single G rather than with GG. This took some optimization of the reaction conditions including using large amounts of template DNA and running reactions overnight. <a href="downloads/prot/sgRnaSynthProtocol.pdf">Click here</a> to download our optimized protocol for T7 guide expression.<br>')
+
+    print('Do not use G-prefixing with high-fidelity Cas9 Variants like HF1 and eSpCas9 1.1 when this adds a mismatch in the genome as the efficiency will most likely be very low.')
 
     # MAMMALIAN CELLS
     print "<h3 id='u6plasmid'>U6 expression from an Addgene plasmid</h3>"
@@ -6132,7 +6153,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
         print "<br>"
         if "mammCellsNote" in primers:
-            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined. For a full discussion about G- prefixing, see the discussion of G-prefixing under <a href='#t7oligo'>overlapping oligonucleotides</a>.<br>")
+            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined. For a full discussion about G- prefixing, see the discussion of G-prefixing under <a href='#t7oligo'>overlapping oligonucleotides</a>. Do not use G- prefixing with the high-fidelity Cas9 variants HF1 and eSpCas9 1.1<br>")
 
         printPrimerTable(primers["mammCells"])
 
@@ -6828,6 +6849,7 @@ def mainCgi():
 
 def main():
     # detect if running under apache or not
+    #print ("Content-type: text/html\n")
     if 'REQUEST_METHOD' in os.environ and sys.argv[-1] != "--worker":
         mainCgi()
     else:
