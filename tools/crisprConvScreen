@@ -112,7 +112,7 @@ def main():
 
     if isfile(dbFname):
         os.remove(dbFname)
-    if isfile(options.controls):
+    if options.controls and isfile(options.controls):
         os.remove(options.controls)
 
     conn = sqlite3.connect(dbFname)
