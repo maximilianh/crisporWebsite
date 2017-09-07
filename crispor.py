@@ -3225,6 +3225,8 @@ def printForm(params):
     # SerialCloner is sending us the sequence via a HTTP get parameter
     if "seq" in params:
         lastseq = params["seq"]
+    if "org" in params:
+        lastorg = params["org"]
 
     seqName = ""
     if "seqName" in params:
@@ -3234,7 +3236,7 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">June 2017: CRISPOR Batch for lentiviral screens, saturation-mutagenesis and Genbank export now in the <a href="http://crispor.tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.3</a>.
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">June 2017: CRISPOR Batch for lentiviral screens, saturation-mutagenesis and Genbank export now in the <a href="http://crispor-beta.tefor.net">beta of Crispor V4.3</a>.
 </div>
 
 
@@ -4934,7 +4936,7 @@ can be selectively amplified from the pool.<br>
 def printBody(params):
     " main dispatcher function "
 
-    if len(params)==0 or ("seq" in params and not "org" in params):
+    if len(params)==0 or ("seq" in params and not "org" in params) or ("org" in params and not "seq" in params):
         printForm(params)
     elif "satMut" in params and "batchId" in params:
         printCrisporBodyStart()
