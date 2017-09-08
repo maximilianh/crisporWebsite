@@ -4309,10 +4309,12 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
         colorHex, colorName = scoreToColor(guideScore)
         guideName = intToExtPamId(pamId)
-        descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
-        guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
+        fusiScore = str(effScores.get("fusi", -1))
+        crisprScanScore = str(effScores.get("crisprScan", -1))
+        descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, fusiScore, crisprScanScore)
+        guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, fusiScore, crisprScanScore)
         guideDesc = "guide: %s" % guideSeq
-        longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, full details/primers at %s" % (guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]), guideSeq, guideUrl)
+        longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, full details/primers at %s" % (guideScore, fusiScore, crisprScanScore, guideSeq, guideUrl)
 
         featType = "misc_feature"
 
