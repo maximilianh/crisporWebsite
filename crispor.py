@@ -3273,7 +3273,7 @@ def printForm(params):
     </div>
 
     <textarea tabindex="1" style="width:100%%" name="seq" rows="12"
-              placeholder="Paste here the genomic - not cDNA - sequence of the exon you want to target. Maximum size %d bp.">%s</textarea>
+              placeholder="Paste here the genomic - not cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11908-12378</small>
 </div>
 <div class="windowstep subpanel" style="width:50%%">
@@ -3736,7 +3736,7 @@ def showSeqDownloadMenu(batchId):
     html = "<a href='%s'>SnapGene</a>" % myUrl
     htmls.append(html)
 
-    myUrl = baseUrl+"&download=genbank"
+    myUrl = baseUrl+"&download=geneious"
     html = "<a href='%s'>Geneious</a>" % myUrl
     htmls.append(html)
 
@@ -4215,13 +4215,16 @@ def seqToGenbankLines(seq):
         lines.append(" ".join(parts[i:i+6]))
     return lines
 
-def writeLn(fh, line, indent=None):
+def writeLn(fh, line, indent=None, doWrap=True):
     " write line to file, using \r\n "
     if indent==None:
         fh.write(line)
         fh.write("\r\n")
     else:
-        lineSize = 80-indent
+        if doWrap:
+            lineSize = 80-indent
+        else:
+            lineSize = 10000
         parts = [line[i:i+lineSize] for i in range(0, len(line), lineSize)]
         spacer = "".join(([" "]*indent))
         for p in parts:
@@ -4294,10 +4297,10 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
 
-        if fileFormat in []:
-            # this code annotates the guide sequence
+        if fileFormat in ["geneious"]:
+            # this code annotates only the guide sequence, suggested by Alyce Chen
             start = guideStart + 1
-            end = start + len(guideSeq)
+            end = start + len(guideSeq) - 1
         else:
             # most viewers don't handle overlaps well. We highlight only the PAM in these cases
             if strand=="+":
@@ -4376,6 +4379,9 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             writeLn(ofh, '''/Mor-MateosEff="%s"''' % str(effScores["crisprScan"]), indent=21)
             writeLn(ofh, '''/guide_sequence="%s"''' % guideSeq, indent=21)
             writeLn(ofh, '''/url="%s"''' % guideUrl, indent=21)
+        elif fileFormat in ["geneious"]:
+            writeLn(ofh, '''/label="%s"''' % guideName, indent=21, doWrap=False) # geneious translates \n to spaces, breaks link
+            writeLn(ofh, '''/note="%s"''' % longDesc, indent=21, doWrap=False)
         else:
             writeLn(ofh, '''/label="%s"''' % guideName, indent=21)
             writeLn(ofh, '''/note="%s"''' % longDesc, indent=21)
@@ -4590,7 +4596,7 @@ def downloadFile(params):
         writeHttpAttachmentHeader(fileName)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, fileFormat, sys.stdout)
 
-    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti", "lasergene"]:
+    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti", "lasergene", "geneious"]:
         fileFormat = params['download']
         ext = "gb"
         if fileFormat=="serialcloner":
@@ -4647,7 +4653,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
                 prefix = "ontarget_"
             else:
                 prefix = ""
-            segDesc = segTypeConv[segType]
+            segDesc = segTypeConv.get(segType, "") # some genomes do not have descriptions
             name = "%(prefix)smm%(mismCount)d_%(segDesc)s_%(segName)s_%(chrom)s_%(start)d" % locals()
             if start-1000 < 0 or end+1000 > chromSizes[chrom]:
                 print("Cannot design primer for %s, too close to chromosome boundary" % name)
