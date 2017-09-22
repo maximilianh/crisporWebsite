@@ -3301,6 +3301,8 @@ def printForm(params):
     # SerialCloner is sending us the sequence via a HTTP get parameter
     if "seq" in params:
         lastseq = params["seq"]
+    if "org" in params:
+        lastorg = params["org"]
 
     seqName = ""
     if "seqName" in params:
@@ -3310,8 +3312,10 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
+<!--
 <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Batch for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
 </div>
+-->
 
  <div style="text-align:left; margin-left: 10px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -3348,7 +3352,7 @@ def printForm(params):
     </div>
 
     <textarea tabindex="1" style="width:100%%" name="seq" rows="12"
-              placeholder="Paste here the genomic - not cDNA - sequence of the exon you want to target. Maximum size %d bp.">%s</textarea>
+              placeholder="Paste here the genomic - not cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11908-12378</small>
 </div>
 <div class="windowstep subpanel" style="width:50%%">
@@ -3812,7 +3816,7 @@ def showSeqDownloadMenu(batchId):
     html = "<a href='%s'>SnapGene</a>" % myUrl
     htmls.append(html)
 
-    myUrl = baseUrl+"&download=genbank"
+    myUrl = baseUrl+"&download=geneious"
     html = "<a href='%s'>Geneious</a>" % myUrl
     htmls.append(html)
 
@@ -4414,13 +4418,16 @@ def seqToGenbankLines(seq):
         lines.append(" ".join(parts[i:i+6]))
     return lines
 
-def writeLn(fh, line, indent=None):
+def writeLn(fh, line, indent=None, doWrap=True):
     " write line to file, using \r\n "
     if indent==None:
         fh.write(line)
         fh.write("\r\n")
     else:
-        lineSize = 80-indent
+        if doWrap:
+            lineSize = 80-indent
+        else:
+            lineSize = 10000
         parts = [line[i:i+lineSize] for i in range(0, len(line), lineSize)]
         spacer = "".join(([" "]*indent))
         for p in parts:
@@ -4493,10 +4500,10 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
 
-        if fileFormat in []:
-            # this code annotates the guide sequence
+        if fileFormat in ["geneious"]:
+            # this code annotates only the guide sequence, suggested by Alyce Chen
             start = guideStart + 1
-            end = start + len(guideSeq)
+            end = start + len(guideSeq) - 1
         else:
             # most viewers don't handle overlaps well. We highlight only the PAM in these cases
             if strand=="+":
@@ -4508,10 +4515,12 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
         colorHex, colorName = scoreToColor(guideScore)
         guideName = intToExtPamId(pamId)
-        descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
-        guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]))
+        fusiScore = str(effScores.get("fusi", -1))
+        crisprScanScore = str(effScores.get("crisprScan", -1))
+        descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, fusiScore, crisprScanScore)
+        guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, fusiScore, crisprScanScore)
         guideDesc = "guide: %s" % guideSeq
-        longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, full details/primers at %s" % (guideScore, str(effScores["fusi"]), str(effScores["crisprScan"]), guideSeq, guideUrl)
+        longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, full details/primers at %s" % (guideScore, fusiScore, crisprScanScore, guideSeq, guideUrl)
 
         featType = "misc_feature"
 
@@ -4573,6 +4582,9 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             writeLn(ofh, '''/Mor-MateosEff="%s"''' % str(effScores["crisprScan"]), indent=21)
             writeLn(ofh, '''/guide_sequence="%s"''' % guideSeq, indent=21)
             writeLn(ofh, '''/url="%s"''' % guideUrl, indent=21)
+        elif fileFormat in ["geneious"]:
+            writeLn(ofh, '''/label="%s"''' % guideName, indent=21, doWrap=False) # geneious translates \n to spaces, breaks link
+            writeLn(ofh, '''/note="%s"''' % longDesc, indent=21, doWrap=False)
         else:
             writeLn(ofh, '''/label="%s"''' % guideName, indent=21)
             writeLn(ofh, '''/note="%s"''' % longDesc, indent=21)
@@ -4707,6 +4719,8 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minF
             row = [pamName, lSeq, lTm, rSeq, rTm, targetSeq, guideSeq]
         else:
             row = [pamName, targetSeq, guideSeq]
+
+        row = [str(x) for x in row]
         ofh.write("\t".join(row))
         ofh.write("\n")
 
@@ -4826,7 +4840,7 @@ def downloadFile(params):
         minFusi = cgiGetNum(params, "minFusi", 0)
         writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat, sys.stdout)
 
-    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti", "lasergene"]:
+    elif fileType in ["serialcloner", "ape", "genomecompiler", "fasta", "benchling", "snapgene", "genbank", "vnti", "lasergene", "geneious"]:
         fileFormat = params['download']
         ext = "gb"
         if fileFormat=="serialcloner":
@@ -4883,7 +4897,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
                 prefix = "ontarget_"
             else:
                 prefix = ""
-            segDesc = segTypeConv[segType]
+            segDesc = segTypeConv.get(segType, "") # some genomes do not have descriptions
             name = "%(prefix)smm%(mismCount)d_%(segDesc)s_%(segName)s_%(chrom)s_%(start)d" % locals()
             if start-1000 < 0 or end+1000 > chromSizes[chrom]:
                 print("Cannot design primer for %s, too close to chromosome boundary" % name)
@@ -5429,22 +5443,25 @@ def printLibGuides(params):
 def printBody(params):
     " main dispatcher function "
 
-    if len(params)==0 or ("seq" in params and not "org" in params):
-        printForm(params)
-    elif "satMut" in params and "batchId" in params:
+    if "batchId" in params:
+        printCrisporBodyStart()
+        if "pamId" in params:
+            if "pam" in params:
+                primerDetailsPage(params)
+            elif "otPrimers" in params:
+                otPrimerPage(params)
+            elif "showMh" in params:
+                microHomPage(params)
+            else:
+                errAbort("Unrecognized CGI parameters.")
+        else:
+            crisprSearch(params)
+
+    elif "satMut" in params:
         printCrisporBodyStart()
         printSatMutPage(params)
-    elif "batchId" in params and "pamId" in params and "pam" in params:
-        printCrisporBodyStart()
-        primerDetailsPage(params)
-    elif "batchId" in params and "pamId" in params and "otPrimers" in params:
-        printCrisporBodyStart()
-        otPrimerPage(params)
-    elif "batchId" in params and "pamId" in params and "showMh" in params:
-        printCrisporBodyStart()
-        microHomPage(params)
-    elif (("seq" in params or "pos" in params) and "org" in params and "pam" in params) or \
-         "batchId" in params:
+
+    elif ("seq" in params or "pos" in params) and "org" in params and "pam" in params:
         printCrisporBodyStart()
         crisprSearch(params)
     elif "libDesign" in params:
@@ -5454,7 +5471,7 @@ def printBody(params):
         printCrisporBodyStart()
         printLibGuides(params)
     else:
-        errAbort("Unrecognized CGI parameters.")
+        printForm(params)
 
 def iterParseBoulder(tmpOutFname):
     " parse a boulder IO style file, as output by Primer3 "
@@ -6286,8 +6303,8 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         print "<h3 id='ciona'>Direct PCR for <i>C. intestinalis</i></h3>"
         print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
         ciPrimers = [
-            ("guideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
-            ("guideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
+            ("ciGuideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
+            ("ciGuideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
         ]
         printPrimerTable(ciPrimers)
 
