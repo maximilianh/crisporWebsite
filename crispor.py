@@ -79,6 +79,9 @@ versionStr = "4.4"
 # contact email
 contactEmail='crispor@tefor.net'
 
+# url to this server
+ctBaseUrl = "http://crispor-max.tefor.net/temp/customTracks"
+
 # write debug output to stdout
 DEBUG = False
 #DEBUG = True
@@ -94,7 +97,7 @@ TEMPDIR = os.environ.get("TMPDIR", "/tmp")
 
 # XX a temporary hack for cluster jobs at UCSC:
 # - default to ramdisk
-# - don't to bwasw
+# - don't do bwasw
 #   - this will trigger auto-ontarget: any perfect match is the on-target
 # - do not calculate efficiency scores
 clusterJob = False
@@ -939,9 +942,11 @@ def varDictToHtml(varDict, seq, varShortLabel):
 
 def cssClassesFromSeq(guideSeq, suffix=""):
     " The CSS class of guide row and links in seq viewer depend on the first nucl of guide "
-    classNames = []
+    classNames = ["guideRow"]
     if guideSeq[0].upper()!="G":
         classNames.append("guideRowNoPrefixG"+suffix)
+    if not guideSeq.startswith("GG"):
+        classNames.append("guideRowNoPrefixGG"+suffix)
     if guideSeq[0].upper()!="A":
         classNames.append("guideRowNoPrefixA"+suffix)
     classStr = " ".join(classNames)
@@ -1092,7 +1097,7 @@ def flankSeqIter(seq, startDict, pamLen, doFilterNs):
 
         yield "s%d%s" % (pamStart, strand), pamStart, guideStart, strand, flankSeq, pamSeq, pamPlusSeq
 
-def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
+def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None):
     " return link to genome browser (ucsc or ensembl) at pos, with given text "
     if dbInfo is None:
         errAbort("Your batchID %s relates to a genome that is not present anymore. You will have to change the version of the site. Or contact us and send us the full URL of this page.")
@@ -1123,6 +1128,8 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses):
         # remove the strand 
         pos = pos.replace(":+","").replace(":-","")
         url = "http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s" % (dbInfo.name, pos)
+        if ctUrl is not None:
+            url+= "&hgt.customText=%s" % ctUrl
     # some limited support for gbrowse
     elif dbInfo.server.startswith("http://"):
         urlLabel = "GBrowse"
@@ -1489,10 +1496,15 @@ def calcCfdScore(guideSeq, otSeq):
 
 # --- END OF SCORING ROUTINES 
 
-def parseChromSizes(genome):
-    " return chrom sizes as dict chrom -> size "
+def getSizeFname(genome):
+    " return name of chrom.sizes file "
     genomeDir = genomesDir # make local
     sizeFname = "%(genomeDir)s/%(genome)s/%(genome)s.sizes" % locals()
+    return sizeFname
+
+def parseChromSizes(genome):
+    " return chrom sizes as dict chrom -> size "
+    sizeFname = getSizeFname(genome)
     ret = {}
     for line in open(sizeFname).read().splitlines():
         fields = line.split()
@@ -1826,21 +1838,23 @@ def printTableHead(batchId, chrom, org, varHtmls):
         $("guideRow").show();
     }
 
-    function onlyWith(doPrefix, otherPrefix) {
+    function onlyWith(doPrefix) {
         /* show only guide rows and guide sequence viewer features that start with a prefix */
-        $("#onlyWith"+otherPrefix+"Box").prop("checked", false);
 
         if ($("#onlyWith"+doPrefix+"Box").prop("checked"))
             {
-            $(".guideRowNoPrefix"+otherPrefix).show();
+            $(".prefixBox").prop("checked", false);
+            $("#onlyWith"+doPrefix+"Box").prop("checked", true);
+            //$(".guideRow").show();
+            $(".guideRow").css("visibility", "visible");
             $(".guideRowNoPrefix"+doPrefix).hide();
             // special handling for sequence viewer: hide() would destroy the layout there
             $(".guideRowNoPrefix"+doPrefix+"Seq").css("visibility", "hidden");
             }
         else
             {
-            $(".guideRowNoPrefix"+doPrefix).show();
-            $(".guideRowNoPrefix"+otherPrefix).show();
+            $(".prefixBox").prop("checked", false);
+            $(".guideRow").show();
             $(".guideRowNoPrefix"+doPrefix+"Seq").css("visibility", "visible");
             }
     }
@@ -1929,8 +1943,9 @@ def printTableHead(batchId, chrom, org, varHtmls):
         print('<br>')
 
     print '''<small>'''
-    print '''<input type="checkbox" id="onlyWithGBox" onchange="onlyWith('G', 'A')">Only G-'''
-    print '''<input type="checkbox" id="onlyWithABox" onchange="onlyWith('A', 'G')">Only A-'''
+    print '''<input type="checkbox" class="prefixBox" id="onlyWithGBox" onchange="onlyWith('G')">Only G-'''
+    print '''<input type="checkbox" class="prefixBox" id="onlyWithGGBox" onchange="onlyWith('GG')">Only GG-'''
+    print '''<input type="checkbox" class="prefixBox" id="onlyWithABox" onchange="onlyWith('A')">Only A-'''
     htmlHelp("The two checkboxes allow you to show only guides that start with G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
     print '''</small>'''
 
@@ -2045,6 +2060,11 @@ def scoreToColor(guideScore):
     else:
         color = ("#aa0114", "red")
     return color
+
+def hexToRgb(hexCode):
+    " convert hex color to RGB in UCSC format, https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python "
+    hexCode = hexCode.lstrip("#")
+    return ",".join(tuple(str(int(hexCode[i:i+2], 16)) for i in (0, 2 ,4)))
 
 def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
     " return a list with the html texts of the offtarget links "
@@ -2589,14 +2609,20 @@ def writePamFlank(seq, startDict, pam, faFname):
         faFh.write(">%s\n%s\n" % (pamId, flankSeq))
     faFh.close()
 
-def runCmd(cmd, ignoreExitCode=False):
+def runCmd(cmd, ignoreExitCode=False, useShell=True):
     " run shell command, check ret code, replaces BIN and SCRIPTS special variables "
-    cmd = cmd.replace("$BIN", binDir)
-    cmd = cmd.replace("$PYTHON", sys.executable)
-    cmd = cmd.replace("$SCRIPT", scriptDir)
-    cmd = "set -o pipefail; " + cmd
+    if useShell:
+        cmd = cmd.replace("$BIN", binDir)
+        cmd = cmd.replace("$PYTHON", sys.executable)
+        cmd = cmd.replace("$SCRIPT", scriptDir)
+        cmd = "set -o pipefail; " + cmd
+        executable = "/bin/bash"
+    else:
+        cmd = [x.replace("$BIN", binDir).replace("$PYTHON", sys.executable).replace("$SCRIPT", scriptDir) for x in cmd]
+        executable=None
+
     debug("Running %s" % cmd)
-    ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
+    ret = subprocess.call(cmd, shell=useShell, executable=executable)
     if ret!=0 and not ignoreExitCode:
         if commandLineMode:
             logging.error("Error: could not run command %s." % cmd)
@@ -3810,6 +3836,94 @@ def showSeqDownloadMenu(batchId):
 
     print "</small></div>"
 
+def makeCustomTrack(org, chrom, seqStart, seqEnd, strand, guideData, batchId, batchName):
+    " create a custom track file for a given batch and return the filename "
+    ctDir = join(batchDir, "customTracks")
+    if not isdir(ctDir):
+        os.makedirs(ctDir)
+
+    ctFname = join(ctDir, batchId+".bed") # temporary bed file
+    bbFname = join(ctDir, batchId+".bb")  # bigBed file
+    ctFname = join(ctDir, batchId+".txt") # custom track settings
+    if isfile(ctFname):
+        return bbFname
+
+    seqStart = int(seqStart)
+    seqEnd = int(seqEnd)
+
+    rows = []
+    for guideRow in guideData:
+        guideScore, guideCfdScore, effScores, pamStart, guideStart, strand, pamId, guideSeq, \
+            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+
+        rgb = hexToRgb(scoreToColor(guideScore)[0])
+        if cpf1Mode:
+            # think part = PAM comes first
+            chromStart = seqStart+pamStart
+            thickStart = seqStart+guideStart
+            thickEnd = thickStart+GUIDELEN
+            chromEnd = thickEnd
+        else:
+            chromStart = seqStart+guideStart
+            thickStart = chromStart
+            thickEnd   = chromStart+GUIDELEN
+            chromEnd   = thickEnd
+
+        mitScore = str(guideScore)
+        fusiScore = str(effScores.get("fusi", -1))
+        crisprScanScore = str(effScores.get("crisprScan", -1))
+        oofScore = str(effScores.get("oof", -1))
+
+        name = pamId
+        bed = [chrom, chromStart, chromEnd, name, mitScore, strand, thickStart, thickEnd, rgb, guideSeq, pamSeq, mitScore, fusiScore, crisprScanScore, oofScore, batchId]
+        rows.append(bed)
+
+    # sort and write to file
+    rows.sort()
+    ofh = open(ctFname, "w")
+    for row in rows:
+        row = [str(x) for x in row]
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+    ofh.close()
+
+    sizeFname = getSizeFname(org)
+    asFname = "crispor.as"
+    cmd = ["$BIN/bedToBigBed", "-type=bed9+", "-tab", "-as="+asFname, ctFname, sizeFname, bbFname]
+    runCmd(cmd, useShell=False)
+
+    bbUrl = baseUrl+"/%s.bb" % batchId
+
+    ofh = open(ctFname, "w")
+    if batchName=="":
+        batchName="Results"
+    ofh.write("browser position %s:%d-%d\n" % (chrom, seqStart, seqEnd))
+    ofh.write('track type=bigBed name="CRISPOR %(batchName)s" description="CRISPOR Results %(batchName)s %(batchId)s" bigDataUrl=%(bbUrl)s itemRgb=On visibility=pack\n' % locals())
+    ofh.close()
+
+    #hubFname = join(ctDir, batchId+".txt")
+    #ofh = open(hubFname, "w")
+    #ofh.write("hub CRISPOR\n")
+    #ofh.write("shortLabel CRISPOR %s\n")
+    #ofh.write("longLabel CRISPOR batch %s %s\n")
+    #ofh.write("genomesFile %s\n" % hubFname)
+    #ofh.write("email crispor@tefor.net\n")
+    #ofh.write("descriptionUrl http://crispor.org\n")
+    #ofh.write("genome %s\n" % org)
+    #ofh.write("trackDb %s\n" % hubFname)
+    #ofh.write("\n" % hubFname)
+    #ofh.write("track crispor%s\n" % batchId)
+    #ofh.write("shortLabel M-CAP
+    #longLabel M-CAP
+    #group genes
+    #visibility dense
+    #type bigBed 9 +
+    ##os.remove(ctFname)
+
+    #return bbFname
+    ctUrl = baseUrl+"/%s.txt" % batchId
+    return ctUrl
+
 def crisprSearch(params):
     " do crispr off target search and eff. scoring "
     # check if db name is valid
@@ -3899,13 +4013,17 @@ def crisprSearch(params):
         if batchName!="":
             print batchName.encode("utf8")+":"
 
+        ctUrl = None
+        if org in ["hg19", "mm10"]:
+            ctUrl = ctBaseUrl+"/%s.txt" % batchId
+
         print "%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name)
         print '<span style="text-decoration:underline">'
         #mouseOver = "link to UCSC,Ensembl or Gbrowse Genome Browser"
         mouseOver = None
         if dbInfo.server=="manual":
             mouseOver = "no genome browser link available for this organism"
-        print makeBrowserLink(dbInfo, genomePosStr, oneBasedPosition, mouseOver, ["tooltipster"])+"</span>, "
+        print makeBrowserLink(dbInfo, genomePosStr, oneBasedPosition, mouseOver, ["tooltipster"], ctUrl=ctUrl)+"</span>, "
         if strand=="+":
             print " forward genomic strand"
         else:
@@ -3917,6 +4035,7 @@ def crisprSearch(params):
     effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy)
+
 
     if len(guideScores)==0:
         print "Found no possible guide sequence. Make sure that your input sequence is long enough and contains at least one match to the PAM motif %s." % pam
@@ -3966,6 +4085,8 @@ def crisprSearch(params):
 
     print '<br><a class="neutral" href="crispor.py">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
+
+    makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
 
 def printFile(fname):
     if "/" in fname:
@@ -6392,7 +6513,7 @@ Command line interface for the Crispor tool.
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
-        action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed")
+        action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed, default %default", default=MAXOCC)
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
     parser.add_option("", "--shortGuides", dest="shortGuides", \
