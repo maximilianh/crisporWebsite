@@ -4497,6 +4497,8 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh):
             row = [pamName, lSeq, lTm, rSeq, rTm, targetSeq, guideSeq]
         else:
             row = [pamName, targetSeq, guideSeq]
+
+        row = [str(x) for x in row]
         ofh.write("\t".join(row))
         ofh.write("\n")
 
@@ -4944,26 +4946,30 @@ can be selectively amplified from the pool.<br>
 def printBody(params):
     " main dispatcher function "
 
-    if len(params)==0 or ("seq" in params and not "org" in params) or ("org" in params and not "seq" in params):
-        printForm(params)
-    elif "satMut" in params and "batchId" in params:
+    if "batchId" in params:
+        printCrisporBodyStart()
+        if "pamId" in params:
+            if "pam" in params:
+                primerDetailsPage(params)
+            elif "otPrimers" in params:
+                otPrimerPage(params)
+            elif "showMh" in params:
+                microHomPage(params)
+            else:
+                errAbort("Unrecognized CGI parameters.")
+        else:
+            crisprSearch(params)
+
+    elif "satMut" in params:
         printCrisporBodyStart()
         printSatMutPage(params)
-    elif "batchId" in params and "pamId" in params and "pam" in params:
-        printCrisporBodyStart()
-        primerDetailsPage(params)
-    elif "batchId" in params and "pamId" in params and "otPrimers" in params:
-        printCrisporBodyStart()
-        otPrimerPage(params)
-    elif "batchId" in params and "pamId" in params and "showMh" in params:
-        printCrisporBodyStart()
-        microHomPage(params)
-    elif (("seq" in params or "pos" in params) and "org" in params and "pam" in params) or \
-         "batchId" in params:
+
+    elif ("seq" in params or "pos" in params) and "org" in params and "pam" in params:
         printCrisporBodyStart()
         crisprSearch(params)
+
     else:
-        errAbort("Unrecognized CGI parameters.")
+        printForm(params)
 
 def iterParseBoulder(tmpOutFname):
     " parse a boulder IO style file, as output by Primer3 "
