@@ -6555,9 +6555,9 @@ Command line interface for the Crispor tool.
     parser.add_option("", "--tempDir", dest="tempDir", \
         action="store", help="temp directory for command line. If not specified, remove all temp files on exit")
     parser.add_option("", "--ampliconDir", dest="ampDir", \
-        action="store", help="For each guide, write a file with the off-target amplicons to this directory. Filename is <seqId>_<pamId>.txt")
+        action="store", help="For each guide, write a file with the off-target amplicons to this directory. Filename is <seqId>_<pamId>.txt. See repeat masking note under --satMutDir.")
     parser.add_option("", "--satMutDir", dest="satMutDir", \
-        action="store", help="write saturating mutagenesis files to this directory, one per input sequence: ontargetAmplicons.tsv, satMutOligos.tsv, ontargetPrimers.tsv and targetSeqs.txt")
+        action="store", help="write saturating mutagenesis files to this directory, one per input sequence: ontargetAmplicons.tsv, satMutOligos.tsv, ontargetPrimers.tsv and targetSeqs.txt. Repeats are masked when designing primers, so not all guides may have primers (flagged with 'None').")
     #parser.add_option("", "--ontargetPrimers", dest="ontargetPrimers", \
         #action="store", help="write on-target primers and amplicons, one per guide, to this tab-sep file")
     parser.add_option("", "--ampLen", dest="ampLen", type="int", default=140, \
