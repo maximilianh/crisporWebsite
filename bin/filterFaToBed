@@ -85,7 +85,7 @@ def calcHitScore(string1,string2):
 # END ---- MIT offtarget scoring
 
 def patMatch(seq, pat):
-    " return true if pat does not match seq, both have to be same length "
+    " return true if pat matches seq, both have to be same length "
     assert(len(seq)==len(pat))
     for x in range(0, len(pat)):
         patChar = pat[x]
@@ -99,6 +99,8 @@ def patMatch(seq, pat):
         if patChar=="R" and nuc in ["A", "G"]:
             continue
         if patChar=="Y" and nuc in ["C", "T"]:
+            continue
+        if patChar=="V" and nuc in "ACG":
             continue
         if patChar!=nuc:
             return False
@@ -120,7 +122,7 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore, passX1Score = sys.argv[1:]
-    isCpf1 = (pamPat in ["TTTN", "TTN"])
+    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV"])
 
     passX1Score = int(passX1Score)
     altScore = float(altScore)
@@ -155,7 +157,6 @@ def main():
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(pamGenomeSeq, altPat):
-                            #print guideSeq, seq[:20], len(guideSeq)
                             hitScore = calcHitScore(guideSeq, seq[:-pamLen])
                             if hitScore > altScore:
                                 doesPass = True

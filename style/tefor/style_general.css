@@ -16,7 +16,6 @@ body
     margin-right:auto;
     
     height: auto;    
-    width:90%;   
     
     font-family: ColabLig, Helvetica, Arial, sans-serif;    
     background-repeat:repeat;  
@@ -119,8 +118,6 @@ strong
     border-top-style: solid;
     border-top-width: 1px;
 
-    text-align: center;
-
     font-size: 14px;
 }
 
@@ -143,7 +140,6 @@ div.header
     margin-right:auto;
 
     margin-bottom: 20px;
-    text-align: center;
 }
 
 .subpanel, .subpanelintroduction, div.anchor
@@ -177,14 +173,12 @@ div.header
     padding-left:  5px;
     padding-right: 5px;
     
-    text-align:justify;
     font-size: 18px;
     line-height: 24px;
  
     background: rgba(300, 300, 300, 1);
     color:#222222;
 
-    overflow: auto; 
 
 /*    border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;*/
@@ -192,7 +186,6 @@ div.header
 
 .contentcentral
 { 
-    text-align: center;
     padding-bottom: 40px;
 /*    color: #ff7400;*/
 }
@@ -257,7 +250,6 @@ div.panelright div.subpanel div.title
 div.panelright div.subpanel div.content
 {
     font-size: 16px;
-    text-align: center;
 }
 
 div.anchor
@@ -292,7 +284,6 @@ div.anchor:target
     font-family: ColabLig, Futura, sans-serif;
     font-size: 20px;
     color: black;
-    text-align: center;
 }
 
 .title
@@ -334,13 +325,11 @@ div.anchor:target
     font-family: ColabLig, Helvetica, Arial, sans-serif;
     font-size: 18px;
     color: black;
-    text-align:center;
     line-height:24px;
 }
 
 .slidecontentadmin
 {
-    text-align:left;
     margin-left: 35px;
 }
 
@@ -381,7 +370,6 @@ div.admin
     float:right;
     
     line-height: 20px;
-    text-align: right;
     
     /*border: solid green;*/
 }

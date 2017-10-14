@@ -2,13 +2,13 @@
 
 import logging, sys, optparse, os, shutil, glob, json, urllib2, subprocess, urllib, gzip
 from collections import namedtuple
-from os.path import join, isdir, isfile, getsize, basename
+from os.path import *
 
 import MySQLdb # install with "sudo apt-get install python-mysqldb"
 
 
 # temp dir on local disk
-tmpDir = "/tmp2"
+tmpDir = os.getenv("TMPDIR", "/tmp2")
 #tmpDir = "/tmp"
 
 global debugMode
@@ -63,6 +63,11 @@ if options.debug:
 else:
     logging.basicConfig(level=logging.INFO)
 # ==== FUNCTIONs =====
+def errAbort(msg):
+    " show msg and abort. Like errAbort.c "
+    print msg
+    exit(0)
+
 def runCmd(cmd, mustRun=True):
     " wrapper around os.system that prints error messages "
     if debugMode:
@@ -108,12 +113,8 @@ def lineFileNext(fh, skipLines=0):
         yield rec
 
 def sqlConnect(db):
-    """ connect to ucsc sql """
-    #if name=="public":
+    """ connect to ucsc sql server"""
     host, user, passwd = "genome-mysql.cse.ucsc.edu", "genomep", "password"
-    #elif name=="local":
-        #cfg = parseHgConf()
-        #host, user, passwd = cfg["db.host"], cfg["db.user"], cfg["db.password"]
     conn = MySQLdb.connect(host=host, user=user, passwd=passwd, db=db)
     return conn
 
@@ -128,9 +129,80 @@ def querySql(conn, query):
     cursor.close()
     return recs
 
+def parseConf(fname):
+    " parse a hg.conf style file, return as dict key -> value (all strings) "
+    conf = {}
+    for line in open(fname):
+        line = line.strip()
+        if line.startswith("#"):
+            continue
+        elif line.startswith("include "):
+            inclFname = line.split()[1]
+            absFname = normpath(join(dirname(fname), inclFname))
+            if os.path.isfile(absFname):
+                inclDict = parseConf(absFname)
+                conf.update(inclDict)
+        elif "=" in line: # string search for "="
+            key, value = line.split("=")
+            conf[key] = value
+    return conf
+
+hgConf = None
+
+def parseHgConf():
+    """ return hg.conf as dict key:value. """
+    global hgConf
+    if hgConf is not None:
+        return hgConf
+
+    hgConf = dict() # python dict = hash table
+
+    #confDir = os.path.dirname(__file__) # look for hg.conf in parent dir
+    fname = expanduser("~/.hg.conf")
+    hgConf = parseConf(fname)
+
+    return hgConf
+
+def cfgOption(name, default=None):
+    " return hg.conf option or default "
+    return hgConf.get(name, default)
+
+def hConnectCentral():
+    " similar to src/hg/lib/hdb.c:hConnectCentral. We use a much simpler cache, because we usually read all rows into memory. "
+
+    parseHgConf()
+    centralDb = cfgOption("central.db")
+    if centralDb is None:
+        errAbort("Could not find central.db in hg.conf. Installation error.")
+
+    centralUser = cfgOption("central.user")
+    if centralUser is None:
+        errAbort("Could not find central.user in hg.conf. Installation error.")
+
+    centralPwd = cfgOption("central.password")
+    if centralPwd is None:
+        errAbort("Could not find central.password in hg.conf. Installation error.")
+
+    centralHost = cfgOption("central.host")
+    if centralHost is None:
+        errAbort("Could not find central.host in hg.conf. Installation error.")
+
+    conn = sqlConnect(centralDb)
+
+    centralConn = conn
+    return conn
+
+def selectUcscGenomesByDb(db):
+    " like selectUcscGenomes but only for a single genome and by the ucsc db id, not taxonId "
+    conn = hConnectCentral()
+    query = 'SELECT * FROM dbDb WHERE name="%s" ORDER BY orderKey DESC' % db
+    rows = querySql(conn, query)
+    assert(len(rows)==1)
+    return rows
+
 def selectUcscGenomes(taxIds, quiet):
     " given a list of taxIds, let the user select an assembly and return a list of dbDb rows for them "
-    conn = sqlConnect("hgcentral")
+    conn = sqlConnect("hgcentral", host="public")
     data = {}
     dbRows = []
     for taxId in taxIds:
@@ -217,6 +289,11 @@ def writeGenomeInfo(row, addUcsc=False):
 def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
     " index with bwa and make chrom sizes "
     printMsg("Indexing fasta with BWA")
+
+    if isfile(sizesTmp):
+        printMsg("%s exists - not indexing with BWA and not converting to twobit" % sizesTmp)
+        return
+
     cmd = "bwa index %s" % faTmp
     runCmd(cmd)
 
@@ -245,6 +322,88 @@ def fixSymFile(accToSymTmp, symFixFile):
         ofh.write("%s\t%s\n" % (key, val))
     ofh.close()
 
+def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir):
+    " copy seg, sizes and twobit to finalDbDir and clean up dbTmpDir "
+    cmd = "rm %s" % accToSymTmp
+    runCmd(cmd)
+
+    printMsg("Moving output files into crispr tool directory")
+    outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
+    outFnames.extend([segTmp, sizesTmp, twoBitTmp])
+    if not isdir(finalDbDir):
+        os.makedirs(finalDbDir)
+    moveToDest(outFnames, finalDbDir)
+
+    cmd = "rm -rf %s" % dbTmpDir
+    runCmd(cmd)
+
+
+def geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp):
+    " convert genes to segments "
+    printMsg("Downloading gene models to segments")
+    cmd = "cat %(geneTmp)s | cut -f2- | genePredToBed stdin stdout | bedToExons stdin stdout | lstOp replace stdin %(accToSymTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
+    runCmd(cmd)
+    assert(getsize(segTmp)!=0) # no segments - email Max!
+
+def indexLocalGenome(dbInfo, geneTable):
+    " get and index genome at UCSC using geneTable for the gene annotations "
+    db = dbInfo.name
+    dbTmpDir = join(tmpDir, db)
+    finalDbDir = join(crisprGenomeDir, db)
+
+    try:
+        os.makedirs(dbTmpDir)
+        print("made %s" % dbTmpDir)
+    except:
+        print("%s already exists, not creating" % dbTmpDir)
+
+    if isdir(finalDbDir):
+        print "the directory %s already exists" % finalDbDir
+        print "looks like this genome has already been indexed"
+        return
+
+
+    printMsg("Genome: " + db)
+    sizesTmp = join(dbTmpDir, db+".sizes")
+    faTmp = join(dbTmpDir, db+".fa")
+    twoBitTmp = join(dbTmpDir, db+".2bit")
+    if isfile(sizesTmp):
+        printMsg("%s exists - not indexing with BWA and not converting to twobit" % sizesTmp)
+    else:
+        printMsg("Copying 2bit")
+        cmd = "cp /gbdb/%s/%s.2bit %s" % (db, db, twoBitTmp)
+        runCmd(cmd)
+
+        printMsg("Converting 2bit to fasta")
+        cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
+        runCmd(cmd)
+
+        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+
+    # make transcript -> symbol file
+    accToSymTmp = join(dbTmpDir, db+".transToName.txt")
+    if geneTable=="ensGene":
+        transToGeneTable = "ensemblToGeneName"
+        printMsg("Getting ENSEMBL transcripts to gene name table")
+        cmd = "hgsql %s -NB -e 'SELECT * from %s' > %s" % (db, transToGeneTable, accToSymTmp)
+    else:
+        printMsg("mapping transcript IDs to gene symbols via name2 field in genePred, table %s" % geneTable)
+        cmd = "hgsql %s -NB -e 'SELECT * from %s' | cut -f2,13 | sort -u > %s" % (db, geneTable, accToSymTmp)
+    runCmd(cmd)
+    assert(getsize(accToSymTmp)!=0) # no symbols - email Max!
+
+    # get the gene pred table, do not strip bin column
+    geneTmp = join(dbTmpDir, "%s.genes.txt" % db)
+    cmd = "hgsql %(db)s -NB -e 'SELECT * from %(geneTable)s' >  %(geneTmp)s" % locals()
+    runCmd(cmd)
+
+    # now convert the genes to segments. Do not keep the genes, because they're already on the UCSC browser
+    segTmp = join(dbTmpDir, "%s.segments.bed" % db)
+    geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp)
+
+    ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir)
+
+    writeGenomeInfo(dbInfo, addUcsc=True)
 
 def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
     " download and index genomes, geneFnames can be a comma-sep string with genePredTable,geneSyms "
@@ -297,25 +456,15 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
         if symFixFile:
             fixSymFile(accToSymTmp, symFixFile)
 
-        printMsg("Downloading gene models and converting to segments")
+        printMsg("Downloading gene models")
+        geneTmp = join(dbTmpDir, "genes.txt")
+        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(geneTable)s.txt.gz -O - | zcat > %(geneTmp)s" % locals()
+        runCmd(cmd)
+
         segTmp = join(dbTmpDir, "%s.segments.bed" % db)
-        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(geneTable)s.txt.gz -O - | gunzip -c | cut -f2- | genePredToBed stdin stdout | bedToExons stdin stdout | lstOp replace stdin %(accToSymTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
-        runCmd(cmd)
-        assert(getsize(segTmp)!=0) # no segments - email Max!
+        geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp)
 
-        cmd = "rm %s" % accToSymTmp
-        runCmd(cmd)
-
-        printMsg("Moving output files into crispr tool directory")
-        outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
-        outFnames.extend([segTmp, sizesTmp, twoBitTmp])
-        if not isdir(finalDbDir):
-            os.makedirs(finalDbDir)
-        moveToDest(outFnames, finalDbDir)
-
-        cmd = "rm -rf %s" % dbTmpDir
-        runCmd(cmd)
-
+        ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir)
         writeGenomeInfo(row, addUcsc=True)
 
 def selectEnsGenomes(taxIds):
@@ -596,6 +745,9 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
         seqLine = open(faTmp).readline()
         assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
 
+        line1 = open(faTmp).readline()
+        assert("|" not in line1) # I use | as a separator in crispor
+
         printMsg("Converting to 2bit")
         twoBitTmp = join(dbTmpDir, db+".2bit")
         cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
@@ -730,6 +882,11 @@ taxIds = args[1:]
 if site=="ucsc":
     genomeRows = selectUcscGenomes(taxIds, options.auto)
     getUcscGenomes(genomeRows, options.geneTable, options.symFixFile, options.onlyGenes)
+
+elif site=="ucscLocal":
+    db = args[1]
+    genomeRows = selectUcscGenomesByDb(db)
+    indexLocalGenome(genomeRows[0], options.geneTable)
 
 elif site=="ens":
     genomeRows = selectEnsGenomes(taxIds)
