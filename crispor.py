@@ -4090,7 +4090,7 @@ def crisprSearch(params):
     print '<br><a class="neutral" href="crispor.py">'
     print '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
 
-    makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
+    #makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
 
 def printFile(fname):
     if "/" in fname:
@@ -6809,7 +6809,7 @@ def mainCommandLine():
     # as explained the docs
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
-        logging.info("running on sequence '%s', guideLen=%d" % (seqId, GUIDELEN))
+        logging.info(" * running on sequence '%s', guideLen=%d, seqLen=%d" % (seqId, GUIDELEN, len(seq)))
         # get the other parameters and write to a new batch
         seq = seq.upper()
         pamPat = options.pam
