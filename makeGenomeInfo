@@ -78,6 +78,7 @@ outFname = join(genomesDir, "genomeInfo.all.tab")
 ofh = open(tmpFname, "w")
 
 ofh.write("\t".join(fields)+"\n")
+gCount = 0
 for subDir in os.listdir(genomesDir):
     infoFname = join(genomesDir, subDir, "genomeInfo.tab")
     varDbs = readVarDbs(subDir)
@@ -99,7 +100,8 @@ for subDir in os.listdir(genomesDir):
                 val += varDescStr
             newRow.append(val)
         ofh.write("\t".join(newRow)+"\n")
+        gCount += 1
 ofh.close()
 
 os.rename(tmpFname, outFname)
-print("Recreated %s" % outFname)
+print("Recreated %s, %d genomes" % (outFname, gCount))
