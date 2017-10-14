@@ -1,0 +1,204 @@
+#!/usr/bin/env python
+
+# convert a table with guide sequences to sqlite format. Fix up the symbols.
+
+import logging, sys, optparse, gzip, sqlite3, os
+from collections import defaultdict, namedtuple
+from os.path import join, basename, dirname, isfile
+
+# ==== functions =====
+def lineFileNext(fh):
+    """
+        parses tab-sep file with headers as field names
+        yields collection.namedtuples
+        strips "#"-prefix from header line
+    """
+    line1 = fh.readline()
+    while line1.startswith("##"):
+        line1 = fh.readline()
+    line1 = line1.strip("\n").strip("#")
+    headers = line1.split("\t")
+    headers = [h.replace(".","_").replace("-","_") for h in headers]
+    Record = namedtuple('tsvRec', headers)
+   
+    for line in fh:
+        line = line.rstrip("\n")
+        fields = line.split("\t")
+        try:
+            rec = Record(*fields)
+        except Exception, msg:
+            logging.error("Exception occured while parsing line, %s" % msg)
+            logging.error("Filename %s" % fh.name)
+            logging.error("Line was: %s" % repr(line))
+            logging.error("Does number of fields match headers?")
+            logging.error("Headers are: %s" % headers)
+            #raise Exception("wrong field count in line %s" % line)
+            continue
+        # convert fields to correct data type
+        yield rec
+
+def parseArgs():
+    " setup logging, parse command line arguments and options. -h shows auto-generated help page "
+    parser = optparse.OptionParser("usage: %prog [options] inTabSep outSqlite - loads a tab-sep file with symbol-guideSeq into a sqlite db file")
+
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+    parser.add_option("-g", "--hgnc", dest="hgnc", action="store", help="location of HGNC file, default %s", default="hgnc_complete_set.txt")
+    parser.add_option("-c", "--controls", dest="controls", action="store", help="write 'control' guides to this sqlite file", default=None)
+    #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+    #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+    (options, args) = parser.parse_args()
+
+    if args==[]:
+        parser.print_help()
+        exit(1)
+
+    if options.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+    return args, options
+
+def parseHgnc(hgncFname):
+    " return hgnc as a dict old sym -> new sym and a set of valid syms "
+    validSyms = set()
+    oldToNew = defaultdict(list)
+    symToEntrez = dict()
+    symToHgnc = dict()
+    symToRefseq = dict()
+    aliasToNew = defaultdict(list)
+
+    for row in lineFileNext(open(hgncFname)):
+        sym = row.symbol
+        validSyms.add(sym)
+
+        if row.entrez_id!="":
+            symToEntrez[sym] = row.entrez_id
+
+        if row.hgnc_id!="":
+            symToHgnc[sym] = row.hgnc_id
+
+        if row.prev_symbol!="":
+            prevSyms = row.prev_symbol.strip('"').split("|")
+            for ps in prevSyms:
+                oldToNew[ps].append(sym)
+
+        if row.alias_symbol!="":
+            alSyms = row.alias_symbol.strip('"').split("|")
+            for alSym in alSyms:
+                aliasToNew[alSym].append(sym)
+
+        if row.refseq_accession!="":
+            rids = row.refseq_accession.strip('"').split("|")
+            symToRefseq[sym]=rids[0] # good enough
+
+    # merge in the aliases, so that they are last
+    for alias, newIds in aliasToNew.iteritems():
+        for newId in newIds:
+            oldToNew[alias].append(newId)
+
+    return validSyms, oldToNew, symToEntrez, symToHgnc, symToRefseq
+
+# ----------- main --------------
+def main():
+    args, options = parseArgs()
+
+    filename = args[0]
+    dbFname = args[1]
+
+    if options.hgnc!="none":
+        validSyms, oldToNew, symToEntrez, symToHgnc, symToRefseq = parseHgnc(options.hgnc)
+    else:
+        validSyms, oldToNew, symToEntrez, symToHgnc, symToRefseq = set(), {}, {}, {}, {}
+
+    if isfile(dbFname):
+        os.remove(dbFname)
+    if options.controls and isfile(options.controls):
+        os.remove(options.controls)
+
+    conn = sqlite3.connect(dbFname)
+    cur = conn.cursor()
+    cur = cur.execute("create table guides (geneSym text, entrezId text, refseqId text, guideSeq text, pam text);")
+    conn.commit()
+
+    if options.controls:
+        ctrlConn = sqlite3.connect(options.controls)
+        ctrlCur = ctrlConn.cursor()
+        ctrlCur.execute("create table guides (guideSeq text);")
+        ctrlConn.commit()
+
+    notMapped = set()
+    noEntrezCount = 0
+    rowCount = 0
+    mirCount = 0
+    ctrlCount = 0
+
+    for line in open(filename):
+        entrezId = ""
+        refseqId = ""
+        pam = ""
+
+        row = line.rstrip("\n").split("\t")
+        if len(row)==2:
+            geneId = row[0]
+            geneId = geneId.replace("_X","").replace("_Y", "")
+            guideSeq = row[1]
+        elif len(row)==3:
+            geneId, entrezId, guideSeq = row
+        elif len(row)==4:
+            geneId, entrezId, refseqId, guideSeq = row
+        elif len(row)==5:
+            geneId, entrezId, refseqId, guideSeq, pam = row
+
+        if geneId=="control" in geneId:
+            #newGeneIds = [geneId]
+            ctrlCount += 1
+            row = [guideSeq]
+            sql = "INSERT INTO guides values (?)"
+            ctrlCur.execute(sql, row)
+
+        # just pass through some things
+        elif "-mir-" in geneId:
+            newGeneIds = [geneId]
+            mirCount += 1
+        # try to resolve symbols that are not valid anymore
+        elif len(validSyms)!=0 and geneId not in validSyms:
+            if geneId not in oldToNew:
+                notMapped.add(geneId)
+                newGeneIds=[geneId]
+            else:
+                newGeneIds = oldToNew[geneId]
+                #for newGeneId in newGeneIds:
+                    #print geneId, newGeneId
+        else:
+            newGeneIds=[geneId]
+
+        for newGeneId in newGeneIds:
+            if entrezId == "":
+                entrezId = symToEntrez.get(newGeneId, "")
+            if entrezId == "":
+                noEntrezCount += 1
+            if refseqId=="":
+                refseqId = symToRefseq.get(newGeneId, "")
+            row = [newGeneId, entrezId, refseqId, guideSeq, pam]
+            sql = "INSERT INTO guides values (?,?,?,?,?)"
+            cur.execute(sql, row)
+            rowCount +=1
+        
+    conn.execute("CREATE INDEX index_name ON guides (geneSym);")
+    conn.execute("CREATE INDEX entrezIdIdx ON guides (entrezId);")
+    conn.execute("CREATE INDEX refseqIdx ON guides (refseqId);")
+
+    conn.commit()
+    if options.controls:
+        ctrlConn.commit()
+
+    print "Could not map %d geneIds:" % len(notMapped)
+    for gid in sorted(notMapped):
+        print gid
+    print "Loaded %d rows, %d miRNAs, %d controls, could not resolve %d symbols, no entrez Ids for %d rows" % (rowCount, mirCount, ctrlCount, len(notMapped), noEntrezCount)
+
+    #if options.test:
+        #logging.debug("test is set")
+        #f = open(options.file, "r")
+
+main()
