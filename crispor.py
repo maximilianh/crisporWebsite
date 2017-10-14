@@ -74,7 +74,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.4"
+versionStr = "4.3"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -3335,7 +3335,7 @@ def printForm(params):
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
 
-<br><i>New version V4.3, June 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New version V4.3, Oct 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
