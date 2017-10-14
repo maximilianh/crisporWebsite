@@ -1,3 +1,14 @@
+Add these new criteria:
+- Thyme/Schier: http://chopchop.cbu.uib.no/scoring.php, add a column?
+  see https://www.ncbi.nlm.nih.gov/pubmed/27282953
+- Jensen et al: Chromatin and secondary structure 
+   http://onlinelibrary.wiley.com/doi/10.1002/1873-3468.12707/full
+- Jennifer's zebrafish model
+
+Show distance of off-targets from the on-target! 
+
+Show a histogram of the mismatches instead of 0-0-10-15-40
+
 What is site-seq and circle-seq?
 - add note to crispor batch and sat mut assistant about meaning of barcode?
 
@@ -9,15 +20,105 @@ http://www.nature.com/articles/srep30330
 https://www.ncbi.nlm.nih.gov/pubmed/28333914 file S3
 Cas-Analyzer http://bioinformatics.oxfordjournals.org/content/early/2016/09/15/bioinformatics.btw561.abstract
 https://github.com/TuanjieNew/Indel-Finder
+https://github.com/mlafave/ampliconDIVider
 
 screen analyzers:
 https://github.com/boutroslab/CRISPRAnalyzeR
 
 screens CrisprI/A
 https://github.com/mhorlbeck/CRISPRiaDesign
+----
 
 off-target searchers:
 - https://github.com/htgt/CRISPR-Analyser
+- breaking Cas
 - https://github.com/MicrosoftResearch/Azimuth
 - align against ALL human genomes: https://github.com/emptyewer/MAPster
 - Church lab (CRISPR-GA): http://54.80.152.219/index.php
+
+- more scores:
+  - https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1697-6
+
+---
+
+
+auto-downloader:
+- download genome to "genome"
+- download gff to "gff"
+- check if filetype is gz, extract
+- check if type is really fasta
+- check if annot is really gff
+- check if sequences do not contain spaces
+- try to pick out a certain field from the fasta ID lines, is possible
+- translate genome to 2bit
+- create chrom.sizes
+- check if gff-chroms match genome chromes
+- if not: skip gff
+- do the gff translation, if error: skip gff
+- index the fasta
+- keep a log of everything
+- on success, reindex genomes and send out the log to email
+- use rabbitmq
+- split on " ", or ";"
+
+- feature UCSC more prominently:
+  - output page must activate the track in the link to UCSC!
+  - show link maybe even before the job is submitted
+
+- "enter gene name" -> redirect to UCSC 
+- show all guides for all PAMs together
+  - multi-PAM: "need alternative PAM" ? show them in grey
+- score CrisprA/CrisprI
+- design a library for a list of genes
+  - library design: input: list of genes, how many guides per gene, annotate with libraries?
+  - output as excel: geneSym, guideSeq, transcripts, % in CDS, scores, guideSeq
+  - also on guide overview page: show which ones are in gecko/brunello etc
+  - more precalc of guides / whole genome -> library design
+- knock-in support -> concentrate onto GFP-fusions
+  - knock-in support
+  - what are the typical use cases: promoter/enhancer/knock-in/knock-out (=exon-removal)
+- add-genome tool
+
+- base de donnes:
+-- text mining?
+-- guides valides des cribles: ajouter si le guide etait deja utilise
+(Sanger? Base de NIH zebrafish?)
+   fournir dans les tracks UCSC les guides des gènes essentiels  déjà testés dans les cribles et renvoyer un lien 
+   à GenomeCRISPR  de Heidelberg pour plus détails ?
+
+Analyses:
+- variantes Cas9: kleinstiver VQR guideSeq <-> CFD ?
+   me semble vraiment important et original !
+   c’est par exemple possible de comparer et confirmer la supériorité de CFD
+   sur les MIT score pour ces variants.
+- Cpf1: guideSeq <-> CFD ?
+  pour Cpf1 il fait designer un score à la main, comme CCTOP par exemple .
+- screens:
+  - TKO http://tko.ccbr.utoronto.ca/
+  - https://elifesciences.org/articles/12677/figures
+  - Croatan guides:
+    http://www.cell.com/molecular-cell/abstract/S1097-2765(17)30464-1
+    already in ~/croatanGuides.txt
+    protocol in http://croatan.hannonlab.org/files/Supplementary_Protocol.pdf
+
+
+
+- how many published guides may be affected by variants in off-targets?
+
+  pas évident, ça doit être facile d’identifier tous les variants qui diminuent
+  l’activité de off^targets (en passant de n mismatches à n+1) dans le sens
+  inverse, c’est plus compliqué de trouver les variants qui augmentent
+  l’activité de offtargets (en passant de n mismatches à n-1) puisqu’il faut
+  faire les calculs pour avoir tous les off avec 5mm et voir ceux dont les
+  variant font passer à 4 mm.
+  
+Done:
+- cfp1 support
+- suppress all eff scores but Fusi and Moreno
+- remove Tefor menu from Pcr pages
+- use case: hammer a region (enhancer) with guides: saturating mutagenesis libraries
+- serial cloner support
+- activate repeat filtering for the primer design !
+  (find the option in primer3 to remove low-complexity sequences)
+
+

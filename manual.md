@@ -14,11 +14,7 @@ Annotated input sequence {#annotseq}
 
 The main output of the tool is a page that shows the annotated input sequence at the top and the list of possible guides in the input sequence at the bottom. 
 
-<<<<<<< HEAD
-The input sequence is shown first. Underneath the sequence, all PAM (Protospacer adjacent motif) sites are highlighted. Most labs use a derivative of Sp-Cas9, where the PAM is NGG. Sp-Cas9 does not cut at an exact position, usually 1bp-3bp 5' of the PAM. These three basepairs 5' of the PAM are marked with dashes ("-"). PAM sites can also be on the reverse strand of the input sequence. In these cases, for Sp-Cas9, you will see a CCN motif match on the input sequence and the dashes are located then on the right side of this match.
-=======
 The input sequence is shown first. Underneath the sequence, all PAM (Protospacer adjacent motif) sites are highlighted. Most labs use a derivative of Sp-Cas9, where the PAM is NGG. Sp-Cas9 does not cut at an exact position, usually 1bp-3bp 5' of the PAM. These three basepairs 5' of the PAM are marked with dashes ("-"). PAM sites can also be on the reverse strand of the input sequence. For Sp-Cas9, these correspond to CCN motifs on the input sequence and the direction of the dashes is to the right.
->>>>>>> 536fb0e0258ace897bb8f073348ab58e1f8333fb
 
 PAMs are clickable and link to the table of targets below (see next section).
 
@@ -33,11 +29,7 @@ Column 1: the "name" of the target, simply the position of the PAM on the input 
 
 Column 2: the target sequence with the variants (if available for this genome) underneath. High GC content targets are flagged, as are low-GC content targets. Various studies have reported that both cases lead to low target efficiency. Also shown in this column are restriction enzymes that overlap the three basepairs 5' of the PAM site. Finally, one of the most important features of CRISPOR is available here, under the link "PCR primers" (see the [Primers section](#primers) below). 
 
-<<<<<<< HEAD
-This column allows to filter the guides by the first nucleotide, as some RNA expression promoters give much more efficient transcription when starting with specific nucleotides. Using this filter, some labs only show guides that start with G- for the U6 promoter, A- for the U3 promoter or G- for the T7 promoter. In this way, no further sequence changes of the guide sequence are necessary for optimal expression. In our lab, we do not filter guides, but simply add the required nucleotide 5' of the guide (see below).
-=======
 This column allows to filter the guides by the first nucleotide, as some RNA expression promoters give much more efficient transcription when starting with specific nucleotides. Some labs only use targets that start with G- for the U6 promoter, A- for the U3 promoter or G- for the T7 promoter. In this way, no further sequence changes are necessary. In our lab, we do not select guides, but simply prefix them with the required nucleotide (see below).
->>>>>>> 536fb0e0258ace897bb8f073348ab58e1f8333fb
 
 Column 3: the specificity score is a prediction of how much an RNA guide sequence for this target may lead to off-target cleavage somewhere else in the genome. The score ranges from 0-100 with 100 being the best, meaning the search could not find a single sequence in the genome that differs from the target at up to four positions. This score uses the formula from the MIT Crispr Website but with a better and more sensitive search engine. We think that good guides should have a specificity score of at least 50, based on the data from whole-genome off-target assays, see Figure 3a in the [CRISPOR paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2). The coloring red/yellow/green is based on the specifcity score (>50 = green, >30 = yellow). You should really avoid guides with very low scores, unless you can validate the off-targets with special assays or you can cross the animals until you are sure that no off-targets are left. 
 
@@ -57,3 +49,42 @@ For some genomes, there is no gene annotation. This is the case when we could no
 
 Primers
 =======
+
+FAQ
+===
+
+* Why is the MIT score (aka Hsu score) displayed by CRISPOR different from the ones displayed by the MIT website, Desktop Genetics or Benchling?
+
+Because these other tools do not find as many off-targets as CRISPOR. As we
+have shown in our paper, CRISPOR finds all off-targets at 4 mismatches. The MIT
+websites does not find all off-targets, because it filters for repeats.
+Benchling misses some off-targets, not as many as the MIT website but still a
+high number. We do not know why, but it may also be related to repeats. Desktop
+Genetics also searches for up to three mismatches.
+
+* Can I score existing guides with CRISPOR ?
+
+Sure, just enter the target sequence, so the guide + the PAM sequence, into the box.
+
+* Can you add my genome?
+
+Yes, please send us the UCSC genome name or the Ensembl name or the NCBI
+Assembly ID, which starts with GCF_ or GCA_. We can also add individual FASTA
+and GFF files, which you can send by URL or as a Dropbox link.
+
+* Can you add my genome and not share it?
+
+Yes, we can add private genomes. People can use them on the website, but they
+will not be able to download the genome. Just tell us that the genome is
+private and shall not be downloadable.
+
+* Can I search for 19bp long guides?
+
+Yes, but only with the command line version. It has the --shortGuides option.
+Look for the command line version on our "Download" pages. If you have trouble,
+email us. This is a very rarely used option which is why we have not exposed 
+it on the web interface.
+
+
+
+
