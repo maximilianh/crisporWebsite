@@ -152,7 +152,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
 DEFAULTPAM = 'NGG'
 
 # maximum size of an input sequence 
-MAXSEQLEN = 1000
+MAXSEQLEN = 2000
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
 
@@ -763,12 +763,18 @@ def cleanSeq(seq, db):
     seq = "".join(newSeq)
 
     msgs = []
+    tooLongHint = """
+    Please split your input sequence into shorter sequences or use
+    the <a href='downloads/'>stand-alone version</a> on your own Linux or Mac server to process longer sequences in batch.<br>
+    """
+
     if len(seq)>MAXSEQLEN and db!="noGenome":
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than 1kbp</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % MAXSEQLEN)
-        seq = seq[:MAXSEQLEN]
+        errMsg = "<strong>Sorry, this tool cannot handle sequences longer than %d bp</strong><br>" % (MAXSEQLEN)
+        errAbort(errMsg+tooLongHint)
+
     if len(seq)>MAXSEQLEN_NOGENOME and db=="noGenome":
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than %d bp when specifying 'No Genome'.</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % (MAXSEQLEN_NOGENOME, MAXSEQLEN_NOGENOME))
-        seq = seq[:MAXSEQLEN_NOGENOME]
+        errMsg = "<strong>Sorry, this tool cannot handle sequences longer than %d bp when using the 'No Genome' option.</strong><br>" % (MAXSEQLEN_NOGENOME)
+        errAbort(errMsg+tooLongHint)
 
     if nCount!=0:
         msgs.append("Sequence contained %d non-ACTGN letters. They were removed." % nCount)
@@ -3566,7 +3572,7 @@ def getSeq(db, posStr):
         errAbort("Sorry, the sequence range %s on genome %s is not longer than 23bp. To find a valid CRISPR/Cas9 site, one needs at least a 23bp long sequence." % (db, posStr))
     return seq
 
-def printStatus(batchId):
+def printStatus(batchId, msg):
     " print status, not using any Ajax "
     q = JobQueue()
     status = q.getStatus(batchId)
@@ -3582,6 +3588,8 @@ def printStatus(batchId):
         errorState = True
     else:
         print('<meta http-equiv="refresh" content="10" >')
+        if len(msg)!=0:
+            print(msg+"<p>")
         print("CRISPOR job has been submitted.<p>")
 
     if status==None:
@@ -3818,7 +3826,7 @@ def crisprSearch(params):
     if otBedFname is None:
         # this can happen only in CGI mode. Job has been added to the queue or is not done yet. 
         #startAjaxWait(batchId)
-        printStatus(batchId)
+        printStatus(batchId, warnMsg)
         return
 
     # be more sensitive if only a single guide seq is run
