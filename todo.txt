@@ -1,0 +1,5 @@
+- cfp1 support
+- show all guides for all PAMs together
+- suppress all eff scores but Fusi and Moreno
+- knock-in support
+- 
