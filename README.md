@@ -16,12 +16,14 @@ interface that may be sufficient for programmers.
 
 Install BWA and a few required python modules:
     
+    # Debian/Ubuntu
     apt-get install bwa python-pip python-matplotlib
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader
     
 or 
    
-    yum install bwa python-pip
+    # Fedora/Centos/Redhat/Scientific Linux
+    yum install bwa python-pip python-devel
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
     
 Install required R libraries:
