@@ -23,7 +23,7 @@ Install BWA and a few required python modules:
 or 
    
     # Fedora/Centos/Redhat/Scientific Linux
-    yum install bwa python-pip python-devel
+    yum install bwa python-pip python-devel tkinter
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
     
 Install required R libraries:
