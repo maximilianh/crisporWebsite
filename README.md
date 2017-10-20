@@ -12,7 +12,7 @@ If you only need efficiency scores and no interactive website, try "python
 crisporEffScores.py", it is a python module but also has a command line
 interface that may be sufficient for programmers.
 
-# Installation of the command-line script:
+# Installation of CRISPOR
 
 Install BWA and a few required python modules:
     
@@ -106,6 +106,12 @@ Create a temp directory with the right permissions:
     mkdir temp
     chmod a+rw temp
 
+Make sure that Apache is allowed to execute the crispor.py script, it should have x and r permissions for all:
+
+    ls -la crispor.py
+    # if not ...
+    chmod a+rx crispor.py
+
 By default, the jobs database is a SQlite file, /tmp/crisporJobs.db. The Apache
 user has to be able to write to it so let us create it now:
 
@@ -129,19 +135,21 @@ Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/t
 
 The subdirectory usrLocalBin contains required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
 
-The script can auto-download genomes from Ensembl and UCSC or allows you to add your own custom genome in .fasta format. It does not handle gene models yet for custom genomes, email me if you need that, this step depends on the input file format of your genes.
+The script can auto-download genomes from Ensembl, UCSC or NCBI or allows you to add
+your own custom genome in .fasta format and .gff.
 
 E.g. to add the X. laevis genome:
-    sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
+    sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1' --gff geneModels.gff3
 
-The four |-split values for the --desc option are: internalDatabaseName, scienticName, commonOrDisplayName, VersionOfAssembly
+The four |-split values for the --desc option are: internalDatabaseName, scientificName, commonOrDisplayName, VersionNameOfAssembly
 
-Make sure that internalDatabaseName does not include special characters, spaces etc.
+Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used for the directory name.
 
 # Thanks!
 * Jean-Paul Concordet for numerous ideas on the user interface
 * Alberto Stolfi for the finding the N-SNP-bug
 * Mark Diekhans for patching twoBitToFa and making it 100 times faster
+* See the file changes.html for the full list of acknowledgements for every feature
 
 # Licenses
 
@@ -153,4 +161,7 @@ Included software:
 * SSC: no license specified
 * primer3: GPL2.
 * Fusi/Doench score: see LICENSE.txt, (c) by Microsoft Research
-* crispor.py and crisporEffScores.py themselves are released under GPLv3, see LICENSE.txt
+
+CRISPOR itself:
+
+* the two files crispor.py and crisporEffScores.py are released under a special license, see LICENSE.txt in this directory
