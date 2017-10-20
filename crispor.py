@@ -48,7 +48,7 @@ if len(needModules)!=0:
     print("Content-type: text/html\n")
     print("Python interpreter path: %s<p>" % sys.executable)
     print("These python modules were not found: %s<p>" % ",".join(needModules))
-    print("To install all requirements in one line, run: pip install pytabix pandas twobitreader scipy matplotlib numpy<p>")
+    print("To install all requirements in one line, run: sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader<p>")
     sys.exit(0)
 
 # our own eff scoring library
