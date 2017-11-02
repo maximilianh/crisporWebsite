@@ -2190,6 +2190,12 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 varStrs.append(html)
             print("<tt style='color:#888888'>%s</tt><br>" % ("".join(varStrs)))
 
+        if "TTT" in guideSeq.upper():
+            text = "This guide contains the sequence TTT. It cannot be transcribed with a U6 or U3 promoter, as TTT terminates the transcription."
+            htmlWarn(text)
+            print ' Not with U6/U3'
+            print "<br>"
+
         if gcContent(guideSeq)>0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had almost as many off-targets as all other sequences combined. We do not recommend using guide sequences with such a high GC content."
             htmlWarn(text)
@@ -6009,7 +6015,7 @@ def findOntargetPos(otMatches, pamId, position):
                 break
 
         if filtMatch is None:
-            errAbort("Multiple matches for this guide, but no single match is within the target sequence? Please contact us at %s, this looks like a bug or at the very least an issue that was not tested." % contactEmail)
+            errAbort("Multiple matches for this guide, but no single match is within the target sequence? This can happen when your input is not part of the genome, in which case bulk-primer design makes no sense, as far as we can tell. If you think this would make sense for you, contact us at %s." % contactEmail)
 
         chrom, start, end = filtMatch[:3]
         isUnique = False
