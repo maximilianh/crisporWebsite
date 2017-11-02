@@ -2195,8 +2195,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 varStrs.append(html)
             print("<tt style='color:#888888'>%s</tt><br>" % ("".join(varStrs)))
 
-        if "TTT" in guideSeq.upper():
-            text = "This guide contains the sequence TTT. It cannot be transcribed with a U6 or U3 promoter, as TTT terminates the transcription."
+        if "TTTT" in guideSeq.upper():
+            text = "This guide contains the sequence TTTT. It cannot be transcribed with a U6 or U3 promoter, as TTTT terminates the transcription."
             htmlWarn(text)
             print ' Not with U6/U3'
             print "<br>"
