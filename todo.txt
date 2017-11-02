@@ -1,3 +1,10 @@
+Color all scores and add Jensen et al :
+- talbot.39@osu.edu
+- p.s. red/yellow/green indicators would also help for predicted effeciency / out of frame scores.
+- > One thing that I look for, which is not shown here is a test for self-complimentarity.
+- I've often hear this and probably should add it. Is this the mfold score as published in Jenssen et al? Do you want to see the RNAfold diagram, too?
+- Mfold score would be fine; if you could code it red/yellow/green to indicate good/bad scores that would help too.
+
 Add these new criteria:
 - Thyme/Schier: http://chopchop.cbu.uib.no/scoring.php, add a column?
   see https://www.ncbi.nlm.nih.gov/pubmed/27282953
@@ -27,6 +34,9 @@ https://github.com/boutroslab/CRISPRAnalyzeR
 
 screens CrisprI/A
 https://github.com/mhorlbeck/CRISPRiaDesign
+
+databases of tested guides:
+- addgene https://www.addgene.org/crispr/reference/grna-sequence/
 ----
 
 off-target searchers:
@@ -122,3 +132,25 @@ Done:
   (find the option in primer3 to remove low-complexity sequences)
 
 
+To: Zachary Gilbert
+Awesome! That was really fast! I just tested it out with a region we used
+before and it gave us the same guides that worked well for us when we tested
+them in mosquitoes. When I started looking for guides, about a year ago, I used
+Chop-Chop and Crispr.MIT.edu. More recently, I have been using Benchling
+because the interface was a little simpler, but none of them are updating
+genomes right now, and the Aedes genome 5 is much more representative of the
+actual genome than version 3, which is  important to us, since we have had a
+few occasions where we were trying guides in regions with a lot of SNPs, so not
+many of them worked well. We also tried a few downloadable tools, although I
+never got very far with them, since I ran into some weird permissions and
+compatibility problems on our server.
+
+For my needs, I prefer being able to enter a sequence and have the tool give me
+guides in that sequence to choose from, the way it does now, since we often
+want to, for example, find a guide very close to the stop codon, so we can
+label a gene while, mostly, maintaining its function. Some of my lab mates,
+though, would want to be able to enter a gene name and have it spit out a list
+of good guides in the first and second exon of a gene, for creating knockouts.
+Thanks again, this will be super helpful for finding guides for our next few
+projects
+Zach
