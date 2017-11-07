@@ -1534,6 +1534,9 @@ def extendAndGetSeq(db, chrom, start, end, strand, flank=FLANKLEN):
     cmd = "%(progDir)s/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -seq='%(chrom)s' -start=%(start)s -end=%(end)s" % locals()
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     seqStr = proc.stdout.read()
+    proc.wait()
+    if proc.returncode!=0:
+        errAbort("Could not run '%s'. Return code %s" % (cmd, str(proc.returncode)))
     faFile = StringIO(seqStr)
     seqs = parseFasta(faFile)
     assert(len(seqs)==1)

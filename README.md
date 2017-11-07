@@ -92,6 +92,8 @@ Also make sure you have the CGI module enabled:
     sudo a2enmod cgi
     sudo service apache2 restart
 
+If using SElinux, especially on Fedora/CentOS/RedHat, please switch it off or set it to permissive mode.
+
 Clone the repo into such a directory:
 
     cd /var/www/html/
