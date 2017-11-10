@@ -4205,8 +4205,12 @@ def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
 def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None):
     "yield rows from guide data. Need to know if for Cpf1 or not "
     headers = list(tuple(guideHeaders)) # make a copy of the list
-    for scoreName in scoreNames:
-        headers.append(scoreDescs[scoreName][0]+"EffScore")
+
+    tableScoreNames = list(tuple(scoreNames))
+    tableScoreNames.append("oof")
+
+    for scoreName in tableScoreNames:
+        headers.append(scoreDescs[scoreName][0]+"-Score")
 
     if satMutOpt:
         headers.append("Oligonucleotide")
@@ -4244,7 +4248,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [guideDesc, fullSeq, guideScore, otCount, ontargetDesc]
-        for scoreName in scoreNames:
+        for scoreName in tableScoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
 
         if satMutOpt:
