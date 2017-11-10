@@ -3317,10 +3317,8 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!--
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Batch for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Nov 10 2017: the server was restarted today. If your requests were affected, simply resubmit them. Do not hesitate to contact us.
 </div>
--->
 
  <div style="text-align:left; margin-left: 10px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
