@@ -3945,7 +3945,7 @@ def crisprSearch(params):
     if "org" in params:
         db = params["org"]
         twoBitFname = getTwoBitFname(db)
-        if not isfile(twoBitFname):
+        if not isfile(twoBitFname) and db!="noGenome":
             errAbort("Sorry, a genome assembly called %s is not on Crispor yet. Please send us an email if you want us to add it." % db)
 
     # retrieve sequence if not provided
@@ -5458,7 +5458,7 @@ def printLibGuides(params):
 def printBody(params):
     " main dispatcher function "
 
-    if "batchId" in params:
+    if "batchId" in params and not "satMut" in params:
         printCrisporBodyStart()
         if "pamId" in params:
             if "pam" in params:
