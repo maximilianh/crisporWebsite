@@ -2,7 +2,7 @@
 
 CRISPOR predicts off-targets in the genome, ranks guides, highlights
 problematic guides, designs primers and helps with cloning.  Try it on
-http://crispr.org
+http://crispor.org
 
 CRISPOR uses BWA, a few tools from the UCSC Genome Browser (twoBitToFa, bedClip),
 various R packages and a huge collection of external packages and source code files
