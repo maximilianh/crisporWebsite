@@ -377,7 +377,7 @@ CustomArray which says they will beat any quote. If you order through Twist
 Biosciences, mentioning CRISPOR will get you 35% off your order (we do not
 receive kick-backs from them, unfortunately).
 
-Saturating mutagensis {#satMut}
+Saturating mutagenesis {#satMut}
 =====================
 
 ![Figure 11: Link to Saturation Mutagenesis Assistant from the list of guides](fig/satMutLink.png)
@@ -411,7 +411,7 @@ it is important enough to get mentioned in [newspaper
 articles](https://www.nytimes.com/2015/11/15/magazine/the-crispr-quandary.html) and
 has lead to [stockmarket changes and calls for study
 retractions](http://retractionwatch.com/2017/07/26/controversial-crispr-paper-earns-second-editorial-note/).
-On the other hand, if you are working with mice, worms or flies, and you
+On the other hand, if you are working with mice, worms or flies, and you are
 breeding out for a few generations after your genome edits, then you are probably
 not worried at all, as unrelated mutations are most likely get removed over time.
 In this case, you can probably skip this section, just avoid guides with
@@ -419,9 +419,8 @@ very low specificity scores and possibly use the "same chromosome" filter in
 [column 7](#col7) of the guide list.
 
 For other researchers, e.g. those that use mice without further inbreeding or
-work on cell cultures or even worse, on medical applications, off-targets can
-be the main headache of the technique. Here is a quick summary of what is 
-relatively well-known about off-targets:
+work on cell cultures or on medical applications, the off-targets need to be addressed.
+Here is a quick summary of what is relatively well-known about off-targets:
 
 - off-target effects primarily depend on the guide sequence. A guide sequence
   that is entirely different from every 20mer (e.g. many guides targeting GFP)
@@ -437,14 +436,13 @@ relatively well-known about off-targets:
   likely that the off-target is a problem.
 - off-targets cannot be predicted entirely, these rules are not everything.
   There still are a handful of known, strong off-targets that are
-  unexplainable. Their differ from the guide at many positions,
-  yet are strongly cleaved even in-vitro assays, so unlikely to be influenced
-  by the chromatin structure.
+  unexplainable. They differ from the guide at many positions,
+  yet are strongly cleaved even in-vitro assays.
 - A few known off-targets, not more than 10 in total, to our knowledge, seem to
-  have one-basepair insertions or deletions relative to the guide
+  have one-basepair insertions or deletions relative to the guide. 
 
-CRISPOR and every other serious CRISPR designer aligns the guides against the
-genome, reports those locations with a similar sequence in the genome ("predicted off-targets"),
+CRISPOR aligns the guides against the genome, reports those locations with a similar
+sequence in the genome ("predicted off-targets"),
 ranks these and then based on their scores, ranks the guides.
 
 When predicting off-targets, CRISPOR searches the whole genome (including
@@ -459,7 +457,7 @@ more than four mismatches. See Figure 1 of the [CRISPOR
 paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2).
 
 CRISPOR then ranks the putative off-target sequences by a score called "CFD",
-created mainly by John Doench in [his 2016
+created by John Doench and colleagues in [his 2016
 paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4744125/).  We have
 evaluated four different scores in (Figure 2 of the [CRISPOR
 paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2))
