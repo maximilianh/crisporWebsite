@@ -491,8 +491,9 @@ CRISPOR. The commercial solutions Benchling and DeskGen are also less
 sensitive, so their scores differ, but ChopChop and Cas-OffFinder should give
 identical off-target results to CRISPOR.
 
-So how many off-targets should you expect? We looked at this question in (Figure 3 of the [CRISPOR
-paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2))
+So how many off-targets should you expect? We studied this question in
+Figure 3 of the [CRISPOR
+paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2).
 It is based on 30 guides that were tested for off-targets with high-throughput
 assays by various labs.
 
