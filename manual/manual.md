@@ -1,3 +1,7 @@
+---
+title: CRISPOR Manual
+---
+
 Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
 
 The CRISPOR Manual
@@ -377,8 +381,8 @@ CustomArray which says they will beat any quote. If you order through Twist
 Biosciences, mentioning CRISPOR will get you 35% off your order (we do not
 receive kick-backs from them, unfortunately).
 
-Saturating mutagensis {#satMut}
-=====================
+Saturating mutagenesis {#satMut}
+======================
 
 ![Figure 11: Link to Saturation Mutagenesis Assistant from the list of guides](fig/satMutLink.png)
 
@@ -405,7 +409,7 @@ to appear in Nature Protocols in 2018.
 Notes on off-target cleavage {#offs}
 ============================
 
-Off-target effects are clearly a controversial topic. On the one hand, cleavage
+Off-target effects are a somewhat controversial topic. On the one hand, cleavage
 at unintended locations in the genome is a major concern,
 it is important enough to get mentioned in [newspaper
 articles](https://www.nytimes.com/2015/11/15/magazine/the-crispr-quandary.html) and
@@ -416,16 +420,20 @@ breeding out for a few generations after your genome edits, then you are probabl
 not worried at all, as unrelated mutations are most likely get removed over time.
 In this case, you can probably skip this section, just avoid guides with
 very low specificity scores and possibly use the "same chromosome" filter in
-[column 7](#col7) of the guide list.
+[column 7](#col7) of the guide list to show only off-targets that are on the
+same chromosome, so less likely to get removed by back-crossing.
 
 For other researchers, e.g. those that use mice without further inbreeding or
-work on cell cultures or even worse, on medical applications, off-targets can
+work on cell cultures or even on medical applications, off-targets can
 be the main headache of the technique. Here is a quick summary of what is 
 relatively well-known about off-targets:
 
-- off-target effects primarily depend on the guide sequence. A guide sequence
-  that is entirely different from every 20mer (e.g. many guides targeting GFP)
-  in the genome is extremely unlikely to cut anywhere else than at its target. 
+- in very small genomes, like bacteria or viruses, it is unlikely to find
+  similar sequences to a 20mer and off-targets are rarely a problem
+- off-target effects primarily depend on the guide sequence. A
+  guide sequence that is entirely different from every 20mer in the genome
+  (e.g. many guides targeting GFP) is extremely unlikely to cut anywhere else
+  than at its target site
 - as such, any results you have heard from colleagues about hundreds of
   off-targets apply to their particular guides and may not be relevant for your
   guides.
@@ -440,12 +448,15 @@ relatively well-known about off-targets:
   unexplainable. Their differ from the guide at many positions,
   yet are strongly cleaved even in-vitro assays, so unlikely to be influenced
   by the chromatin structure.
-- A few known off-targets, not more than 10 in total, to our knowledge, seem to
+- a few known off-targets, not more than 3-4 in total, to our knowledge, seem to
   have one-basepair insertions or deletions relative to the guide
+- new high-fidelity versions of SpCas9 can reduce the off-target effects, but 
+  not to 0, there still will be some cleavage on some sites (more on this later)
 
 CRISPOR and every other serious CRISPR designer aligns the guides against the
-genome, reports those locations with a similar sequence in the genome ("predicted off-targets"),
-ranks these and then based on their scores, ranks the guides.
+genome, reports those locations with a similar sequence in the genome
+("predicted off-targets"), ranks these and then based on their scores, ranks
+the guides.
 
 When predicting off-targets, CRISPOR searches the whole genome (including
 repeated regions) and allows up to four mismatches. It is important to search
@@ -465,14 +476,48 @@ evaluated four different scores in (Figure 2 of the [CRISPOR
 paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2))
 and found the CFD score more accurate than the others. 
 
-CRISPOR summarizes all of the off-target information for one guide into the "guide
-score", a formula we copied from the [MIT CRISPR website](http://crispr.mit.edu).
+CRISPOR summarizes all of the putative off-target sites it finds in the genome for
+one guide into the "guide score", a formula we copied from the [MIT CRISPR
+website](http://crispr.mit.edu).
 The "Hsu" score itself was never published, but is based on data from a paper
 by [Patrick Hsu](https://www.nature.com/articles/nbt.2647).  While we use
 Patrick Hsu&lsquo;s formula, CRISPOR searches go up to four mismatches, and the
 MIT website uses three mismatches and does not search repeats, so the guide
-scores are not exactly identical. CRISPOR is more sensitive, but most guides
-with a low score on the MIT website will also have a low score with CRISPOR.
+scores are not exactly identical. CRISPOR is more sensitive, but in practice
+most guides with a low score on the MIT website will also have a low score with
+CRISPOR. The commercial solutions Benchling and DeskGen are also less
+sensitive, so their scores differ, but ChopChop and Cas-OffFinder should give
+identical off-target results to CRISPOR.
+
+So how many off-targets should you expect? We looked at this question in (Figure 3 of the [CRISPOR
+paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2))
+It is based on 30 guides that were tested for off-targets with high-throughput
+assays by various labs.
+
+![Number and strengh of off-targets relative to guide specificity](fig/paperFig3.png)
+
+The figure shows that there are some guides that have virtually no off-targets, but in general,
+there is a decreasing tendency of strong off-target effects when the specificity is higher. 
+It also shows that too many tests have been done for low-specificity guides, which may explain
+why you have heard from colleagues that hundreds of off-target sites are common. It also shows
+that the accuracy of the prediction is not great, the current predictions have
+some value, but there is no guarantee that you can avoid off-targets with a software like
+CRISPOR alone.
+
+Therefore, if you are worried about off-target effects, you can either
+test your guide for off-targets with a high-throughput technique in cell cultures (e.g.
+guideSeq or diGenomeSeq), which will require learning a new assay, or test predicted
+off-target sites by a simple PCR and next-generation sequencing or TIDE. For a highly
+specific guide, this may involve only a few dozen PCRs and [CRISPOR&lsquo;s Off-target primer
+designer](#otPrimers) makes their design very easy.
+
+Should you use a high-fidelity version of SpCas9, eSpCas9 1.1 or HF1? If
+you are worried about off-targets, then probably yes. Just do not be surprised
+that these enzymes are less efficient on many target sites or may
+not even be able to cleave some target sites at all, so you may want to try both enzymes
+or be ready to fall back to the original SpCas9. [Kulcsar et al.
+2017](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1318-8) have
+studied this topic in detail.
 
 <!-- There are at least two
 other scores that we aware of that are not in CRISPOR, one is unpublished and one
@@ -484,7 +529,8 @@ Notes on on-target cleavage {#onEff}
 Frequently Asked Questions {#faq}
 ==========================
 
-* Why is the MIT score (aka Hsu score) displayed by CRISPOR different from the ones displayed by the MIT website, Desktop Genetics or Benchling?
+* Why is the MIT score (aka Hsu score) displayed by CRISPOR different from the
+    ones displayed by the MIT website, Desktop Genetics or Benchling?
 
 Because these other tools do not find as many off-targets as CRISPOR. As we
 have shown in our paper, CRISPOR finds all off-targets with 4 mismatches. The MIT
