@@ -24,11 +24,15 @@ primers with overhangs for cloning into guide RNA expression plasmids and with
 sequence information preformatted for easy ordering from oligo-array
 manufacturers.
 
-We provide below a step by step manual of CRISPOR and CRISPOR batch. Important
-information is also directly available on the web pages by hovering the mouse
-over small information bubbles displayed in orange colour. Text displayed in
-orange colour can be clicked on for further information or more detailed
-CRISPOR results.
+Additional, specific tools in CRISPOR design primers for all predicted
+off-targets for a guide and create oligonucleotide tables for saturating
+mutagenesis of the input sequence.
+
+We provide below a step by step manual of CRISPOR and instructions on how to
+use the other tools. Important information is also directly available on the
+web pages by hovering the mouse over small information bubbles displayed in
+orange colour. Text displayed in orange colour can be clicked on for further
+information or more detailed CRISPOR results.
 
 Input form {#inputform}
 ==========
