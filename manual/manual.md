@@ -8,14 +8,14 @@ Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
 What is CRISPOR?
 ================
 
-CRISPOR is a website that helps select and express CRISPR guide sequences.  In
-its default mode, the user pastes an input DNA sequence and chooses the genome.
-CRISPOR then lists the guides in the input sequence, adding information about
-them found in databases and algorithms, including genome variants, predicted
-off-target and on-target scores. For each guide sequence, various primers
-are designed, e.g. to amplify the target, produce guide RNAs by in vitro
-transcription after annealing of overlapping primers or for cloning into
-AddGene plasmids.
+[CRISPOR](http://www.crispor.org) is a website that helps select and express
+CRISPR guide sequences. In its default mode, the user pastes an input DNA
+sequence and chooses the genome. CRISPOR then lists the guides in the input
+sequence, adding information about them found in databases and algorithms,
+including genome variants, predicted off-target and on-target scores. For each
+guide sequence, various primers are designed, e.g. to amplify the target,
+produce guide RNAs by in vitro transcription after annealing of overlapping
+primers or for cloning into AddGene plasmids.
 
 A second, optional mode, called CRISPOR Batch, is available for users who want
 to use pre-selected guide RNAs for gene inactivation experiments in mouse or
@@ -25,14 +25,14 @@ primers with overhangs for cloning into guide RNA expression plasmids and with
 sequence information preformatted for easy ordering from oligo-array
 manufacturers.
 
-Additional, specific tools in CRISPOR design primers for all predicted
-off-targets for a guide and create oligonucleotide tables for saturating
+Additional assistants in CRISPOR design primers for all predicted
+off-targets of a guide and create oligonucleotide pools for saturating
 mutagenesis of the input sequence.
 
-We provide below a step by step manual of CRISPOR and instructions on how to
-use the other tools. Important information is also directly available on the
-web pages by hovering the mouse over small information bubbles displayed in
-orange colour. Text displayed in orange colour can be clicked on for further
+Below, we provide a step by step manual of CRISPOR and instructions on how to
+use the assistants. Important information is also directly available on the
+web pages by hovering the mouse over the small info bubbles shown in
+orange. Usually, orange colour indicates links which can be clicked for further
 information or more detailed CRISPOR results.
 
 Input {#inputform}
@@ -212,11 +212,11 @@ introduced 5' of the PAM. It has been observed by Bae et al. that this repair
 does not lead to a random distribution of small deletions, but that due to
 microhomology around the cut site, certain deletions are favored, depending on
 their flanking DNA sequences. You can click on this score to show what the
-predicted deletions are, in order of their microhomology score. We know of at
+predicted deletions are, in order of their predicted microhomology. We know of at
 least one case where it was impossible to obtain a gene knock-out with a
-specific guide because all deletions were in-frame (T. Momose, unpublished
-data). The higher the out-of-frame score, the more deletions have a length that
-is not a multiple of three, see [Bae et
+specific guide because all deletions seen after sequencing were always
+in-frame (T. Momose, unpublished data). The higher the out-of-frame score, the
+more deletions have a length that is not a multiple of three, see [Bae et
 al.](http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html).
 
 Column 6 - off-target mismatch counts: the number of possible off-targets in
