@@ -5,8 +5,8 @@ author: Maximilian Haeussler, Jean-Paul Concordet
 
 Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
 
-The CRISPOR Manual
-==================
+What is CRISPOR?
+================
 
 CRISPOR is a website that helps select and express CRISPR guide sequences.  In
 its default mode, the user pastes an input DNA sequence and chooses the genome.
@@ -35,8 +35,8 @@ web pages by hovering the mouse over small information bubbles displayed in
 orange colour. Text displayed in orange colour can be clicked on for further
 information or more detailed CRISPOR results.
 
-Input form {#inputform}
-==========
+Input {#inputform}
+=====
 
 In the following, we first describe the default mode of CRISPOR.
 
@@ -90,8 +90,8 @@ type and search the names of the species, using latin or English common names.
 3. Protospacer Adjacent Motif (PAM): For most current applications of the CRISPR-Cas system, Streptococcus pyogenes Cas9 nuclease is used and the corresponding PAM is NGG, the default. However, you can choose other enzymes and corresponding PAMs from the dropdown box. 
 
 
-Annotated input sequence {#annotseq}
-========================
+Output 1: Annotated input sequence {#annotseq}
+==================================
 
 ![The annotated sequence](fig/annotSeq.png)
 
@@ -124,8 +124,8 @@ guides below (see next section).
   moment. If you need a particular one, contact us by email and send us the URL
   of the database or the VCF file.
 
-Guide list {#guidelist}
-==========
+Output 2: Guide list {#guidelist}
+====================
 
 ![The guide list](fig/guideList.png)
 
@@ -264,8 +264,8 @@ determination) and MIT.
   not find a valid gene model (GFF) file for the genome. Do not hesitate to
   contact us by email if you have a gene model file or want us to add one.
 
-Primers
-=======
+Output 3: Primers
+=================
 
 ![Link to primer designer](fig/primerLink.png)
 
@@ -302,11 +302,11 @@ be visible on a gel, the sites are shown on the PCR fragment sequence shown
 below. The sizes of the individual sub-fragments are shown, too.
 
 Finally, there are links at the bottom of the page to design primers for all off-targets of this
-guide and also a link to download all guides in the input sequence for saturating mutagenesis, 
-e.g. of non-coding regions.
+guide (see next section) and also a link to download all guides in the input sequence
+for saturating mutagenesis, e.g. of non-coding regions (see below).
 
-All off-target primers {#otPrimers}
-======================
+CRISPOR off-target primer assistant {#otPrimers}
+===================================
 
 High-throughput sequencing is the most accurate way of determining off-target
 cleavage. By ordering oligos and running arrayed PCRs e.g. on 96-well
@@ -355,6 +355,31 @@ command line to analyze your FASTQ sequencing result file.
 
 ![Link to download Crispresso files and sample command line](fig/offtargetCrispresso.png)
 
+CRISPOR saturating mutagenesis assistant {#satMut}
+========================================
+
+![Link to Saturation Mutagenesis Assistant from the list of guides](fig/satMutLink.png)
+
+In a saturating mutagenesis experiment, a target region of the genome is
+modified with many guides, to create as many DNA edits as possible. Cells can
+be transfected with a pool of oligonucleotides ("pooled") or one guide per
+cell sample on plates ("arrayed") and are then phenotyped. This assay is usually
+used for cis-regulatory regions, to find the relevant sequences for a phenotype.
+Pools with up to several thousand guides can be ordered from custom oligonucleotide array
+manufacturers, containing subpools of guides that can induce thousands of deletions into
+a target sequence.
+
+The CRISPOR Saturating mutagenesis assistant makes this much easier by generating
+tables with all relevant guides in a target sequence, prefixed with the right
+adapter sequences, input files for CRISPRESSO to quantify the guides (see
+[off-target primers](#other)) and sequencing primers to validate the modifications.
+
+For step-by-step details on how to conduct this assay and use this assistant, please refer
+to our pre-print, [Canver et al.
+2017](http://www.biorxiv.org/content/early/2017/09/11/125245),
+to appear in Nature Protocols in 2018.
+
+
 CRISPOR Batch {#batch}
 =============
 
@@ -386,31 +411,6 @@ there is a lot of competition in this field. Our collaborator Matt Canver uses
 CustomArray which says they will beat any quote. If you order through Twist
 Biosciences, mentioning CRISPOR will get you 35% off your order (we do not
 receive kick-backs from them, unfortunately).
-
-Saturating mutagenesis {#satMut}
-======================
-
-![Link to Saturation Mutagenesis Assistant from the list of guides](fig/satMutLink.png)
-
-In a saturating mutagenesis experiment, a target region of the genome is
-modified with many guides, to create as many DNA edits as possible. Cells can
-be transfected with a pool of oligonucleotides ("pooled") or one guide per
-cell sample on plates ("arrayed") and are then phenotyped. This assay is usually
-used for cis-regulatory regions, to find the relevant sequences for a phenotype.
-Pools with up to several thousand guides can be ordered from custom oligonucleotide array
-manufacturers, containing subpools of guides that can induce thousands of deletions into
-a target sequence.
-
-The CRISPOR Saturating mutagenesis assistant makes this much easier by generating
-tables with all relevant guides in a target sequence, prefixed with the right
-adapter sequences, input files for CRISPRESSO to quantify the guides (see
-[off-target primers](#other)) and sequencing primers to validate the modifications.
-
-For step-by-step details on how to conduct this assay and use this assistant, please refer
-to our pre-print, [Canver et al.
-2017](http://www.biorxiv.org/content/early/2017/09/11/125245),
-to appear in Nature Protocols in 2018.
-
 
 Notes on off-target cleavage {#offs}
 ============================
@@ -485,13 +485,13 @@ one guide into the "guide score", a formula we copied from the [MIT CRISPR
 website](http://crispr.mit.edu).
 The "Hsu" score itself was never published, but is based on data from a paper
 by [Patrick Hsu](https://www.nature.com/articles/nbt.2647).  While we use
-Patrick Hsu&lsquo;s formula, CRISPOR searches go up to four mismatches, and the
-MIT website uses three mismatches and does not search repeats, so the guide
-scores are not exactly identical. CRISPOR is more sensitive, but in practice
-most guides with a low score on the MIT website will also have a low score with
-CRISPOR. The commercial solutions Benchling and DeskGen are also less
-sensitive, so their scores differ, but ChopChop and Cas-OffFinder should give
-identical off-target results to CRISPOR.
+Patrick Hsu&lsquo;s formula like the MIT site, CRISPOR searches go up to four
+mismatches, and the MIT website uses three mismatches and does not search
+repeats, so the guide scores are not exactly identical. CRISPOR is more
+sensitive, but in practice most guides with a low score on the MIT website will
+also have a low score with CRISPOR. The commercial solutions Benchling and
+DeskGen are also less sensitive, so their scores differ, but ChopChop and
+Cas-OffFinder should give identical off-target results to CRISPOR.
 
 So how many off-targets should you expect? We looked at this question in (Figure 3 of the [CRISPOR
 paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2))
@@ -512,10 +512,39 @@ Therefore, if you are worried about off-target effects, you can either
 test your guide for off-targets with a high-throughput technique in cell cultures (e.g.
 guideSeq or DiGenomeSeq2), which will require learning a new assay. The alternative is
 to test predicted off-target sites by a simple PCR and next-generation
-sequencing (TIDE will not find the weaker off-targets). For a highly specific
-guide, this may involve only a few dozen PCRs and [CRISPOR&lsquo;s Off-target
-primer designer](#otPrimers) makes their design very easy. This is another good reason
-to use only very specific guides: you can screen all predicted off-targets by PCR.
+sequencing (or use TIDE, knowing that it will not find the weaker off-targets).
+For a highly specific guide, this may involve only a few dozen PCRs and
+[CRISPOR&lsquo;s Off-target
+primer designer](#otPrimers) makes their design very easy. This is the other
+good reason to use only very specific guides: you can screen all predicted
+off-targets by PCR.
+
+How many off-targets should you test, especially since there are often 
+hundreds of predicted sites and only very few real off-targets among them?
+There is not enough data to answer this question completely, but here are a few
+examples ([complete histograms](fig/guideCfdHist.png)):
+
+- the most unspecific guide that we know, VEGFA_site3 from the GuideSeq
+ paper, responsible for the majority of all known off-targets to
+ date, has a MIT specificity score of only 6. GuideSeq found 32 off-targets 
+ in Tsai et al, but 4450 off-targets are predicted by CRISPOR. If
+ you sequence only the off-targets with a CFD score over 0.2, then you have to
+ test 274 potential off-targets but still find 24 real off-targets among
+ them.
+- the somewhat more specific guide EMX1, MIT score 21, has 11 real off-targets
+ found by GuideSeq and 1026 predicted off-targets. There are only 143
+ off-targets with a CFD > 0.1, which still catches 10 out of the 11 real
+ off-targets. This is somewhat more than a 96-well plate but still doable.
+- the VEGFA guide from the DiGenomeSeq paper has a reasonable specificity of 42. 
+ You may not want to test all 719 CRISPOR predictions, but if you limit
+ yourself to the ones with a CFD > 0.1, you have to sequence only 75 and still find
+ 21 out of the 24 known off-targets.
+- guides with a higher specificity have very few off-targets and almost all of them
+ will be found by testing predictions with CFD scores > 0.1. This requires
+ testing 30-70 off-targets.
+
+It seems that if your guide has a reasonable specificity score, testing one
+96-well plate of primers should find most off-targets.
 
 Should you use a high-fidelity version of SpCas9, eSpCas9 1.1 or HF1? If
 you are worried about off-targets, then probably yes. Just do not be surprised
@@ -524,7 +553,9 @@ not even be able to cleave some target sites at all. If you use them, you may
 want to try both enzymes or be ready to fall back to the original SpCas9.
 [Kulcsar et al.
 2017](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1318-8)
-have studied this topic in detail.
+have studied this topic in detail and shown that there is a ranking from the
+best to the worst enzyme in terms of efficiency, but the order was different
+for every target site they tested.
 
 <!-- There are at least two
 other scores that we aware of that are not in CRISPOR, one is unpublished and one
@@ -534,19 +565,20 @@ Notes on on-target cleavage {#onEff}
 ===========================
 
 On-target efficiency, the percentage of cells with a DNA modification of the
-target sequence, can vary from guide to guide. The general
-recommendation is to test several guides, often three, around a target
-sequence. Quite a few labs have analyzed their CRISPR results post-hoc to
-determine features of their most efficient guides.  Initially, these were
-rules, derived from smaller worm or fly datasets, like "prefer guides with Gs
-at the 3' end". Later, pools of thousands of guides were tested in cell
-cultures or, one by one, expressed in-vitro and injected into zebrafish. The
-results of these assays were run through machine learning algorithms to build
-models that predict the efficiency from on the guide sequence.
+target sequence, can vary a lot between guides. The general
+recommendation is to first test several guides, often three, around a target
+sequence and then use the best one. Quite a few labs have looked at their
+CRISPR results post-hoc to determine features of their most efficient guides.
+Initially, these were rules, derived from smaller worm or fly datasets, and 
+lead to guidelines like "prefer guides with Gs at the 3' end". Later, pools of
+thousands of guides were tested in cell cultures or, one by one, expressed
+in-vitro and injected into zebrafish. The results of these assays were run
+through machine learning algorithms to build models that predict the efficiency
+from on the guide sequence alone.
 
 In our [CRISPOR paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2)
 we conducted the most comprehensive comparison of these prediction models at
-the time. The overall result was that the models' value is limited, they can
+the time. No matter the model, their value is limited, they can
 explain only ~40% of the variation between different guides.
 The unexplained part does not seem to depend on the chromatin structure or the
 other possible factors that the studies have tested. Therefore, when looking
@@ -559,8 +591,8 @@ between sequence and efficiency at all (watch this space, we will follow up on
 this soon).
 
 Nevertheless, if you plan to test more than just a few guides, the
-efficiency prediction scores should be able to eliminate
-the least efficient guides. We found that there is one important parameter
+efficiency prediction scores do enrich for more efficieny guides.
+We found that there is one important parameter
 when choosing a score, it is the way you express your guides. T7
 in-vitro expressed guides - injected into e.g. mouse or Xenopus eggs - behave very
 differently from U6 guides expressed from plasmids that have been transformed into
@@ -585,6 +617,11 @@ from the same authors is plotted here, the results are probably too good
 and should be somewhat worse in practice, more like the other diagram.
 
 ![Distribution of efficiency by prediction score bin](fig/scoreHistograms.png)
+
+So while you may have heard that efficiency predictions are of little value,
+we still recommend them. They should save screening time in the long run as
+they decrease your chances of stumbling over a very inefficient guide.
+Just make sure that you look at the right score for your expression system.
 
 Frequently Asked Questions {#faq}
 ==========================
