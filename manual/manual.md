@@ -1,5 +1,6 @@
 ---
 title: CRISPOR Manual
+author: Maximilian Haeussler, Jean-Paul Concordet
 ---
 
 Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
@@ -39,7 +40,7 @@ Input form {#inputform}
 
 In the following, we first describe the default mode of CRISPOR.
 
-![Figure 1: The sequence input page of crispor.org](fig/screen1.png)
+![The sequence input page of crispor.org](fig/screen1.png)
 
 On the first page of CRISPOR.org, you have to enter only three pieces of information:
 
@@ -92,7 +93,7 @@ type and search the names of the species, using latin or English common names.
 Annotated input sequence {#annotseq}
 ========================
 
-![Figure 2: The annotated sequence](fig/annotSeq.png)
+![The annotated sequence](fig/annotSeq.png)
 
 The main output of CRISPOR is a page that shows the annotated input sequence
 at the top and the list of possible guides in the input sequence at the bottom. 
@@ -126,7 +127,7 @@ guides below (see next section).
 Guide list {#guidelist}
 ==========
 
-![Figure 3: The guide list](fig/guideList.png)
+![The guide list](fig/guideList.png)
 
 Shown below the input sequence are the guide target sequences, one per PAM. For
 spCas9, the PAM is NGG and the targets are 20bp long. Each 20bp target sequence
@@ -242,7 +243,8 @@ with up to four mismatches, annotated with additional information:
 fall into an exon, intron or between genes and the closest gene. 
 - you can hover
 with your mouse over the position to show an alignment of the guide sequence
-with the off-target and two off-target scores, CFD and MIT.
+with the off-target and two off-target scores, CFD (Cutting frequency
+determination) and MIT.
 
 - by default only the three most likely off-targets are shown, click on “show
   all” to see more.
@@ -265,12 +267,12 @@ with the off-target and two off-target scores, CFD and MIT.
 Primers
 =======
 
-![Figure 4: Link to primer designer](fig/primerLink.png)
+![Link to primer designer](fig/primerLink.png)
 
 The third main page of CRISPOR is the list of primers related to a selected guide. You 
 reach it by clicking "Cloning / PCR primers" for a particular guide in the table.
 
-![Figure 5: Contents of the primer designer page](fig/primerPage.png)
+![Contents of the primer designer page](fig/primerPage.png)
 
 The top part of the page ("Cloning or expression of guide RNA") shows
 expression primers. There are many possible ways for
@@ -321,14 +323,14 @@ two PCRs are run: one PCR to amplify the potential off-target, then a second
 PCR to extend the handles with Illumina barcodes. You can download the protocol
 [here](http://crispor.tefor.net/downloads/prot/canverProtocol.pdf).
 
-![Figure 6: Link to off-target primer designer](fig/offtargetPrimersLink.png)
+![Link to off-target primer designer](fig/offtargetPrimersLink.png)
 
 You reach the off-target primer designer by fist clicking "show all" in the
 list of off-targets, then following the link "Off-target primers". At
 the top of the page, a table with one pair of primers for every predicted
 off-target is shown. 
 
-![Figure 7: List of off-target primers](fig/offtargetPrimerList.png)
+![List of off-target primers](fig/offtargetPrimerList.png)
 
 In the table of primers output by CRISPOR, Illumina Nextera Handle sequences
 have been added and are highlighted in bold. Primers for the on-target sequence
@@ -341,17 +343,17 @@ of mismatches, e.g. "mm4" is an off-target with four mismatches. Naturally,
 each off-target has two primers, indicated by the common suffixes "\_F" and
 "\_R".
 
-![Figure 8: List of off-target primers](fig/offtargetPrimerList.png)
+![List of off-target primers](fig/offtargetPrimerList.png)
 
 The primer designer also outputs a table of the amplicons with the putative
 off-target sequence highlighted in bold.
 
-![Figure 9: List of off-target amplicons](fig/offtargetAmplicons.png)
+![List of off-target amplicons](fig/offtargetAmplicons.png)
 
 Finally, at the end of the page, you can download CRISPRESSO input files and the exact
 command line to analyze your FASTQ sequencing result file.
 
-![Figure 10: Link to download Crispresso files and sample command line](fig/offtargetCrispresso.png)
+![Link to download Crispresso files and sample command line](fig/offtargetCrispresso.png)
 
 CRISPOR Batch {#batch}
 =============
@@ -388,7 +390,7 @@ receive kick-backs from them, unfortunately).
 Saturating mutagenesis {#satMut}
 ======================
 
-![Figure 11: Link to Saturation Mutagenesis Assistant from the list of guides](fig/satMutLink.png)
+![Link to Saturation Mutagenesis Assistant from the list of guides](fig/satMutLink.png)
 
 In a saturating mutagenesis experiment, a target region of the genome is
 modified with many guides, to create as many DNA edits as possible. Cells can
@@ -503,23 +505,26 @@ there is a decreasing tendency of strong off-target effects when the specificity
 It also shows that too many tests have been done for low-specificity guides, which may explain
 why you have heard from colleagues that hundreds of off-target sites are common. It also shows
 that the accuracy of the prediction is not great, the current predictions have
-some value, but there is no guarantee that you can avoid off-targets with a software like
-CRISPOR alone.
+some value, but there is no guarantee that you can avoid off-target effects
+with a software like CRISPOR alone.
 
 Therefore, if you are worried about off-target effects, you can either
 test your guide for off-targets with a high-throughput technique in cell cultures (e.g.
-guideSeq or diGenomeSeq), which will require learning a new assay, or test predicted
-off-target sites by a simple PCR and next-generation sequencing or TIDE. For a highly
-specific guide, this may involve only a few dozen PCRs and [CRISPOR&lsquo;s Off-target primer
-designer](#otPrimers) makes their design very easy.
+guideSeq or DiGenomeSeq2), which will require learning a new assay. The alternative is
+to test predicted off-target sites by a simple PCR and next-generation
+sequencing (TIDE will not find the weaker off-targets). For a highly specific
+guide, this may involve only a few dozen PCRs and [CRISPOR&lsquo;s Off-target
+primer designer](#otPrimers) makes their design very easy. This is another good reason
+to use only very specific guides: you can screen all predicted off-targets by PCR.
 
 Should you use a high-fidelity version of SpCas9, eSpCas9 1.1 or HF1? If
 you are worried about off-targets, then probably yes. Just do not be surprised
 that these enzymes are less efficient on many target sites or may
-not even be able to cleave some target sites at all, so you may want to try both enzymes
-or be ready to fall back to the original SpCas9. [Kulcsar et al.
-2017](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1318-8) have
-studied this topic in detail.
+not even be able to cleave some target sites at all. If you use them, you may
+want to try both enzymes or be ready to fall back to the original SpCas9.
+[Kulcsar et al.
+2017](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1318-8)
+have studied this topic in detail.
 
 <!-- There are at least two
 other scores that we aware of that are not in CRISPOR, one is unpublished and one
@@ -527,6 +532,59 @@ too slow for a website (Elevation and CRISTA). -->
 
 Notes on on-target cleavage {#onEff}
 ===========================
+
+On-target efficiency, the percentage of cells with a DNA modification of the
+target sequence, can vary from guide to guide. The general
+recommendation is to test several guides, often three, around a target
+sequence. Quite a few labs have analyzed their CRISPR results post-hoc to
+determine features of their most efficient guides.  Initially, these were
+rules, derived from smaller worm or fly datasets, like "prefer guides with Gs
+at the 3' end". Later, pools of thousands of guides were tested in cell
+cultures or, one by one, expressed in-vitro and injected into zebrafish. The
+results of these assays were run through machine learning algorithms to build
+models that predict the efficiency from on the guide sequence.
+
+In our [CRISPOR paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2)
+we conducted the most comprehensive comparison of these prediction models at
+the time. The overall result was that the models' value is limited, they can
+explain only ~40% of the variation between different guides.
+The unexplained part does not seem to depend on the chromatin structure or the
+other possible factors that the studies have tested. Therefore, when looking
+at your own results, if you compare only a few guides, you may not see a
+significant correlation of your results against the prediction scores. In
+addition, if you use a very inaccurate method to quantify your efficiency, like
+the T7 endo assay, many differences will not be visible.  Finally, according to
+a Synthego slide deck, synthetic RNA guides do not seem to have this link
+between sequence and efficiency at all (watch this space, we will follow up on
+this soon).
+
+Nevertheless, if you plan to test more than just a few guides, the
+efficiency prediction scores should be able to eliminate
+the least efficient guides. We found that there is one important parameter
+when choosing a score, it is the way you express your guides. T7
+in-vitro expressed guides - injected into e.g. mouse or Xenopus eggs - behave very
+differently from U6 guides expressed from plasmids that have been transformed into
+cell cultures. In our analysis, the score by Moreno-Mateos et al. worked better
+for T7 datasets, and the one by Doench et al. 2016 was best for U6 datasets,
+see Figure 5 of our [CRISPOR paper
+paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2).
+
+The influence of the efficiency score on the measured cleavage is shown in the
+diagram below: the y-axis shows the Doench2016 score range and 
+next to each range, a histogram illustrates how many of the tested guides in this
+range where among the top 25% efficient guides (green) and how many where among the 
+bottom 25% guides (red) in the whole dataset. Light-red and yellow are the intermediate
+quartiles. You can see that when guides were tested in the 90-100 score range,
+very few of them were in the least efficient quartile. In the 10-20 score range,
+a majority of guides were not very efficient. This is not due to "over-fitting",
+because the diagram shows the Hart 2016 experiment, which was not published yet
+when Doench 2016 was accepted.
+
+The lower diagram shows the same for zebrafish data, but since the dataset
+from the same authors is plotted here, the results are probably too good
+and should be somewhat worse in practice, more like the other diagram.
+
+![Distribution of efficiency by prediction score bin](fig/scoreHistograms.png)
 
 Frequently Asked Questions {#faq}
 ==========================

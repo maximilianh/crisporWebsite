@@ -67,6 +67,9 @@ p {
 
 img {
   max-width: 100%;
+  border: 1px solid #888;
+  -ms-interpolation-mode: bicubic;
+  vertical-align: middle;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -200,11 +203,6 @@ dd:last-child {
   margin-bottom: 0;
 }
 
-img {
-  border: 0;
-  -ms-interpolation-mode: bicubic;
-  vertical-align: middle;
-}
 
 figure {
   display: block;
@@ -217,7 +215,7 @@ figure img {
   margin: 0 auto;
 }
 
-figcaption {
+.caption {
   font-size: 0.8em;
   font-style: italic;
   margin: 0 0 .8em;
