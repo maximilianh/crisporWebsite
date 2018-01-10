@@ -7,7 +7,7 @@ Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
 The CRISPOR Manual
 ==================
 
-CRISPOR is a website that helps select and express CRISPR guide sequences.  In
+[CRISPOR](http://crispor.org) is a website that helps select and express CRISPR guide sequences.  In
 its default mode, the user pastes an input DNA sequence and chooses the genome.
 CRISPOR then lists the guides in the input sequence, adding information about
 them found in databases and algorithms, including genome variants, predicted
@@ -79,7 +79,7 @@ type and search the names of the species, using latin or English common names.
       available for certain assemblies. This is shown as part of the genome
       list, e.g. the 1000 Genomes variant annotation is only available for the
       human genome assembly called “hg19” (aka GrCh37).
-    - if your genome is not on the list, please contact us and send us a link to
+    - if your genome is not on the list, please [contact us](mailto:crispor@tefor.net) and send us a link to
       the fasta file and ideally also GFF gene annotations and the common and
       scientific names, e.g. “zebrafish” and “Danio rerio”. If your genome is in
       NCBI RefSeq or on the UCSC or Ensembl browsers, please send us the NCBI
@@ -120,7 +120,7 @@ guides below (see next section).
   page. Any variant that has a frequency below the threshold will not be
   displayed. 
 - very few genomes (human and mouse) have variants in our database at the
-  moment. If you need a particular one, contact us by email and send us the URL
+  moment. If you need a particular one, [contact us](mailto:crispor@tefor.net) by email and send us the URL
   of the database or the VCF file.
 
 Guide list {#guidelist}
@@ -260,7 +260,7 @@ with the off-target and two off-target scores, CFD and MIT.
   for more details.
 - For some genomes, there is no exon filter. This is the case when we could
   not find a valid gene model (GFF) file for the genome. Do not hesitate to
-  contact us by email if you have a gene model file or want us to add one.
+  [contact us](mailto:crispor@tefor.net) by email if you have a gene model file or want us to add one.
 
 Primers
 =======
@@ -277,7 +277,7 @@ expression primers. There are many possible ways for
 guide expression supported by CRISPOR. The choice depends on your organism
 (mice/zebrafish vs. cell cultures) and preferred cloning method. We tried to
 link to useful protocols on this page, too. If this page is missing support for
-your favorite system or protocol, do not hesitate to contact us. For quicker 
+your favorite system or protocol, do not hesitate to [contact us](mailto:crispor@tefor.net). For quicker 
 copy/pasting into Excel, this section contains a table with a copy of all
 primers at the end ("Summary of main cloning/expression primers").
 
@@ -575,7 +575,7 @@ unusable for other users.  One solution is to reduce the number of contigs, by
 concatting all smaller ones into a single "chrU" contig, like in the older human
 genome versions. Another solution is for you to setup your own personal CRISPOR
 website with just your genome. See the [Downloads](/downloads/) page at
-the bottom of the CRISPOR start page to learn more and contact us for help.
+the bottom of the CRISPOR start page to learn more and [contact us](mailto:crispor@tefor.net) for help.
 
 * Can I search for 19bp long guides?
 

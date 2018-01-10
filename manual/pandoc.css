@@ -10,19 +10,19 @@ html {
 }
 
 body {
-  color: #444;
+  color: black;
   font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
   font-size: 12px;
   line-height: 1.7;
   padding: 1em;
   margin: auto;
-  max-width: 42em;
+  max-width: 50em;
   background: #fefefe;
 }
 
 a {
-  color: #0645ad;
-  text-decoration: none;
+  color: darkblue;
+  text-decoration: underline;
 }
 
 a:visited {
@@ -72,8 +72,18 @@ img {
 h1, h2, h3, h4, h5, h6 {
   color: #111;
   line-height: 125%;
-  margin-top: 2em;
+  margin-top: 0.2em;
   font-weight: normal;
+}
+
+h1 a:visited {
+    text-decoration: none; 
+    color: black;
+}
+
+h1 a:link {
+    text-decoration: none; 
+    color: black;
 }
 
 h4, h5, h6 {
@@ -206,18 +216,18 @@ img {
   vertical-align: middle;
 }
 
-figure {
+.figure {
   display: block;
   text-align: center;
   margin: 1em 0;
 }
 
-figure img {
-  border: none;
+.figure img {
+  border: 1px solid lightgrey;
   margin: 0 auto;
 }
 
-figcaption {
+.caption {
   font-size: 0.8em;
   font-style: italic;
   margin: 0 0 .8em;
