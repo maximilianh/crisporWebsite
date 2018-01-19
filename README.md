@@ -78,6 +78,8 @@ Options:
                         directory with genomes, default ./genomes
 ```
     
+For example command line usage and sample input/output files, see doc/README.md
+
 # Running the script as a CGI under Apache with the job queue
 
 Make sure you can execute CGI scripts somewhere. Your Apache config (e.g. /etc/apache2/sites-enabled/000-default) should contain a section like this:

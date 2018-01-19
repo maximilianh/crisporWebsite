@@ -496,7 +496,7 @@ class JobQueue:
 
     def startStep(self, jobId, newName, newLabel):
         " start a new step. Update lastUpdate, status and stepTime "
-        self.conn.execute('BEGIN IMMEDIATE') # lock db
+        self.startTransaction()
         sql = 'SELECT lastUpdate, stepTimes, stepName FROM queue WHERE jobId=?'
         lastTime, timeStr, lastStep = self.conn.execute(sql, (jobId,)).next()
         lastTime = float(lastTime)
@@ -521,9 +521,23 @@ class JobQueue:
         if tryCount >= 10:
             raise Exception("Database locked for a long time")
 
+    def startTransaction(self):
+        tryCount = 0
+        while tryCount < 10:
+            try:
+                self.conn.execute('BEGIN IMMEDIATE') # lock db
+                break
+            except sqlite3.OperationalError:
+                time.sleep(3)
+                tryCount += 1
+
+        if tryCount >= 10:
+            raise Exception("Database locked for a long time")
+
     def jobDone(self, jobId):
         " remove the job from the queue and add it to the queue log"
-        self.conn.execute('BEGIN IMMEDIATE') # lock db
+        #self.conn.execute('BEGIN IMMEDIATE') # lock db
+        self.startTransaction()
         sql = 'SELECT * FROM queue WHERE jobId=?'
         try:
             row = self.conn.execute(sql, (jobId,)).next()
@@ -537,7 +551,7 @@ class JobQueue:
 
         sql = 'INSERT INTO doneJobs VALUES (?,?,?,?,?,?,?,?,?)'
         self.conn.execute(sql, row)
-        self.conn.commit()
+        self.conn.commit() # release lock
 
     def waitCount(self):
         " return number of waiting jobs "
@@ -553,7 +567,7 @@ class JobQueue:
 
     def popJob(self):
         " return (jobType, jobId, params) of first waiting job and set it to running state "
-        self.conn.execute('BEGIN IMMEDIATE') # lock db
+        self.startTransaction()
         sql = 'SELECT jobType, jobId, paramStr FROM queue WHERE isRunning=0 ORDER BY lastUpdate LIMIT 1'
         try:
             jobType, jobId, paramStr = self.conn.execute(sql).next()
@@ -1383,18 +1397,29 @@ def calcHitScore(string1,string2):
     " see 'Scores of single hits' on http://crispr.mit.edu/about "
     # The Patrick Hsu weighting scheme
     # S. aureus requires 21bp long guides. We fudge by using only last 20bp
-    if len(string1)==21 and len(string2)==21:
+    matrixStart = 0
+    maxDist = 19
+
+    if len(string1)==21:
         string1 = string1[-20:]
         string2 = string2[-20:]
+    # for 19bp guides, we fudge a little, but first pos has no weight anyways
+    elif len(string1)==19:
+        string1 = "A"+string1
+        string2 = "A"+string2
+    # for shorter guides, I'm not sure if this score makes sense anymore, we force things
+    elif len(string1)<19:
+        matrixStart = 20-len(string1)
+        maxDist = len(string1)-1
 
-    assert(len(string1)==len(string2)==20)
+    assert(len(string1)==len(string2))
 
     dists = [] # distances between mismatches, for part 2
     mmCount = 0 # number of mismatches, for part 3
     lastMmPos = None # position of last mismatch, used to calculate distance
 
     score1 = 1.0
-    for pos in range(0, len(string1)):
+    for pos in range(matrixStart, len(string1)):
         if string1[pos]!=string2[pos]:
             mmCount+=1
             if lastMmPos!=None:
@@ -1406,7 +1431,7 @@ def calcHitScore(string1,string2):
         score2 = 1.0
     else:
         avgDist = sum(dists)/len(dists)
-        score2 = 1.0 / (((19-avgDist)/19.0) * 4 + 1)
+        score2 = 1.0 / (((maxDist-avgDist)/float(maxDist)) * 4 + 1)
     # 3rd part of the score
     if mmCount==0: # special case, not shown in the paper
         score3 = 1.0
@@ -2008,7 +2033,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     if hasGeneModels(org):
         print '''<input type="checkbox" id="onlyExonBox" onchange="onlyExons()">exons only'''
     else:
-        print '<small style="color:grey">No exons.</small>'
+        print '<small title="When this genome was loaded into CRISPOR, gene models were not available. Contact us if you want to filter for off-targets in exons and think that a gene models are now available for this genome." style="color:grey">No exons.</small>'
 
     if chrom!="":
         if chrom[0].isdigit():
@@ -2868,7 +2893,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     maxOcc = MAXOCC # create local var from global
     # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
     # the sorting should improve the twoBitToFa runtime
-    cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pam)s | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+    cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pam)s %(seqLen)d | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -3327,17 +3352,7 @@ def printForm(params):
 -->
 
  <div style="text-align:left; margin-left: 10px">
- CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
-
-<span class="introtext">
-    <div onclick="$('.about-us').toggle('fast');" class="title" style="cursor:pointer;display:inline;font-size:large;font-style:normal">
-        <img src="%simage/info-small.png" style="vertical-align:text-top;">
-    </div>
-    <div class="about-us"><br>
-    CRISPOR v4.0 uses the BWA algorithm to identify guide RNA sequences for CRISPR mediated genome editing.<br>
-    It searches for off-target sites (with and without mismatches), shows them in a table and annotates them with flanking genes.<br>
-    For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
-</span>
+ CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a href="/manual/">Read the CRISPOR Manual for more details</a>
 
 <br><i>New version V4.3, June 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
 
@@ -3371,7 +3386,7 @@ def printForm(params):
         </div>
         Select a genome
     </div>
-    """% (scriptName, HTMLPREFIX, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
+    """% (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
 
     printOrgDropDown(lastorg, genomes)
     print """
@@ -4145,8 +4160,9 @@ def printTeforBodyStart():
     print '<div class="contentcentral" style="margin-left:0px; width:100%; background:none">'
 
 def printTeforBodyEnd():
-    print '<div style="clear:both; text-align:center">Version %s,' % versionStr
-    print """Feedback: <a href='mailto:%s'>email</a> - <a href="downloads/">Downloads/local installation</a></div>""" % (contactEmail)
+    print '<div style="clear:both; text-align:center">Version %s - ' % versionStr
+    print '<a target=_blank href="/manual/">Documentation</a>&nbsp; - '
+    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a></div>""" % (contactEmail)
 
     print '</div>'
     print ("""
@@ -4256,7 +4272,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
             row.append(oligo)
 
             chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
-            lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq = \
+            lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq, addTags = \
                 designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
             fwPrimer = lSeq
@@ -4724,7 +4740,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minF
         if not isUnique:
             note = "warning: guide has no unique match in genome"
 
-        lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq = \
+        lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq, addTags = \
             designPrimer(db, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
         pamName = intToExtPamId(pamId)
@@ -4929,7 +4945,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
     ampMin = ampLen-110
     ampRange = "%d-%d" % (ampMin, ampLen)
 
-    primers = runPrimer3(targetSeqs, 1000, GUIDELEN+len(pamSeq), ampRange, tm)
+    primers = runPrimer3(targetSeqs, 1000, GUIDELEN+len(pamSeq), ampRange, tm, {})
 
     # sort primers by CFD off-target score
     scoredPrimers = []
@@ -5500,10 +5516,11 @@ def iterParseBoulder(tmpOutFname):
     if data!={}:
         yield data
 
-def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm):
+def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm, addTags):
     """
     input is a list of (seqId, seq)
     return dict seqId -> (primerseq1, tm1, pos1, primerseq2, tm2, pos2)
+    addTags is a dict tag -> value
     """
     p3OutFh = makeTempFile("primer3Out", ".txt")
 
@@ -5541,9 +5558,13 @@ PRIMER_THERMODYNAMIC_PARAMETERS_PATH=%(primer3ConfigDir)s/
         p3InFh.write("SEQUENCE_ID=%s\n" % seqId)
         p3InFh.write("SEQUENCE_TEMPLATE=%s\n" % seq)
         p3InFh.write(conf)
+        for key, val in addTags.iteritems():
+            p3InFh.write("%s=%s\n" % (key, val))
         p3InFh.write("=\n")
 
     p3InFh.flush()
+
+    #shutil.copy(p3InFh.name, "/tmp/primer3.tmp")
 
     binName = join(binDir, "primer3_core")
     cmdLine = binName+" %s > %s" % (p3InFh.name, p3OutFh.name)
@@ -5721,14 +5742,22 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen,
         ampDist = 150
     ampRange = str(ampLen-ampDist)+"-"+str((ampLen))
 
-    primers = runPrimer3([("seq1", flankSeq)], targetStart, targetLen, ampRange, tm)
+    # for long reads: make sure that the primers are not too close to the target
+    addTags = {}
+    if ampLen >= 600:
+        addTags = {
+            "SEQUENCE_EXCLUDED_REGION" : "%d,%d" % (targetStart-150, targetLen+300),
+            #"SEQUENCE_EXCLUDED_REGION" : "0,1500"
+        }
+
+    primers = runPrimer3([("seq1", flankSeq)], targetStart, targetLen, ampRange, tm, addTags)
     lSeq, lTm, lPos, rSeq, rTm, rPos = primers.values()[0]
 
     if lSeq==None or rSeq==None:
         return None, None, None, None, None, None, flankSeq, ampRange, flankSeq
 
     targetSeq = flankSeq[lPos:rPos+1]
-    return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq
+    return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq, addTags
 
 def markupSeq(seq, ulPosList, boldPosList, annots = {}):
     """ return seq as html with some parts underlined or in bold. 
@@ -6047,7 +6076,8 @@ def printAmpLenAndTm(ampLen, tm):
         ("300", "300 bp - for >= 200bp paired reads"),
         ("400", "400 bp - for >= 250bp paired reads"),
         ("500", "500 bp - for >= 300bp paired reads"),
-        ("600", "600 bp - for Sanger reads")
+        ("600", "600 bp - for Sanger reads"),
+        ("800", "800 bp - for Sanger reads")
     ]
 
     printDropDown("ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()""")
@@ -6096,7 +6126,7 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         print("<strong>Warning</strong>: Found multiple perfect matches for this guide sequence in the genome. For the PCR, we are using the on-target match in the input sequence %s:%d-%d (gene: %s), but this guide will not be specific. Is this a polyploid organism? Try selecting another guide sequence or email %s to discuss your strategy or modifications to this software.<p>" % (chrom, start+1, end, gene, contactEmail))
         print "</div>"
 
-    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq = \
+    lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq, addTags = \
         designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
     primerPosList = []
@@ -6104,11 +6134,15 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         primerPosList.append( (0, len(lSeq)) )
         primerPosList.append( ( (len(targetSeq)-len(rSeq)), len(targetSeq) ) )
 
-    guideStartOnTarget = 1000-lPos
-    guideEndOnTarget = guideStartOnTarget+GUIDELEN+PAMLEN
-    annots = defaultdict(dict)
-    annots[(guideStartOnTarget, guideEndOnTarget)]["css"] = {"font-weight":"bold", "background-color" : "yellow"}
-    targetHtml = markupSeq(targetSeq, primerPosList, [], annots)
+    guideStartOnTarget = None
+    guideEndOnTarget = None
+    targetHtml = ""
+    if lPos!=None:
+        guideStartOnTarget = 1000-lPos
+        guideEndOnTarget = guideStartOnTarget+GUIDELEN+PAMLEN
+        annots = defaultdict(dict)
+        annots[(guideStartOnTarget, guideEndOnTarget)]["css"] = {"font-weight":"bold", "background-color" : "yellow"}
+        targetHtml = markupSeq(targetSeq, primerPosList, [], annots)
 
     allPrimersFound = True
 
@@ -6166,14 +6200,23 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
     if allPrimersFound:
         print "<strong>Genomic sequence %s:%d-%d including primers, genomic forward strand:</strong>" % (chromLong, start, end)
     else:
-        print "<strong>Genomic sequence %s:%d-%d including 1000bp of flanking sequence, genomic forward strand.</strong><br>" % (chromLong, start, end)
-        print "Warning: No primers were found at this Tm, please design them yourself.<br>"
+        #print "<strong>Genomic sequence %s:%d-%d including 1000bp of flanking sequence, genomic forward strand.</strong><br>" % (chromLong, start, end)
+        print "<strong>Warning: No primers were found at this Tm, please design them manually e.g. with NCBI PrimerBlast.</strong><br>"
     print "<br><tt>%s</tt><br>" % (targetHtml)
 
     print '''</div>'''
     if rPos is not None:
         print "<strong>Sequence length:</strong> %d<p>" % (rPos-lPos)
-    print '<small>Method: Primer3.2 with default settings, target length %s bp</small>' % ampRange
+
+    # primer3 may have used some special tags, add them to the description as a string
+    p3ArgStr = ""
+    if len(addTags)!=0:
+        primer3Tags = []
+        for key, val in addTags.iteritems():
+            primer3Tags.append("%s=%s" % (key, val))
+        p3ArgStr = ", ".join(primer3Tags)
+
+    print '<small>Method: Primer3.2 with default settings, target length %s bp, %s</small>' % (ampRange, p3ArgStr)
 
     return targetSeq, guideStartOnTarget, guideEndOnTarget
 
@@ -6546,8 +6589,8 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed, default %default", default=MAXOCC)
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
-    parser.add_option("", "--shortGuides", dest="shortGuides", \
-        action="store_true", help="Use 19bp guides for Cas9. Careful: 19bp guides are less efficient.")
+    parser.add_option("", "--guideLen", dest="guideLen", type="int", default=20, \
+        action="store", help="Lenght of the guide. Default is: 21 for PAM=NNGRRT/NNNRRT, 23 for Cpf1, 20 otherwise. Note: 19bp guides are less efficient")
     parser.add_option("", "--bowtie", dest="bowtie", \
         action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
     parser.add_option("", "--skipAlign", dest="skipAlign", \
@@ -6758,9 +6801,10 @@ def handleOptions(options):
     if options.pam:
         setupPamInfo(options.pam)
 
-    if options.shortGuides:
+    # this comes after setupPamInfo, so it overwrites the defaults
+    if options.guideLen:
         global GUIDELEN
-        GUIDELEN=19
+        GUIDELEN=options.guideLen
 
 def mainCommandLine():
     " main entry if called from command line "
