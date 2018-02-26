@@ -2248,7 +2248,9 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                     if score!=None:
                         effScoresCount += 1
                     if score==None:
-                        print '''<td>--</td>'''
+                        print '''<td>--'''
+                        htmlHelp("efficiency score could not be calculated. The most common reason is that the guide is close to the end of your sequence and in addition the sequence was not found in the genome, so not enough flanking sequence is available.")
+                        print '</td>'
                     elif scoreName=="ssc":
                         # save some space
                         numStr = '%.1f' % (float(score))
@@ -3323,7 +3325,7 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Nov 10 2017: the server was restarted today. If your requests were affected, simply resubmit them. Do not hesitate to contact us.
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Have a look at the first version of the <a target=_blank href="http://crispor-max.tefor.net/manual/">brand new manual</a> for CRISPOR.
 </div>
 
  <div style="text-align:left; margin-left: 10px">
@@ -6102,15 +6104,18 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
     primerPosList = []
-    if lSeq!=None:
+    if lSeq is not None:
         primerPosList.append( (0, len(lSeq)) )
         primerPosList.append( ( (len(targetSeq)-len(rSeq)), len(targetSeq) ) )
 
-    guideStartOnTarget = 1000-lPos
-    guideEndOnTarget = guideStartOnTarget+GUIDELEN+PAMLEN
-    annots = defaultdict(dict)
-    annots[(guideStartOnTarget, guideEndOnTarget)]["css"] = {"font-weight":"bold", "background-color" : "yellow"}
-    targetHtml = markupSeq(targetSeq, primerPosList, [], annots)
+        guideStartOnTarget = 1000-lPos
+        guideEndOnTarget = guideStartOnTarget+GUIDELEN+PAMLEN
+        annots = defaultdict(dict)
+        annots[(guideStartOnTarget, guideEndOnTarget)]["css"] = {"font-weight":"bold", "background-color" : "yellow"}
+        targetHtml = markupSeq(targetSeq, primerPosList, [], annots)
+    else:
+        guideStartOnTarget = None
+        guideEndOnTarget = None
 
     allPrimersFound = True
 
@@ -6167,10 +6172,10 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
     print '''<div style='word-wrap: break-word; word-break: break-all;'>'''
     if allPrimersFound:
         print "<strong>Genomic sequence %s:%d-%d including primers, genomic forward strand:</strong>" % (chromLong, start, end)
+        print "<br><tt>%s</tt><br>" % (targetHtml)
     else:
         print "<strong>Genomic sequence %s:%d-%d including 1000bp of flanking sequence, genomic forward strand.</strong><br>" % (chromLong, start, end)
         print "Warning: No primers were found at this Tm, please design them yourself.<br>"
-    print "<br><tt>%s</tt><br>" % (targetHtml)
 
     print '''</div>'''
     if rPos is not None:
