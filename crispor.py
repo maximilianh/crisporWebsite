@@ -2218,8 +2218,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 varStrs.append(html)
             print("<tt style='color:#888888'>%s</tt><br>" % ("".join(varStrs)))
 
-        if "TTT" in guideSeq.upper():
-            text = "This guide contains the sequence TTT. It cannot be transcribed with a U6 or U3 promoter, as TTT terminates the transcription."
+        if "TTTT" in guideSeq.upper():
+            text = "This guide contains the sequence TTTT. It cannot be transcribed with a U6 or U3 promoter, as TTTT terminates the transcription."
             htmlWarn(text)
             print ' Not with U6/U3'
             print "<br>"
@@ -3352,7 +3352,7 @@ def printForm(params):
 -->
 
  <div style="text-align:left; margin-left: 10px">
- CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a href="/manual/">Read the CRISPOR Manual for more details</a>
+ CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a href="/manual/">Read the CRISPOR Manual for more details</a>
 
 <br><i>New version V4.3, June 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
 
@@ -4162,7 +4162,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '<div style="clear:both; text-align:center">Version %s - ' % versionStr
     print '<a target=_blank href="/manual/">Documentation</a>&nbsp; - '
-    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a></div>""" % (contactEmail)
+    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a> - <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">Paper</a></div>""" % (contactEmail)
 
     print '</div>'
     print ("""
