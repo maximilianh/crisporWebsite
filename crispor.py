@@ -157,12 +157,33 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
-         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus / Lachnospiraceae')
+         ('TTTN','TTTN-23bp - Cpf1 Acidaminococcus / Lachnospiraceae'),
+         ('NGK','20bp-NG(G/T) - xCas9, only high efficiency PAMs'),
+         ('NGN','20bp-NGN or GA(A/T) - xCas9, including low efficiency PAMs')
          #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
          #('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
        ]
 
 DEFAULTPAM = 'NGG'
+
+# for some PAMs, there are alternative main PAMs. These are also shown on the main sequence panel
+multiPams = {
+    "NGN" : ["GAW"]
+}
+
+# for some PAMs, we allow other alternative motifs when searching for offtargets
+# MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
+# on the guideSeq results in Tsai et al, Nat Biot 2014
+# The NGA -> NGG rule was described by Kleinstiver...Young 2015 "Improved Cas9 Specificity..."
+# NNGTRRT rule for S. aureus is in the new protocol "SaCas9 User manual"
+# ! the length of the alternate PAM has to be the same as the original PAM!
+offtargetPams = {
+    "NGG" : ["NAG","NGA"],
+    "NGN" : ["GAW"],
+    "NGK" : ["GAW"],
+    "NGA" : ["NGG"],
+    "NNGRRT" : ["NNGRRN"]
+}
 
 # maximum size of an input sequence 
 MAXSEQLEN = 1000
@@ -221,18 +242,6 @@ MINSCORE = 0.0
 # would be to have a special penalty on the CFD score, but CFS does not 
 # support non-NGG PAMs (is this actually true?)
 ALTPAMMINSCORE = 1.0
-
-# for some PAMs, we allow other alternative motifs when searching for offtargets
-# MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
-# on the guideSeq results in Tsai et al, Nat Biot 2014
-# The NGA -> NGG rule was described by Kleinstiver...Young 2015 "Improved Cas9 Specificity..."
-# NNGTRRT rule for S. aureus is in the new protocol "SaCas9 User manual"
-# ! the length of the alternate PAM has to be the same as the original PAM!
-offtargetPams = {
-"NGG" : ["NAG","NGA"],
-"NGA" : ["NGG"],
-"NNGRRT" : ["NNGRRN"]
-}
 
 # how much shall we extend the guide after the PAM to match restriction enzymes?
 pamPlusLen = 5
@@ -829,7 +838,7 @@ def cleanSeq(seq, db):
 
 revTbl = {'A' : 'T', 'C' : 'G', 'G' : 'C', 'T' : 'A', 'N' : 'N' , 'M' : 'K', 'K' : 'M',
     "R" : "Y" , "Y":"R" , "g":"c", "a":"t", "c":"g","t":"a", "n":"n", "V" : "B", "v":"b", 
-    "B" : "V", "b": "v"}
+    "B" : "V", "b": "v", "W" : "W", "w" : "w"}
 
 def revComp(seq):
     " rev-comp a dna sequence with UIPAC characters "
@@ -3501,6 +3510,12 @@ def findAllPams(seq, pam):
     seq = seq.upper()
     startDict, endSet = findPams(seq, pam, "+", {}, set())
     startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
+
+    if pam in multiPams:
+        for pam2 in multiPams[pam]:
+            startDict, endSet = findPams(seq, pam2, "+", startDict, endSet)
+            startDict, endSet = findPams(seq, revComp(pam2), "-", startDict, endSet)
+
     return startDict, endSet
 
 def newBatch(batchName, seq, org, pam, skipAlign=False):
