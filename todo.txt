@@ -1,3 +1,5 @@
+color off-targets by whether they are in a COSMIC gene or not.
+
 Color all scores and add Jensen et al :
 - talbot.39@osu.edu
 - p.s. red/yellow/green indicators would also help for predicted effeciency / out of frame scores.
@@ -48,6 +50,7 @@ off-target searchers:
 
 - more scores:
   - https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1697-6
+  - CrisprPred http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0181943
 
 ---
 
