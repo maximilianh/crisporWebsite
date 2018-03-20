@@ -6,6 +6,10 @@ Color all scores and add Jensen et al :
 - > One thing that I look for, which is not shown here is a test for self-complimentarity.
 - I've often hear this and probably should add it. Is this the mfold score as published in Jenssen et al? Do you want to see the RNAfold diagram, too?
 - Mfold score would be fine; if you could code it red/yellow/green to indicate good/bad scores that would help too.
+- cfp1 support
+- show all guides for all PAMs together
+- suppress all eff scores but Fusi and Moreno
+- knock-in support
 
 Add these new criteria:
 - Thyme/Schier: http://chopchop.cbu.uib.no/scoring.php, add a column?

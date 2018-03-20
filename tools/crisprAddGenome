@@ -8,8 +8,9 @@ import MySQLdb # install with "sudo apt-get install python-mysqldb"
 
 
 # temp dir on local disk
-tmpDir = os.getenv("TMPDIR", "/tmp2")
-#tmpDir = "/tmp"
+tmpDir = os.environ.get("TMPDIR", "/tmp")
+if isdir("/tmp2"):
+    tmpDir = "/tmp2"
 
 global debugMode
 global crisprGenomeDir
@@ -20,9 +21,14 @@ crisprGenomeDir = "/var/www/crispor/genomes/"
 
 debugMode = False
 
-ENSGRELEASE = "26"
+# just plough ahead, do not check for existing files
+global FORCE
+FORCE = False
+
+ENSGRELEASE = "36"
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|refseq <taxId1> <taxId2> ... - add genome to crispr site
+parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|ncbi <taxId1> <taxId2> ... - add genome to crispr site
 
 queries UCSC or ensembl database for all assemblies of genome, 
 takes the newest one, downloads it, indexes it with bwa,
@@ -38,8 +44,8 @@ if mode is "fasta":
 if mode is "ucsc":
 - accepts UCSC db identifiers instead of taxonId
 
-if mode is "refseq":
-- only accepts a single Refseq assembly identifier, e.g. GCF_000203835.1
+if mode is "ncbi":
+- only accepts a single Refseq or Genbank assembly identifier, e.g. GCF_000203835.1
 
 Example:
 sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
@@ -54,6 +60,7 @@ parser.add_option("", "--desc", dest="desc", action="store", help="in manual mod
 parser.add_option("", "--gff", dest="gffFname", action="store", help="read gene models from this gff3 file")
 parser.add_option("-u", "--altGff", dest="altGff", action="store_true", help="use UCSC gff3 converter instead of tophat's")
 parser.add_option("", "--baseDir", dest="baseDir", action="store", help="baseDir for genomes, default is %default", default=crisprGenomeDir)
+parser.add_option("-f", "--force", dest="force", action="store_true", help="do not check for existing files")
 #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
 #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
 (options, args) = parser.parse_args()
@@ -74,8 +81,9 @@ def runCmd(cmd, mustRun=True):
         print cmd
     #cmd = "bash -e -o pipefail -c " + cmd
     args = ["/bin/bash", "-e", "-o", "pipefail", "-c"]
+    logging.info("Running: %s" % cmd)
     args.append(cmd)
-    print args
+    #print args
     ret = subprocess.call(args)
     if ret!=0 and mustRun:
         print "Could not run command %s" % cmd
@@ -288,6 +296,10 @@ def writeGenomeInfo(row, addUcsc=False):
 
 def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
     " index with bwa and make chrom sizes "
+    if isfile(sizesTmp) and FORCE:
+        print "%s already exists, not re-indexing" % sizesTmp
+        return
+
     printMsg("Indexing fasta with BWA")
 
     if isfile(sizesTmp):
@@ -419,7 +431,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
                     print ("there exists already a directory %s" % dbTmpDir)
                     print ("are you sure there is not already a process in a different terminal that indexes this genome?")
                     print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
-                    sys.exit(1)
+                    #sys.exit(1)
             else:
                 os.makedirs(dbTmpDir)
 
@@ -467,8 +479,10 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
         ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir)
         writeGenomeInfo(row, addUcsc=True)
 
-def selectEnsGenomes(taxIds):
-    " given a list of taxIds, get dbDb-like rows from Ensembl for them "
+def selectEnsGenomes(genomeIds):
+    """ given a list of genomeIds or assembly names, get dbDb-like rows from Ensembl for them.
+    The assembly name is the last part of the ftp path, e.g for ftp://ftp.ensembl.org/pub/current_fasta/mus_musculus_c3hhej/dna/
+    the assembly name is mus_musculus_c3hhej. """
     # download ensembl, ensMetazoan, ensPlants species info JSONs
     # #http://rest.ensembl.org/info/species?content-type=application/json
     # create dbDb-like rows from json
@@ -496,8 +510,10 @@ def selectEnsGenomes(taxIds):
         newOrgs = []
         for od in orgDicts["species"]:
             taxId = od["taxon_id"]
-            if taxId not in taxIds:
-                continue
+            if taxId not in genomeIds:
+                name = od["name"]
+                if name not in genomeIds:
+                    continue
 
             no = {}
             no["server"] = od["division"]
@@ -547,13 +563,13 @@ def getDownloadUrl(division, org, assembly, release, dataType):
 
     url += "%(orgCap)s.%(assembly)s" % locals()
 
-    if division!="ensembl" or dataType!="fasta":
-        url += ".%(release)s" % locals()
+    #if division!="ensembl" or dataType!="fasta":
+        #url += ".%(release)s" % locals()
 
     if dataType=="fasta":
         url += ".dna_sm.toplevel.fa.gz"
     elif dataType=="gtf":
-        url += ".gtf.gz" % locals()
+        url += ".%(release)s.gtf.gz" % locals()
 
     url = url.replace("_bd","") # July 2015, was necessary for a genome
     return url
@@ -566,13 +582,15 @@ def getEnsGenomes(genomeRows, onlyGenes):
         dbTmpDir = join(tmpDir, db)
         finalDbDir = join(crisprGenomeDir, db)
 
-        if isdir(dbTmpDir):
-            print ("there exists already a directory %s" % dbTmpDir)
-            print ("are you sure there is not already a process in a different terminal that indexes this genome?")
-            print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
-            sys.exit(1)
-        else:
-            os.makedirs(dbTmpDir)
+        if not onlyGenes:
+            if isdir(dbTmpDir):
+                print ("there exists already a directory %s" % dbTmpDir)
+                print ("are you sure there is not already a process in a different terminal that indexes this genome?")
+                print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
+                if not FORCE:
+                    sys.exit(1)
+            else:
+                os.makedirs(dbTmpDir)
 
         if isdir(finalDbDir) and not onlyGenes:
             print "the directory %s already exists" % finalDbDir
@@ -580,7 +598,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
             continue
 
         sizesTmp = join(dbTmpDir, db+".sizes")
-        if not onlyGenes:
+        if not onlyGenes and not (FORCE and isfile(sizesTmp)):
             printMsg("Genome: " + db)
             printMsg("Downloading")
             faTmp = join(dbTmpDir, db+".fa")
@@ -598,9 +616,13 @@ def getEnsGenomes(genomeRows, onlyGenes):
 
             indexFasta(faTmp, db, twoBitTmp, sizesTmp)
         else:
-            origSizes = join(finalDbDir, db+".sizes")
-            cmd = "cp %s %s" % (origSizes, sizesTmp)
-            runCmd(cmd)
+            twoBitTmp = join(dbTmpDir, db+".2bit")
+            assert(isfile(twoBitTmp))
+            # for the case onlyGenes and no .sizes file yet
+            if not isfile(sizesTmp):
+                origSizes = join(finalDbDir, db+".sizes")
+                cmd = "cp %s %s" % (origSizes, sizesTmp)
+                runCmd(cmd)
 
         # get transcript -> gene table and put in gene symbols where we have them
         printMsg("Downloading ensembl transcripts to gene name table")
@@ -617,7 +639,8 @@ def getEnsGenomes(genomeRows, onlyGenes):
         if row.server!="Ensembl":
             egType = row.server.replace("Ensembl","").lower()
             martOpt = "--biomartServer=%s.ensembl.org" % egType
-            martOpt += " --schema=%s_mart_%s" %  (egType, ENSGRELEASE)
+            #martOpt += " --schema=%ss_mart" %  (egType, ENSGRELEASE)
+            martOpt += " --schema=%s_mart" %  (egType)
 
         cmd = """retrBiomart %s %s ensembl_transcript_id ensembl_gene_id external_gene_name | gawk 'BEGIN {OFS="\t"; FS="\t"} {if ($3!="") {$2=$3}; print}' | cut -f1,2 > %s""" % (martOpt, martName, ensToGeneTmp)
         runCmd(cmd, mustRun=False)
@@ -632,31 +655,38 @@ def getEnsGenomes(genomeRows, onlyGenes):
         segTmp = join(dbTmpDir, "%s.segments.bed" % db)
         gtfUrl = getDownloadUrl(row.server, row.scientificName, row.sourceName, row.nibPath, "gtf")
         gpTmp = join(dbTmpDir, "%s.gp" % db)
-        cmd    = """wget %(gtfUrl)s -O - | zcat | grep -v 'exon_number "-1"' | gtfToGenePred stdin stdout > %(gpTmp)s""" % locals()
-        runCmd(cmd)
 
-        # might use this for assembly hub one day
-        bgPred = join(dbTmpDir, "%s.bgp" % db)
-        cmd = "genePredToBigGenePred %(gpTmp)s stdout | sort -k1,1 -k2,2n > %(bgPred)s" % locals()
-        runCmd(cmd)
 
-        bbTmp = join(dbTmpDir, "%s.bb" % db)
-        cmd = "bedToBigBed -type=bed12+ -as=/usr/local/bin/bigGenePred.as %(bgPred)s %(sizesTmp)s %(bbTmp)s" % locals()
-        runCmd(cmd)
+        tmpGffName = join(dbTmpDir, "transcripts.gff")
+        cmd    = """wget %(gtfUrl)s -O - | zcat > %(tmpGffName)s""" % locals()
+        runCmd(cmd, mustRun=False)
+        if getsize(tmpGffName)!=0:
+            cmd     = """cat %(tmpGffName)s | grep -v 'exon_number "-1"' | grep -v 'AIG90451' | grep -v AGP50801 | gtfToGenePred -allErrors stdin stdout > %(gpTmp)s""" % locals()
+            runCmd(cmd)
 
-        cmd    = "genePredToBed %(gpTmp)s stdout | bedToExons stdin stdout | lstOp replace stdin %(ensToGeneTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
-        runCmd(cmd)
+            # might use this for assembly hub one day
+            bgPred = join(dbTmpDir, "%s.bgp" % db)
+            cmd = "genePredToBigGenePred %(gpTmp)s stdout | sort -k1,1 -k2,2n > %(bgPred)s" % locals()
+            runCmd(cmd)
 
-        cmd = "rm %s" % ensToGeneTmp
-        runCmd(cmd)
+            bbTmp = join(dbTmpDir, "%s.bb" % db)
+            cmd = "bedToBigBed -type=bed12+ -as=/usr/local/bin/bigGenePred.as %(bgPred)s %(sizesTmp)s %(bbTmp)s -tab" % locals()
+            runCmd(cmd)
+
+            cmd    = "genePredToBed %(gpTmp)s stdout | bedToExons stdin stdout | lstOp replace stdin %(ensToGeneTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
+            runCmd(cmd)
+
+            cmd = "rm %s" % ensToGeneTmp
+            runCmd(cmd)
+            outFnames.extend([segTmp, bbTmp, bgPred])
 
         printMsg("Moving output files into crispr tool directory")
         outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
-        outFnames.extend([segTmp, sizesTmp, bbTmp, bgPred])
+        outFnames.extend([sizesTmp, twoBitTmp])
 
-        if not onlyGenes:
-            outFnames.append(twoBitTmp)
-            os.makedirs(finalDbDir)
+        #if not onlyGenes:
+            #outFnames.append(twoBitTmp)
+            #os.makedirs(finalDbDir)
 
         moveToDest(outFnames, finalDbDir)
 
@@ -697,9 +727,15 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
     if not isfile(gpFname):
         raise Exception("Problem occured when converting to genePred file")
 
+    if getsize(gpFname)==0:
+        logging.info("Genepred file has 0 size. No gene models are available")
+        return False
+
     cmd = "genePredToBed %(gpFname)s stdout | bedToExons stdin stdout | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(chromSizesFname)s | bedSort stdin %(segFname)s" % locals()
     logging.info("converting genePred to segment names: %s" % cmd)
     runCmd(cmd)
+
+    return True
 
 def getFastaAndGff(genomeRows, gff3Fname, options):
     """
@@ -778,42 +814,68 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
 
         writeGenomeInfo(row)
 
-def getRefseqIndex():
+def getNcbiIndex(dbType):
     " return path of local copy of refseq assembly index or download "
-    fname = "/tmp/assembly_summary_refseq.txt"
+    fname = join(tmpDir, "assembly_summary_%s.txt" % dbType)
     if isfile(fname):
+        logging.info("%s already exists, not downloading again" % fname)
         return fname
-    url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt"
+    if dbType=="refseq":
+        url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt"
+    else:
+        url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/genbank/assembly_summary_genbank.txt"
+    cmd = "wget %s -O %s" % (url, fname)
     logging.info("Downloading %s" % url)
-    data = urllib2.urlopen(url).read()
-    ofh = open(fname, "w")
-    ofh.write(data)
-    ofh.close()
+    runCmd(cmd)
+    #data = urllib2.urlopen(url).read()
+    #ofh = open(fname, "w")
+    #ofh.write(data)
+    #ofh.close()
     return fname
 
-def getRefseqInfo(acc, options):
+def getNameForTaxId(taxId):
+    import urllib2
+    import xml.etree.ElementTree as etree
+    taxId = int(taxId)
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id=%d" % taxId
+    data = urllib2.urlopen(url).read()
+    root = etree.fromstring(data)
+    nameEls = list(reversed(root.findall("Taxon/OtherNames/CommonName")))
+    if len(nameEls)==0:
+        nameEls = root.findall("Taxon/OtherNames/GenbankSynonym")
+        if len(nameEls)==0:
+            nameEls = root.findall("Taxon/OtherNames/GenbankCommonName")
+            if len(nameEls)==0:
+                nameEls = root.findall("Taxon/OtherNames/Synonym")
+                if len(nameEls)==0:
+                    return None
+    return nameEls[0].text
+
+def getNcbiInfo(fname, acc):
     " get info about assembly via eutils "
-    fname = getRefseqIndex()
 
     for row in lineFileNext(open(fname), skipLines=1):
         if row.assembly_accession==acc:
-            #name, scName, commonName, description = descs
             name = acc
             # description : mis-nomer, description should be called "version"
             scName = row.organism_name
             commonName = row.organism_name
-            description = row.asm_name
+            description = "NCBI "+acc+" ("+row.asm_name+")"
             url = acc
             server = "refseq"
             ftpUrl = row.ftp_path
+            commonName = getNameForTaxId(row.taxid)
+            if commonName is None:
+                logging.info("NCBI Taxonomy has no common name for tax ID %s" % row.taxid)
+                commonName = scName
 
             headers = ["name", "description", "genome", "scientificName", "url", "server"]
             Rec = namedtuple("genomeDesc", headers)
-            return Rec(name, description, scName, scName, url, server), ftpUrl
+            return Rec(name, description, commonName, scName, url, server), ftpUrl
 
-    assert(False) # not found
+    return None, None
 
-def getRefseqGenome(ftpUrl, genomeInfo, options):
+def getNcbiGenome(ftpUrl, genomeInfo, options):
     " download refseq genome and index it "
     db = genomeInfo.name
     dbTmpDir = join(tmpDir, db)
@@ -824,7 +886,9 @@ def getRefseqGenome(ftpUrl, genomeInfo, options):
     faTmp = join(dbTmpDir, db+".fa")
     gffTmp = join(dbTmpDir, db+".gff")
 
-    baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+genomeInfo.description+"_genomic"
+    ncbiAsmDesc = genomeInfo.description.split("(")[-1].rstrip(")")
+    baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+ncbiAsmDesc+"_genomic"
+    baseFtp = baseFtp.replace(" ", "_") # some ncbiAsmDescs include spaces
     faFtpUrl = baseFtp + ".fna.gz"
     printMsg("Downloading genome and uncompressing (for bwa)")
     cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
@@ -835,7 +899,7 @@ def getRefseqGenome(ftpUrl, genomeInfo, options):
     cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
     runCmd(cmd)
 
-    cmd = "gunzip %s.gz" % (gffTmp)
+    cmd = "gunzip -f %s.gz" % (gffTmp)
     runCmd(cmd)
 
     seqLine = open(faTmp).readline()
@@ -854,9 +918,12 @@ def getRefseqGenome(ftpUrl, genomeInfo, options):
 
     gpTmp = join(dbTmpDir, db+".gp")
     segTmp = join(dbTmpDir, "%s.segments.bed" % db)
+    hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, True)
 
-    convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, True)
-    outFnames.extend([gpTmp, segTmp])
+    if hasGff:
+        outFnames.extend([gpTmp, segTmp])
+    else:
+        logging.info("Assembly has no gene annotation, skipping genePred step")
 
     indexFasta(faTmp, db, twoBitTmp, sizesTmp)
 
@@ -873,14 +940,16 @@ if args==[]:
 
 if options.debug:
     debugMode = True
+if options.force:
+    FORCE = True
 
 crisprGenomeDir = options.baseDir
 
 site = args[0]
-taxIds = args[1:]
+inIds = args[1:]
 
 if site=="ucsc":
-    genomeRows = selectUcscGenomes(taxIds, options.auto)
+    genomeRows = selectUcscGenomes(inIds, options.auto)
     getUcscGenomes(genomeRows, options.geneTable, options.symFixFile, options.onlyGenes)
 
 elif site=="ucscLocal":
@@ -889,21 +958,28 @@ elif site=="ucscLocal":
     indexLocalGenome(genomeRows[0], options.geneTable)
 
 elif site=="ens":
-    genomeRows = selectEnsGenomes(taxIds)
+    genomeRows = selectEnsGenomes(inIds)
     getEnsGenomes(genomeRows, options.onlyGenes)
 
 elif site=="fasta":
-    genomeRows = selectManualGenome(taxIds, options)
+    genomeRows = selectManualGenome(inIds, options)
     getFastaAndGff(genomeRows, options.gffFname, options)
 
-elif site=="refseq":
-    assert(len(taxIds)==1)
-    acc = taxIds[0]
-    genomeInfo, ftpUrl = getRefseqInfo(acc, options)
-    getRefseqGenome(ftpUrl, genomeInfo, options)
+elif site=="ncbi":
+    for acc in inIds:
+        fname = getNcbiIndex("refseq")
+        genomeInfo, ftpUrl = getNcbiInfo(fname, acc)
+        if genomeInfo is None:
+            fname = getNcbiIndex("genbank")
+            genomeInfo, ftpUrl = getNcbiInfo(fname, acc)
+
+        getNcbiGenome(ftpUrl, genomeInfo, options)
 
 else:
     raise Exception("site has to be ucsc or ens")
+
+cmd = "cd /data/www/crispor && ./makeGenomeInfo"
+runCmd(cmd)
     
     # import httplib2, sys
      

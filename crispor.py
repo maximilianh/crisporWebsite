@@ -74,7 +74,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.4"
+versionStr = "4.3"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -186,7 +186,7 @@ offtargetPams = {
 }
 
 # maximum size of an input sequence 
-MAXSEQLEN = 1000
+MAXSEQLEN = 2000
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
 
@@ -824,12 +824,17 @@ def cleanSeq(seq, db):
     seq = "".join(newSeq)
 
     msgs = []
+    tooLongHint = """
+    Please split your input sequence into shorter sequences or use
+    the <a href='downloads/'>stand-alone version</a> on your own Linux or Mac server to process longer sequences in batch.<br>
+    """
+
     if len(seq)>MAXSEQLEN and db!="noGenome":
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than %d bp</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % (MAXSEQLEN, MAXSEQLEN))
-        seq = seq[:MAXSEQLEN]
+        errMsg = "<strong>Sorry, this tool cannot handle sequences longer than %d bp</strong><br>" % (MAXSEQLEN)
+        errAbort(errMsg+tooLongHint)
     if len(seq)>MAXSEQLEN_NOGENOME and db=="noGenome":
-        msgs.append("<strong>Sorry, this tool cannot handle sequences longer than %d bp when specifying 'No Genome'.</strong><br>Below you find the results for the first %d bp of your input sequence.<br>" % (MAXSEQLEN_NOGENOME, MAXSEQLEN_NOGENOME))
-        seq = seq[:MAXSEQLEN_NOGENOME]
+        errMsg = "<strong>Sorry, this tool cannot handle sequences longer than %d bp when using the 'No Genome' option.</strong><br>" % (MAXSEQLEN_NOGENOME)
+        errAbort(errMsg+tooLongHint)
 
     if nCount!=0:
         msgs.append("Sequence contained %d non-ACTGN letters. They were removed." % nCount)
@@ -3355,15 +3360,13 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!--
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">July 2017: CRISPOR Batch for lentiviral KO screens, CRISPOR saturating mutagenesis now in the <a href="http://tefor.net/crisporDev/crisporBeta/crispor.py">beta of Crispor V4.4</a>.
+<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Nov 10 2017: the server was restarted today. If your requests were affected, simply resubmit them. Do not hesitate to contact us.
 </div>
--->
 
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a href="/manual/">Read the CRISPOR Manual for more details</a>
 
-<br><i>New version V4.3, June 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New version V4.3, Oct 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3685,7 +3688,7 @@ def getSeq(db, posStr):
         errAbort("Sorry, the sequence range %s on genome %s is not longer than 23bp. To find a valid CRISPR/Cas9 site, one needs at least a 23bp long sequence." % (db, posStr))
     return seq
 
-def printStatus(batchId):
+def printStatus(batchId, msg):
     " print status, not using any Ajax "
     q = JobQueue()
     status = q.getStatus(batchId)
@@ -3701,6 +3704,8 @@ def printStatus(batchId):
         errorState = True
     else:
         print('<meta http-equiv="refresh" content="10" >')
+        if len(msg)!=0:
+            print(msg+"<p>")
         print("CRISPOR job has been submitted.<p>")
 
     if status==None:
@@ -3973,7 +3978,7 @@ def crisprSearch(params):
     if "org" in params:
         db = params["org"]
         twoBitFname = getTwoBitFname(db)
-        if not isfile(twoBitFname):
+        if not isfile(twoBitFname) and db!="noGenome":
             errAbort("Sorry, a genome assembly called %s is not on Crispor yet. Please send us an email if you want us to add it." % db)
 
     # retrieve sequence if not provided
@@ -4032,7 +4037,7 @@ def crisprSearch(params):
     if otBedFname is None:
         # this can happen only in CGI mode. Job has been added to the queue or is not done yet. 
         #startAjaxWait(batchId)
-        printStatus(batchId)
+        printStatus(batchId, warnMsg)
         return
 
     # be more sensitive if only a single guide seq is run
@@ -5487,7 +5492,7 @@ def printLibGuides(params):
 def printBody(params):
     " main dispatcher function "
 
-    if "batchId" in params:
+    if "batchId" in params and not "satMut" in params:
         printCrisporBodyStart()
         if "pamId" in params:
             if "pam" in params:
