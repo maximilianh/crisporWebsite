@@ -2790,25 +2790,22 @@ def calcGuideEffScores(seq, extSeq, pam):
     for pamId, startPos, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamInfo:
         guides.append(guideSeq+pamSeq)
         gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
-        longSeq = getExtSeq(seq, gStart, gEnd, strand, 50-GUIDELEN, 50, extSeq)
+        longSeq = getExtSeq(seq, gStart, gEnd, strand, 50-GUIDELEN, 50, extSeq) # +-50 bp from the end of the guide
         if longSeq!=None:
             longSeqs.append(longSeq)
             guideIds.append(pamId)
 
     if len(longSeqs)>0 and not clusterJob:
+        enz = None
         if cpf1Mode:
-            mh, oof, mhSeqs = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs(longSeqs, -50, 50))
-            effScores = {}
-            effScores["oof"] = oof
-            effScores["mh"] = mh
+            enz = "cpf1"
+        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enzyme)
 
-        else:
-            effScores = crisporEffScores.calcAllScores(longSeqs)
-            # make sure the "N bug" reported by Alberto does never happen again
-            for scoreName, scores in effScores.iteritems():
-                if len(scores)!=len(longSeqs):
-                    print "Internal error when calculating score %s" % scoreName
-                    assert(False)
+        # make sure the "N bug" reported by Alberto does never happen again
+        for scoreName, scores in effScores.iteritems():
+            if len(scores)!=len(longSeqs):
+                print "Internal error when calculating score %s" % scoreName
+                assert(False)
 
     else:
         effScores = {}
