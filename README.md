@@ -26,6 +26,10 @@ or
     yum install bwa python-pip python-devel tkinter
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
     
+For the Cpf1 scoring model:
+
+    sudo pip install keras tensorflow h5py
+
 Install required R libraries:
    
     sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
