@@ -741,6 +741,12 @@ def forceWrapper(func, seqs):
     except:
         return [-1]*len(seqs)
 
+def calcFreeEnergy(seqs):
+    """ runs a list of 20bp guide sequences through mfold and returns their gibbs free energy
+    >>> calcFreeEnergy(["GGGTGGGGGGAGTTTGCTCCTGG"])
+    """
+    return 0
+
 def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
@@ -818,6 +824,21 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
 
     scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
     scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
+
+    # the fusi score calculated by the Microsoft Research Server is not run by
+    # default, requires an apiKey
+    if "fusiOnline" in addOpt or doAll:
+        scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+    # by default, I use the python source code sent to me by John Doench
+
+    # fusiForce is a request to the online API that will not fail
+    # if any exception is thrown, we set the scores to -1
+    if "fusiForce" in addOpt:
+        scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
+
+    #logging.debug("self-complementarity using mfold")
+    #mfoldScore = calcFreeEnergy(trimSeqs(seqs, -20, 0))
+    #scores["mfold"] = mfoldScore
 
     return scores
 
