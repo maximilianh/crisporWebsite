@@ -253,6 +253,8 @@ commandLineMode = False
 scoreNames = ["fusi", "crisprScan"]
 allScoreNames = ["fusi", "chariRank", "ssc", "doench", "wang", "crisprScan", "oof", "housden", "proxGc"]
 
+cpf1ScoreNames = ["seqDeepCpf1"]
+
 # how many digits shall we show for each score? default is 0
 scoreDigits = {
     "ssc" : 1,
@@ -331,6 +333,7 @@ scoreDescs = {
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
     "fusi" : ("Doench '16", "Previously called the 'Fusi' score. Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
+    "seqDeepCpf1" : ("SeqDeepCpf1", "Range: ~ 0-100. Conv. Neural Network trained on ~20k Cpf1 lentiviral guide results. This is the model without Dnase information. See <a target='_blank' href='https://www.nature.com/articles/nbt.4061'>Kim et al. 2018</a>"),
     "oof" : ("Out-of-Frame", "Range: 0-100. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al.</a>. Click the score to show the most likely deletions for this guide.")
 }
 
@@ -365,11 +368,15 @@ def setupPamInfo(pam):
     global cpf1Mode
     global addGenePlasmids
     global PAMLEN
+    global scoreNames
     PAMLEN = len(pam)
     if pamIsCpf1(pam):
+        logging.debug("switching on Cpf1 mode, guide length is 23bp")
         GUIDELEN = 23
         cpf1Mode = True
+        scoreNames = cpf1ScoreNames
     elif pam=="NNGRRT" or pam=="NNNRRT":
+        logging.debug("switching on S. aureus mode, guide length is 21bp")
         addGenePlasmids = addGenePlasmidsAureus
         GUIDELEN = 21
         cpf1Mode = False
@@ -2799,7 +2806,7 @@ def calcGuideEffScores(seq, extSeq, pam):
         enz = None
         if cpf1Mode:
             enz = "cpf1"
-        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enzyme)
+        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz)
 
         # make sure the "N bug" reported by Alberto does never happen again
         for scoreName, scores in effScores.iteritems():
@@ -4235,15 +4242,21 @@ def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
     else:
         return guideSeq+pamSeq+pamPlusSeq
 
-def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None):
-    "yield rows from guide data. Need to know if for Cpf1 or not "
+def makeGuideHeaders():
+    " return list of the headers of the guide output file "
     headers = list(tuple(guideHeaders)) # make a copy of the list
 
     tableScoreNames = list(tuple(scoreNames))
-    tableScoreNames.append("oof")
+    if not cpf1Mode:
+        tableScoreNames.append("oof")
 
     for scoreName in tableScoreNames:
         headers.append(scoreDescs[scoreName][0]+"-Score")
+    return headers, tableScoreNames
+
+def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None):
+    "yield rows from guide data. Need to know if for Cpf1 or not "
+    headers, tableScoreNames = makeGuideHeaders()
 
     if satMutOpt:
         headers.append("Oligonucleotide")
@@ -4255,7 +4268,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         otBedFname = batchBase+".bed"
         otMatches = parseOfftargets(otBedFname)
 
-        guideData.sort(key=operator.itemgetter(3)) # sort by position
+        guideData.sort(key=operator.itemgetter(3)) # sort by position, makes more sense here
 
     if seqId != None:
         headers.insert(0, "#seqId")
@@ -4281,6 +4294,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [guideDesc, fullSeq, guideScore, otCount, ontargetDesc]
+
         for scoreName in tableScoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
 
@@ -6606,7 +6620,7 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed, default %default", default=MAXOCC)
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
-    parser.add_option("", "--guideLen", dest="guideLen", type="int", default=20, \
+    parser.add_option("", "--guideLen", dest="guideLen", type="int", \
         action="store", help="Lenght of the guide. Default is: 21 for PAM=NNGRRT/NNNRRT, 23 for Cpf1, 20 otherwise. Note: 19bp guides are less efficient")
     parser.add_option("", "--bowtie", dest="bowtie", \
         action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
@@ -6775,7 +6789,7 @@ def clearQueue():
 #runQueueWorker()
 
 def handleOptions(options):
-    " set glpbal vars based on options "
+    " set global vars based on options "
     if options.test:
         runTests()
         import doctest
@@ -6822,6 +6836,7 @@ def handleOptions(options):
     if options.guideLen:
         global GUIDELEN
         GUIDELEN=options.guideLen
+        logging.info("Overriding guide length with %d bp as set on command line" % GUIDELEN)
 
 def mainCommandLine():
     " main entry if called from command line "
@@ -6868,19 +6883,11 @@ def mainCommandLine():
     if options.ampDir and not isdir(options.ampDir):
         errAbort("%s does not exist" % options.ampDir)
 
-    # prepare output files
-    guideFh = open(join(batchDir, "guideInfo.tab"), "w")
-    headers = list(tuple(guideHeaders))
-    headers.insert(0, "#seqId")
-    guideFh.write("\t".join(headers)+"\n")
-    if options.offtargetFname:
-        offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
-        offtargetHeaders.insert(0, "seqId")
-        offtargetFh.write("\t".join(offtargetHeaders)+"\n")
-
     # putting multiple sequences into the input file is possible
     # but very inefficient. Rather separate them with a stretch of 10 Ns
-    # as explained the docs
+    # as explained in the docs
+    guideFh = None
+    offtargetFh = None
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
         logging.info(" * running on sequence '%s', guideLen=%d, seqLen=%d" % (seqId, GUIDELEN, len(seq)))
@@ -6898,6 +6905,7 @@ def mainCommandLine():
         otBedFname = getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
         otMatches = parseOfftargets(otBedFname)
 
+        # Special batch primer / Crispresso mode
         if options.ampDir:
             pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat), True))
             for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
@@ -6914,6 +6922,7 @@ def mainCommandLine():
                     cFh.write("\t".join(row))
                     cFh.write("\n")
 
+        # special saturation mutagenesis mode
         if options.satMutDir:
             satMutFname = join(options.satMutDir, seqId+"_satMutOligos.tsv")
             smFh = open(satMutFname, "w")
@@ -6936,13 +6945,27 @@ def mainCommandLine():
             logging.info("Writing guide sequences to %s" % guideFname)
             writeTargetSeqs(guideData, gFh)
 
-        if options.noEffScores or cpf1Mode:
+        if options.noEffScores:
             effScores = {}
         else:
             effScores = readEffScores(batchId)
+        print "XX", effScores
 
         guideData, guideScores, hasNotFound, pamIdToSeq = \
             mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores)
+
+        # write guide headers
+        if guideFh is None:
+            guideFh = open(join(batchDir, "guideInfo.tab"), "w")
+            guideHeaders, scoreNames = makeGuideHeaders()
+            guideHeaders.insert(0, "#seqId")
+            guideFh.write("\t".join(guideHeaders)+"\n")
+
+        # write offtarget headers
+        if options.offtargetFname and offtargetFh is None:
+            offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
+            offtargetHeaders.insert(0, "seqId")
+            offtargetFh.write("\t".join(offtargetHeaders)+"\n")
 
         for row in iterGuideRows(guideData, seqId=seqId):
             guideFh.write("\t".join(row))
