@@ -735,6 +735,12 @@ def forceWrapper(func, seqs):
     except:
         return [-1]*len(seqs)
 
+def calcFreeEnergy(seqs):
+    """ runs a list of 20bp guide sequences through mfold and returns their gibbs free energy
+    >>> calcFreeEnergy(["GGGTGGGGGGAGTTTGCTCCTGG"])
+    """
+    return 0
+
 def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
@@ -803,6 +809,10 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
     # if any exception is thrown, we set the scores to -1
     if "fusiForce" in addOpt:
         scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
+
+    #logging.debug("self-complementarity using mfold")
+    #mfoldScore = calcFreeEnergy(trimSeqs(seqs, -20, 0))
+    #scores["mfold"] = mfoldScore
 
     return scores
 
