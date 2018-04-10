@@ -27,6 +27,9 @@ import json
 fusiDir = join(dirname(__file__), "bin/fusiDoench")
 sys.path.insert(0, join(fusiDir, "analysis"))
 
+deepCpf1Dir = join(dirname(__file__), "bin/DeepCpf1")
+sys.path.insert(0, deepCpf1Dir)
+
 import model_comparison
 
 # import numpy as np
@@ -726,6 +729,9 @@ def calcMicroHomolScore(seq, left):
     oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
     return int(mhScore), int(oofScore), seqs
 
+def isCas9(enzyme):
+    return (enzyme==None or enzyme=="spcas9")
+
 def forceWrapper(func, seqs):
     """
     run func over seqs. If any exception occurs, return a list of -1s for all seqs.
@@ -741,7 +747,7 @@ def calcFreeEnergy(seqs):
     """
     return 0
 
-def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
+def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
@@ -758,37 +764,58 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
 
     guideSeqs = trimSeqs(seqs, -20, 0)
 
-    logging.debug("Housden scores")
-    scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
-    #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
+    if enzyme==None or enzyme=="spcas9":
+        logging.debug("Housden scores")
+        scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
+        #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
 
-    logging.debug("Wang scores")
-    scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
-    if "wangOrig" in addOpt or doAll:
-        scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
+        logging.debug("Wang scores")
+        scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
+        if "wangOrig" in addOpt or doAll:
+            scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
 
-    logging.debug("Doench score")
-    scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
+        logging.debug("Doench score")
+        scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
 
-    logging.debug("Fusi score")
-    scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+        logging.debug("Fusi score")
+        scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
-    logging.debug("SSC score")
-    scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
+        logging.debug("SSC score")
+        scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
 
-    logging.debug("CrisprScan score")
-    scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
+        logging.debug("CrisprScan score")
+        scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
 
-    if not "wuCrispr" in skipScores:
-        logging.debug("wuCrispr score")
-        scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
-    else:
-        scores["wuCrispr"] = [-1]*len(seqs)
+        if not "wuCrispr" in skipScores:
+            logging.debug("wuCrispr score")
+            scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
+        else:
+            scores["wuCrispr"] = [-1]*len(seqs)
 
-    logging.debug("Chari score")
-    chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
-    scores["chariRaw"] = chariScores[0]
-    scores["chariRank"] = chariScores[1]
+        logging.debug("Chari score")
+        chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
+        scores["chariRaw"] = chariScores[0]
+        scores["chariRank"] = chariScores[1]
+
+        # the fusi score calculated by the Microsoft Research Server is not run by
+        # default, requires an apiKey
+        if "fusiOnline" in addOpt or doAll:
+            scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+        # by default, I use the python source code sent to me by John Doench
+
+
+        # fusiForce is a request to the online API that will not fail
+        # if any exception is thrown, we set the scores to -1
+        if "fusiForce" in addOpt:
+            scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
+    
+    elif enzyme=="cpf1":
+        deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
+        print deepSeqs
+        cpfScores = calcDeepCpf1Scores(deepSeqs)
+        scores["seqDeepCpf1"] = cpfScores[0]
+        scores["deepCpf1NoDnase"] = cpfScores[1]
+        scores["deepCpf1Dnase"] = cpfScores[2]
 
     logging.debug("OOF scores")
     mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
@@ -804,7 +831,6 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
         scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
     # by default, I use the python source code sent to me by John Doench
 
-
     # fusiForce is a request to the online API that will not fail
     # if any exception is thrown, we set the scores to -1
     if "fusiForce" in addOpt:
@@ -816,16 +842,22 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[]):
 
     return scores
 
-def printScoreTabSep(seqs, doAll=False):
+def printScoreTabSep(seqs, doAll=False, enzyme=None):
     " return tab-sep rows with all seqs "
-    scoreDict = calcAllScores(seqs, doAll=doAll)
+    scoreDict = calcAllScores(seqs, doAll=doAll, enzyme=enzyme)
     scoreNames = scoreDict.keys()
-    headers = ["fullSeq", "guideSeq"]
+    headers = ["fullSeq", "guideSeqWithPam"]
     headers.extend(scoreNames)
 
     print "\t".join(headers)
     for i, seq in enumerate(seqs):
-        row = [seq, seq[30:53]]
+        if isCas9(enzyme):
+            row = [seq, seq[30:53]] # 20bp guide + 3bp PAM 3' of guide
+        elif enzyme=="cpf1":
+            row = [seq, seq[(50-(4+23)):50]] # 4bp PAM 5' of guide + 23bp guide
+            print "XX", len(row[1])
+            print "XX", row[-0][:50]
+            print "XX", row[-0][50:]
         for scoreName in scoreNames:
             row.append(str(scoreDict[scoreName][i]))
         print "\t".join(row)
@@ -838,10 +870,11 @@ def test():
     doctest.testmod()
 
 def parseArgs():
-    parser = optparse.OptionParser("usage: %prog [options] filename - given a file with 100mer sequences +- 50bp around the PAM site, calculate many efficiency scores and output as a tab-sep file to stdout")
+    parser = optparse.OptionParser("usage: %prog [options] filename - given a text file with 100mer sequences (+- 50bp around the end position of the guide, one per line), calculate efficiency scores and output as a tab-sep file to stdout")
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
     parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
     parser.add_option("-a", "--all", dest="all", action="store_true", help="show all possible scores, even those that are slow to obtain or redundant with others")
+    parser.add_option("-e", "--enzyme", dest="enzyme", action="store", help="specify a non-SpCas9 enzyme. Possible values: 'cpf1' and 'aureus'")
     #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
     (options, args) = parser.parse_args()
     if options.debug:
@@ -1021,6 +1054,10 @@ def calcWuCrisprScore(seqs):
     os.remove(outFname)
     return scores
 
+def calcDeepCpf1Scores(seqs):
+    import DeepCpf1
+    return DeepCpf1.scoreSeqs(seqs)
+
 # ----------- MAIN --------------
 if __name__=="__main__":
     args, options = parseArgs()
@@ -1035,4 +1072,4 @@ if __name__=="__main__":
     if len(seqs)==0:
         logging.error("No sequences in input left")
     else:
-        printScoreTabSep(seqs, options.all)
+        printScoreTabSep(seqs, options.all, options.enzyme)
