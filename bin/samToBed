@@ -5,13 +5,17 @@
 # but will extend the end or start by pamlen
 
 # first arg is the PAM sequence
+# second arg is the length of the guide sequence
+
 # Cpf1 PAM TTTN is handled
 
 import sys, logging
 pam = sys.argv[1]
+guideLen = int(sys.argv[2])
 isCpf1 = (pam in ["TTTN", "TTN"])
 pamLen = len(pam)
-#maxX1 = int(sys.argv[2])
+
+exprMatchStr = str(guideLen)+"M"
 
 # example input:
 # t5    272 chrIII  12975327    0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5
@@ -54,17 +58,11 @@ for line in sys.stdin:
 
     # ARH! SAM IS 1-BASED! !!!
     startPos = pos-1
-    if cigar=="20M":
-        endPos = startPos+20
-    elif cigar=="21M":
-        endPos = startPos+21
-    elif cigar=="23M":
-        endPos = startPos+23
-    elif cigar=="19M":
-        endPos = startPos+19
-    else:
-        logging.error("cigar %s was not 20M, 21M, 23M or 19M, line %s" % (cigar, line))
+    if cigar != exprMatchStr:
+        logging.error("cigar %s was not <number>M, line %s" % (cigar, line))
         assert(False) # cigar was not 20M or 19M or 23M?
+
+    endPos = startPos+guideLen
 
     if not isCpf1:
         if strand=="+":
