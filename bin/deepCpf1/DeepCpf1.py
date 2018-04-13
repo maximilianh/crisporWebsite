@@ -6,6 +6,9 @@ from os.path import dirname, join
 from numpy import *
 import sys;
 
+import os
+os.environ['KERAS_BACKEND'] = 'theano'
+
 from keras.models import Model
 from keras.layers import Input
 from keras.layers.merge import Multiply
@@ -126,9 +129,10 @@ def PREPROCESS(seqs):
                 #SEQ[l-1, i, 3] = 1
         #CA[l-1,0] = int(data[2])
         CA0[l,0] = 0
-        CA1[l,0] = 1
+        CA1[l,0] = 100
 
     return SEQ, CA0, CA1
 
-#if __name__ == '__main__':
+if __name__ == '__main__':
         #main()
+        print scoreSeqs(["GTTATTTGAGCAATGCCACTTAATAAACATGTAA"])
