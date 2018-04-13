@@ -3357,7 +3357,7 @@ def printForm(params):
 <form id="main-form" method="post" action="%s">
 
  <div style="text-align:left; margin-left: 10px">
- CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">Read the CRISPOR Manual</a> for more details
+ CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
 <br><i>New in V4.4, Apr 2018: Doench2016-score update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
 
@@ -3637,7 +3637,7 @@ def showPamWarning(pam):
     elif pamIsSaCas9(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
         print "<strong>Note:</strong> Your query is using a Cas9 from S. aureus.<br>"
-        print "Please note that while the efficiency scoring was built for saCas9, the off-target ranking below and specificity scores are based on CFD/Hsu models, which were developed for spCas9. The ranking of off-targets could be very inaccurate. If you have a saCas9 off-target dataset, you can contact us for further info. Also note that the out-of-frame scores below are based on DNA micro-homology, so they may work for saCas9, but this has not been studied yet, to our knowledge."
+        print "Please note that while the efficiency scoring was built for saCas9, the off-target ranking below and specificity scores are based on CFD/Hsu models, which were developed for spCas9. The ranking of off-targets could be very inaccurate. If you have a saCas9 off-target dataset, you can contact us for further info, we are only aware of the BLESS dataset by <a href='https://www.nature.com/articles/nature14299' target=_blank>Ran et al. 2015</a>.<br>As for out-of-frame and micro-homology, this model is also based on spCas9, but <a target=_blank href='https://www.nature.com/articles/nature14299'>Ran et al 2015</a> showed that the saCas9 cleavage pattern looks identical to spCas9's, so the OOF micro-homology model should work with saCas9."
         print '</div>'
     elif not pamIsSpCas9(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
