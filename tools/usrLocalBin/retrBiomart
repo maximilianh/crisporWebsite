@@ -14,6 +14,7 @@ parser.add_option("-a", "--append", dest="append", action="store_true", help="do
 parser.add_option("", "--appendValue", dest="appendValue", action="store", help="append this value to all lines") 
 parser.add_option("", "--removeSingleField", dest="removeSingleFields", action="store_true", help="filter out records that consist of only one field") 
 parser.add_option("", "--biomartServer", dest="biomartServer", action="store", help="the biomart server to use, default %default", default="www.ensembl.org") 
+parser.add_option("", "--schema", dest="schema", action="store", help="the biomart schema to use, default %default", default="default")
 (options, args) = parser.parse_args()
 
 # ----------- MAIN --------------
@@ -29,13 +30,14 @@ append = options.append
 appendValue = options.appendValue
 removeSingleFields=options.removeSingleFields
 biomartServer = options.biomartServer
+schema = options.schema
 
 if options.fasta:
 	format = 'formatter = "FASTA"'
 else:
 	format = 'formatter = "TSV"'
 
-header='http://%s/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query virtualSchemaName = "default" header = "0"  %s datasetConfigVersion = "0.6" uniqueRows="1"><Dataset name = "%s" interface = "default" >' % (biomartServer, format, dataset)
+header='http://%s/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE Query><Query virtualSchemaName = "%s" header = "0"  %s datasetConfigVersion = "0.6" uniqueRows="1"><Dataset name = "%s" interface = "default" >' % (biomartServer, schema, format, dataset)
 footer='</Dataset></Query>'
 
 attributes=[('<Attribute name = "%s" />' % attr) for attr in attributes]

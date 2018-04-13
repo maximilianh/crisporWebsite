@@ -1,0 +1,140 @@
+See Changelog for details.
+
+Version 2.0
+------------
+- Meanwhile, a lot of changes in the RNAlib have accumulated. See the Reference
+  Manual and the Changelog for further details
+- All algorithms use the Turner'04 nearest neighbor model
+- The RNAlib provides (OpenMP) threadsafe folding routines per default. This is
+  enables concurrent calls to the folding routines in parallel. The feature
+  can be disabled by passing '--disable-openmp' to the configure script
+- serious changes in command line parameters. Everything complies with
+  GNU standard from now on (short options with preceding '-', long options
+  with preceding '--'.
+- FASTA file support for RNAfold. RNA sequences do not need to be passed
+  on a single line anymore when a FASTA header is provided.
+- The new program RNA2Dfold computes MFE, partition function and
+  stochastically sampled secondary structures in a partitioning of the secondary
+  structure space according to the base pair distance to two reference structures
+- The new program PKplex computes...
+- The new program RNALfoldz computes locally stable secondary structures
+  together with a z-score
+- The new program RNALalifold computes locally stable consensus structures for
+  alignments
+- The new program RNAparconv enables the conversion of 'old' energy parameter files
+  (v1.4-v1.8) to the new format used in version 2.x
+
+
+Version 1.8
+------------
+- new RNAalifold has better treatment of gaps and ribosum based covariance
+  scores. Use the -old switch for compatibility with older RNAalifold
+  versions.
+- RNAplfold -u  now computes all accessibilities up to a maximum length
+  (much faster than computing each individually)
+- ATTENTION: output formats of RNAplfold -u and or RNAup have been changed  
+  Programs parsing RNAplfold and RNAup output will have to be modified.
+- RNAfold and RNAalifold compute centroid structures when run with -p
+  use the  -MEA  option to compute Maximum Expected Accuracy structures.
+
+Version 1.7
+------------
+- RNAplfold can now be used to compute accessibilities, i.e. the
+  probability that a stretch of the RNA remains unpaired (and thus
+  available for intermolecular interactions).
+- A new version of RNAup predicts RNA-RNA interactions takeing into account
+  the competition between inter- and intramolecular structure in both
+  molcules
+- Circular RNAs can be treated by RNAfold, RNAalifold, RNAsubopt, and RNAcofold
+- RNAaliduplex predicts RNA-RNA interactions between two sets of aligned
+  sequences (inter-molecular structure only)
+
+Version 1.6
+------------
+- The RNAforester program for tree-alignments of RNA structures is now
+  distributed with the Vienna RNA package, see the RNAforester
+  subdirectory for more information. RNAforester was written by Matthias
+  Hoechsmann <mhoechsm@techfak.uni-bielefeld.de> 
+- The Kinfold program for stochastic simulation of folding trajectories is
+  now included in the package, see the Kinfold subdirectory.
+- cofolding of two structures now supports suboptimal folding and 
+  partition function folding. 
+  ATTENTION: Energies of hybrid structures now include the Duplex-initiation
+  energy, which was neglected in previous version.
+- RNAplfold is a partition function variant of RNALfold. It computes the
+  mean probability of a (local) base pair averaged over all sequence
+  windows that contain the pair.
+- new utilities to color alignments and consensus structures  
+- RNAfold -p now computes the centroid structure
+- ATTENTION: ensemble diversities in version <1.6.5 are off by a factor 2
+
+Version 1.5pre 
+-----------
+- ViennaRNA now uses autoconfig generated configure scripts for even better
+  portability (should compile on any UNIX, Linux, MacOS X, Windows with
+  Cygwin).
+- The new RNAalifold program predicts consensus structures for a set of
+  aligned sequences.
+- Complete suboptimal folding is now integrated in the library.
+- Beginning support for co-folding of two strands: energy_of_struct() and
+  RNAeval can now compute energies of duplex structures.
+- RNAcofold predicts hybrid structures of two RNA strands
+- RNAduplex predicts hybrid structures, while allowing only inter-molecular
+  base pairs (useful for finding potential binding sites)
+- RNALfold predicts locally stable structures in long sequences.
+- Major changes to Perl module. See the pod documentation (perldoc RNA).
+- RNAsubopt can do stochastic backtracking to produce samples of suboptimal
+  structures with Boltzmann statistics.
+- New utilities to rotate secondary structure plots and annotate them with
+  reliability data.
+- Various small bug fixes
+
+Version 1.4
+-----------
+- New Turner parameters as described in Mathews et.al. JMB v288, 1999.
+  Small changes to format of parameter files (old param files won't work!)
+- mfe and suboptimal folding will produce only structures without isolated
+  pairs if noLonelyPairs=1 (-noLP option), for partition function folding
+  pairs that can only occur as isolated pairs are not formed.
+- setting dangles=3 (-d3 option) will allow co-axial stacking of adjacent
+  helices in mfe folding and energy_of_struct().
+
+Version 1.3.1
+-------------
+- RNAheat would produce spikes in the specific heat because dangling end
+  energies did not go smoothly to 0. 
+- PS dot plots now have an option to use a log scale (edit _dp.ps file
+  and set logscale to true).
+
+Version 1.3
+-----------
+- Secondary structure plots now use E. Bruccoleri's naview routines for
+  layout by default. New utility RNAplot produces secondary structure plots 
+  from structures in bracket notation with several options.
+- New -d2 option in RNAfold and RNAeval sets dangles=2, which makes 
+  energy_of_struct() and fold() treat dangling ends as in pf_fold().
+  -noLP option in RNAfold etc sets noLonelyPairs=1, which avoids most
+  structures containing lonely base pairs (helices of length 1).
+- new utility functions pack_structure() unpack_structure() make_pair_table()
+  and bp_distance().  RNAdistance adds bp_distance() via -DP switch.
+- First release of RNAsubopt for complete suboptimal folding.
+- fixed bug in asymmetry penalty for interior loops. 
+- Default compilation now uses doubles for partition function folding.
+
+Version 1.2.1
+-------------
+- Fixed bug in version 1.2 of the RNAheat program causing overflow errors
+  for most input sequences. 
+- The PS_dot_plot() and PS_rna_plot() routines now return an int. The return 
+  value is 0 if the file could not be written, 1 otherwise.
+- This version contains the alpha version of a perl5 module, which let's you
+  access all the capabilities of the Vienna RNA library from perl scripts.
+
+Version 1.2
+-----------
+- New energy parameters from (Walter et.al 1994). 
+- Energy parameters can be read from file.
+- RNAeval and energy_of_struct() support logarithmic energy function for 
+  multi-loops.
+- gmlRNA() produces secondary structure drawing in gml (Graph Meta Language). 
+- Many bug fixes.

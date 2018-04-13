@@ -1,0 +1,20 @@
+table crispor
+"Browser extensible data (9 fields) plus various CRISPOR related fields "
+    (
+    string chrom;      "Chromosome (or contig, scaffold, etc.)"
+    uint   chromStart; "Start position in chromosome"
+    uint   chromEnd;   "End position in chromosome"
+    string name;       "Name of item"
+    uint   score;      "Score from 0-1000"
+    char[1] strand;    "+ or -"
+    uint thickStart;   "Start of where display should be thick (start codon)"
+    uint thickEnd;     "End of where display should be thick (stop codon)"
+    uint reserved;     "Used as itemRgb as of 2004-11-22"
+    string guideSeq;   "Guide sequence"
+    string pam;   "PAM sequence"
+    string mitScore;   "MIT Guide Specificity Score"
+    string fusiScore;  "Doench2016 Efficiency Score"
+    string crisprScanScore; "Moreno-Mateos Efficiency Score"
+    string oofScore;   "Out-of-Frame Score"
+    string batchId;    "CRISPOR Batch ID"
+    )

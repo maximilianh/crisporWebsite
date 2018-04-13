@@ -27,10 +27,14 @@ import json
 fusiDir = join(dirname(__file__), "bin/fusiDoench")
 sys.path.insert(0, join(fusiDir, "analysis"))
 
-deepCpf1Dir = join(dirname(__file__), "bin/DeepCpf1")
+deepCpf1Dir = join(dirname(__file__), "bin/deepCpf1")
 sys.path.insert(0, deepCpf1Dir)
 
-import model_comparison
+aziDir = join(dirname(__file__), "bin/Azimuth-2.0/")
+sys.path.insert(0, aziDir)
+
+najm2018Dir = join(dirname(__file__), "bin/najm2018/")
+sys.path.insert(0, najm2018Dir)
 
 # import numpy as np
 
@@ -756,6 +760,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTANCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
     [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
+    logging.debug("Calculating efficiency scores for enzyme %s" % enzyme)
     scores = {}
 
     for s in seqs:
@@ -765,6 +770,27 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
     guideSeqs = trimSeqs(seqs, -20, 0)
 
     if enzyme==None or enzyme=="spcas9":
+        logging.debug("Azimuth score")
+        scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
+
+        # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
+        # scores are the not exactly the same!
+        if "oldFusi" in addOpt:
+            logging.debug("Fusi score")
+            scores["oldFusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+
+        # the fusi score calculated by the Microsoft Research Server is not run by
+        # default, requires an apiKey
+        #if "fusiOnline" in addOpt or doAll:
+            #scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+        # I used to use the python source code sent to me by John Doench ('oldFusi')
+        # Now we use the (almost identical) Azimuth implementation
+
+        # fusiForce is a request to the online API that will not fail
+        # if any exception is thrown, we set the scores to -1
+        #if "fusiForce" in addOpt:
+            #scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
+
         logging.debug("Housden scores")
         scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
         #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
@@ -776,9 +802,6 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
 
         logging.debug("Doench score")
         scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
-
-        logging.debug("Fusi score")
-        scores["fusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
         logging.debug("SSC score")
         scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
@@ -797,33 +820,28 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
         scores["chariRaw"] = chariScores[0]
         scores["chariRank"] = chariScores[1]
 
-        # the fusi score calculated by the Microsoft Research Server is not run by
-        # default, requires an apiKey
-        if "fusiOnline" in addOpt or doAll:
-            scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
-        # by default, I use the python source code sent to me by John Doench
+        logging.debug("Azimuth in-vitro")
+        scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
 
+        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
+        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
 
-        # fusiForce is a request to the online API that will not fail
-        # if any exception is thrown, we set the scores to -1
-        if "fusiForce" in addOpt:
-            scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
     
     elif enzyme=="cpf1":
         deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
-        print deepSeqs
         cpfScores = calcDeepCpf1Scores(deepSeqs)
         scores["seqDeepCpf1"] = cpfScores[0]
         scores["deepCpf1NoDnase"] = cpfScores[1]
         scores["deepCpf1Dnase"] = cpfScores[2]
 
+    elif enzyme=="sacas9":
+        logging.debug("Najm 2018 score")
+        scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
+
     logging.debug("OOF scores")
     mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
     scores["oof"] = oof
     scores["mh"] = mh
-
-    scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
-    scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
 
     # the fusi score calculated by the Microsoft Research Server is not run by
     # default, requires an apiKey
@@ -843,7 +861,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
     return scores
 
 def printScoreTabSep(seqs, doAll=False, enzyme=None):
-    " return tab-sep rows with all seqs "
+    " print tab-sep rows with all seqs "
     scoreDict = calcAllScores(seqs, doAll=doAll, enzyme=enzyme)
     scoreNames = scoreDict.keys()
     headers = ["fullSeq", "guideSeqWithPam"]
@@ -855,17 +873,11 @@ def printScoreTabSep(seqs, doAll=False, enzyme=None):
             row = [seq, seq[30:53]] # 20bp guide + 3bp PAM 3' of guide
         elif enzyme=="cpf1":
             row = [seq, seq[(50-(4+23)):50]] # 4bp PAM 5' of guide + 23bp guide
-            print "XX", len(row[1])
-            print "XX", row[-0][:50]
-            print "XX", row[-0][50:]
         for scoreName in scoreNames:
             row.append(str(scoreDict[scoreName][i]))
         print "\t".join(row)
 
 def test():
-    #sendFusiRequest([ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC"])
-    #sys.exit(1)
-    #global binDir
     import doctest
     doctest.testmod()
 
@@ -934,26 +946,70 @@ def calcHousden(seqs):
         scores.append(score)
     return scores
 
+def calcAziInVitro(seqs):
+    " Another score: Azimuth trained on the Moreno-Mateos data, see README, received from J. Listgarden  "
+    import numpy
+    import azimuth.model_comparison
+    model_file = join(dirname(__file__), "bin/azimuthMoreno/moreno_model.pkl")
+    model = pickle.load(open(model_file))
+    res = []
+    for seq in seqs:
+        if "N" in seq:
+            res.append(-1) # can't do Ns
+            continue
+        # pam_audit = do not check for NGG PAM
+        seq = seq.upper()
+        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False, model=model)
+        res.append(int(round(100*score)))
+    return res
+
+def calcNajmScore(seqs):
+    " The score of the Najm 2018 paper, for SaCas9, using Azimuth "
+    import numpy
+    import azimuth.model_comparison
+    model_file = join(dirname(__file__), "bin", "najm2018", "Saureus_model.pickle")
+    model = pickle.load(open(model_file))
+    #n = pickle.load(open(model_file))
+    #print len(n)
+    #print n[0]
+    #print n[1]
+    #adsf
+    res = []
+    for seq in seqs:
+        if "N" in seq:
+            res.append(-1) # can't do Ns
+            continue
+        # pam_audit = do not check for NGG PAM
+        seq = seq.upper()
+        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False, model=model)
+        res.append(int(round(100*score)))
+    return res
+
+def calcAziScore(seqs):
+    " the official implementation of the Doench2016 (aka Fusi) score from Microsoft "
+    import numpy
+    import azimuth.model_comparison
+    res = []
+    for seq in seqs:
+        if "N" in seq:
+            res.append(-1) # can't do Ns
+            continue
+
+        pam = seq[25:27]
+        # pam_audit = do not check for NGG PAM
+        seq = seq.upper()
+        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False)
+        res.append(int(round(100*score)))
+    return res
+
+
 def calcFusiDoench(seqs):
+    import model_comparison
     """
     Input is a 30mer: 4bp 5', 20bp guide, 3bp PAM, 3bp 5'
-    based on source code sent by John Doench
-    {'include_strand': False, 'weighted': None, 'num_thread_per_proc': None, 'extra pairs': False, 'gc_features': True, 'test_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
-       'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
-       u'CUL3', u'NF1', u'NF2'], dtype=object), 'testing_non_binary_target_name': 'ranks', 'train_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
-       'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
-       u'CUL3', u'NF1', u'NF2'], dtype=object), 'cv': 'gene', 'adaboost_alpha': 0.5, 'all pairs': False, 'binary target name': 'score_drug_gene_threshold', 'normalize_features': False, 'nuc_features': True, 'include_gene_effect': False, 'num_genes_remove_train': None, 'include_gene_guide_feature': 0, 'include_known_pairs': False, 'include_gene_feature': False, 'training_metric': 'spearmanr', 'num_proc': 8, 'include_drug': False, 'include_microhomology': False, 'V': 3, 'include_Tm': True, 'adaboost_loss': 'ls', 'rank-transformed target name': 'score_drug_gene_rank', 'include_pi_nuc_feat': True, 'include_sgRNAscore': False, 'flipV1target': False, 'include_NGGX_interaction': True, 'seed': 1, 'NDGC_k': 10, 'raw target name': None, 'all_genes': array([u'CD5', u'CD45', u'THY1', u'H2-K', u'CD28', u'CD43', 'CD33', 'CD13',
-       'CD15', u'HPRT1', u'CCDC101', u'MED12', u'TADA2B', u'TADA1',
-       u'CUL3', u'NF1', u'NF2'], dtype=object), 'order': 2, 'include_gene_position': False}
+    based on source code sent by John Doench.
+    A slightly modified code is now called 'Azimuth', see calcAziScore
     """
-    #aa_cut = 0
-    #percent_peptide=0
-    #learn_options["V"] = 2
-    #model, learn_options = pickle.load(f)
-    #for seq in seqs:
-        #get_all_order_nuc_features(seq, feature_sets, learn_options, learn_options["order"], max_index_to_use=30)
-        #assert(not learn_options["gc_features"])
-        #assert(not learn_options["gene_position"])
     aa_cut = 0
     per_peptide=0
     f = open(join(fusiDir, 'saved_models/V3_model_nopos.pickle'))
@@ -972,9 +1028,6 @@ def calcFusiDoench(seqs):
             seq[25] = "G"
             seq[26] = "G"
             seq = "".join(seq)
-        if "N" in seq:
-            res.append(-1)
-            continue
         score = model_comparison.predict(seq, aa_cut, per_peptide, model=model)
         res.append(int(round(100*score)))
     return res

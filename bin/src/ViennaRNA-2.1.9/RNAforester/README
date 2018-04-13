@@ -1,0 +1,39 @@
+This is Version 1.4 of the RNAforester package.
+------------------------------------------------
+
+See the NEWS and Changelog files for changes between versions.
+Please read the copyright notice in the file COPYING!
+
+The RNAforester package is a tool for aligning RNA secondary structures
+and it's user interface integrates to those of the tools of the
+Vienna RNA package (http://www.tbi.univie.ac.at/~ivo/RNA/).
+
+RNAforester supports the following functionality:
+- calculate a global alignment of RNA secondary structures
+- calculate a local alignments (local similarity) of RNA secondary structures
+- calculate multiple alignments of RNA secondary structures
+- visualize RNA secondary structure alignments as 2d plots
+
+The package should be easily portable. It is known to compile without
+modifications at least under SunOS 8.x, and linux.
+Other UN*X flavours should present no problems.
+You need a compiler that understands standard C++.
+See the INSTALL file for details.
+
+For more details about RNAforester information see the man page.
+
+If you're a commercial user and find these programs useful, please consider
+supporting further developments with a donation.
+
+The most recent source code and documentation should always be available on
+the web at http://bibiserv.techfak.uni-bielefeld.de/rnaforester
+
+I appreciate any feedback! Send your comments, suggestions, and questions to
+mhoechsm@techfak.uni-bielefeld.de
+
+Matthias Hoechsmann, June 2004
+
+
+
+
+

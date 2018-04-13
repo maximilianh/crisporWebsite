@@ -3637,11 +3637,11 @@ def showPamWarning(pam):
     elif pamIsSaCas9(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
         print "<strong>Note:</strong> Your query is using a Cas9 from S. aureus.<br>"
-        print "Please note that while the efficiency scoring was built for saCas9, the off-target ranking below and specificity scores are based on CFD/Hsu models, which were developed for spCas9. The ranking of off-targets could be very inaccurate. If you have a saCas9 off-target dataset, you can contact us for further info. Also note that the out-of-frame scores below are based on DNA micro-homology, so they make work for saCas9, but this has not been studied yet, to our knowledge."
+        print "Please note that while the efficiency scoring was built for saCas9, the off-target ranking below and specificity scores are based on CFD/Hsu models, which were developed for spCas9. The ranking of off-targets could be very inaccurate. If you have a saCas9 off-target dataset, you can contact us for further info. Also note that the out-of-frame scores below are based on DNA micro-homology, so they may work for saCas9, but this has not been studied yet, to our knowledge."
         print '</div>'
     elif not pamIsSpCas9(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
-        print "<strong>Note:</strong> Your query involves a Cas9 that is not from S. Pyogenes and is also not Cpf1 nor saCas9."
+        print "<strong>Warning:</strong> Your query involves a Cas9 that is not from S. Pyogenes and is also not Cpf1 nor saCas9."
         print "Please bear in mind that specificity and efficiency scores were designed using data with S. Pyogenes Cas9 and will very likely not be applicable to this particular Cas9.<br>"
         print '</div>'
 

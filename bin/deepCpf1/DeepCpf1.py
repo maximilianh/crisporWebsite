@@ -28,6 +28,9 @@ def scoreSeqs(seqs):
         #sys.exit()
     
     #print "Building models"
+    for s in seqs:
+        assert(len(s)==34)
+
     Seq_deepCpf1_Input_SEQ = Input(shape=(34,4))
     Seq_deepCpf1_C1 = Convolution1D(80, 5, activation='relu')(Seq_deepCpf1_Input_SEQ)
     Seq_deepCpf1_P1 = AveragePooling1D(2)(Seq_deepCpf1_C1)
@@ -122,12 +125,10 @@ def PREPROCESS(seqs):
                 SEQ[l, i, 3] = 1
                 #SEQ[l-1, i, 3] = 1
         #CA[l-1,0] = int(data[2])
-        CA0[l,0] = 1
+        CA0[l,0] = 0
         CA1[l,0] = 1
 
     return SEQ, CA0, CA1
 
 #if __name__ == '__main__':
         #main()
-        
-print scoreSeqs(["TGACTTTGAATGGAGTCGTGAGCGCAAGAACGCT", "GTTATTTGAGCAATGCCACTTAATAAACATGTAA"])

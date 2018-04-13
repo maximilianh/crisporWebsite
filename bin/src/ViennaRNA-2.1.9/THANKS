@@ -1,0 +1,7 @@
+Sebastian Bonhoeffer's implementation of partition function folding served
+	  as a precursor to our part_func.c
+Manfred Tacker hacked constrained folding into fold.c for the first time
+Martin Fekete made the first attempts at "alignment folding"
+
+Thanks also to everyone who helped testing and finding bugs, especially
+Christoph Flamm, Martijn Huynen, Baerbel Krakhofer, and many more
