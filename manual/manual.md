@@ -198,7 +198,9 @@ paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2
 The Moreno-Mateos2016 score was better in our study when the guide was expressed in-vitro with
 a T7 promoter. While there is link in the header of this column to show various other
 scores in the table, we do not recommend the other algorithms anymore, based on
-the results from our paper.
+the results from our paper. Note that the Doench 2016 scores slightly changed
+in April 2018, when we updated to the version called 'Azimuth', which is also used by
+the Broad Institute's website.
 
 Cpf1 and saCas9 have special efficiency scores, the spCas9 scores are not applicable
 for them. The models deepCpf1 and Najm et al 2018 saCas9 will be shown instead.
