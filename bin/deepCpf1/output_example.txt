@@ -1,0 +1,3 @@
+Target number	34 bp target sequence (4 bp + PAM + 23 bp protospacer + 3 bp)		"Chromatin accessibility (1= DNase I hypersensitive sites, 0 = Dnase I non-sensitive sites)"	Seq-deepCpf1 Score	DeepCpf1 Score
+1	TGACTTTGAATGGAGTCGTGAGCGCAAGAACGCT		1	55.699306	35.111397
+2	GTTATTTGAGCAATGCCACTTAATAAACATGTAA		0	53.469837	9.890852

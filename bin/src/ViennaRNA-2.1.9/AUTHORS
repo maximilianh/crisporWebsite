@@ -1,0 +1,7 @@
+Ivo Hofacker   (all parts)
+Peter Stadler  (design, documentation, cluster algorithms)
+Walter Fontana (suboptimal folding, pre-historic implementation of mfe folding)
+Stefan Wuchty  (suboptimal folding)
+Stephan Bernhart (cofolding, local folding)
+Ulli Mueckstein (RNAup)
+Ronny Lorenz  (redesign for version 2.0, documentation, circfolding, RNA2Dfold, RNAparconv and more)

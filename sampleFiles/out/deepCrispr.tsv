@@ -1,0 +1,3 @@
+#seqId	guideId	targetSeq	mitSpecScore	offtargetCount	targetGenomeGeneLocus	DeepCpf1-Score
+seq1-score53.4	5forw	TTTGAGCAATGCCACTTAATAAACATG	-1	14	intergenic:LINC00478-MIR125B2	78.50043
+seq1-score53.4	24rev	TTTATTAAGTGGCATTGCTCAAATAAC	-1	7	intergenic:LINC00478-MIR125B2	55.410378

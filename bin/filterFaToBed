@@ -108,6 +108,8 @@ def patMatch(seq, pat):
             continue
         if patChar=="Y" and nuc in ["C", "T"]:
             continue
+        if patChar=="W" and nuc in ["A", "T"]:
+            continue
         if patChar=="V" and nuc in "ACG":
             continue
         if patChar!=nuc:

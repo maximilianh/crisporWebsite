@@ -1,0 +1,12 @@
+<map id="RNA Secondary Structure Folding" name="RNA Secondary Structure Folding">
+<area shape="rect" id="node1" href="$group__consensus__fold.html" title="compute various properties (consensus MFE structures, partition function, Boltzmann distributed stoch..." alt="" coords="233,282,421,323"/>
+<area shape="rect" id="node2" href="$group__class__fold.html" title="Classified Dynamic\l Programming" alt="" coords="262,625,391,666"/>
+<area shape="rect" id="node3" href="$group__inverse__fold.html" title="Searching Sequences\l for Predefined Structures" alt="" coords="243,559,410,601"/>
+<area shape="rect" id="node4" href="$group__pf__fold.html" title="This section provides information about all functions and variables related to the calculation of the..." alt="" coords="225,70,429,111"/>
+<area shape="rect" id="node5" href="$group__energy__parameters.html" title="All relevant functions to retrieve and copy precalculated energy parameter sets as well as reading/wr..." alt="" coords="244,428,409,484"/>
+<area shape="rect" id="node6" href="$group__local__fold.html" title="Predicting Locally\l stable structures of\l large sequences" alt="" coords="261,348,393,404"/>
+<area shape="rect" id="node7" href="$group__subopt__fold.html" title="Enumerating Suboptimal\l Structures" alt="" coords="245,135,408,177"/>
+<area shape="rect" id="node8" href="$group__mfe__fold.html" title="This module contains all functions and variables related to the calculation of global minimum free en..." alt="" coords="230,5,423,46"/>
+<area shape="rect" id="node9" href="$group__eval.html" title="This module contains all functions and variables related to energy evaluation of sequence/structure p..." alt="" coords="265,508,388,535"/>
+<area shape="rect" id="node11" href="$group__cofold.html" title="Predict structures formed by two molecules upon hybridization." alt="" coords="248,201,405,257"/>
+</map>

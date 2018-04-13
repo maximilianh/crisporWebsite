@@ -2,7 +2,7 @@
 
 CRISPOR predicts off-targets in the genome, ranks guides, highlights
 problematic guides, designs primers and helps with cloning.  Try it on
-http://crispr.org
+http://crispor.org
 
 CRISPOR uses BWA, a few tools from the UCSC Genome Browser (twoBitToFa, bedClip),
 various R packages and a huge collection of external packages and source code files
@@ -12,18 +12,24 @@ If you only need efficiency scores and no interactive website, try "python
 crisporEffScores.py", it is a python module but also has a command line
 interface that may be sufficient for programmers.
 
-# Installation of the command-line script:
+# Installation of CRISPOR
 
 Install BWA and a few required python modules:
     
+    # Debian/Ubuntu
     apt-get install bwa python-pip python-matplotlib
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader
     
 or 
    
-    yum install bwa python-pip
+    # Fedora/Centos/Redhat/Scientific Linux
+    yum install bwa python-pip python-devel tkinter
     sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
     
+For the Cpf1 scoring model:
+
+    sudo pip install keras tensorflow h5py
+
 Install required R libraries:
    
     sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
@@ -31,7 +37,7 @@ Install required R libraries:
 
 When you run crispor.py, it should show the usage message:
 ```
-Usage: crispor.cgi [options] org fastaInFile guideOutFile 
+Usage: crispor.py [options] org fastaInFile guideOutFile 
 
 Command line interface for the Crispor tool.
 
@@ -76,6 +82,25 @@ Options:
                         directory with genomes, default ./genomes
 ```
     
+# Testing the script
+
+To test the program, first make sure that there is a directory "../genomes".
+If it's not there, rename "genomes.sample" to "genomes":
+
+    mv ../genomes.sample ../genomes
+
+Then run this command:
+
+    mkdir -p sampleFiles/mine/
+    crispor.py sacCer3 sampleFiles/in/sampleIn.sacCer.fa sampleFiles/mine/sample.sacCer.tsv -o sampleFiles/mine/sample.sacCer.mine.offs.tsv
+
+The files in sampleFiles/mine should be identical to the files in sampleFiles/out/
+
+The file testInHg19.fa contains a sample for the hg19 genome, the output is in testOutHg19.tab 
+and testOutHg19Offtargets.tab
+
+    ../crispor.py hg19 testInHg19.fa testOutHg19.mine.tab -o testOutHg19Offtargets.mine.tab
+
 # Running the script as a CGI under Apache with the job queue
 
 Make sure you can execute CGI scripts somewhere. Your Apache config (e.g. /etc/apache2/sites-enabled/000-default) should contain a section like this:
@@ -89,6 +114,8 @@ Also make sure you have the CGI module enabled:
 
     sudo a2enmod cgi
     sudo service apache2 restart
+
+If using SElinux, especially on Fedora/CentOS/RedHat, please switch it off or set it to permissive mode.
 
 Clone the repo into such a directory:
 
@@ -104,10 +131,16 @@ Create a temp directory with the right permissions:
     mkdir temp
     chmod a+rw temp
 
+Make sure that Apache is allowed to execute the crispor.py script, it should have x and r permissions for all:
+
+    ls -la crispor.py
+    # if not ...
+    chmod a+rx crispor.py
+
 By default, the jobs database is a SQlite file, /tmp/crisporJobs.db. The Apache
 user has to be able to write to it so let us create it now:
 
-    ./crispor.cgi --clear
+    ./crispor.py --clear
     Worker queue now empty
 
 Now start a single worker job. It will watch the job queue and process jobs:
@@ -127,19 +160,21 @@ Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/t
 
 The subdirectory usrLocalBin contains required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
 
-The script can auto-download genomes from Ensembl and UCSC or allows you to add your own custom genome in .fasta format. It does not handle gene models yet for custom genomes, email me if you need that, this step depends on the input file format of your genes.
+The script can auto-download genomes from Ensembl, UCSC or NCBI or allows you to add
+your own custom genome in .fasta format and .gff.
 
 E.g. to add the X. laevis genome:
-    sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
+    sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1' --gff geneModels.gff3
 
-The four |-split values for the --desc option are: internalDatabaseName, scienticName, commonOrDisplayName, VersionOfAssembly
+The four |-split values for the --desc option are: internalDatabaseName, scientificName, commonOrDisplayName, VersionNameOfAssembly
 
-Make sure that internalDatabaseName does not include special characters, spaces etc.
+Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used for the directory name.
 
 # Thanks!
 * Jean-Paul Concordet for numerous ideas on the user interface
 * Alberto Stolfi for the finding the N-SNP-bug
 * Mark Diekhans for patching twoBitToFa and making it 100 times faster
+* See the file changes.html for the full list of acknowledgements for every feature
 
 # Licenses
 
@@ -151,4 +186,7 @@ Included software:
 * SSC: no license specified
 * primer3: GPL2.
 * Fusi/Doench score: see LICENSE.txt, (c) by Microsoft Research
-* crispor.py and crisporEffScores.py themselves are released under GPLv3, see LICENSE.txt
+
+CRISPOR itself:
+
+* the two files crispor.py and crisporEffScores.py are released under a special license, see LICENSE.txt in this directory

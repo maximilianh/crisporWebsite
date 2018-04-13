@@ -1,3 +1,4 @@
 *.py[cod]
 temp/*
 crispor.conf
+bin/Linux/WU-CRISPR/result/sgOligo_V0.9_prediction_result.xls

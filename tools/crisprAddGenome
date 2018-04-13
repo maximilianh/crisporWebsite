@@ -210,7 +210,7 @@ def selectUcscGenomesByDb(db):
 
 def selectUcscGenomes(taxIds, quiet):
     " given a list of taxIds, let the user select an assembly and return a list of dbDb rows for them "
-    conn = sqlConnect("hgcentral", host="public")
+    conn = sqlConnect("hgcentral")
     data = {}
     dbRows = []
     for taxId in taxIds:
@@ -660,6 +660,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
         tmpGffName = join(dbTmpDir, "transcripts.gff")
         cmd    = """wget %(gtfUrl)s -O - | zcat > %(tmpGffName)s""" % locals()
         runCmd(cmd, mustRun=False)
+        outFnames = []
         if getsize(tmpGffName)!=0:
             cmd     = """cat %(tmpGffName)s | grep -v 'exon_number "-1"' | grep -v 'AIG90451' | grep -v AGP50801 | gtfToGenePred -allErrors stdin stdout > %(gpTmp)s""" % locals()
             runCmd(cmd)

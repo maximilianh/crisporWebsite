@@ -7,3 +7,11 @@ case the binaries under the Linux/Darwin directories don't work on your platform
 
 fusiDoench/ includes the python librarires to calculate the fusi doench score
 for crisporEffScores.py
+
+Cpf1 Score: deepCpf1/ is the source code from https://github.com/MyungjaeSong/Paired-Library
+
+Doench 2016 score: Azimuth-2.0/ is from https://github.com/MicrosoftResearch/Azimuth/releases/tag/v2.0
+
+SaCas9 Score: najm2018/ was sent by email from Mudra Hegde and John Doench. Must be used with Azimuth.
+
+azimuthMoreno/: in-vitro model for Azimuth. see README.
