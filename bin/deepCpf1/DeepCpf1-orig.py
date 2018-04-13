@@ -1,5 +1,8 @@
 from numpy import *
-import sys;  
+import sys;
+
+import os
+os.environ['KERAS_BACKEND'] = 'theano'
 
 from keras.models import Model
 from keras.layers import Input
@@ -14,7 +17,7 @@ def main():
     print "\t2nd column: 34bp target sequence"
     print "\t3rd column: binary chromain information of the target sequence\n"        
 
-    print "DeepCpf1 currently requires python=2.7.12, theano=0.7.0, keras=0.3.3"
+    print "DeepCpf1 currently requires python=2.7.12, theano=1.0.1, keras=2.1.5"
     print "DeepCpf1 available on GitHub requires pre-obtained binary chromatin information (DNase-seq narraow peak data from ENCODE)"
     print "DeepCpf1 web tool, available at http://data.snu.ac.kr/DeepCpf1, provides entire pipeline including binary chromatin accessibility for 125 cell lines\n"    
     
@@ -97,7 +100,7 @@ def PREPROCESS(lines):
                 SEQ[l-1, i, 2] = 1
             elif seq[i] in "Tt":
                 SEQ[l-1, i, 3] = 1
-        CA[l-1,0] = int(data[2])
+        CA[l-1,0] = int(data[2])*100
 
     return SEQ, CA
 
