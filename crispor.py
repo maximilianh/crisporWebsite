@@ -3325,8 +3325,8 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Have a look at the first version of the <a target=_blank href="http://crispor-max.tefor.net/manual/">brand new manual</a> for CRISPOR.
-</div>
+<!-- <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Have a look at the first version of the <a target=_blank href="http://crispor-max.tefor.net/manual/">brand new manual</a> for CRISPOR.
+</div> -->
 
  <div style="text-align:left; margin-left: 10px">
  CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.
@@ -3341,7 +3341,7 @@ def printForm(params):
     For more information on principles of CRISPR-mediated genome editing, check the <a href="https://www.addgene.org/CRISPR/guide/">Addgene CRISPR guide</a>.</div>
 </span>
 
-<br><i>New version V4.3, Oct 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New version V4.4, Apr 2018: Scores for Cpf1 and saCas9 - <a href="downloads/changes.html">Full list of changes</a></i>
 
  </div>
 
