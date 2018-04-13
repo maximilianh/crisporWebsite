@@ -251,7 +251,7 @@ commandLineMode = False
 
 # names/order of efficiency scores to show in UI
 scoreNames = ["fusi", "crisprScan"]
-allScoreNames = ["fusi", "chariRank", "ssc", "doench", "wang", "crisprScan", "housden", "proxGc", "fusiOld", "aziInVitro"]
+allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro"]
 
 cpf1ScoreNames = ["seqDeepCpf1"]
 
@@ -334,9 +334,9 @@ scoreDescs = {
     "crisprScan" : ["Moreno-Mateos", "Also called 'CrisprScan'. Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>. Recommended for guides transcribed <i>in-vitro</i> (T7 promoter). Click to sort by this score."],
     "wang" : ("Wang", "Range: 0-100. SVM model trained on human cell culture data on guides from &gt;1000 genes. The Xu score can be considered an updated version of this score, as the training data overlaps a lot. Delivery: lentivirus. See <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang et al.</a>"),
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
-    "fusi" : ("Doench '16", "Aka the 'Fusi-Score', now using a version called 'Azimuth'. Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a> and <a target=_blank href='https://crispr.ml/'>crispr.ml</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
-    "fusiOld" : ("Doench '16-Old", "The original implementation of the Doench 2016 score, as received from John Doench. Not identical to the Azimuth version that is currently the default on this site since Apr 2018."),
-    "najm" : ("Najm 2018", "A modified version of the Doench 2016 score ('Azimuth'), for S. aureus Cas9. Range 0-100. See <a target=_blank href='https://www.nature.com/articles/nbt.4048'>Najm et al 2018</a>."),
+    "fusi" : ("Doench '16", "Aka the 'Fusi-Score', since V4.4 using the version 'Azimuth', scores are slightly different than before April 2018 but very similar (click 'show all' to see the old scores). Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a> and <a target=_blank href='https://crispr.ml/'>crispr.ml</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
+    "fusiOld" : ("Doench '16-Old", "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018."),
+    "najm" : ("Najm 2018", "A modified version of the Doench 2016 score ('Azimuth'), by Mudra Hegde for S. aureus Cas9. Range 0-100. See <a target=_blank href='https://www.nature.com/articles/nbt.4048'>Najm et al 2018</a>."),
     "aziInVitro" : ("Azimuth in-vitro", "The Doench 2016 model trained on the Moreno-Mateos zebrafish data. Unpublished model, gratefully provided by J. Listgarden"),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
@@ -1880,7 +1880,8 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
-        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
+        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.''')
+        print("Too much information? Look at the <a target=_blank href='manual/'>CRISPOR manual</a>.<p>")
         print('</div>')
 
     printDownloadTableLinks(batchId)
@@ -1988,27 +1989,27 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     print '''<input type="checkbox" class="prefixBox" id="onlyWithGBox" onchange="onlyWith('G')">Only G-'''
     print '''<input type="checkbox" class="prefixBox" id="onlyWithGGBox" onchange="onlyWith('GG')">Only GG-'''
     print '''<input type="checkbox" class="prefixBox" id="onlyWithABox" onchange="onlyWith('A')">Only A-'''
-    htmlHelp("The two checkboxes allow you to show only guides that start with G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
+    htmlHelp("The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
     print '''</small>'''
 
     if not cpf1Mode:
         print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
-        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible.")
+        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/'>the CRISPOR manual</a>")
         print "</th>"
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
        print '<th style="width:150px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
     else:
-       print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)-1) # -1 because proxGc is in scoreNames but has no column
+       print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
-    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect.")
+    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect. <a target=_blank href='manual/'>Read the CRISPOR manual</a>")
 
     if not cpf1Mode and not pamIsSaCas9(pam):
         if cgiParams.get("showAllScores", "0")=="0":
             print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>""" % cgiGetSelfUrl({"showAllScores":"1"}, anchor="otTable"))
             scoreDescs["crisprScan"][0] = "Mor.-Mateos"
         else:
-            print("""<a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Main scores</a>""" % cgiGetSelfUrl({"showAllScores":None}, anchor="otTable"))
+            print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Main scores</a>""" % cgiGetSelfUrl({"showAllScores":None}, anchor="otTable"))
 
     print '</th>'
 
@@ -3353,13 +3354,10 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<!-- <br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Have a look at the first version of the <a target=_blank href="http://crispor-max.tefor.net/manual/">brand new manual</a> for CRISPOR.
-</div> -->
-
  <div style="text-align:left; margin-left: 10px">
- CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a href="/manual/">Read the CRISPOR Manual for more details</a>
+ CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">Read the CRISPOR Manual</a> for more details
 
-<br><i>New version V4.3, Oct 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="doc/changes.html">Full list of changes</a></i>
+<br><i>New in V4.4, Apr 2018: Doench2016-score update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3632,7 +3630,7 @@ def showPamWarning(pam):
     if pamIsCpf1(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
         print "<strong>Note:</strong> You are using the Cpf1 enzyme."
-        print "Note that while there is an efficiency score specificially for Cpf1, there is no off-target ranking algorithm available right now in the literature. We use Hsu and CFD scores below for off-target ranking, but they were developed for spCas9. There is not enough data yet to support their usefulness for Cpf1. Contact us for more info if you need to rank Cpf1 off-targets for validation or if you have a dataset that could elucidate this question. We are showing out-of-frame scores, but they are based on micro-homology that assumes a spCas9 cut site, so most likely the out-of-frame scores are not accurate for the staggered cut of Cpf1."
+        print "While there is an efficiency score specificially for Cpf1, there is no off-target ranking algorithm available in the literature, to our knowledge. We use Hsu and CFD scores below for off-target ranking, but they were developed for spCas9. There is not enough data yet to support their usefulness for Cpf1. Contact us for more info if you need to rank Cpf1 off-targets for validation or if you have a dataset that could elucidate this question. We are showing out-of-frame scores, but they are based on micro-homology that assumes a spCas9 cut site, so most likely the out-of-frame scores are not accurate for the staggered cut of Cpf1."
         print '</div>'
     elif pamIsSaCas9(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
