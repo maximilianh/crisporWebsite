@@ -2921,7 +2921,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -3189,7 +3189,7 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
 
 def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     """ search fasta file against genome, filter for pam matches and write to bedFName 
-    optionally write status updates to work queue.
+    optionally write status updates to work queue. Remove faFname.
     """
     if doEffScoring and not cpf1Mode:
         queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
@@ -3207,6 +3207,8 @@ def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue)
         findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     else:
         findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
+
+    os.remove(faFname)
 
     return bedFname
 
