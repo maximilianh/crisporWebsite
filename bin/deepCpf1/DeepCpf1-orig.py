@@ -1,9 +1,6 @@
 from numpy import *
 import sys;
 
-import os
-os.environ['KERAS_BACKEND'] = 'theano'
-
 from keras.models import Model
 from keras.layers import Input
 from keras.layers.merge import Multiply
