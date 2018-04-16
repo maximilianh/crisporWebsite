@@ -1,0 +1,10 @@
+<map id="Calculating Partition Functions and Pair Probabilities" name="Calculating Partition Functions and Pair Probabilities">
+<area shape="rect" id="node1" href="$group__consensus__pf__fold.html" title="Partition Function\l and Base Pair Probabilities\l for Sequence Alignment(s)" alt="" coords="478,328,655,384"/>
+<area shape="rect" id="node2" href="$group__mea__fold.html" title="Compute the structure\l with maximum expected\l accuracy (MEA)" alt="" coords="485,5,648,61"/>
+<area shape="rect" id="node3" href="$group__up__cofold.html" title="Partition Function Cofolding as a stepwise process." alt="" coords="483,233,650,303"/>
+<area shape="rect" id="node6" href="$group__centroid__fold.html" title="Compute the centroid\l structure" alt="" coords="495,86,639,127"/>
+<area shape="rect" id="node8" href="$group__pf__cofold.html" title="Partition Function Cofolding." alt="" coords="505,152,628,208"/>
+<area shape="rect" id="node9" href="$group__local__pf__fold.html" title="Partition functions\l for locally stable\l secondary structures" alt="" coords="495,408,638,464"/>
+<area shape="rect" id="node5" href="$group__kl__neighborhood__pf.html" title="Compute the partition function and stochastically sample secondary structures for a partitioning of t..." alt="" coords="487,488,646,544"/>
+<area shape="rect" id="node7" href="$group__folding__routines.html" title="This module contains all functions related to thermodynamic folding of RNAs." alt="" coords="6,247,175,289"/>
+</map>

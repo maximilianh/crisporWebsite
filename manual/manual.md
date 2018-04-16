@@ -4,6 +4,7 @@ author: Maximilian Haeussler, Jean-Paul Concordet
 ---
 
 Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
+<br>Comments or questions? Email us at <crispor@tefor.net>.
 
 What is CRISPOR?
 ================
@@ -37,8 +38,6 @@ information or more detailed CRISPOR results.
 
 Input {#inputform}
 =====
-
-In the following, we first describe the default mode of CRISPOR.
 
 ![The sequence input page of crispor.org](fig/screen1.png)
 
@@ -107,6 +106,11 @@ of the input sequence. For Sp-Cas9, these correspond to CCN motifs on the input
 sequence and the dashes are shown on the right side of the PAM in this case.
 PAMs are clickable and link to the corresponding target row in the table of
 guides below (see next section).
+
+- you can send the URL of the output page to collaborators or bookmark it.
+  We have not yet deleted any results over the last two years and try to keep
+  the output for at least a year. For long-term archival, consider downloading
+  the page and/or the Excel spreadsheets.
 
 - the position of the input sequence in the selected genome is shown at the
   top of the main CRISPOR results page. A click onto this position will open
@@ -194,7 +198,12 @@ paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2
 The Moreno-Mateos2016 score was better in our study when the guide was expressed in-vitro with
 a T7 promoter. While there is link in the header of this column to show various other
 scores in the table, we do not recommend the other algorithms anymore, based on
-the results from our paper.
+the results from our paper. Note that the Doench 2016 scores slightly changed
+in April 2018, when we updated to the version called 'Azimuth', which is also used by
+the Broad Institute's website.
+
+Cpf1 and saCas9 have special efficiency scores, the spCas9 scores are not applicable
+for them. The models deepCpf1 and Najm et al 2018 saCas9 will be shown instead.
 
 Also, the predictive power of these scores is not great in general, with 
 correlations of around 0.4 against the assay results. If you have no choice and
@@ -263,6 +272,13 @@ determination) and MIT.
 - For some genomes, there is no exon filter. This is the case when we could
   not find a valid gene model (GFF) file for the genome. Do not hesitate to
   [contact us](mailto:crispor@tefor.net) by email if you have a gene model file or want us to add one.
+- When searching for off-targets, CRISPOR is somewhat more tolerant and allows
+  not only NGG, but also NGA and NAG, as these have been found to be quite
+  common in the Tsai et al study, up to 10% of off-target events had non-NGG
+  PAMs. Other enzymes have similar flexibility, GAW for NGN and NKG PAMs, NGG
+  for NGA PAMs, and NNGRRN for NNGRRT PAMs. The tool-tip in the off-target
+  column always shows the currently allowed non-canonical PAMs tolerated in the
+  off-target search phase.
 
 Output 3: Primers
 =================
@@ -615,7 +631,7 @@ when Doench 2016 was accepted.
 
 The lower diagram shows the same for zebrafish data, but since the dataset
 from the same authors is plotted here, the results are probably too good
-and should be somewhat worse in practice, more like the other diagram.
+and should be somewhat worse in practice, more like the cell culture diagram.
 
 ![Distribution of efficiency by prediction score bin](fig/scoreHistograms.png)
 

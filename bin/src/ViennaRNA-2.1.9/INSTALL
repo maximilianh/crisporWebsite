@@ -1,0 +1,122 @@
+Installation:
+
+This package uses GNU autoconf generated configure scripts, see the
+file INSTALL.configure for generic configure documentation.
+
+Quickstart: Usually you'll just have to type:
+----------
+	./configure
+	make
+and (as root)
+	make install 
+
+Install Paths:
+-------------
+The main programs, library, man, and info pages are
+installed in the usual places by default
+(i.e. /usr/local/{bin,lib,man,info}). In addition the following
+install paths are used:
+header files	/usr/local/include/ViennaRNA	[includedir/ViennaRNA]
+parameter files	/usr/local/share/ViennaRNA      [datadir/ViennaRNA]
+extra scripts	/usr/local/share/ViennaRNA/bin  [datadir/ViennaRNA/bin]
+documentation   /usr/local/share/ViennaRNA/doc  [datadir/ViennaRNA/doc]
+
+All these locations can be changed by calling ./configure with
+appropriate options.
+
+If you like having all software packages separated in their own directories
+you could run e.g.:
+./configure --prefix=/opt/packages/ViennaRNA --datadir=/opt/packages/ViennaRNA 
+resulting in /opt/packages/ViennaRNA/{bin,lib,man,info,include,doc} directories
+
+The installed location of the Perl module is determined by Perl's own
+configuration, independent of any configure options. 
+To leave out the Perl modules run
+   ./configure --without-perl
+
+The programs AnalyseSeqs and AnalyseDists offer some cluster analysis
+tools (split decomposition, statistical geometry, neighbor joining,
+Ward's method) for sequences and distance data. To also build these
+programs add  --with-cluster  to your configure options.
+
+This release includes the RNAforester and Kinfold programs, which can also 
+be obtained as independent packages. Running ./configure in the ViennaRNA 
+directory will configure those two packages as well. However, for detailed
+information and compile time options, see the README and INSTALL files in 
+the respective subdirectories. 
+
+The Kinfold program can be used to simulate the folding dynamics of an 
+RNA molecule, and is compiled by default. Use the --without-kinfold
+option to skip compiling Kinfold.
+
+The RNAforester program is used for comparing secondary structures using 
+tree alignment. To compile RNAforester you'll need to first install the
+g2 graphic library, then run configure with the --with-forester option.
+
+Calculation of partition functions (via RNAfold -p) uses double
+precision floats by default, to avoid overflow errors on longer sequences.  
+If your machine has little memory and you dont't plan to fold sequences
+over 1000 bases in length you can compile the package to do the computions 
+in single precision by giving ./configure the --enable-floatpf option.
+
+Memory requirements for a sequence of length n will be approximately
+12*n^2 bytes for RNAfold -p in the double precision version, and
+ 4*n^2 bytes for the minimum free energy alone.
+  
+
+The readseq program is not integrated in the build process. If desired,
+install readseq manually, following the instructions in the readseq
+directory.
+
+There are man pages for all executables, the library is documented in
+./doc/RNAlib-2.1.7.pdf as well as a set of HTML pages in
+./doc/html/index.html. Documentation in HTML can also be found at
+http://www.tbi.univie.ac.at/~ivo/RNA/
+
+
+System specific notes:
+
+MacOS X users:
+
+Depending on your version of gcc (< 4.4 ?) it might be necessary to deactivate
+OpenMP support by passing the option
+
+--disable-openmp
+
+to the ./configure script, since the OpenMP support is only partial in earlier
+versions of gcc shipped for MacOS X.
+
+Additionally, since MacOS X 10.5 the perl installation distributed with MacOS X
+seems to always include so called fat-binaries, i.e. binaries for multiple
+architecture types. Although this may be a nice portability feature of MacOS X
+it will break compilation of the perl interface to the RNAlib using default options!
+
+To circumvent the above problems please execute the configure script with at least
+the following options and additional environment variables to turn on multi
+architecture compilation/linking:
+
+./configure --disable-openmp \
+            --disable-dependency-tracking \
+            CFLAGS="-arch i386 -arch x86_64 -O2" \
+            CXXFLAGS="-arch i386 -arch x86_64 -O2"
+
+We have tested and verified the above command under Mac OS X 10.8.4 using Xcode 4.6.2
+
+In case it doesn't work for your system, please file a bug report to rna@tbi.univie.ac.at
+
+
+General remarks:
+
+Calculating the partition function for long sequences ( >400 bases)
+generates a lot of floating point underflows. On some system this can slow
+down the calculation dramatically because an exception is invoked for each 
+underflow. How to avoid this problem is highly system specific:
+
+On SunOS 4.1 the remedy is calling nonstandard_arithmetic() add a -DSUN4 to
+the CFLAGS in lib/makefile to do this. Use CC=gcc since SUN's standard cc
+doesn't understand ANSI C.
+
+On HP machines running hpux-9 or hpux-10 add -DHP9 to the CFLAGS so that
+fpsetfastmode() will be called.
+
+

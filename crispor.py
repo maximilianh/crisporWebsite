@@ -74,7 +74,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.3"
+versionStr = "4.4"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -251,7 +251,12 @@ commandLineMode = False
 
 # names/order of efficiency scores to show in UI
 scoreNames = ["fusi", "crisprScan"]
-allScoreNames = ["fusi", "chariRank", "ssc", "doench", "wang", "crisprScan", "oof", "housden", "proxGc"]
+allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro"]
+
+cpf1ScoreNames = ["seqDeepCpf1"]
+
+saCas9ScoreNames = ["najm"]
+
 
 # how many digits shall we show for each score? default is 0
 scoreDigits = {
@@ -329,8 +334,13 @@ scoreDescs = {
     "crisprScan" : ["Moreno-Mateos", "Also called 'CrisprScan'. Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>. Recommended for guides transcribed <i>in-vitro</i> (T7 promoter). Click to sort by this score."],
     "wang" : ("Wang", "Range: 0-100. SVM model trained on human cell culture data on guides from &gt;1000 genes. The Xu score can be considered an updated version of this score, as the training data overlaps a lot. Delivery: lentivirus. See <a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang et al.</a>"),
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
-    "fusi" : ("Doench '16", "Previously called the 'Fusi' score. Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
+    "fusi" : ("Doench '16", "Aka the 'Fusi-Score', since V4.4 using the version 'Azimuth', scores are slightly different than before April 2018 but very similar (click 'show all' to see the old scores). Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a> and <a target=_blank href='https://crispr.ml/'>crispr.ml</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
+    "fusiOld" : ("Doench '16-Old", "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018."),
+    "najm" : ("Najm 2018", "A modified version of the Doench 2016 score ('Azimuth'), by Mudra Hegde for S. aureus Cas9. Range 0-100. See <a target=_blank href='https://www.nature.com/articles/nbt.4048'>Najm et al 2018</a>."),
+    "aziInVitro" : ("Azimuth in-vitro", "The Doench 2016 model trained on the Moreno-Mateos zebrafish data. Unpublished model, gratefully provided by J. Listgarden"),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
+    "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
+    "seqDeepCpf1" : ("DeepCpf1", "Range: ~ 0-100. Convolutional Neural Network trained on ~20k Cpf1 lentiviral guide results. This is the score without DNAse information, 'Seq-DeepCpf1' in the paper. See <a target='_blank' href='https://www.nature.com/articles/nbt.4061'>Kim et al. 2018</a>"),
     "oof" : ("Out-of-Frame", "Range: 0-100. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al.</a>. Click the score to show the most likely deletions for this guide.")
 }
 
@@ -365,14 +375,19 @@ def setupPamInfo(pam):
     global cpf1Mode
     global addGenePlasmids
     global PAMLEN
+    global scoreNames
     PAMLEN = len(pam)
     if pamIsCpf1(pam):
+        logging.debug("switching on Cpf1 mode, guide length is 23bp")
         GUIDELEN = 23
         cpf1Mode = True
+        scoreNames = cpf1ScoreNames
     elif pam=="NNGRRT" or pam=="NNNRRT":
+        logging.debug("switching on S. aureus mode, guide length is 21bp")
         addGenePlasmids = addGenePlasmidsAureus
         GUIDELEN = 21
         cpf1Mode = False
+        scoreNames = saCas9ScoreNames
     else:
         GUIDELEN = 20
         cpf1Mode = False
@@ -705,6 +720,14 @@ def makeTempFile(prefix, suffix):
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed! "
     return (pam in ["TTN", "TTTN", "TYCV", "TATV"])
+        
+def pamIsSaCas9(pam):
+    " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
+    return (pam in ["NNGRRT", "NNNRRT"])
+        
+def pamIsSpCas9(pam):
+    " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
+    return (pam in ["NGG", "NGA", "NGCG"])
         
 def saveSeqOrgPamToCookies(seq, org, pam):
     " create a cookie with seq, org and pam and print it"
@@ -1551,7 +1574,7 @@ def parseChromSizes(genome):
         ret[chrom] = int(size)
     return ret
 
-def extendAndGetSeq(db, chrom, start, end, strand, flank=FLANKLEN):
+def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN):
     """ extend (start, end) by flank and get sequence for it using twoBitTwoFa.
     Return None if not possible to extend.
     #>>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
@@ -1582,6 +1605,10 @@ def extendAndGetSeq(db, chrom, start, end, strand, flank=FLANKLEN):
     seq = seqs.values()[0].upper()
     if strand=="-":
         seq = revComp(seq)
+
+    # ? make sure that user annotations, like added Ns, are retained in the long sequence
+    #fixedSeq = seq[:100]+oldSeq+seq[-100:]
+    #assert(len(fixedSeq)==len(seq))
     return seq
 
 def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, extFlank=FLANKLEN):
@@ -1663,7 +1690,7 @@ def htmlWarn(text):
 def readEnzymes():
     """ parse restrSites.txt and
     return as dict length -> list of (name, suppliers, seq) """
-    fname = "restrSites2.txt"
+    fname = "restrSites.txt"
     enzList = {}
     for line in open(join(baseDir, fname)):
         if line.startswith("#"):
@@ -1847,31 +1874,16 @@ def hasGeneModels(org):
     geneFname = join(genomesDir, org, org+".segments.bed")
     return isfile(geneFname)
 
-def printTableHead(batchId, chrom, org, varHtmls):
+def printTableHead(pam, batchId, chrom, org, varHtmls):
     " print guide score table description and columns "
     # one row per guide sequence
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
-        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.<p>''')
-        #print('''References for scores:
-        #<a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench/Fusi 2016</a>,
-        #<a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos</a>''')
-
-        #print(''',
-        #<a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari</a>,
-        #<a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu</a>,
-        #<a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench</a>,
-        #<a target='_blank' href='http://http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang</a>,
-        #<a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden</a>,
-        #<a target='_blank' href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Prox. GC</a>,
-        #<a target='_blank' href='https://mcb.berkeley.edu/labs/meyer/publicationpdfs/959.full.pdf'>-GG</a>,
-        #<a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Out-of-Frame</a>''')
+        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.''')
+        print("Too much information? Look at the <a target=_blank href='manual/'>CRISPOR manual</a>.<p>")
         print('</div>')
 
-    #print '<div style="text-align:right; font-size:80%">'
-    #print "<a href='#downloads'>Download tables</a>",
-    #print '</div>'
     printDownloadTableLinks(batchId)
 
     print """
@@ -1953,18 +1965,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     </script>
     """
 
-    if not cpf1Mode:
-        print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
-        #if len(scoreNames)!=2:
-            #print '<colgroup span="1"><col></colgroup>'
-            #print '<colgroup span="1"><col></colgroup>'
-            #print '<colgroup span="1"><col></colgroup>'
-            #print '<colgroup span="8"><col><col><col><col><col><col><col><col><col></colgroup>'
-            #print '<colgroup span="1"><col></colgroup>'
-            #print '<colgroup span="1"><col></colgroup>'
-            #print '<colgroup span="1"><col></colgroup>'
-    else:
-        print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
+    print '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
 
     print '<thead>'
     print '<tr style="border-bottom:none; border-left:5px solid black; background-color:#F0F0F0">'
@@ -1988,35 +1989,31 @@ def printTableHead(batchId, chrom, org, varHtmls):
     print '''<input type="checkbox" class="prefixBox" id="onlyWithGBox" onchange="onlyWith('G')">Only G-'''
     print '''<input type="checkbox" class="prefixBox" id="onlyWithGGBox" onchange="onlyWith('GG')">Only GG-'''
     print '''<input type="checkbox" class="prefixBox" id="onlyWithABox" onchange="onlyWith('A')">Only A-'''
-    htmlHelp("The two checkboxes allow you to show only guides that start with G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
+    htmlHelp("The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
     print '''</small>'''
 
     if not cpf1Mode:
-        print '<th style="width:70px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
-        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible.")
+        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
+        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/'>the CRISPOR manual</a>")
         print "</th>"
 
-    if not cpf1Mode:
-        width = "230px"
+    if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
+       print '<th style="width:150px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
+    else:
+       print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
-        if len(scoreNames)==2:
-           print '<th style="width:150px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
-        else:
-           print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)-1) # -1 because proxGc is in scoreNames but has no col
+    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect. <a target=_blank href='manual/'>Read the CRISPOR manual</a>")
 
-        htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect.")
-
+    if not cpf1Mode and not pamIsSaCas9(pam):
         if cgiParams.get("showAllScores", "0")=="0":
-            print("""<a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>""" % cgiGetSelfUrl({"showAllScores":"1"}, anchor="otTable"))
+            print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>""" % cgiGetSelfUrl({"showAllScores":"1"}, anchor="otTable"))
             scoreDescs["crisprScan"][0] = "Mor.-Mateos"
         else:
-            print("""<a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Main scores</a>""" % cgiGetSelfUrl({"showAllScores":None}, anchor="otTable"))
+            print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Main scores</a>""" % cgiGetSelfUrl({"showAllScores":None}, anchor="otTable"))
 
-    #print '<th style="width:50">Prox. GC'
-    #htmlHelp("")
     print '</th>'
 
-    if len(scoreNames)==2:
+    if len(scoreNames)<=2:
         oofWidth=100
         oofName="Out-of-Frame score"
         oofDesc = "Click on score to show micro-homology"
@@ -2026,22 +2023,23 @@ def printTableHead(batchId, chrom, org, varHtmls):
         oofDesc = "Click score for details"
 
     print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
-
     htmlHelp(scoreDescs["oof"][1])
     print "<br><br><small>%s</small>" % oofDesc
     print '</th>'
 
     print '<th style="width:117px; border-bottom:none">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
-    htmlHelp("For each number of mismatches, the number of off-targets is indicated.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 2 mismatches, etc.<br>Off-targets are considered if they are flanked by one of the motifs NGG, NAG or NGA.<br>Shown in grey are the off-targets that have no mismatches in the 12 bp adjacent to the PAM. These are the most likely off-targets.")
-    #print "</th>"
 
-    #print '<th style="width:120">Off-targets with no mismatches next to PAM</i>'
+    altPamsHelp = [pam]
+    if pam in offtargetPams:
+        altPamsHelp.extend(offtargetPams[pam])
+
+    htmlHelp("For each number of mismatches, the number of off-targets is indicated.<br>Example: 1-3-20-50-60 means 1 off-target with 0 mismatches, 3 off-targets with 1 mismatch, <br>20 off-targets with 2 mismatches, etc.<br>The CRISPOR website only searches up to four mismatches (use the command line version for 5 or 6). Off-targets are considered if they are flanked by one of these motifs: %s .<br>Shown in grey are the off-targets that have no mismatches in the 12 bp adjacent to the PAM. These are the most likely off-targets." % (", ".join(altPamsHelp)))
+
     print "</th>"
     print '<th style="width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
     htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
 
     print '<br><small>'
-    #print '<form id="filter-form" method="get" action="crispor.py#otTable">'
     print '<input type="hidden" name="batchId" value="%s">' % batchId
 
     if hasGeneModels(org):
@@ -2055,10 +2053,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
         print '''<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only''' % chrom
     else:
         print '<small style="color:grey">&nbsp;No match, no chrom filter</small>'
-    # a hidden submit button
-    # print '<input  type="submit" name="submit" value="submit">'
-    #print '<input  type="submit" name="submit" value="1" style="position: absolute; height: 0px; width: 0px; border: none; padding: 0px;" hidefocus="true" tabindex="-1"/>'
-    #print '</form></small>'
+
     print "</small>"
     print "</th>"
     print "</tr>"
@@ -2072,14 +2067,13 @@ def printTableHead(batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '<th style="border-top:none"></th>'
 
-    if not cpf1Mode:
-        for scoreName in scoreNames:
-            if scoreName in ["oof", "proxGc"]:
-                continue
-            scoreLabel, scoreDesc = scoreDescs[scoreName]
-            print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+    for scoreName in scoreNames:
+        if scoreName in ["oof", "proxGc"]:
+            continue
+        scoreLabel, scoreDesc = scoreDescs[scoreName]
+        print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
 
-    if not cpf1Mode and "proxGc" in scoreNames:
+    if "proxGc" in scoreNames:
         # the ProxGC score comes next
         print '''<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate">'''
         print '''<div><span style="border-bottom:none">'''
@@ -2089,6 +2083,7 @@ def printTableHead(batchId, chrom, org, varHtmls):
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
+
     print "</tr>"
     print '</thead>'
 
@@ -2173,7 +2168,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
     showPamWarning(pam)
     showNoGenomeWarning(dbInfo)
-    printTableHead(batchId, chrom, org, varHtmls)
+    printTableHead(pam, batchId, chrom, org, varHtmls)
 
     count = 0
     effScoresCount = 0
@@ -2272,54 +2267,52 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print "</td>"
 
         # eff scores
-        if not cpf1Mode:
-            if effScores==None:
-                print '<td colspan="%d">Too close to end</td>' % len(scoreNames)
-                htmlHelp("The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
-            else:
-                for scoreName in scoreNames:
-                    # out-of-frame and prox. gc need special treatment
-                    if scoreName in ["oof", "proxGc"]:
-                        continue
-                    score = effScores.get(scoreName, None)
-                    if score!=None:
-                        effScoresCount += 1
-                    if score==None:
-                        print '''<td>--</td>'''
-                    elif scoreName=="ssc":
-                        # save some space
-                        numStr = '%.1f' % (float(score))
-                        print '''<td>%s</td>'''  % numStr
-                    elif scoreDigits.get(scoreName, 0)==0:
-                        print '''<td>%d</td>''' % int(score)
-                    else:
-                        print '''<td>%0.1f</td>''' % (float(score))
-                #print "<!-- %s -->" % seq30Mer
-
-            if showProxGcCol:
-                print "<td>"
-                # close GC > 4
-                finalGc = int(effScores.get("finalGc6", -1))
-                if finalGc==1:
-                    print "+"
-                elif finalGc==0:
-                    print "-"
+        if effScores==None:
+            print '<td colspan="%d">Too close to end</td>' % len(scoreNames)
+            htmlHelp("The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
+        else:
+            for scoreName in scoreNames:
+                # out-of-frame and prox. gc need special treatment
+                if scoreName in ["oof", "proxGc"]:
+                    continue
+                score = effScores.get(scoreName, None)
+                if score!=None:
+                    effScoresCount += 1
+                if score==None:
+                    print '''<td>--</td>'''
+                elif scoreName=="ssc":
+                    # save some space
+                    numStr = '%.1f' % (float(score))
+                    print '''<td>%s</td>'''  % numStr
+                elif scoreDigits.get(scoreName, 0)==0:
+                    print '''<td>%d</td>''' % int(score)
                 else:
-                    print "--"
+                    print '''<td>%0.1f</td>''' % (float(score))
+            #print "<!-- %s -->" % seq30Mer
 
-                # main motif is "NGG" and last nucleotides are GGNGG
-                #if pam=="NGG" and patMatch(guideSeq[-2:], "GG"):
-                if int(effScores.get("finalGg", 0))==1:
-                    print "<br>"
-                    print "<small>-GG</small>"
-                print "</td>"
+        if showProxGcCol:
+            print "<td>"
+            # close GC > 4
+            finalGc = int(effScores.get("finalGc6", -1))
+            if finalGc==1:
+                print "+"
+            elif finalGc==0:
+                print "-"
+            else:
+                print "--"
+
+            # main motif is "NGG" and last nucleotides are GGNGG
+            if int(effScores.get("finalGg", 0))==1:
+                print "<br>"
+                print "<small>-GG</small>"
+            print "</td>"
 
         print "<td>"
         oofScore = str(effScores.get("oof", None))
         if oofScore==None:
             print "--"
         else:
-            print """<a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster" title="The score indicates how likly out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), oofScore)
+            print """<a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster" title="This score indicates how likly out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), oofScore)
             #print """<br><br><small><a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster">Micro-homology</a></small>""" % (myName, batchId, pamId)
         print "</td>"
 
@@ -2799,9 +2792,13 @@ def calcGuideEffScores(seq, extSeq, pam):
         enz = None
         if cpf1Mode:
             enz = "cpf1"
-        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enzyme)
+        elif pamIsSaCas9(pam):
+            enz = "sacas9"
 
-        # make sure the "N bug" reported by Alberto does never happen again
+        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz)
+
+        # make sure the "N bug" reported by Alberto does never happen again:
+        # we must get back as many scores as we have sequences
         for scoreName, scores in effScores.iteritems():
             if len(scores)!=len(longSeqs):
                 print "Internal error when calculating score %s" % scoreName
@@ -2924,7 +2921,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 2> %(batchBase)s.log > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -3192,7 +3189,7 @@ def findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pamPat, bed
 
 def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue):
     """ search fasta file against genome, filter for pam matches and write to bedFName 
-    optionally write status updates to work queue.
+    optionally write status updates to work queue. Remove faFname.
     """
     if doEffScoring and not cpf1Mode:
         queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
@@ -3210,6 +3207,8 @@ def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue)
         findOfftargetsBowtie(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     else:
         findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
+
+    os.remove(faFname)
 
     return bedFname
 
@@ -3357,13 +3356,10 @@ def printForm(params):
     print """
 <form id="main-form" method="post" action="%s">
 
-<br><div style="padding: 2px; margin-bottom: 10px; border: 1px solid black; background-color:white">Nov 10 2017: the server was restarted today. If your requests were affected, simply resubmit them. Do not hesitate to contact us.
-</div>
-
  <div style="text-align:left; margin-left: 10px">
- CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a href="/manual/">Read the CRISPOR Manual for more details</a>
+ CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>New version V4.3, Oct 2017: Lentiviral screens, Variants, Cpf1, Off-target primers, microhomology, Genbank-export, Sat. mutagenesis . <a href="downloads/changes.html">Full list of changes</a></i>
+<br><i>New in V4.4, Apr 2018: Doench2016-score update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3545,7 +3541,7 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
     # try to get a 100bp-extended version of the input seq
     extSeq = None
     if chrom!=None:
-        extSeq = extendAndGetSeq(org, chrom, start, end, strand)
+        extSeq = extendAndGetSeq(org, chrom, start, end, strand, seq)
         #if extSeq!=None:
             #ofh.write(">extSeq\n%s\n" % (extSeq))
     batchData["extSeq"] = extSeq
@@ -3634,14 +3630,19 @@ def startAjaxWait(batchId):
 
 def showPamWarning(pam):
     if pamIsCpf1(pam):
-        print '<div style="text-align:left">'
-        print "<strong>Note:</strong> You are using the Cpf1 enzyme."
-        print "Note that currently there are no on- or off-target scores for Cpf1 so no scores are shown below and the guides are not sorted."
-        print '</div>'
-    elif pam!="NGG":
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
-        print "<strong>Note:</strong> Your query involves a Cas9 that is not from S. Pyogenes. "
-        print "Please bear in mind that specificity and efficiency scores were designed using data with S. Pyogenes Cas9 and might not be applicable to this particular Cas9.<br>"
+        print "<strong>Note:</strong> You are using the Cpf1 enzyme."
+        print "While there is an efficiency score specificially for Cpf1, there is no off-target ranking algorithm available in the literature, to our knowledge. We use Hsu and CFD scores below for off-target ranking, but they were developed for spCas9. There is not enough data yet to support their usefulness for Cpf1. Contact us for more info if you need to rank Cpf1 off-targets for validation or if you have a dataset that could elucidate this question. We are showing out-of-frame scores, but they are based on micro-homology that assumes a spCas9 cut site, so most likely the out-of-frame scores are not accurate for the staggered cut of Cpf1."
+        print '</div>'
+    elif pamIsSaCas9(pam):
+        print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
+        print "<strong>Note:</strong> Your query is using a Cas9 from S. aureus.<br>"
+        print "Please note that while the efficiency scoring was built for saCas9, the off-target ranking below and specificity scores are based on CFD/Hsu models, which were developed for spCas9. The ranking of off-targets could be very inaccurate. If you have a saCas9 off-target dataset, you can contact us for further info, we are only aware of the BLESS dataset by <a href='https://www.nature.com/articles/nature14299' target=_blank>Ran et al. 2015</a>.<br>As for out-of-frame and micro-homology, this model is also based on spCas9, but <a target=_blank href='https://www.nature.com/articles/nature14299'>Ran et al 2015</a> showed that the saCas9 cleavage pattern looks identical to spCas9's, so the OOF micro-homology model should work with saCas9."
+        print '</div>'
+    elif not pamIsSpCas9(pam):
+        print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
+        print "<strong>Warning:</strong> Your query involves a Cas9 that is not from S. Pyogenes and is also not Cpf1 nor saCas9."
+        print "Please bear in mind that specificity and efficiency scores were designed using data with S. Pyogenes Cas9 and will very likely not be applicable to this particular Cas9.<br>"
         print '</div>'
 
 def showNoGenomeWarning(dbInfo):
@@ -4235,15 +4236,22 @@ def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
     else:
         return guideSeq+pamSeq+pamPlusSeq
 
-def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None):
-    "yield rows from guide data. Need to know if for Cpf1 or not "
+def makeGuideHeaders():
+    " return list of the headers of the guide output file "
     headers = list(tuple(guideHeaders)) # make a copy of the list
 
+    logging.debug("active scoreNames: %s" % scoreNames)
     tableScoreNames = list(tuple(scoreNames))
-    tableScoreNames.append("oof")
+    if not cpf1Mode:
+        tableScoreNames.append("oof")
 
     for scoreName in tableScoreNames:
         headers.append(scoreDescs[scoreName][0]+"-Score")
+    return headers, tableScoreNames
+
+def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None):
+    "yield rows from guide data. Need to know if for Cpf1 or not "
+    headers, tableScoreNames = makeGuideHeaders()
 
     if satMutOpt:
         headers.append("Oligonucleotide")
@@ -4255,7 +4263,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         otBedFname = batchBase+".bed"
         otMatches = parseOfftargets(otBedFname)
 
-        guideData.sort(key=operator.itemgetter(3)) # sort by position
+        guideData.sort(key=operator.itemgetter(3)) # sort by position, makes more sense here
 
     if seqId != None:
         headers.insert(0, "#seqId")
@@ -4281,6 +4289,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [guideDesc, fullSeq, guideScore, otCount, ontargetDesc]
+
         for scoreName in tableScoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
 
@@ -6147,7 +6156,7 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
         designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm)
 
     primerPosList = []
-    if lSeq!=None:
+    if lSeq is not None:
         primerPosList.append( (0, len(lSeq)) )
         primerPosList.append( ( (len(targetSeq)-len(rSeq)), len(targetSeq) ) )
 
@@ -6216,8 +6225,8 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
     print '''<div style='word-wrap: break-word; word-break: break-all;'>'''
     if allPrimersFound:
         print "<strong>Genomic sequence %s:%d-%d including primers, genomic forward strand:</strong>" % (chromLong, start, end)
+        print "<br><tt>%s</tt><br>" % (targetHtml)
     else:
-        #print "<strong>Genomic sequence %s:%d-%d including 1000bp of flanking sequence, genomic forward strand.</strong><br>" % (chromLong, start, end)
         print "<strong>Warning: No primers were found at this Tm, please design them manually e.g. with NCBI PrimerBlast.</strong><br>"
     print "<br><tt>%s</tt><br>" % (targetHtml)
 
@@ -6606,7 +6615,7 @@ Command line interface for the Crispor tool.
         action="store", type="int", help="MAXOCC parameter, guides with more matches are not even processed, default %default", default=MAXOCC)
     parser.add_option("", "--mm", dest="mismatches", \
         action="store", type="int", help="maximum number of mismatches, default %default", default=4)
-    parser.add_option("", "--guideLen", dest="guideLen", type="int", default=20, \
+    parser.add_option("", "--guideLen", dest="guideLen", type="int", \
         action="store", help="Lenght of the guide. Default is: 21 for PAM=NNGRRT/NNNRRT, 23 for Cpf1, 20 otherwise. Note: 19bp guides are less efficient")
     parser.add_option("", "--bowtie", dest="bowtie", \
         action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
@@ -6775,7 +6784,7 @@ def clearQueue():
 #runQueueWorker()
 
 def handleOptions(options):
-    " set glpbal vars based on options "
+    " set global vars based on options "
     if options.test:
         runTests()
         import doctest
@@ -6822,11 +6831,16 @@ def handleOptions(options):
     if options.guideLen:
         global GUIDELEN
         GUIDELEN=options.guideLen
+        logging.info("Overriding guide length with %d bp as set on command line" % GUIDELEN)
 
 def mainCommandLine():
     " main entry if called from command line "
     global commandLineMode
     commandLineMode = True
+
+    # show all scores in command line mode output files
+    global scoreNames
+    scoreNames = allScoreNames
 
     args, options = parseArgs()
 
@@ -6868,19 +6882,11 @@ def mainCommandLine():
     if options.ampDir and not isdir(options.ampDir):
         errAbort("%s does not exist" % options.ampDir)
 
-    # prepare output files
-    guideFh = open(join(batchDir, "guideInfo.tab"), "w")
-    headers = list(tuple(guideHeaders))
-    headers.insert(0, "#seqId")
-    guideFh.write("\t".join(headers)+"\n")
-    if options.offtargetFname:
-        offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
-        offtargetHeaders.insert(0, "seqId")
-        offtargetFh.write("\t".join(offtargetHeaders)+"\n")
-
     # putting multiple sequences into the input file is possible
     # but very inefficient. Rather separate them with a stretch of 10 Ns
-    # as explained the docs
+    # as explained in the docs
+    guideFh = None
+    offtargetFh = None
     for seqId, seq in seqs.iteritems():
         seq = seq.upper()
         logging.info(" * running on sequence '%s', guideLen=%d, seqLen=%d" % (seqId, GUIDELEN, len(seq)))
@@ -6898,6 +6904,7 @@ def mainCommandLine():
         otBedFname = getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
         otMatches = parseOfftargets(otBedFname)
 
+        # Special batch primer / Crispresso mode
         if options.ampDir:
             pamSeqs = list(flankSeqIter(seq, startDict, len(pamPat), True))
             for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
@@ -6914,6 +6921,7 @@ def mainCommandLine():
                     cFh.write("\t".join(row))
                     cFh.write("\n")
 
+        # special saturation mutagenesis mode
         if options.satMutDir:
             satMutFname = join(options.satMutDir, seqId+"_satMutOligos.tsv")
             smFh = open(satMutFname, "w")
@@ -6936,13 +6944,27 @@ def mainCommandLine():
             logging.info("Writing guide sequences to %s" % guideFname)
             writeTargetSeqs(guideData, gFh)
 
-        if options.noEffScores or cpf1Mode:
+        if options.noEffScores:
             effScores = {}
         else:
             effScores = readEffScores(batchId)
+        logging.debug("Got efficiency scores: %s" % effScores)
 
         guideData, guideScores, hasNotFound, pamIdToSeq = \
             mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores)
+
+        # write guide headers
+        if guideFh is None:
+            guideFh = open(join(batchDir, "guideInfo.tab"), "w")
+            guideHeaders, _ = makeGuideHeaders()
+            guideHeaders.insert(0, "#seqId")
+            guideFh.write("\t".join(guideHeaders)+"\n")
+
+        # write offtarget headers
+        if options.offtargetFname and offtargetFh is None:
+            offtargetFh = open(join(batchDir, "offtargetInfo.tab"), "w")
+            offtargetHeaders.insert(0, "seqId")
+            offtargetFh.write("\t".join(offtargetHeaders)+"\n")
 
         for row in iterGuideRows(guideData, seqId=seqId):
             guideFh.write("\t".join(row))

@@ -1,0 +1,3 @@
+libRNA_a-dist_vars.o: dist_vars.c /usr/include/stdc-predef.h
+
+/usr/include/stdc-predef.h:

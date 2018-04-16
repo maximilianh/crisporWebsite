@@ -1,0 +1,30 @@
+<map id="/home/mescalin/ronny/WORK/ViennaRNA/H/energy_const.h" name="/home/mescalin/ronny/WORK/ViennaRNA/H/energy_const.h">
+<area shape="rect" id="node2" href="$data__structures_8h.html" title="All datastructures and typedefs shared among the Vienna RNA Package can be found here." alt="" coords="2563,109,2741,165"/>
+<area shape="rect" id="node29" href="$energy__par_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/energy_par.h" alt="" coords="4955,117,5181,158"/>
+<area shape="rect" id="node15" href="$params_8h.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/params.h" alt="" coords="4825,221,5031,262"/>
+<area shape="rect" id="node3" href="$2Dfold_8h.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/2Dfold.h" alt="" coords="3203,221,3403,262"/>
+<area shape="rect" id="node4" href="$2Dpfold_8h.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/2Dpfold.h" alt="" coords="4594,221,4800,262"/>
+<area shape="rect" id="node5" href="$ali__plex_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/ali\l_plex.h" alt="" coords="5,213,171,269"/>
+<area shape="rect" id="node6" href="$alifold_8h.html" title="compute various properties (consensus MFE structures, partition function, Boltzmann distributed stoch..." alt="" coords="196,221,393,262"/>
+<area shape="rect" id="node7" href="$cofold_8h.html" title="MFE version of cofolding routines." alt="" coords="418,221,616,262"/>
+<area shape="rect" id="node8" href="$duplex_8h.html" title="Duplex folding function declarations..." alt="" coords="641,221,841,262"/>
+<area shape="rect" id="node9" href="$findpath_8h.html" title="Compute direct refolding paths between two secondary structures." alt="" coords="865,221,1073,262"/>
+<area shape="rect" id="node10" href="$fold_8h.html" title="MFE calculations and energy evaluations for single RNA sequences." alt="" coords="1097,221,1281,262"/>
+<area shape="rect" id="node11" href="$fold__vars_8h.html" title="Here all all declarations of the global variables used throughout RNAlib." alt="" coords="3719,213,3893,269"/>
+<area shape="rect" id="node14" href="$gquad_8h.html" title="Various functions related to G&#45;quadruplex computations." alt="" coords="1505,221,1703,262"/>
+<area shape="rect" id="node16" href="$LPfold_8h.html" title="Function declarations of partition function variants of the Lfold algorithm." alt="" coords="1728,221,1928,262"/>
+<area shape="rect" id="node17" href="$MEA_8h.html" title="Computes a MEA (maximum expected accuracy) structure." alt="" coords="1953,221,2143,262"/>
+<area shape="rect" id="node18" href="$part__func_8h.html" title="Partition function of single RNA sequences." alt="" coords="2167,213,2341,269"/>
+<area shape="rect" id="node19" href="$part__func__co_8h.html" title="Partition function for two RNA sequences." alt="" coords="2366,213,2540,269"/>
+<area shape="rect" id="node20" href="$part__func__up_8h.html" title="Partition Function Cofolding as stepwise process." alt="" coords="2565,213,2739,269"/>
+<area shape="rect" id="node21" href="$PKplex_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/PKplex.h" alt="" coords="2763,221,2967,262"/>
+<area shape="rect" id="node22" href="$plex_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/plex.h" alt="" coords="2992,221,3179,262"/>
+<area shape="rect" id="node23" href="$plot__layouts_8h.html" title="Secondary structure plot layout algorithms." alt="" coords="1306,213,1480,269"/>
+<area shape="rect" id="node25" href="$profiledist_8h.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/profiledist.h" alt="" coords="3478,221,3695,262"/>
+<area shape="rect" id="node24" href="$PS__dot_8h.html" title="Various functions for plotting RNA secondary structures, dot&#45;plots and other visualizations." alt="" coords="2313,325,2519,366"/>
+<area shape="rect" id="node26" href="$snofold_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/snofold.h" alt="" coords="3918,221,4121,262"/>
+<area shape="rect" id="node27" href="$snoop_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/snoop.h" alt="" coords="4147,221,4344,262"/>
+<area shape="rect" id="node28" href="$subopt_8h.html" title="RNAsubopt and density of states declarations." alt="" coords="4369,221,4569,262"/>
+<area shape="rect" id="node12" href="$loop__energies_8h.html" title="Energy evaluation for MFE and partition function calculations." alt="" coords="4839,317,5016,373"/>
+<area shape="rect" id="node13" href="$pair__mat_8h_source.html" title="/home/mescalin/ronny\l/WORK/ViennaRNA/H/pair_mat.h" alt="" coords="3700,325,3913,366"/>
+</map>

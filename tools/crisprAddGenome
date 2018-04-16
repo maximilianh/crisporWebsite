@@ -210,7 +210,7 @@ def selectUcscGenomesByDb(db):
 
 def selectUcscGenomes(taxIds, quiet):
     " given a list of taxIds, let the user select an assembly and return a list of dbDb rows for them "
-    conn = sqlConnect("hgcentral", host="public")
+    conn = sqlConnect("hgcentral")
     data = {}
     dbRows = []
     for taxId in taxIds:

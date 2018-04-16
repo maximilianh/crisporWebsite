@@ -1,0 +1,5 @@
+#seqId	guideId	targetSeq	mitSpecScore	offtargetCount	targetGenomeGeneLocus	Doench '16-Score	Chari-Score	Xu-Score	Doench '14-Score	Wang-Score	Moreno-Mateos-Score	Out-of-Frame-Score	Housden-Score	ProxGCCount-Score	azimuth-Score	Out-of-Frame-Score
+score66	25forw	TGATCTCCAGATATGACCATGGG	73	155	exon:Ptprc	62	49	0.268231	65	63	56	65	7.2	NotEnoughFlankSeq	66	65
+score66	24forw	CTGATCTCCAGATATGACCATGG	72	224	exon:Ptprc	63	22	0.114304	23	70	27	62	3.1	NotEnoughFlankSeq	71	62
+score65	1rev	GGGTTTGTGGCTCAAACTTCTGG	77	144	exon:Ptprc	22	12	-0.250496	2	45	29	62	5.6	NotEnoughFlankSeq	28	62
+score65	25forw	AAGTTTGAGCCACAAACCCATGG	62	236	exon:Ptprc	64	84	0.470936	35	89	45	62	6.6	NotEnoughFlankSeq	65	62

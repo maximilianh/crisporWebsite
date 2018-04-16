@@ -82,7 +82,24 @@ Options:
                         directory with genomes, default ./genomes
 ```
     
-For example command line usage and sample input/output files, see doc/README.md
+# Testing the script
+
+To test the program, first make sure that there is a directory "../genomes".
+If it's not there, rename "genomes.sample" to "genomes":
+
+    mv ../genomes.sample ../genomes
+
+Then run this command:
+
+    mkdir -p sampleFiles/mine/
+    crispor.py sacCer3 sampleFiles/in/sampleIn.sacCer.fa sampleFiles/mine/sample.sacCer.tsv -o sampleFiles/mine/sample.sacCer.mine.offs.tsv
+
+The files in sampleFiles/mine should be identical to the files in sampleFiles/out/
+
+The file testInHg19.fa contains a sample for the hg19 genome, the output is in testOutHg19.tab 
+and testOutHg19Offtargets.tab
+
+    ../crispor.py hg19 testInHg19.fa testOutHg19.mine.tab -o testOutHg19Offtargets.mine.tab
 
 # Running the script as a CGI under Apache with the job queue
 
