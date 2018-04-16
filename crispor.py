@@ -2912,6 +2912,8 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pam, bedFname)
     altPamMinScore = str(ALTPAMMINSCORE)
     # EXTRACTION OF SEQUENCES + ANNOTATION
     # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it should be OK
+    # Hiram says this is faster:
+    # bedtools getfasta -s -name -fi %(genome)s.fa -bed %(matchesBedFname)s -fo /dev/stdout  | xxx
     cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
