@@ -1994,7 +1994,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
 
     if not cpf1Mode:
         print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
-        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/'>the CRISPOR manual</a>")
+        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print "</th>"
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
@@ -2002,7 +2002,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     else:
        print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
-    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect. <a target=_blank href='manual/'>Read the CRISPOR manual</a>")
+    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
 
     if not cpf1Mode and not pamIsSaCas9(pam):
         if cgiParams.get("showAllScores", "0")=="0":
