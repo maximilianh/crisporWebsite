@@ -663,8 +663,13 @@ notOkChars = re.compile(r'[^+a-zA-Z0-9:\n\r_. -]')
 
 def checkVal(key, inStr):
     """ remove special characters from input string, to protect against injection attacks """
-    if len(inStr) > 10000:
-	errAbort("input parameter %s is too long" % key)
+    if key!="geneIds":
+        if len(inStr) > 10000:
+            errAbort("input parameter %s is too long" % key)
+    else:
+        if len(inStr) > 100000:
+            errAbort("Pasting more than tens of thousands of gene IDs makes little sense. Copy/paste error?")
+
     matchObj =notOkChars.search(inStr)
     if matchObj!=None:
 	errAbort("input parameter %s contains an invalid character %s (ASCII %d)" % (key, repr(matchObj.group()), ord(matchObj.group())))
