@@ -189,6 +189,8 @@ offtargetPams = {
 MAXSEQLEN = 2000
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
+# maximum input size when using xCas9
+MAXSEQLEN_XCAS9 = 750
 
 # BWA: allow up to X mismatches
 maxMMs=4
@@ -629,7 +631,7 @@ def getTwoBitFname(db):
     path = join(genomesDir, db, db+".2bit")
     return path
 
-def errAbort(msg):
+def errAbort(msg, isWarn=False):
     " print err msg and exit "
     if commandLineMode:
         raise Exception(msg)
@@ -638,10 +640,18 @@ def errAbort(msg):
         print "Content-type: text/html\n"
 
     print('<div style="position: absolute; padding: 10px; left: 100; top: 100; border: 10px solid black; background-color: white; text-align:left; width: 800px; font-size: 18px">')
-    print("<strong>Error:</strong><p> ")
+
+    if isWarn:
+        print("<strong>Warning:</strong><p> ")
+    else:
+        print("<strong>Error:</strong><p> ")
+
     print(msg+"<p>")
     print("If you think this is a bug or you have any other suggestions, please do not hesitate to contact us %s<p>" % contactEmail)
-    print("Please also send us the full URL of the page where you see the error. Thanks!")
+    if isWarn:
+        print("In the email, please also send us the full URL of the page.")
+    else:
+        print("Please also send us the full URL of the page where you see the error. Thanks!")
     print('</div>')
 
     if doAbort:
@@ -724,7 +734,11 @@ def pamIsCpf1(pam):
 def pamIsSaCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
     return (pam in ["NNGRRT", "NNNRRT"])
-        
+
+def pamIsXCas9(pam):
+    " "
+    return (pam in ["NGK", "NGN"])
+    
 def pamIsSpCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
     return (pam in ["NGG", "NGA", "NGCG"])
@@ -3531,7 +3545,8 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
     batchJsonName = batchBase+".json"
     posStr = coordsToPosStr(chrom, start, end, strand)
 
-    ofh = open(batchJsonName, "w")
+    batchJsonTmpName = batchJsonName+".tmp"
+    ofh = open(batchJsonTmpName, "w")
     #ofh.write(">%s %s %s\n%s\n" % (org, pam, posStr, batchName, seq))
     batchData = {}
     batchData["org"] = org
@@ -3550,6 +3565,8 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
 
     json.dump(batchData, ofh)
     ofh.close()
+    # fixes a run condition
+    os.rename(batchJsonTmpName, batchJsonName)
     return batchId, posStr, extSeq
 
 def readDbInfo(org):
@@ -4000,6 +4017,13 @@ def crisprSearch(params):
             seq = getSeq(params["org"], seq.replace(" ","").replace(",",""))
 
         seq, warnMsg = cleanSeq(seq, org)
+
+        if len(seq) > MAXSEQLEN_XCAS9 and pamIsXCas9(pam):
+            errAbort("Sorry, but xCas9 has so many PAM sites that we are restricting "
+                " the input sequence length for xCas9 to %d bp at the moment to keep the "
+                "web site fast enough. We will revisit this in a few weeks. Let us know if "
+                "you think this is too short." % MAXSEQLEN_XCAS9, isWarn=True)
+
         batchId, position, extSeq = newBatch(newBatchName, seq, org, pam)
         print ("<script>")
         print ('''history.replaceState('crispor.py', document.title, '?batchId=%s');''' % (batchId))
@@ -4007,10 +4031,10 @@ def crisprSearch(params):
 
     setupPamInfo(pam)
 
-    if cpf1Mode and org=="noGenome":
+    if pamIsXCas9(pam) and org=="noGenome":
         errAbort("You selected no genome, so only efficiency scoring is active. "
-           "You also selected the enzyme Cpf1 or a derivative. "
-           "However, this does not work, because no efficiency score has been published yet for Cpf1.")
+           "You also selected the enzyme xCas9. "
+           "This does not work, no efficiency score has been published yet for xCas9.")
 
     # check if minFreq was specified
     minFreq = params.get("minFreq", "0.0")
