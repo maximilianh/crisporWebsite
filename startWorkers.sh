@@ -2,7 +2,7 @@
 set -e 
 workCount=${1:-2}
 echo `pwd`
-if [[ `pwd` == *"crisporDev"* ]] ; then
+if [[ `pwd` == *"crisporBeta"* ]] ; then
     workCount=1
 fi
 echo $workCount
