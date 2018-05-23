@@ -296,16 +296,11 @@ def writeGenomeInfo(row, addUcsc=False):
 
 def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
     " index with bwa and make chrom sizes "
-    if isfile(sizesTmp) and FORCE:
-        print "%s already exists, not re-indexing" % sizesTmp
-        return
-
-    printMsg("Indexing fasta with BWA")
-
-    if isfile(sizesTmp):
+    if isfile(sizesTmp) and not FORCE:
         printMsg("%s exists - not indexing with BWA and not converting to twobit" % sizesTmp)
         return
 
+    printMsg("Indexing fasta with BWA")
     cmd = "bwa index %s" % faTmp
     runCmd(cmd)
 
@@ -913,9 +908,11 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
 
     outFnames = []
 
-    printMsg("Making chrom sizes")
-    cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
-    runCmd(cmd)
+    indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+
+    #printMsg("Making chrom sizes")
+    #cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
+    #runCmd(cmd)
 
     gpTmp = join(dbTmpDir, db+".gp")
     segTmp = join(dbTmpDir, "%s.segments.bed" % db)
@@ -925,8 +922,6 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
         outFnames.extend([gpTmp, segTmp])
     else:
         logging.info("Assembly has no gene annotation, skipping genePred step")
-
-    indexFasta(faTmp, db, twoBitTmp, sizesTmp)
 
     outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
     outFnames.extend([sizesTmp, twoBitTmp])
