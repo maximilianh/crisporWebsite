@@ -1,27 +1,37 @@
 The source code in crispor.py and crisporEffScores.py ("the code") is under
 copyright by Maximilian Haeussler maximilianh@gmail.com ("the author").
 
-Starting with version 4, the the file crispor.py can be used freely
-by academic researchers. These researchers may also modify the code and
+Anyone can use the website for free. There are no restrictions on web usage.
+
+Website
+
+By using the website, you agree that the website stores the input sequences
+and the genome identifier for at least 24 months. This is done for users'
+conveniences, so the CRISPOR result output URL is valid for 
+24 months. CRISPOR does not have a user account login and has no way of
+knowing the name or other identity of its users.
+
+Download and local execution of the crispor.py program
+
+Up to and including version 3.1, the source code files crisporEffScores.py and
+crispor.py were licensed under GPLv3. See
+http://www.gnu.org/licenses/gpl-3.0.en.html
+
+Starting with version 4, the file crispor.py can be used freely and modified
+only by academic researchers. These researchers may modify the code and
 redistribute it, provided this license file is included. Please feed back
 modifications to the author.
 
-Commercial and non-profit organisations need to contact the author to
-obtain a license to run the file crispor.py or crisporEffScores.py on 
+After version 4, commercial and non-profit organisations need to contact the
+author to obtain a license to run the file crispor.py or crisporEffScores.py on
 their own computer. Most non-profit organisations will be able to obtain a
-license at no cost. The license for commercial users includes support 
-from the author and regular updates.
-
-All organisations can use the website crispor.org for free.
+license at no cost. A license for commercial users includes support from the
+author and regular updates.
 
 If you think these license terms make distribution of the code difficult,
 please do not hesitate to contact the author.
 
 -- 
-
-Up to and including version 3.1, the source code files crisporEffScores.py and
-crispor.py were licensed under GPLv3. See
-http://www.gnu.org/licenses/gpl-3.0.en.html
 
 Code in bin/ is under the license of the respective authors and only provided
 as part of this package for installation convenience. Please see the
