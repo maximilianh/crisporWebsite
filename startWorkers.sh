@@ -2,7 +2,7 @@
 set -e 
 workCount=${1:-2}
 echo `pwd`
-if [[ `pwd` == *"crisporDev"* ]] ; then
+if [[ `pwd` == *"crisporBeta"* ]] ; then
     workCount=1
 fi
 echo $workCount
@@ -12,5 +12,6 @@ for i in `seq $workCount`; do
     echo "---- NEW LOG ----" >> $log
     date >> $log
     ./crispor.py --worker `pwd` $i >> $log 2>&1
+    echo $! > log/worker$i.pid
     echo worker $i started, PID $!, logfile is $log;
 done
