@@ -5207,9 +5207,9 @@ def microHomPage(params):
         print "<td><tt>%s</tt></td>" % seq
         delCount = seq.count("-")
         if delCount % 3 == 0:
-            resStr = "no framshift"
+            resStr = "no frameshift"
         else:
-            resStr = "framshift"
+            resStr = "frameshift"
         print "<td><tt>%d bp deleted &rarr; %s</tt></td>" % (delCount, resStr)
         print "</tr>"
     print "</table>"
