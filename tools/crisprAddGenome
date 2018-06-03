@@ -73,6 +73,7 @@ else:
 def errAbort(msg):
     " show msg and abort. Like errAbort.c "
     print msg
+    print "Need help or have feedback? Email crispor@tefor.net"
     exit(0)
 
 def runCmd(cmd, mustRun=True):
@@ -295,17 +296,27 @@ def writeGenomeInfo(row, addUcsc=False):
     print("wrote %s" % genomeInfoPath)
 
 def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
-    " index with bwa and make chrom sizes "
-    if isfile(sizesTmp) and FORCE:
-        print "%s already exists, not re-indexing" % sizesTmp
-        return
-
-    printMsg("Indexing fasta with BWA")
-
-    if isfile(sizesTmp):
+    " index fasta with bwa and make chrom sizes "
+    if isfile(sizesTmp) and not FORCE:
         printMsg("%s exists - not indexing with BWA and not converting to twobit" % sizesTmp)
         return
 
+    if not isfile(twoBitTmp):
+        printMsg("Converting fasta to 2bit")
+        cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
+        runCmd(cmd)
+
+    sizesTmp2 = sizesTmp+".tmp"
+
+    printMsg("Making chrom sizes")
+    cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp2)
+    runCmd(cmd)
+
+    chromCount = len(open(sizesTmp2).read().splitlines())
+    if chromCount > 500000:
+        errAbort("ERROR: genome has %d chromosomes - too many. This will be very slow to process with crispor." % chromCount)
+
+    printMsg("Indexing fasta with BWA")
     cmd = "bwa index %s" % faTmp
     runCmd(cmd)
 
@@ -313,9 +324,7 @@ def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
     cmd = "rm %s" % faTmp
     runCmd(cmd)
 
-    printMsg("Making chrom sizes")
-    cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
-    runCmd(cmd)
+    os.rename(sizesTmp2, sizesTmp)
 
     return sizesTmp
 
@@ -386,7 +395,8 @@ def indexLocalGenome(dbInfo, geneTable):
         cmd = "cp /gbdb/%s/%s.2bit %s" % (db, db, twoBitTmp)
         runCmd(cmd)
 
-        printMsg("Converting 2bit to fasta")
+        printMsg("Converting to fasta")
+        faTmp = join(dbTmpDir, db+".fa")
         cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
         runCmd(cmd)
 
@@ -609,11 +619,6 @@ def getEnsGenomes(genomeRows, onlyGenes):
             cmd = "wget %s -O - | zcat > %s" % (url, faTmp)
             runCmd(cmd)
 
-            printMsg("Converting to 2bit")
-            twoBitTmp = join(dbTmpDir, db+".2bit")
-            cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
-            runCmd(cmd)
-
             indexFasta(faTmp, db, twoBitTmp, sizesTmp)
         else:
             twoBitTmp = join(dbTmpDir, db+".2bit")
@@ -717,8 +722,9 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
         catCmd = "cat"
 
     if useAltProg:
-        # optimized for NCBI RefSeq GFFs
-        cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -geneNameAttr=gene -rnaNameAttr=transcript_id" % \
+        # UCSC's program is optimized for NCBI RefSeq GFFs
+        # cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -geneNameAttr=gene -rnaNameAttr=transcript_id" % \
+        cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -refseqHacks " % \
             locals()
     else:
         cmd = "%(catCmd)s %(gff3Fname)s | gffread /dev/stdin -T -o /dev/stdout | gtfToGenePred -allErrors stdin %(gpFname)s" % locals()
@@ -891,45 +897,53 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+ncbiAsmDesc+"_genomic"
     baseFtp = baseFtp.replace(" ", "_") # some ncbiAsmDescs include spaces
     faFtpUrl = baseFtp + ".fna.gz"
-    printMsg("Downloading genome and uncompressing (for bwa)")
-    cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
-    runCmd(cmd)
 
-    gffFtpUrl = baseFtp + ".gff.gz"
-    printMsg("Downloading gff")
-    cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
-    runCmd(cmd)
+    if not isfile(sizesTmp):
+        printMsg("Downloading genome and uncompressing (for bwa)")
+        cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
+        runCmd(cmd)
 
-    cmd = "gunzip -f %s.gz" % (gffTmp)
-    runCmd(cmd)
+    if options.gffFname:
+        gffTmp = options.gffFname
+    else:
+        if not isfile(gffTmp):
+            gffFtpUrl = baseFtp + ".gff.gz"
+            printMsg("Downloading gff")
+            cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
+            runCmd(cmd)
+
+            cmd = "gunzip -f %s.gz" % (gffTmp)
+            runCmd(cmd)
 
     seqLine = open(faTmp).readline()
-    assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
+    if "|" in seqLine:
+        print("ERROR: the character | is not allowed in the fa file sequence identifiers.")
+    #assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
 
-    printMsg("Converting to 2bit")
     twoBitTmp = join(dbTmpDir, db+".2bit")
-    cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
-    runCmd(cmd)
 
     outFnames = []
 
-    printMsg("Making chrom sizes")
-    cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
-    runCmd(cmd)
+    indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+    outFnames.extend([sizesTmp, twoBitTmp])
+
+    #printMsg("Making chrom sizes")
+    #cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
+    #runCmd(cmd)
 
     gpTmp = join(dbTmpDir, db+".gp")
     segTmp = join(dbTmpDir, "%s.segments.bed" % db)
-    hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, True)
+    useAltProg = True
+    if options.gffFname:
+        useAltProg = False
+    hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, useAltProg)
 
     if hasGff:
         outFnames.extend([gpTmp, segTmp])
     else:
         logging.info("Assembly has no gene annotation, skipping genePred step")
 
-    indexFasta(faTmp, db, twoBitTmp, sizesTmp)
-
     outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
-    outFnames.extend([sizesTmp, twoBitTmp])
     moveToDest(outFnames, finalDbDir)
 
     writeGenomeInfo(genomeInfo)

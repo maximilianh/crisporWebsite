@@ -189,6 +189,8 @@ offtargetPams = {
 MAXSEQLEN = 2000
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
+# maximum input size when using xCas9
+MAXSEQLEN_XCAS9 = 750
 
 # BWA: allow up to X mismatches
 maxMMs=4
@@ -629,7 +631,7 @@ def getTwoBitFname(db):
     path = join(genomesDir, db, db+".2bit")
     return path
 
-def errAbort(msg):
+def errAbort(msg, isWarn=False):
     " print err msg and exit "
     if commandLineMode:
         raise Exception(msg)
@@ -638,10 +640,18 @@ def errAbort(msg):
         print "Content-type: text/html\n"
 
     print('<div style="position: absolute; padding: 10px; left: 100; top: 100; border: 10px solid black; background-color: white; text-align:left; width: 800px; font-size: 18px">')
-    print("<strong>Error:</strong><p> ")
+
+    if isWarn:
+        print("<strong>Warning:</strong><p> ")
+    else:
+        print("<strong>Error:</strong><p> ")
+
     print(msg+"<p>")
     print("If you think this is a bug or you have any other suggestions, please do not hesitate to contact us %s<p>" % contactEmail)
-    print("Please also send us the full URL of the page where you see the error. Thanks!")
+    if isWarn:
+        print("In the email, please also send us the full URL of the page.")
+    else:
+        print("Please also send us the full URL of the page where you see the error. Thanks!")
     print('</div>')
 
     if doAbort:
@@ -653,8 +663,13 @@ notOkChars = re.compile(r'[^+a-zA-Z0-9:\n\r_. -]')
 
 def checkVal(key, inStr):
     """ remove special characters from input string, to protect against injection attacks """
-    if len(inStr) > 10000:
-	errAbort("input parameter %s is too long" % key)
+    if key!="geneIds":
+        if len(inStr) > 10000:
+            errAbort("input parameter %s is too long" % key)
+    else:
+        if len(inStr) > 100000:
+            errAbort("Pasting more than tens of thousands of gene IDs makes little sense. Copy/paste error?")
+
     matchObj =notOkChars.search(inStr)
     if matchObj!=None:
 	errAbort("input parameter %s contains an invalid character %s (ASCII %d)" % (key, repr(matchObj.group()), ord(matchObj.group())))
@@ -724,7 +739,11 @@ def pamIsCpf1(pam):
 def pamIsSaCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
     return (pam in ["NNGRRT", "NNNRRT"])
-        
+
+def pamIsXCas9(pam):
+    " "
+    return (pam in ["NGK", "NGN"])
+    
 def pamIsSpCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
     return (pam in ["NGG", "NGA", "NGCG"])
@@ -3374,7 +3393,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>New in V4.4, Apr 2018: Doench2016-score update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
+<br><i>New in V4.4, May 2018: Doench2016 update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -3510,7 +3529,7 @@ def readBatchParams(batchId):
 
     # older batch files don't include a position yet
     if position==None:
-        position = coordsToPosStr(*findBestMatch(genome, inSeq))
+        position = coordsToPosStr(*findBestMatch(genome, inSeq, batchId))
 
     return inSeq, genome, pamSeq, position, extSeq
 
@@ -3537,14 +3556,15 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
     if skipAlign:
         chrom, start, end, strand = None, None, None, None
     else:
-        chrom, start, end, strand = findBestMatch(org, seq)
+        chrom, start, end, strand = findBestMatch(org, seq, batchId)
     # define temp file names
     batchBase = join(batchDir, batchId)
     # save input seq, pamSeq, genome, position for primer design later
     batchJsonName = batchBase+".json"
     posStr = coordsToPosStr(chrom, start, end, strand)
 
-    ofh = open(batchJsonName, "w")
+    batchJsonTmpName = batchJsonName+".tmp"
+    ofh = open(batchJsonTmpName, "w")
     #ofh.write(">%s %s %s\n%s\n" % (org, pam, posStr, batchName, seq))
     batchData = {}
     batchData["org"] = org
@@ -3563,6 +3583,8 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
 
     json.dump(batchData, ofh)
     ofh.close()
+    # fixes a run condition
+    os.rename(batchJsonTmpName, batchJsonName)
     return batchId, posStr, extSeq
 
 def readDbInfo(org):
@@ -4013,6 +4035,13 @@ def crisprSearch(params):
             seq = getSeq(params["org"], seq.replace(" ","").replace(",",""))
 
         seq, warnMsg = cleanSeq(seq, org)
+
+        if len(seq) > MAXSEQLEN_XCAS9 and pamIsXCas9(pam):
+            errAbort("Sorry, but xCas9 has so many PAM sites that we are restricting "
+                " the input sequence length for xCas9 to %d bp at the moment to keep the "
+                "web site fast enough. We will revisit this in a few weeks. Let us know if "
+                "you think this is too short." % MAXSEQLEN_XCAS9, isWarn=True)
+
         batchId, position, extSeq = newBatch(newBatchName, seq, org, pam)
         print ("<script>")
         print ('''history.replaceState('crispor.py', document.title, '?batchId=%s');''' % (batchId))
@@ -4020,10 +4049,10 @@ def crisprSearch(params):
 
     setupPamInfo(pam)
 
-    if cpf1Mode and org=="noGenome":
+    if pamIsXCas9(pam) and org=="noGenome":
         errAbort("You selected no genome, so only efficiency scoring is active. "
-           "You also selected the enzyme Cpf1 or a derivative. "
-           "However, this does not work, because no efficiency score has been published yet for Cpf1.")
+           "You also selected the enzyme xCas9. "
+           "This does not work, no efficiency score has been published yet for xCas9.")
 
     # check if minFreq was specified
     minFreq = params.get("minFreq", "0.0")
@@ -4171,6 +4200,7 @@ def printCrisporBodyStart():
 def printTeforBodyStart():
     print """<div style="float:left">"""
     #print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
+    print """<a href='crispor.py'><img style='width:70px' src='%simage/logo_tefor.png' alt=''></a>""" % (HTMLPREFIX)
     print "</div>"
     #print ("""<div style="position: absolute; left:50px; top:30px"><a href='http://tefor.net/'><img style='width:60px' src='%simage/logo_tefor.png' alt=''></a></div>""" % HTMLPREFIX)
     #print """ %s
@@ -4678,7 +4708,7 @@ def writeHttpAttachmentHeader(fname, doDownload=True):
         print 'Content-type: text/html'
     print "" # = end of http headers
 
-def buildPoolOptions(barcodeId):
+def buildPoolOptions(barcodeId, custPrefix="", custSuffix=""):
     " return a list of pool settings and a dictionary with pool options "
     barcodeDict = dict(satMutBarcodes)
     barcodeLabel = barcodeDict[barcodeId]
@@ -4691,20 +4721,32 @@ def buildPoolOptions(barcodeId):
     optFields = OrderedDict()
     optFields["Subpool Barcode"] = barcodeLabel
 
-    prePrimer = "GGAAAGG"
-    pre = "ACGAAACACCG"
-    post = "GTTTTAGAGCTAGAAATA"
-    postPrimer = "GCAAGTTAAAATAAGGC"
-
     optFields["Subpool Prefix"] = barcodePre
-    optFields["pLentiGuidePre primer"] = prePrimer
-    optFields["pLentiGuidePre"] = pre
-    optFields["pLentiGuidePost"] = post
-    optFields["pLentiGuidePost primer"] = postPrimer
     optFields["Subpool Suffix"] = barcodePost
-    optFields["Oligonucl. structure"] = "Subpool Prefix + pLentiGuidePre Primer + pLentiGuidePre + sgRNA + pLentiGuide Post + pLentiGuidePost Primer + Subpool Suffix"
-    fullPrefix = barcodePre+prePrimer+pre
-    fullSuffix = post+postPrimer+barcodePost
+
+    if custPrefix!="" and custSuffix!="":
+        optFields["Custom Prefix"] = custPrefix
+        optFields["Custom Suffix"] = custSuffix
+        optFields["Oligonucl. structure"] = "Subpool Prefix + Custom Prefix + sgRNA + Custom Suffix + Subpool Suffix"
+
+        fullPrefix = barcodePre+custPrefix
+        fullSuffix = barcodePost+custSuffix
+    else:
+
+        prePrimer = "GGAAAGG"
+        pre = "ACGAAACACCG"
+        post = "GTTTTAGAGCTAGAAATA"
+        postPrimer = "GCAAGTTAAAATAAGGC"
+        fullPrefix = barcodePre+prePrimer+pre
+        fullSuffix = post+postPrimer+barcodePost
+
+        optFields["pLentiGuidePre primer"] = prePrimer
+        optFields["pLentiGuidePre"] = pre
+
+        optFields["pLentiGuidePost"] = post
+        optFields["pLentiGuidePost primer"] = postPrimer
+
+        optFields["Oligonucl. structure"] = "Subpool Prefix + pLentiGuidePre Primer + pLentiGuidePre + sgRNA + pLentiGuide Post + pLentiGuidePost Primer + Subpool Suffix"
 
     primerFwPrefix = 'TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG'
     primerRevPrefix = 'GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG'
@@ -4719,8 +4761,6 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat
 
     satMutOpt, optFields = buildPoolOptions(barcodeId)
     satMutOpt.extend( [batchId, org, position, ampLen, tm] )
-
-    #satMutOpt = (fullPrefix, fullSuffix, primerFwPrefix, primerRevPrefix, batchId, org, position, ampLen, tm)
 
     guideRows = iterGuideRows(guideData, addHeaders=True, satMutOpt=satMutOpt, minSpec=minSpec, minFusi=minFusi)
     xlsWrite(guideRows, "guides", outFh, [20,28,10,10,10,10,10,60,21,21], fileFormat, seq, org, pam, position, batchId, optFields=optFields)
@@ -5180,9 +5220,9 @@ def microHomPage(params):
         print "<td><tt>%s</tt></td>" % seq
         delCount = seq.count("-")
         if delCount % 3 == 0:
-            resStr = "no framshift"
+            resStr = "no frameshift"
         else:
-            resStr = "framshift"
+            resStr = "frameshift"
         print "<td><tt>%d bp deleted &rarr; %s</tt></td>" % (delCount, resStr)
         print "</tr>"
     print "</table>"
@@ -5284,7 +5324,7 @@ def printLibForm(params):
 
     print("Note: if you are planning a saturating mutagenesis screen, e.g. of a non-coding sequence, this is not the right tool. Submit your sequence on the normal <a href='crispor.py'>CRISPOR</a> page, then use the link 'Saturating mutagenesis' at the top of the guide table to get oligonucleotides of all guides in the input sequence.")
 
-    print("Both tools are best used in conjunction with our wet-lab <a href='http://biorxiv.org/content/early/2017/04/07/125245'>protocol</a><p>")
+    print("Both tools are best used in conjunction with our wet-lab <a href='https://www.nature.com/articles/nprot.2018.005'>protocol</a> (<a href='http://biorxiv.org/content/early/2017/04/07/125245'>preprint</a>)<p>")
 
     print("<strong>Lentiviral screen library:</strong>")
     printDropDown("libName", libLabels, "geckov2")
@@ -5300,12 +5340,20 @@ def printLibForm(params):
 
     print("<strong>Subpool barcode: </strong>")
     printDropDown("barcode", satMutBarcodes, "1")
-    print("<p>")
+    print("<br>")
+
+    print("<strong>Custom oligo prefix and suffix : </strong>")
+    print("""<input id="custPrefix" type="text" size="20" name="custPrefix" value="" />""")
+
+    #print("<strong>Custom oligo suffix (empty for defaults): </strong>")
+    print("""<input id="custSuffix" type="text" size="20" name="custSuffix" value="" />""")
+    print("both empty = defaults for cloning into pLentiGuide-Puro<p>")
 
     print("""
     Enter a list of gene symbols, Entrez Gene IDs or Refseq IDs, one per line (case-insensitive):<br>
+    <small>Type 'all' below to get all guides in the library and no gene filtering.</small>
     <small>You may need to <a href='https://discover.nci.nih.gov/matchminer/MatchMinerLookup.jsp'>convert old symbols</a>.</small>
-    <small>Type 'all' below to get all guides in the library and no gene filtering</small>
+    <small>To convert from UniProt IDs, try <a href="http://www.uniprot.org/uploadlists/">the UniProt converter.</a></small>
     <textarea tabindex="1" style="width:100%%" name="geneIds" rows="25" \
     placeholder="Paste a list of gene symbols here">%s</textarea><p>""" % sampleGenes)
 
@@ -5378,10 +5426,10 @@ def getLibGuides(org, libName, geneIdStr):
 
     return guideData, orderedGenes, notFoundGenes
 
-def createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount):
+def createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount, custPrefix, custSuffix):
     " write a table with lenti lib guides and oligos to temp/lenti/ and return its filename"
 
-    hasher = hashlib.sha1(geneIdStr+str(guideCount)+org+libName+str(barcodeId)+str(controlCount))
+    hasher = hashlib.sha1(geneIdStr+str(guideCount)+org+libName+str(barcodeId)+str(controlCount)+custPrefix+custSuffix)
     lentiJobId = base64.urlsafe_b64encode(hasher.digest()[0:20]).translate(transTab)[:20]
 
     outFname = join(lentiTemp, lentiJobId+".tsv")
@@ -5392,12 +5440,14 @@ def createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, 
     ofh = open(outFname, "w")
 
     ofh.write("## CRISPOR %s library extractor\n" % versionStr)
+    ofh.write("## CRISPOR JobID\t%s\n" % lentiJobId)
     ofh.write("## Organism\t%s\n" % org)
     ofh.write("## Library\t%s\n" % libName)
     ofh.write("## Number of guides per gene\t%d\n" % guideCount)
 
     barcodeDict = dict(satMutBarcodes)
-    satMutOpt, optFields = buildPoolOptions(barcodeId)
+    satMutOpt, optFields = buildPoolOptions(barcodeId, custPrefix, custSuffix)
+
     oligoPrefix, oligoSuffix = satMutOpt[:2]
 
     for label, val in optFields.iteritems():
@@ -5444,13 +5494,15 @@ def printLibGuides(params):
     barcodeId = cgiGetNum(params, "barcode", 1)
     org = libName.split("_")[0]
     controlCount = cgiGetNum(params, "ctrlCount", 10)
+    custPrefix = cgiGetStr(params, "custPrefix", "")
+    custSuffix = cgiGetStr(params, "custSuffix", "")
 
     # need to check libName, as it's used to open a file
     validNames = dict(libLabels)
     if libName not in validNames:
         errAbort("Invalid library name")
 
-    tabFname = createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount)
+    tabFname = createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount, custPrefix, custSuffix)
 
     for line in open(tabFname):
         if "Not found genes" in line:
@@ -5466,14 +5518,14 @@ def printLibGuides(params):
     print("<strong>Number of non-targeting controls:</strong> %d (all controls are from the GeCKOV2 library)<br> " % controlCount)
 
     barcodeDict = dict(satMutBarcodes)
-    satMutOpt, optFields = buildPoolOptions(barcodeId)
+    satMutOpt, optFields = buildPoolOptions(barcodeId, custPrefix, custSuffix)
     oligoPrefix, oligoSuffix = satMutOpt[:2]
 
     for label, val in optFields.iteritems():
         print("<strong>%s:</strong> %s<br>\n" % (label, val))
     print("<p>")
 
-    print("For details on these sequences, see our <a href='http://biorxiv.org/content/early/2017/04/07/125245'>protocol</a><p>")
+    print("For details on these sequences, see our <a href='https://www.nature.com/articles/nprot.2018.005'>protocol</a> (<a href='https://www.biorxiv.org/content/early/2017/09/11/125245'>preprint</a>).<p>")
 
     if len(notFoundGenes)!=0 and notFoundGenes!=[""]:
         print("Input gene identifiers that were not found: %s<p>" % ",".join(notFoundGenes))
@@ -5488,7 +5540,7 @@ def printLibGuides(params):
     print("<th style='width:10em'>Target Entrez ID</th>")
     print("<th style='width:10em'>Target Refseq ID</th>")
     print("<th style='width:14em'>Guide RNA<br>(click to show in CRISPOR)</th>")
-    print("<th style='width:40em'>Full oligonucleotide including guide RNA</th>")
+    print("<th style='width:40em'>Full oligonucleotide including guide RNA<br><small>%s</small></th>" % optFields["Oligonucl. structure"])
     print("</tr>")
 
     genomeDbs = {
@@ -5674,7 +5726,7 @@ def coordsToPosStr(chrom, start, end, strand):
     locStr = "%s:%d-%d:%s" % (chrom, start, end, strand)
     return locStr
 
-def findBestMatch(genome, seq):
+def findBestMatch(genome, seq, batchId):
     """ find best match for input sequence from batchId in genome and return as
     a string "chrom:start-end:strand or None if not found "
     """
@@ -5693,7 +5745,7 @@ def findBestMatch(genome, seq):
     samFname = tmpSamFh.name
 
     bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
-    cmd = "$BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
+    cmd = "true %(batchId)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
@@ -6406,7 +6458,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
         printPrimerTable(ciPrimers)
 
     print "<h3 id='gibson'>Lentiviral vectors: cloning with Gibson assembly</h3>"
-    print ("""Order the following oligonucleotide to clone with Gibson assembly into the vector <a href='https://www.addgene.org/52963/'>pLentiGuide-puro</a>. See the <a href="http://biorxiv.org/content/early/2017/04/07/125245">protocol by Matt Canver</a>.<br>""")
+    print ("""Order the following oligonucleotide to clone with Gibson assembly into the vector <a href='https://www.addgene.org/52963/'>pLentiGuide-puro</a>. See the <a href="https://www.nature.com/articles/nprot.2018.005">protocol by Matt Canver</a>.<br>""")
     print ("""To clone with restriction enzymes into this vector, see the section <a href="#u6plasmid">U6 expression from an AddGene plasmid</a> and choose pLentiGuide-puro from the list of AddGene plasmids.<br>""")
 
     satMutUrl = cgiGetSelfUrl({"satMut":"1"}, onlyParams=["batchId"])
