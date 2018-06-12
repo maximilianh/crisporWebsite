@@ -3059,6 +3059,7 @@ def parseRefout(tmpDir, guideSeqs, pamLen):
            if mismCount < oldMismCount:
                hit = (mismCount, guideIdWithMod, strand, chrom, start, tSeq, modifParts)
                posToHit[hitId] = hit
+               hitBestMismCount[hitId] = mismCount # thanks to github user mbsimonovic
 
     ret = []
     for guideId, hit in posToHit.iteritems():
@@ -3217,9 +3218,7 @@ def processSubmission(faFname, genome, pam, bedFname, batchBase, batchId, queue)
         createBatchEffScoreTable(batchId)
 
     if genome=="noGenome":
-        # skip off-target search
-        if cpf1Mode:
-            errAbort("Sorry, no efficiency score has been published yet for Cpf1.")
+        # skip the off-target search entirely
         open(bedFname, "w") # create a 0-byte file to signal job completion
         queue.startStep(batchId, "done", "Job completed")
         return
@@ -4212,7 +4211,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '<div style="clear:both; text-align:center">Version %s - ' % versionStr
     print '<a target=_blank href="/manual/">Documentation</a>&nbsp; - '
-    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a> - <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">Paper</a></div>""" % (contactEmail)
+    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a> - <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">Paper</a> - <a href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a></div>""" % (contactEmail)
 
     print '</div>'
     print ("""
