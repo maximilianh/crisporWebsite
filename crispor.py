@@ -3402,7 +3402,7 @@ def printForm(params):
 
     <textarea tabindex="1" style="width:100%%" name="seq" rows="12"
               placeholder="Paste here the genomic - not cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp.">%s</textarea>
-      <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11908-12378</small>
+      <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 </div>
 <div class="windowstep subpanel" style="width:50%%">
     <div class="substep" style="margin-bottom: 1px">
@@ -3681,7 +3681,6 @@ def getSeq(db, posStr):
     if end-start > MAXSEQLEN and db!="noGenome":
         errAbort("Input sequence range too long. Please retry with a sequence range shorter than %d bp." % MAXSEQLEN)
     genomeDir = genomesDir # pull in global var
-    #twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
     twoBitFname = getTwoBitFname(db)
     binPath = join(binDir, "twoBitToFa")
 
