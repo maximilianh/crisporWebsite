@@ -1317,7 +1317,6 @@ def parsePos(text):
             end = start+23
     else:
         chrom, start, end, strand = "", 0, 0, "+"
-    print chrom, start, end, strand
     return chrom, start, end, strand
 
 def makePosList(countDict, guideSeq, pam, inputPos):
@@ -1862,6 +1861,9 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
     if sortBy == "pos":
         sortFunc = (lambda row: row[3])
         reverse = False
+    elif sortBy == "offCount":
+        sortFunc = (lambda row: len(row[9]))
+        reverse = False
     elif sortBy is not None and sortBy!="spec":
         sortFunc = (lambda row: row[2].get(sortBy, 0))
         reverse = True
@@ -2047,7 +2049,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     print "<br><br><small>%s</small>" % oofDesc
     print '</th>'
 
-    print '<th style="width:117px; border-bottom:none">Off-targets for <br>0-1-2-3-4 mismatches<br><span style="color:grey">+ next to PAM </span>'
+    print '<th style="width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>' % (batchId)
 
     altPamsHelp = [pam]
     if pam in offtargetPams:
