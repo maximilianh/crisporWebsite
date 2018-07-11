@@ -1317,6 +1317,7 @@ def parsePos(text):
             end = start+23
     else:
         chrom, start, end, strand = "", 0, 0, "+"
+    print chrom, start, end, strand
     return chrom, start, end, strand
 
 def makePosList(countDict, guideSeq, pam, inputPos):
@@ -2331,7 +2332,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         if oofScore==None:
             print "--"
         else:
-            print """<a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster" title="This score indicates how likly out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), oofScore)
+            print """<a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster" title="This score indicates how likely out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), oofScore)
             #print """<br><br><small><a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster">Micro-homology</a></small>""" % (myName, batchId, pamId)
         print "</td>"
 
@@ -2360,10 +2361,10 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         if otData!=None:
             if len(otData)>500 and len(guideData)>1:
                 otData, cutoff = findOtCutoff(otData)
-                if cutoff!=None:
-                    print "Too many off-targets. Showing those with score &gt;%0.1f " % cutoff
+                if cutoff==None:
+                    print "More than 1000 off-targets, showing only top "+str(len(otData))
                 else:
-                    print "Too man off-targets. Showing "+str(len(otData))
+                    print "More than 500 off-targets, showing %d with score &gt;%0.1f " % (len(otData), cutoff)
 
                 htmlHelp("This guide sequence has a high number of off-targets, its use is discouraged.<br>To show all off-targets, paste only the guide sequence into the input sequence box.")
 
@@ -6435,10 +6436,14 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     if not cpf1Mode:
         print "<h3 id='ciona'>Direct PCR for <i>C. intestinalis</i></h3>"
-        print ("""Only usable at the moment in <i>Ciona intestinalis</i>. DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        print ("""Only usable at the moment in <i>Ciona intestinalis</i> (alias <i>Ciona robusta</i>). DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        if batchName!="":
+            primerStart = batchName
+        else:
+            primerStart = "sg"
         ciPrimers = [
-            ("ciGuideRna%sForward" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
-            ("ciGuideRna%sReverse" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
+            (batchName+".%s.sgF" % primerGuideName, "g<b>"+guideSeq[1:]+"</b>gtttaagagctatgctggaaacag"),
+            (batchName+".%s.U6R" % primerGuideName, "<b>"+revComp(guideSeq[1:])+"</b>catctataccatcggatgccttc")
         ]
         printPrimerTable(ciPrimers)
 
@@ -6482,9 +6487,9 @@ def primerDetailsPage(params):
     guidePos = int(pamId.strip("s+-"))+1
     guideStrand = pamId[-1]
     if guideStrand=="+":
-        primerGuideName = str(guidePos)+"forw"
+        primerGuideName = str(guidePos)+"fw"
     else:
-        primerGuideName = str(guidePos)+"rev"
+        primerGuideName = str(guidePos)+"rv"
 
     # primer helper
     print """
