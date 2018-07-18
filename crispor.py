@@ -12,10 +12,15 @@ import hashlib, base64, string, logging, operator, urllib, sqlite3, time
 import traceback, json, pwd, pickle
 
 from datetime import datetime
-from collections import defaultdict, namedtuple, OrderedDict
+from collections import defaultdict, namedtuple
 from os.path import join, isfile, basename, dirname, isdir, abspath, relpath
 from StringIO import StringIO
 from itertools import product
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict # python2.6 users: run 'sudo pip install ordereddict' 
 
 # try to load external dependencies
 # we're going into great lengths to create a readable error message
@@ -5835,7 +5840,7 @@ def designPrimer(genome, chrom, start, end, strand, guideStart, batchId, ampLen,
     lSeq, lTm, lPos, rSeq, rTm, rPos = primers.values()[0]
 
     if lSeq==None or rSeq==None:
-        return None, None, None, None, None, None, flankSeq, ampRange, flankSeq
+        return None, None, None, None, None, None, flankSeq, ampRange, flankSeq, addTags
 
     targetSeq = flankSeq[lPos:rPos+1]
     return lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq, addTags
