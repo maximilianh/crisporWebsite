@@ -1293,7 +1293,7 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
         else:
             cfdStr = "%f" % cfdScore
         htmlText2 = "CFD Off-target score: %s<br>MIT Off-target score: %.2f<br>Position: %s</small>" % (cfdStr, mitScore, posStr)
-        if chromDist!=None:
+        if chromDist!=None and org!=None:
             htmlText2 += "<br><small>Distance from target: %.3f Mbp</small>" % (float(chromDist)/1000000.0)
             if org.startswith("mm") or org.startswith("hg") or org.startswith("rn"):
                 if chromDist > 4000000:
@@ -4778,7 +4778,7 @@ def readBatchAndGuides(batchId):
 
     otMatches = parseOfftargets(otBedFname)
     effScores = readEffScores(batchId)
-    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores)
+    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
 
 def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minFusi=0):
@@ -4794,7 +4794,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minF
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
 
     allEffScores = readEffScores(batchId)
-    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(inSeq, startDict, pamPat, otMatches, position, allEffScores, sortBy="pos")
+    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(inSeq, startDict, pamPat, otMatches, position, allEffScores, sortBy="pos", org=db)
 
     if outType=="primers":
         headers = ["#guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence", "guideSequence"]
@@ -7018,7 +7018,7 @@ def mainCommandLine():
         logging.debug("Got efficiency scores: %s" % effScores)
 
         guideData, guideScores, hasNotFound, pamIdToSeq = \
-            mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores)
+            mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores, org=org)
 
         # write guide headers
         if guideFh is None:
