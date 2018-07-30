@@ -3554,6 +3554,7 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
     """
     batchId = makeTempBase(seq, org, pam, batchName)
     if skipAlign:
+        logging.debug("Skipping alignment as per command line option")
         chrom, start, end, strand = None, None, None, None
     else:
         chrom, start, end, strand = findBestMatch(org, seq, batchId)
@@ -5752,10 +5753,12 @@ def findBestMatch(genome, seq, batchId):
     for l in open(samFname):
         if l.startswith("@"):
             continue
-        logging.debug("%s" % l)
         l = l.rstrip("\n")
         fs = l.split("\t")
+        logging.debug("SAM input-line: %s" % repr(fs))
         qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
+        logging.debug("qName=%s, flag=%s, rName=%s, pos=%s, mapq=%s, cigar=%s" % \
+            (qName, flag, rName, pos, mapq, cigar, rnext))
         if (int(flag) and 2) == 2:
             strand = "-"
         else:
