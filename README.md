@@ -92,7 +92,7 @@ If it's not there, rename "genomes.sample" to "genomes":
 Then run this command:
 
     mkdir -p sampleFiles/mine/
-    crispor.py sacCer3 sampleFiles/in/sampleIn.sacCer.fa sampleFiles/mine/sample.sacCer.tsv -o sampleFiles/mine/sample.sacCer.mine.offs.tsv
+    crispor.py sacCer3 sampleFiles/in/sample.sacCer3.fa sampleFiles/mine/sample.sacCer3.tsv -o sampleFiles/mine/sample.sacCer3.mine.offs.tsv
 
 The files in sampleFiles/mine should be identical to the files in sampleFiles/out/
 
