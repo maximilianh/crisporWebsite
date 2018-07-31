@@ -1251,7 +1251,7 @@ def highlightMismatches(guide, offTarget, pamLen):
             s.append("*")
     return "".join(s)
 
-def makeAlnStr(seq1, seq2, pam, mitScore, cfdScore, posStr):
+def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
     " given two strings of equal length, return a html-formatted string that highlights the differences "
     lines = [ [], [], [] ]
     last12MmCount = 0
@@ -1298,6 +1298,14 @@ def makeAlnStr(seq1, seq2, pam, mitScore, cfdScore, posStr):
         else:
             cfdStr = "%f" % cfdScore
         htmlText2 = "CFD Off-target score: %s<br>MIT Off-target score: %.2f<br>Position: %s</small>" % (cfdStr, mitScore, posStr)
+        if chromDist!=None and org!=None:
+            htmlText2 += "<br><small>Distance from target: %.3f Mbp</small>" % (float(chromDist)/1000000.0)
+            if org.startswith("mm") or org.startswith("hg") or org.startswith("rn"):
+                if chromDist > 4000000:
+                    htmlText2 += "<br><small>&gt;4Mbp = unlikely to be in linkage with target</small>"
+                else:
+                    htmlText2 += "<br><small>&lt;4Mbp= likely to be in linkage with target!</small>"
+
     hasLast12Mm = last12MmCount>0
     return htmlText1+htmlText2, hasLast12Mm
 
@@ -1324,7 +1332,7 @@ def parsePos(text):
         chrom, start, end, strand = "", 0, 0, "+"
     return chrom, start, end, strand
 
-def makePosList(countDict, guideSeq, pam, inputPos):
+def makePosList(org, countDict, guideSeq, pam, inputPos):
     """ for a given guide sequence, return a list of tuples that
     describes the offtargets sorted by score and a string to describe the offtargets in the
     format x/y/z/w of mismatch counts
@@ -1403,7 +1411,12 @@ def makePosList(countDict, guideSeq, pam, inputPos):
                 cfdScores.append(cfdScore)
 
             posStr = "%s:%d-%s:%s" % (chrom, int(start)+1,end, strand)
-            alnHtml, hasLast12Mm = makeAlnStr(guideSeq, otSeq, pam, mitScore, cfdScore, posStr)
+            if (chrom==inChrom):
+                dist = abs(start-inStart)
+            else:
+                dist = None
+
+            alnHtml, hasLast12Mm = makeAlnStr(org, guideSeq, otSeq, pam, mitScore, cfdScore, posStr, dist)
             if not hasLast12Mm:
                 last12MmOtCount+=1
             posList.append( (otSeq, mitScore, cfdScore, editDist, posStr, geneDesc, alnHtml) )
@@ -1818,7 +1831,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq):
                 matches.setdefault((name, restrSite, suppliers), set()).update(posList)
     return matches
 
-def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None):
+def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None, org=None):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
     creates rows with too many fields. Probably needs refactoring.
@@ -1845,7 +1858,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq)
             posList, otDesc, guideScore, guideCfdScore, last12Desc, ontargetDesc, \
                subOptMatchCount = \
-                   makePosList(pamMatches, guideSeqFull, pamPat, inputPos)
+                   makePosList(org, pamMatches, guideSeqFull, pamPat, inputPos)
 
         # no off-targets found?
         else:
@@ -3548,6 +3561,7 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
     """
     batchId = makeTempBase(seq, org, pam, batchName)
     if skipAlign:
+        logging.debug("Skipping alignment as per command line option")
         chrom, start, end, strand = None, None, None, None
     else:
         chrom, start, end, strand = findBestMatch(org, seq, batchId)
@@ -4117,7 +4131,7 @@ def crisprSearch(params):
     otMatches = parseOfftargets(otBedFname)
     effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
-    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy)
+    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy, org=org)
 
 
     if len(guideScores)==0:
@@ -4771,7 +4785,7 @@ def readBatchAndGuides(batchId):
 
     otMatches = parseOfftargets(otBedFname)
     effScores = readEffScores(batchId)
-    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores)
+    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
 
 def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minFusi=0):
@@ -4787,7 +4801,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minF
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
 
     allEffScores = readEffScores(batchId)
-    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(inSeq, startDict, pamPat, otMatches, position, allEffScores, sortBy="pos")
+    guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(inSeq, startDict, pamPat, otMatches, position, allEffScores, sortBy="pos", org=db)
 
     if outType=="primers":
         headers = ["#guideId", "forwardPrimer", "leftPrimerTm", "revPrimer", "revPrimerTm", "ampliconSequence", "guideSequence"]
@@ -5745,10 +5759,12 @@ def findBestMatch(genome, seq, batchId):
     for l in open(samFname):
         if l.startswith("@"):
             continue
-        logging.debug("%s" % l)
         l = l.rstrip("\n")
         fs = l.split("\t")
+        logging.debug("SAM input-line: %s" % repr(fs))
         qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
+        logging.debug("qName=%s, flag=%s, rName=%s, pos=%s, mapq=%s, cigar=%s" % \
+            (qName, flag, rName, pos, mapq, cigar, rnext))
         if (int(flag) and 2) == 2:
             strand = "-"
         else:
@@ -7015,7 +7031,7 @@ def mainCommandLine():
         logging.debug("Got efficiency scores: %s" % effScores)
 
         guideData, guideScores, hasNotFound, pamIdToSeq = \
-            mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores)
+            mergeGuideInfo(seq, startDict, pamPat, otMatches, position, effScores, org=org)
 
         # write guide headers
         if guideFh is None:
