@@ -5764,7 +5764,7 @@ def findBestMatch(genome, seq, batchId):
         logging.debug("SAM input-line: %s" % repr(fs))
         qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
         logging.debug("qName=%s, flag=%s, rName=%s, pos=%s, mapq=%s, cigar=%s" % \
-            (qName, flag, rName, pos, mapq, cigar, rnext))
+            (qName, flag, rName, pos, mapq, cigar))
         if (int(flag) and 2) == 2:
             strand = "-"
         else:
