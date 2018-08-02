@@ -775,9 +775,8 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
 
         # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
         # scores are the not exactly the same!
-        if "oldFusi" in addOpt:
-            logging.debug("Fusi score")
-            scores["oldFusi"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+        logging.debug("Fusi score")
+        scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
         # the fusi score calculated by the Microsoft Research Server is not run by
         # default, requires an apiKey
