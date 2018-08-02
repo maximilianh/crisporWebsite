@@ -5756,6 +5756,7 @@ def findBestMatch(genome, seq, batchId):
     runCmd(cmd)
 
     chrom, start, end = None, None, None
+    logging.debug("Parsing SAM file %s" % samFname)
     for l in open(samFname):
         if l.startswith("@"):
             continue
