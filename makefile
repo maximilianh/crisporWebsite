@@ -24,3 +24,5 @@ push:
 	rsync -lrvp --exclude=.git /data/www/crisporBeta/ /data/www/crispor/ --exclude=crispor.conf
 	cd /data/www/crispor && ./startWorkers.sh
 
+pushOne:
+	sudo cp crispor.py /data/www/crispor/
