@@ -767,8 +767,6 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
                 print "looks like this genome has already been indexed"
                 continue
 
-        sizesTmp = join(dbTmpDir, db+".sizes")
-
         printMsg("Genome: " + db)
         printMsg("Downloading")
         faTmp = join(dbTmpDir, db+".fa")
@@ -791,18 +789,18 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
         line1 = open(faTmp).readline()
         assert("|" not in line1) # I use | as a separator in crispor
 
-        printMsg("Converting to 2bit")
-        twoBitTmp = join(dbTmpDir, db+".2bit")
-        cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
-        if not options.onlyGenes:
-            runCmd(cmd)
-
         outFnames = []
 
+        twoBitTmp = join(dbTmpDir, db+".2bit")
+        sizesTmp = join(dbTmpDir, db+".sizes")
+        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+        outFnames.extend([sizesTmp, twoBitTmp])
+
+
         if gff3Fname:
-            printMsg("Making chrom sizes")
-            cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
-            runCmd(cmd)
+            #printMsg("Making chrom sizes")
+            #cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp)
+            #runCmd(cmd)
 
             gpTmp = join(dbTmpDir, db+".gp")
             segTmp = join(dbTmpDir, "%s.segments.bed" % db)
@@ -813,10 +811,7 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
             convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv)
             outFnames.extend([gpTmp, segTmp])
 
-        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
-
         outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
-        outFnames.extend([sizesTmp, twoBitTmp])
         moveToDest(outFnames, finalDbDir)
 
         writeGenomeInfo(row)
