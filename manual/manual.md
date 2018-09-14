@@ -301,10 +301,11 @@ primers at the end ("Summary of main cloning/expression primers").
 
 The second part of this page ("PCR to amplify the on-target site") shows one
 pair of primers to amplify a fragment of the genome around the target site, to
-validate cleavage, e.g. with the T7 endo assay, by Sanger sequencing followed by TIDE,
-NGS sequencing or by restriction digest (see below).
-You can change the size of the fragment and the Tm of the primers here to optimize 
-the PCR design to the specific assay.
+validate cleavage, e.g. with the T7 endo assay, by analyzing your Sanger traces with
+[TIDE](https://tide.nki.nl/) or [ICE](https://ice.synthego.com/#/), NGS
+sequencing analyzed with [Crispresso](http://crispresso.rocks/) or by
+restriction digest (see below).  You can change the size of the fragment and
+the Tm of the primers here to optimize the PCR design to the specific assay.
 
 The third part of this page ("Restriction sites for PCR validation") lists
 restriction enzymes that overlap the position 3bp 5&lsquo; of the PAM. If a PCR

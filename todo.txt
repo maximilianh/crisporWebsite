@@ -19,6 +19,7 @@ Add these new criteria:
 - Jensen et al: Chromatin and secondary structure 
    http://onlinelibrary.wiley.com/doi/10.1002/1873-3468.12707/full
 - Jennifer's zebrafish model
+- CRISPROff and CRISPRSpec? http://rth.dk/resources/crispr/
 
 Show distance of off-targets from the on-target! 
 
