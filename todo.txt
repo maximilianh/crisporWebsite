@@ -1,3 +1,5 @@
+Make the new TATV Cpf1 PAM work, cite 10.1038/nbt.3900 when done.
+
 color off-targets by whether they are in a COSMIC gene or not.
 
 Color all scores and add Jensen et al :
