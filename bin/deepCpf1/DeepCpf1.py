@@ -8,6 +8,7 @@ import sys;
 
 import os
 os.environ['KERAS_BACKEND'] = 'theano'
+os.environ['THEANO_FLAGS']="base_compiledir=/tmp/"
 
 from keras.models import Model
 from keras.layers import Input
