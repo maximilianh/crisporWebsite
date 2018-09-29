@@ -178,18 +178,21 @@ RNA guide sequence for this target may lead to off-target cleavage somewhere
 else in the genome. The score ranges from 0-100 with 100 being the best,
 meaning the search could not find a single sequence in the genome that differs
 from the target at up to four positions. This score uses the formula from the
-MIT Crispr Website but with a better and more sensitive search engine. We think
+MIT Crispr Website (Hsu guide score) but with a better and more sensitive search engine. We think
 that good guides should have a specificity score of at least 50, based on the
 data from whole-genome off-target assays, see Figure 3a in the [CRISPOR
 paper](http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2).
 The color of the guide (red/yellow/green) is based on the specificity score
 (>50 = green, >30 = yellow). You should avoid guides with very low scores, unless you
 can validate the off-targets with special assays or you can cross or inbreed
-the animals until you are sure that no off-targets are left. 
+the animals until you are sure that no off-targets are left. SaCas9 now has its
+own specificity score provided by [Josh
+Tycko](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/), so this column
+will appear for SaCas9, but there is no such score for Cpf1 yet.
 
 Column 4 - efficiency scores: the efficiency score is a prediction of how well this
 target may be cut by its RNA guide sequence. It ranges from 0-100 with 100 being the best.
-You show two scores here: the scoring method from the Doench 2016 paper (aka "sgRNA
+We show two scores here: the scoring method from the Doench 2016 paper (aka "sgRNA
 Designer") or the one by Moreno-Mateos 2016 ("CrisprScan"). In our study, we found
 that the Doench 2016
 score is the best score for guides expressed in the cells from a U6 promoter, see 
@@ -200,10 +203,11 @@ a T7 promoter. While there is link in the header of this column to show various 
 scores in the table, we do not recommend the other algorithms anymore, based on
 the results from our paper. Note that the Doench 2016 scores slightly changed
 in April 2018, when we updated to the version called 'Azimuth', which is also used by
-the Broad Institute's website.
+the Broad Institute's website, but the changes were on the order of 1-2%, so it
+did not make any difference in practice.
 
 Cpf1 and saCas9 have special efficiency scores, the spCas9 scores are not applicable
-for them. The models deepCpf1 and Najm et al 2018 saCas9 will be shown instead.
+for them, and the models "deepCpf1" for Cpf1 and "Najm et al 2018" for saCas9 will be shown here.
 
 Also, the predictive power of these scores is not great in general, with 
 correlations of around 0.4 against the assay results. If you have no choice and

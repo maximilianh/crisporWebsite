@@ -2456,7 +2456,10 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
 
     if not cpf1Mode:
         print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
-        htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
+        if pamIsSaCas9(pam):
+            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This is a special specificity score for SaCas9, provided by Josh Tycko, now at Editas. Like the MIT score for spCas9, this specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
+        else:
+            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print "</th>"
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
