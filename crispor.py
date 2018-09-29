@@ -100,15 +100,16 @@ doEffScoring = True
 # system-wide temporary directory
 TEMPDIR = os.environ.get("TMPDIR", "/tmp")
 
-# XX a temporary hack for cluster jobs at UCSC:
+# a hack for cluster jobs at UCSC:
 # - default to ramdisk
-# - don't do bwasw
-#   - this will trigger auto-ontarget: any perfect match is the on-target
-# - do not calculate efficiency scores
-clusterJob = False
 if isdir("/scratch/tmp"):
     TEMPDIR = "/dev/shm/"
-    clusterJob = True
+
+# skipAlign is useful if your input sequence is not in the genome at all
+# - don't do bwasw
+#    - this will trigger auto-ontarget: any perfect match is the on-target
+# - do not calculate efficiency scores
+skipAlign = False
 
 # prefix in html statements before the directories "image/", "style/" and "js/" 
 HTMLPREFIX =  ""
@@ -3271,7 +3272,7 @@ def calcGuideEffScores(seq, extSeq, pam):
             longSeqs.append(longSeq)
             guideIds.append(pamId)
 
-    if len(longSeqs)>0 and not clusterJob:
+    if len(longSeqs)>0 and not skipAlign:
         enz = None
         if cpf1Mode:
             enz = "cpf1"
@@ -6365,7 +6366,7 @@ def findBestMatch(genome, seq, batchId):
     """ find best match for input sequence from batchId in genome and return as
     a string "chrom:start-end:strand or None if not found "
     """
-    if genome=="noGenome" or clusterJob:
+    if genome=="noGenome":
         return None, None, None, None
 
     # write seq to tmp file
@@ -6384,6 +6385,7 @@ def findBestMatch(genome, seq, batchId):
     runCmd(cmd)
 
     chrom, start, end = None, None, None
+    logging.debug("Parsing SAM file %s" % samFname)
     for l in open(samFname):
         if l.startswith("@"):
             continue
@@ -7332,7 +7334,7 @@ Command line interface for the Crispor tool.
     parser.add_option("", "--bowtie", dest="bowtie", \
         action="store_true", help="new: use bowtie as the aligner. Careful: misses off-targets. Do not use.")
     parser.add_option("", "--skipAlign", dest="skipAlign", \
-        action="store_true", help="do not align the input sequence. The on-target will be a random match with 0 mismatches.")
+        action="store_true", help="Assume that the input is not in the genome: do not align the input sequence. The on-target will be a random match with 0 mismatches. Switches off efficiency scoring as there is no sequence context.")
     parser.add_option("", "--noEffScores", dest="noEffScores", \
         action="store_true", help="do not calculate the efficiency scores")
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
@@ -7358,6 +7360,8 @@ Command line interface for the Crispor tool.
         action="store", help="for --ampliconDir/--satMutDir: amplicon length, default %default")
     parser.add_option("", "--ampTm", dest="tm", type="int", default=60, \
         action="store", help="for --ampliconDir/--satMutDir: Tm for PCR, default %default")
+    #parser.add_option("", "--notInGenome", dest="notInGenome", \
+        #action="store_true", help="Input is an articial sequence: do not try to find the input sequence in the genome, assume that the first perfect match of every guide is the on-target")
 
     (options, args) = parser.parse_args()
 
@@ -7564,6 +7568,7 @@ def mainCommandLine():
     handleOptions(options)
     org, inSeqFname, outGuideFname = args
 
+    global skipAlign
     skipAlign = False
     if options.skipAlign:
         skipAlign = True
