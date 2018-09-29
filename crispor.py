@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.4"
+versionStr = "4.5"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -3852,7 +3852,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>New in V4.4, May 2018: Doench2016 update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
+<br><i>New in V4.5, Sep 2018: saCas9 specificity score from Josh Tycko- <a href="doc/changes.html">Full list of changes</a></i>
 
  </div>
 
