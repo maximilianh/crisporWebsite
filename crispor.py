@@ -154,13 +154,16 @@ ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
 pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
+         ('NNG','20bp-NNG - Cas9 S. canis'),
+         ('NAA','20bp-NAA - iSpyMacCas9'),
          #('TTN','TTN-23bp - Cpf1 F. Novicida'), # Jean-Paul: various people have shown that it's not usable yet
          ('NNGRRT','21bp-NNG(A/G)(A/G)T - Cas9 S. Aureus'),
          ('NNGRRT-20','20bp-NNG(A/G)(A/G)T - Cas9 S. Aureus with 20bp-guides'),
+         ('NGK','20bp-NG(G/T) - xCas9, high efficiency PAM, recommended'),
+         ('NGN','20bp-NGN or GA(A/T) - xCas9, low efficiency PAM'),
+         #('NGG-BE1','20bp-NGG - BaseEditor1, modifies C->T'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNRRT-20','20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides'),
-         #('NGG-BE1','20bp-NGG - BaseEditor1, modifies C->T'),
-         #('NNG','20bp-NNG - Cas9 S. canis'),
          ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
          ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
@@ -168,9 +171,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp. - recommended'),
-         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency'),
-         ('NGK','20bp-NG(G/T) - xCas9, high efficiency PAM, recommended'),
-         ('NGN','20bp-NGN or GA(A/T) - xCas9, low efficiency PAM')
+         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency')
          #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
          #('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
        ]
@@ -204,7 +205,7 @@ MAXSEQLEN = 2000
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
 # maximum input size when using xCas9 or sCanis
-MAXSEQLEN2 = 750
+MAXSEQLEN2 = 600
 
 # BWA: allow up to X mismatches
 maxMMs=4
@@ -2458,7 +2459,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
         if pamIsSaCas9(pam):
-            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This is a special specificity score for SaCas9, provided by Josh Tycko, now at Editas. Like the MIT score for spCas9, this specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
+            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This specificity score has been adapted for SaCas9 and based on the off-target scores shown on mouse-over. The algorithm was provided by Josh Tycko. Like the MIT score for spCas9, it is aggregated from all off-target scores and ranges 0-100. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
         else:
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print "</th>"
