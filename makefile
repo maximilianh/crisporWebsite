@@ -21,7 +21,7 @@ pushNew:
 
 push:
 	cd /data/www/crispor && ./stopWorkers.sh
-	rsync -lrvp --exclude=.git /data/www/crisporBeta/ /data/www/crispor/ --exclude=crispor.conf
+	rsync -lrvp --exclude=.git /data/www/crisporBeta/ /data/www/crispor/ --exclude=crispor.conf --exclude temp --inplace --progress --verbose
 	cd /data/www/crispor && ./startWorkers.sh
 
 pushOne:
