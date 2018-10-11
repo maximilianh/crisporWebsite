@@ -1,0 +1,77 @@
+CCTop is a tool to determine suitable CRISPR/Cas9 target sites in a given query
+sequence(s) and predict its potential off-target sites. The online version of
+CCTop is available at http://crispr.cos.uni-heidelberg.de/
+
+This is a command line version of CCTop that is designed mainly to allow search
+of large volume of sequences and higher flexibility.
+
+If you use this tool for your scientific work, please cite it as:
+	Stemmer, M., Thumberger, T., del Sol Keyer, M., Wittbrodt, J. and Mateo, J.L.
+	CCTop: an intuitive, flexible and reliable CRISPR/Cas9 target prediction tool.
+	PLOS ONE (2015). doi:10.1371/journal.pone.0124633
+
+
+REQUIREMENTS
+
+CCTop is implemented in Python and it requires a version 2.7 or above.
+
+In addition we relay on the short read aligner Bowtie 1 to identify the
+off-target sites. Bowtie can be downloaded from this site
+http://bowtie-bio.sourceforge.net/index.shtml in binary format for the main
+platforms.
+You need to create an indexed version of the genome sequence of your
+target species. This can be done with the tool bowtie-build included in the
+Bowtie installation. For that you simply need a fasta file containing the genome
+sequence. To get the index you can do something like:
+	$ <path-to-bowtie-folder>/bowtie-build -r -f <your-fasta-file> <index-name>
+
+The previous line will create the index files in the current folder.
+
+To handle gene and exon annotations we use the python library bx-python
+(https://bitbucket.org/james_taylor/bx-python/). This library is only required
+if you want to associate off-target sites with the closest exon/gene, otherwise
+you don't need to install it. Notice, however, that in this case all candidate
+target sites will be given the same score, because in the current version the
+score of the candidate target sites considers only off-target sites with
+associated exon/gene.
+
+The exon and gene files contain basically the coordinates of those elements in
+bed format (http://genome.ucsc.edu/FAQ/FAQformat#format1), which are the first
+three columns of the file. There are two more columns with the ID and name of
+the corresponding gene and a sixth empty column to comply with the format
+accepted by the library. You can generate easily such kind of files for you
+target organism using Ensembl Biomart (http://www.ensembl.org/biomart).
+
+In case of difficulties with these files contact us and we can provide you the
+ones you need or help you to generate you own.
+
+
+INSTALLATION
+
+Simply download the two .py files (CCTop.py and bedInterval.py) to a folder of
+your choice and follow the instructions that you can find in the respective web
+sites to install Bowtie 1 and bx-python.
+
+
+USAGE
+
+You can run CCTop with the -h flag to get a detailed list of the available
+parameters. For instance:
+	$ python <download-folder>/CCTop.py -h<Enter>
+
+At minimum it is necessary to specify the input (multi)fasta file (--input) and
+the index file (--index). In this case CCTop assumes that the Bowtie executable
+can be found in the current folder, there are not gene and exon file to use and
+the rest of parameters will take default values. Notice that the index file to
+specify refers to the name of the index you specified for bowtie-build together
+with the path, if necessary. A command for a typical run will look something
+like this:
+	$ python <download-folder>/CCTop.py --input <query.fasta> --index <path/index-name> --bowtie <path-to-bowtie> --output <output-folder> <Enter>
+
+The result of the run will be three files for each sequence in the input query
+file. These files will have extension .fasta, .bed and .xls, containing,
+respectively, the sequence of the target sites, their coordinates and their
+detailed information as in the online version of CCTop. The name of the output
+file(s) will be taken from the name of the sequences in the input fasta file.
+
+

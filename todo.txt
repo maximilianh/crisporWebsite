@@ -21,8 +21,6 @@ Add these new criteria:
 - Jennifer's zebrafish model
 - CRISPROff and CRISPRSpec? http://rth.dk/resources/crispr/
 
-Show distance of off-targets from the on-target! 
-
 Show a histogram of the mismatches instead of 0-0-10-15-40
 
 What is site-seq and circle-seq?
@@ -55,9 +53,25 @@ off-target searchers:
 - align against ALL human genomes: https://github.com/emptyewer/MAPster
 - Church lab (CRISPR-GA): http://54.80.152.219/index.php
 
-- more scores:
+- on-target scores:
   - https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1697-6
+    Says that dinucleotides improve the AUC, code at:
+    http://www.ams.sunysb.edu/~pfkuan/softwares.html#predictsgrna
+    Good R code, easy to run
   - CrisprPred http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0181943
+    code at: https://github.com/khaled-rahman/CRISPRpred
+    Weird R code, nothing easy to calculate the score, looks like CS people
+    No updates ever
+  - CCTop crisprRater https://academic.oup.com/nar/article/46/3/1375/4754467
+
+  off-targets:
+  - OfftargetPredict https://academic.oup.com/bioinformatics/article/34/17/i757/5093213
+    code at https://github.com/penn-hui/OfftargetPredict
+  - crisproff, unpublished but on github
+    
+
+  induced deletions:
+   - see JP email, CSHL 2018
 
 ---
 
@@ -164,3 +178,7 @@ of good guides in the first and second exon of a gene, for creating knockouts.
 Thanks again, this will be super helpful for finding guides for our next few
 projects
 Zach
+
+Done:
+
+Show distance of off-targets from the on-target! 
