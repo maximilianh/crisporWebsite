@@ -1,4 +1,19 @@
 Make the new TATV Cpf1 PAM work, cite 10.1038/nbt.3900 when done.
+=======
+- Ajouter explications pourquoi saCas9. -> manuel -> warning
+- Ajouter warning pour Cpf1, ajouter TTTV
+
+JP:
+IL ya aussi un outil tout bête à faire : quand on veut faire un KI, il faut faire une coupure le plus près possible du site d'insertion.
+Donc ça serait utile d'aider à voir tout ce qui est possible comme coupures.
+Ce qu'on fait aujourdh'ui, c'est d'utiliser S pyogenes/NGG et si ça ne va pas on cherche une autre protéine Cas avec un PAM mieu placé.
+POur éviter d'avoir à tester chaque PAM dans la liste, on pourrait afficher (pour les toutes petites séquences input) tout les PAM possibles ! Par exemple ça serait surement suffisant de se limiter à moins de 70 pb. Qu'est ce que tu en penses ?
+
+firefox: make sure that people can select text + indicate scroling is possible
+
+baseeditor window has to be user-configurable, textbox, "x-y"
+- baseeditor mode does not need to show PAMs
+- BE mode: restriction enzymes are different
 
 color off-targets by whether they are in a COSMIC gene or not.
 
