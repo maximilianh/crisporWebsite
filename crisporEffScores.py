@@ -8,7 +8,9 @@
 # - Fusi: Fusi et al, prepublication manuscript on bioarxiv, http://dx.doi.org/10.1101/021568 http://research.microsoft.com/en-us/projects/azimuth/, only available as a web API
 # - Housden: Housden et al, PMID 26350902, http://www.flyrnai.org/evaluateCrispr/
 # - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
-# - Wu-Crispr: Wong et al, PMID, http://www.genomebiology.com/2015/16/1/218
+# - Wu-Crispr: Wong et al, http://www.genomebiology.com/2015/16/1/218
+# - DeepCpf1, Kim et al, PMID 29431740, https://www.ncbi.nlm.nih.gov/pubmed/29431740
+# - SaCas9 efficiency score (no name), Najm et al, https://www.ncbi.nlm.nih.gov/pubmed/29251726
 
 # the input are 100bp sequences that flank the basepair just 5' of the PAM +/-50bp.
 # so 50bp 5' of the PAM, and 47bp 3' of the PAM -> 100bp
@@ -35,6 +37,9 @@ sys.path.insert(0, aziDir)
 
 najm2018Dir = join(dirname(__file__), "bin/najm2018/")
 sys.path.insert(0, najm2018Dir)
+
+cctopDir = join(dirname(__file__), "bin/src/cctop_standalone")
+sys.path.insert(0, cctopDir)
 
 # import numpy as np
 
@@ -822,6 +827,8 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
         logging.debug("Azimuth in-vitro")
         scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
 
+        scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
+
         scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
         scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
 
@@ -1109,6 +1116,14 @@ def calcWuCrisprScore(seqs):
 def calcDeepCpf1Scores(seqs):
     import DeepCpf1
     return DeepCpf1.scoreSeqs(seqs)
+
+def calcCctopScore(seqs):
+    import CCTop
+    scores = []
+    for seq in seqs:
+        score = CCTop.getScore(seq)
+        scores.append(score)
+    return scores
 
 # ----------- MAIN --------------
 if __name__=="__main__":

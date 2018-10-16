@@ -274,7 +274,7 @@ commandLineMode = False
 
 # names/order of efficiency scores to show in UI
 scoreNames = ["fusi", "crisprScan"]
-allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro"]
+allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
 
 cpf1ScoreNames = ["seqDeepCpf1"]
 
@@ -360,6 +360,7 @@ scoreDescs = {
     "fusi" : ("Doench '16", "Aka the 'Fusi-Score', since V4.4 using the version 'Azimuth', scores are slightly different than before April 2018 but very similar (click 'show all' to see the old scores). Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a> and <a target=_blank href='https://crispr.ml/'>crispr.ml</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
     "fusiOld" : ("Doench '16-Old", "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018."),
     "najm" : ("Najm 2018", "A modified version of the Doench 2016 score ('Azimuth'), by Mudra Hegde for S. aureus Cas9. Range 0-100. See <a target=_blank href='https://www.nature.com/articles/nbt.4048'>Najm et al 2018</a>."),
+    "ccTop" : ("CCTop", "The efficiency score used by CCTop, called 'crisprRank'."),
     "aziInVitro" : ("Azimuth in-vitro", "The Doench 2016 model trained on the Moreno-Mateos zebrafish data. Unpublished model, gratefully provided by J. Listgarden"),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
@@ -1705,7 +1706,7 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
                 guideNoPam = "A"+guideNoPam
 
             if isCpf1:
-                # Cpf1 has no scores yet
+                # Cpf1 has no off-target scores yet
                 mitScore=0.0
                 cfdScore=0.0
             elif isSaCas9:
@@ -7324,7 +7325,7 @@ Command line interface for the Crispor tool.
         action="store_true", help="run internal tests")
     pamNames = (",".join([x for x,y in pamDesc]))
     parser.add_option("-p", "--pam", dest="pam", \
-        action="store", help="PAM-motif to use, default %default. TTTN triggers special Cpf1 behavior: no scores anymore + the PAM is assumed to be 5' of the guide. Common PAMs are: " + pamNames, default="NGG")
+        action="store", help="PAM-motif to use, default %default. TTTN triggers special Cpf1 behavior: the PAM is assumed to be 5' of the guide. Common PAMs are: " + pamNames, default="NGG")
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \
