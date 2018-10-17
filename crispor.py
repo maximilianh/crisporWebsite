@@ -2275,7 +2275,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
         var selRes = copyText.select();
         var val = copyText.value;
         var res = document.execCommand("copy");
-        alert("The input sequence is now in your clipboard. You can paste it in other programs.");
+        alert("The input sequence is now in your clipboard. You can paste it into other programs.");
     }
 
     $(document).ready( function() {
@@ -4408,7 +4408,27 @@ def showSeqDownloadMenu(batchId):
 
     print "</small></div>"
 
-def makeCustomTrack(org, chrom, seqStart, seqEnd, strand, guideData, batchId, batchName):
+def mapToGenome(seqStart, seqStrand, pamStart, guideStart, guideStrand):
+    if cpf1Mode:
+        # thick part = PAM comes first
+        chromStart = seqStart+pamStart
+        thickStart = seqStart+guideStart
+        thickEnd = thickStart+GUIDELEN
+        chromEnd = thickEnd
+    else:
+        chromStart = seqStart+guideStart
+        thickStart = chromStart
+        thickEnd   = chromStart+GUIDELEN
+        chromEnd   = thickEnd
+
+    strands = seqStrand+guideStrand
+    chromStrand = "+"
+    if strands=='+-' or strands=='-+':
+        chromStrand = "-"
+
+    return chromStart, chromEnd, thickStart, thickEnd, chromStrand
+
+def makeCustomTrack(org, chrom, seqStart, seqEnd, seqStrand, guideData, batchId, batchName):
     " create a custom track file for a given batch and return the filename "
     ctDir = join(batchDir, "customTracks")
     if not isdir(ctDir):
@@ -4425,21 +4445,11 @@ def makeCustomTrack(org, chrom, seqStart, seqEnd, strand, guideData, batchId, ba
 
     rows = []
     for guideRow in guideData:
-        guideScore, guideCfdScore, effScores, pamStart, guideStart, strand, pamId, guideSeq, \
+        guideScore, guideCfdScore, effScores, pamStart, guideStart, guideStrand, pamId, guideSeq, \
             pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
 
         rgb = hexToRgb(scoreToColor(guideScore)[0])
-        if cpf1Mode:
-            # think part = PAM comes first
-            chromStart = seqStart+pamStart
-            thickStart = seqStart+guideStart
-            thickEnd = thickStart+GUIDELEN
-            chromEnd = thickEnd
-        else:
-            chromStart = seqStart+guideStart
-            thickStart = chromStart
-            thickEnd   = chromStart+GUIDELEN
-            chromEnd   = thickEnd
+        chromStart, chromEnd, thickStart, thickEnd, chromStrand = mapToGenome(seqStart, seqStrand, pamStart, guideStart, guideStrand)
 
         mitScore = str(guideScore)
         fusiScore = str(effScores.get("fusi", -1))
@@ -5045,6 +5055,37 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
 
     return otRows
 
+def writeHtmlTable(rows, outFile):
+    " write list of rows to outFile in html format "
+    outFile.write('<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">\n')
+    outFile.write("<table class='pure-table'>\n")
+    headDone = False
+    for row in rows:
+        if headDone:
+            tag = "td"
+        else:
+            tag = "th"
+
+        outFile.write("<tr>\n")
+        for field in row:
+            outFile.write("<%s>%s</%s>" % (tag, field, tag))
+        outFile.write("</tr>\n")
+        headDone = True
+    outFile.write("</table>\n")
+
+def writeTable(fileFormat, rows, ofh):
+    " write table to ofh, currently writes xls files as tsv "
+    if fileFormat=="tsv" or fileFormat=="xls" or fileFormat=="csv":
+        sep = "\t"
+        if fileFormat=="csv":
+            sep =","
+        for row in rows:
+            ofh.write(sep.join(row))
+            ofh.write("\n")
+        ofh.close()
+    else:
+        writeHtmlTable(rows, ofh)
+
 def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, position, batchId, optFields=None):
     """ given rows, writes a XLS binary stream to outFile, if xlwt is available
     Otherwise writes a tab-sep file.
@@ -5120,26 +5161,14 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         wb.save(outFile)
 
     elif fileFormat=="html":
-        outFile.write('<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">\n')
-        outFile.write("<table class='pure-table'>\n")
-        headDone = False
-        for row in rows:
-            if headDone:
-                tag = "td"
-            else:
-                tag = "th"
-
-            outFile.write("<tr>\n")
-            for field in row:
-                outFile.write("<%s>%s</%s>" % (tag, field, tag))
-            outFile.write("</tr>\n")
-            headDone = True
-        outFile.write("</table>\n")
-
+        writeHtmlTable(rows, outFile)
     else:
         # raw ASCII tsv output mode
+        sep = "\t"
+        if fileFormat=="csv":
+            sep = ","
         for row in rows:
-            outFile.write("\t".join(row))
+            outFile.write(sep.join(row))
             outFile.write("\n")
     outFile.flush()
 
@@ -5420,7 +5449,7 @@ def readBatchAndGuides(batchId):
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
 
-def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minFusi=0):
+def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv", minSpec=0, minFusi=0):
     """ design primers with approx ampLen and tm around each guide's target.
     outType can be "primers" or "amplicons"
     """
@@ -5440,8 +5469,10 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minF
     else:
         headers = ["#guideId", "ampliconSequence", "guideSequence"]
 
-    ofh.write("\t".join(headers))
-    ofh.write("\n")
+    rows = []
+    rows.append(headers)
+    #ofh.write("\t".join(headers))
+    #ofh.write("\n")
     
     #for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
     for guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
@@ -5470,8 +5501,9 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, minSpec=0, minF
             row = [pamName, targetSeq, guideSeq]
 
         row = [str(x) for x in row]
-        ofh.write("\t".join(row))
-        ofh.write("\n")
+        rows.append(row)
+
+    writeTable(fileFormat, rows, ofh)
 
 def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
     " write the guide sequences and their pam to ofh "
@@ -5489,6 +5521,33 @@ def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
         ofh.write("\n")
     ofh.close()
 
+def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=None):
+    " write the guide locations and their sequences to ofh, in the format for crisprSurf"
+    seqChrom, seqStart, seqEnd, seqStrand = parsePos(position)
+
+    rows = []
+    header = ["Chr","Start","Stop","sgRNA_Sequence","Strand","sgRNA_Type"]
+    rows.append(header)
+
+    for guideRow in guideData:
+        guideScore, guideCfdScore, effScores, startPos, guideStart, guideStrand, pamId, \
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+        if minSpec and guideScore < minSpec:
+            continue
+        if minFusi and effScores["fusi"] < minFusi:
+            continue
+
+        chromStart, chromEnd, _, _, chromStrand = mapToGenome(seqStart, seqStrand, startPos, guideStart, guideStrand)
+
+        row = [seqChrom, chromStart, chromEnd, chromStrand, guideSeq, 'observation']
+        row = [str(x) for x in row]
+        rows.append(row)
+
+    #xlsWrite(rows, "target locations", ofh, [10,8,8,2,23,], fileFormat, seq, org, pam, position, batchId, optFields=optFields)
+    # crisprsurf takes only csv files
+    if fileFormat=="tsv":
+        fileFormat="csv"
+    writeTable(fileFormat, rows, ofh)
 
 def fastaWrite(seqId, seq, fh, width=80):
     """ output fasta seq to file object, break to 80 char width """
@@ -5521,6 +5580,12 @@ def downloadFile(params):
         #print org, position, queryDesc
 
     fileType = params["download"]
+    # the assistant cannot set the argument as it uses multi-submit buttons
+    if fileType=="useGet":
+        for key in params:
+            if key.startswith("get-"):
+                fileType = key.split("-")[1]
+                break
 
     fileFormat = params.get("format", "tsv")
     if not fileFormat in ["tsv", "xls", "html"]:
@@ -5548,6 +5613,12 @@ def downloadFile(params):
         minFusi = cgiGetNum(params, "minFusi", 0)
         writeTargetSeqs(guideData, sys.stdout, minSpec=minSpec, minFusi=minFusi)
 
+    elif fileType=="targetLocs":
+        writeHttpAttachmentHeader("targetLocs_%s.csv" % (queryDesc), doDownload)
+        minSpec = cgiGetNum(params, "minSpec", 0)
+        minFusi = cgiGetNum(params, "minFusi", 0)
+        writeTargetLocs(position, guideData, sys.stdout, fileFormat, minSpec=minSpec, minFusi=minFusi)
+
     elif fileType=="amplicons":
         # write amplicons of all off-targets for a single guide
         fname = makeCrispressoFname(batchName, batchId)
@@ -5562,8 +5633,7 @@ def downloadFile(params):
         tm = cgiGetNum(params, "tm", 60)
         minSpec = cgiGetNum(params, "minSpec", 0)
         minFusi = cgiGetNum(params, "minFusi", 0)
-        writeOntargetAmpliconFile("amplicons", batchId, ampLen, tm, sys.stdout, minSpec, minFusi)
-
+        writeOntargetAmpliconFile("amplicons", batchId, ampLen, tm, sys.stdout, fileFormat, minSpec, minFusi)
 
     elif fileType=="ontargetPrimers":
         writeHttpAttachmentHeader("ontargetPrimers_%s.tsv" % (queryDesc), doDownload)
@@ -5571,7 +5641,7 @@ def downloadFile(params):
         tm = cgiGetNum(params, "tm", 60)
         minSpec = cgiGetNum(params, "minSpec", 0)
         minFusi = cgiGetNum(params, "minFusi", 0)
-        writeOntargetAmpliconFile("primers", batchId, ampLen, tm, sys.stdout, minSpec, minFusi)
+        writeOntargetAmpliconFile("primers", batchId, ampLen, tm, sys.stdout, fileFormat, minSpec, minFusi)
 
     elif fileType=="satMut":
         fileName = "satMutOligos-%s.%s" % (queryDesc, fileFormat)
@@ -5615,7 +5685,7 @@ def downloadFile(params):
             fastaWrite("crispor-"+queryDesc, seq, sys.stdout)
 
     else:
-        errAbort("invalid value for download parameter")
+        errAbort("invalid value for download parameter, fileType=%s" % fileType)
 
 def makeCrispressoFname(batchName, batchId):
     fnameDesc = ["crisporAmplicons"]
@@ -5875,13 +5945,12 @@ def printSatMutPage(params):
 
     print "<h3>Oligonucleotides for a Lentiviral Saturating Mutagenesis Screen</h3>"
     print("""
-    <p>This page allows you to download the complete list of all guides in your input sequence in a format ready for ordering a custom oligonucleotide pool and for cloning into the plasmid Lentiguide-puro.<br>""")
+    <p>This page allows you to download all files for the ordering and the analysis of your oligonucleotide pool.<br>""")
     #<br> You can use Excel filters or command line programs like AWK to filter the list of oligos below
     #, e.g. to include only guides with a specificy score > 50.</p>
 
-    print("""<p><strong>Subpool barcodes:</strong> to test all guides in a region using a lentiviral vector in cells, a custom
-oligonucleotide pool is ordered from a supplier. As the minimum order is
-several thousand guides and it is cheaper to order more oligos, subsets of oligos can be
+    print("""<p><strong>1 - Subpool barcodes:</strong> The minimum order is
+usually several thousand guides and it is cheaper to order more oligos. To reduce the cost per oligo, subsets can be
 tagged with a "barcode" (unrelated to Illumina sequencing index barcodes) so they
 can be selectively amplified from the pool.<br>
     <form id="paramForm" action="%(action)s" method="GET">
@@ -5891,60 +5960,66 @@ can be selectively amplified from the pool.<br>
     printDropDown("barcode", satMutBarcodes, barcode)
     print("</p>")
 
-    print("<p><strong>PCR primers:</strong> the table includes two primers for each target for validating cleavage with high-throughput sequencing. Both primers are prefixed with Illumina Adapters. The forward primer prefix is TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and the reverse prefix is GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG. These prefixes are already added to the primers in the Excel/Tab-sep tables.<br>")
+    print("<p><strong>2 - PCR primers:</strong> Output file C includes two primers per target, for cleavage analysis with high-throughput sequencing. Primers are prefixed with Illumina Adapters. The forward primer prefix is TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and the reverse prefix is GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG. These prefixes are already added to the primers in the Excel/Tab-sep tables.<br>")
     ampLen = "150"
     tm = "60"
     printAmpLenAndTm(ampLen, tm)
     print "</p>"
 
-    print("<strong>Filter: minimum specificity score</strong>")
+    print("<strong>3 - Filters</strong><br>Minimum specificity score: ")
     print("""<input id="minSpec" type="text" size="5" name="minSpec" value="30" /><br>""")
     print("""<small>A minimal value of 30 will remove only the guides in repeated regions. For screens, many researchers do not care a lot about off-targets. Increase this threshold if you want to more aggressively remove guides with many predicted off-targets.</small>""")
     print("<br>")
 
-    print("<strong>Filter: minimum Doench2016 efficiency score</strong>")
+    print("Minimum Doench2016 efficiency score: ")
     print("""<input id="minFusi" type="text" size="5" name="minFusi" value="10" /><br>""")
     print("""<small>A minimal value of 10 will only remove the least efficient guides. Increase this if want to enrich more for predicted high efficiency guides.</small>""")
     print("<br>")
 
     outTypes = [
-        ("satMut", "saturating mutagenesis screen oligonucleotides"),
-        ("targetSeqs", "Selection Analysis: guide sequences (CrispressoCount)"),
-        ("ontargetPrimers", "On-target sequencing: PCR primers, one pair for each guide target"),
-        ("ontargetAmplicons", "Cleavage Validation/Analysis: PCR Amplicons and guide sequence (CrispressoPooled)")
+        ("satMut", "A - saturating mutagenesis screen oligonucleotides"),
+        ("targetSeqs", "B1 - Selection Analysis: guide sequences (CrispressoCount, .txt format)"),
+        ("targetLocs", "B2 - Selection Analysis: guide locations (CrisprSurf, .csv format)"),
+        ("ontargetPrimers", "C - On-target sequencing: PCR primers, one pair for each guide target"),
+        ("ontargetAmplicons", "D - Cleavage Validation/Analysis: PCR Amplicons and guide sequence (CrispressoPooled)")
     ]
 
-    print("<p><strong>Output file:</strong><ul>")
-    print("<li>Saturating Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Oligonucleotide Array Supplier")
-    print("<li>Selection Analysis: the list of all guide target sequences in the input sequence, to quantify guides after selection, e.g. for CrispressoCount.</li>")
-    print("<li>On-target sequencing primers: one forward and one reverse primer for every target in the input sequence.</li>")
-    print("<li>Cleavage Analysis: for each guide (and the pair of primers), a table with the PCR amplicon sequence and the guide, e.g. for CrispressoPooled, to quantify DNA cleavage of a given guide.</ul>")
-
-    print("Output file:")
-    printDropDown("download", outTypes, "satMut")
-    print("</p>")
+    #print("Output file:")
+    #printDropDown("download", outTypes, "satMut")
+    #print("</p>")
 
     formats = [
-        ("html", "Do not download, display as webpage"),
-        ("xls", "Excel (xls)"),
-        ("tsv", "Tab-separated (tsv)"),
+        ("html", "Do not download, display as webpage to get an idea"),
+        ("xls", "Default: Excel for A and text for B/C/D"),
+        ("tsv", "For programmers: always text"),
     ]
 
-    print("<p><strong>File format:</strong> Excel tables include a header with information how the oligonucleotides were constructed.<br>Tab-separated files have no header and are easier to process than Excel tables with command line tools like AWK, otherwise the content is the same.<br>Cleavage analysis files are only available in tab-separated format.<br>")
+    print("<p><strong>4 - File format:</strong> Excel tables include a header with information how the oligonucleotides were constructed.<br>Text files have no header and are easier to process with other software.<br>Cleavage analysis files for Crispresso need to be in text format and are therefore not available as Excel files.<br>")
 
     print("File format:")
     printDropDown("format", formats, "html")
     print("<br>")
 
-    printHiddenFields(params, {"satMut":None})
+    printHiddenFields(params, {"satMut":None, "download":"useGet"})
 
     #print("The output table consists of the guide target sequences with their scores, the oligonucleotides to order and the possible sequencing primers for targeted PCR amplification of the target.")
 
+    print("<p><strong>Output files:</strong><ul>")
+    print("<li>A - Saturating Mutagenesis Oligonucleotides: the oligonucleotides to order from your Custom Oligonucleotide Array Supplier")
+    print("<li>B - Selection Analysis: for every oligo from A, its sequence and genome location. For CrisprSurf quantification</li>")
+    print("<li>C - On-target sequencing primers: one forward and one reverse primer for every target from B in the input sequence</li>")
+    print("<li>D - Cleavage Analysis: for each pair of primers from C, a table with the PCR amplicon and the guide. For CrispressoPooled, to analyze DNA cleavage induced by this guide</ul>")
+
+    print("You can click the four buttons below and save all four files.")
+
     print("</p>")
-    print("""
-    <p><input id="submitForm" style="" type="submit" name="submit" value="Download">
-    </form>
-    """)
+    print("""<p>""")
+    print("""<input id="submitForm" style="" type="submit" name="get-satMut" value="Get A - oligo list">""")
+    print("""<input id="submitForm" style="" type="submit" name="get-targetLocs" value="Get B - oligo locations">""")
+    print("""<input id="submitForm" style="" type="submit" name="get-ontargetPrimers" value="Get C - target primers">""")
+    print("""<input id="submitForm" style="" type="submit" name="get-ontargetAmplicons" value="Get D - target amplicons">""")
+
+    print("</form>")
 
 def printLibForm(params):
     """
