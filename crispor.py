@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.4"
+versionStr = "4.5"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -154,13 +154,16 @@ ALTORG = 'sacCer3'
 ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT'
 
 pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
+         ('NNG','20bp-NNG - Cas9 S. canis'),
+         ('NAA','20bp-NAA - iSpyMacCas9'),
          #('TTN','TTN-23bp - Cpf1 F. Novicida'), # Jean-Paul: various people have shown that it's not usable yet
          ('NNGRRT','21bp-NNG(A/G)(A/G)T - Cas9 S. Aureus'),
          ('NNGRRT-20','20bp-NNG(A/G)(A/G)T - Cas9 S. Aureus with 20bp-guides'),
+         ('NGK','20bp-NG(G/T) - xCas9, high efficiency PAM, recommended'),
+         ('NGN','20bp-NGN or GA(A/T) - xCas9, low efficiency PAM'),
+         #('NGG-BE1','20bp-NGG - BaseEditor1, modifies C->T'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNRRT-20','20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides'),
-         #('NGG-BE1','20bp-NGG - BaseEditor1, modifies C->T'),
-         #('NNG','20bp-NNG - Cas9 S. canis'),
          ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
          ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
@@ -168,9 +171,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp. - recommended'),
-         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency'),
-         ('NGK','20bp-NG(G/T) - xCas9, high efficiency PAM, recommended'),
-         ('NGN','20bp-NGN or GA(A/T) - xCas9, low efficiency PAM')
+         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency')
          #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
          #('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
        ]
@@ -204,7 +205,7 @@ MAXSEQLEN = 2000
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
 # maximum input size when using xCas9 or sCanis
-MAXSEQLEN2 = 750
+MAXSEQLEN2 = 600
 
 # BWA: allow up to X mismatches
 maxMMs=4
@@ -272,7 +273,7 @@ commandLineMode = False
 
 # names/order of efficiency scores to show in UI
 scoreNames = ["fusi", "crisprScan"]
-allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro"]
+allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
 
 cpf1ScoreNames = ["seqDeepCpf1"]
 
@@ -358,6 +359,7 @@ scoreDescs = {
     "fusi" : ("Doench '16", "Aka the 'Fusi-Score', since V4.4 using the version 'Azimuth', scores are slightly different than before April 2018 but very similar (click 'show all' to see the old scores). Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a> and <a target=_blank href='https://crispr.ml/'>crispr.ml</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
     "fusiOld" : ("Doench '16-Old", "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018."),
     "najm" : ("Najm 2018", "A modified version of the Doench 2016 score ('Azimuth'), by Mudra Hegde for S. aureus Cas9. Range 0-100. See <a target=_blank href='https://www.nature.com/articles/nbt.4048'>Najm et al 2018</a>."),
+    "ccTop" : ("CCTop", "The efficiency score used by CCTop, called 'crisprRank'."),
     "aziInVitro" : ("Azimuth in-vitro", "The Doench 2016 model trained on the Moreno-Mateos zebrafish data. Unpublished model, gratefully provided by J. Listgarden"),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
@@ -1703,7 +1705,7 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
                 guideNoPam = "A"+guideNoPam
 
             if isCpf1:
-                # Cpf1 has no scores yet
+                # Cpf1 has no off-target scores yet
                 mitScore=0.0
                 cfdScore=0.0
             elif isSaCas9:
@@ -2458,7 +2460,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     if not cpf1Mode:
         print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
         if pamIsSaCas9(pam):
-            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This is a special specificity score for SaCas9, provided by Josh Tycko, now at Editas. Like the MIT score for spCas9, this specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
+            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This specificity score has been adapted for SaCas9 and based on the off-target scores shown on mouse-over. The algorithm was provided by Josh Tycko. Like the MIT score for spCas9, it is aggregated from all off-target scores and ranges 0-100. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
         else:
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print "</th>"
@@ -3852,7 +3854,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>New in V4.4, May 2018: Doench2016 update, xCas9 support, new Cpf1 and saCas9 scores - <a href="doc/changes.html">Full list of changes</a></i>
+<br><i>New in V4.5, Sep 2018: saCas9 specificity score from Josh Tycko - <a href="doc/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -7397,7 +7399,7 @@ Command line interface for the Crispor tool.
         action="store_true", help="run internal tests")
     pamNames = (",".join([x for x,y in pamDesc]))
     parser.add_option("-p", "--pam", dest="pam", \
-        action="store", help="PAM-motif to use, default %default. TTTN triggers special Cpf1 behavior: no scores anymore + the PAM is assumed to be 5' of the guide. Common PAMs are: " + pamNames, default="NGG")
+        action="store", help="PAM-motif to use, default %default. TTTN triggers special Cpf1 behavior: the PAM is assumed to be 5' of the guide. Common PAMs are: " + pamNames, default="NGG")
     parser.add_option("-o", "--offtargets", dest="offtargetFname", \
         action="store", help="write offtarget info to this filename")
     parser.add_option("-m", "--maxOcc", dest="maxOcc", \

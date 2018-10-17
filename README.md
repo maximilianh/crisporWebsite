@@ -30,7 +30,7 @@ For the Cpf1 scoring model:
 
     sudo pip install keras tensorflow h5py
 
-Install required R libraries:
+Install required R libraries for the WangSVM efficiency score:
    
     sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
     sudo Rscript -e 'source("https://bioconductor.org/biocLite.R"); biocLite(c("limma"));'
