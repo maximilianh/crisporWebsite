@@ -27,7 +27,7 @@ except ImportError:
 needModules = set(["tabix", "twobitreader", "pandas", "matplotlib", "scipy"])
 try:
     import tabix # if not found, install with 'pip install pytabix'
-    needModules.remove("tabix")
+    needModules.remove("pytabix")
 except:
     pass
 
