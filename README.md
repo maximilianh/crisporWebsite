@@ -14,6 +14,8 @@ interface that may be sufficient for programmers.
 
 # Installation of CRISPOR
 
+CRISPOR uses python2.7. Change `pip` to `pip2` in the commands below if your default python is python3.
+
 Install BWA and a few required python modules:
     
     # Debian/Ubuntu
