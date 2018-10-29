@@ -6587,7 +6587,6 @@ def getTargetForPrimerDesign(guideStart, ampLen, hdrDist, strand):
             cutAt = guideStart + 17
         else:
             cutAt = guideStart + 6
-            hdrDist *= -1
         # hdrDist is defined as the distance to the right of the cut to the insert
         insertAt = cutAt - hdrDist
 
