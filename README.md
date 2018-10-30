@@ -6,11 +6,16 @@ http://crispor.org
 
 CRISPOR uses BWA, a few tools from the UCSC Genome Browser (twoBitToFa, bedClip),
 various R packages and a huge collection of external packages and source code files
-from published articles, see the file crisporEffScores.py for the exact references.
+from published articles, see the file crisporEffScores.py for the exact references or 
+the tool tips when you mouse over the scores on the interactive website or the user's
+manual http://crispor.org/manual/.
+
+If you need to analyze thousands of guides for a library, the tool FlashFry is
+probably the better tool for you, see https://github.com/aaronmck/FlashFry
 
 If you only need efficiency scores and no interactive website, try "python
 crisporEffScores.py", it is a python module but also has a command line
-interface that may be sufficient for programmers.
+interface that may be sufficient for programmers. 
 
 # Installation of CRISPOR
 
@@ -18,13 +23,13 @@ Install BWA and a few required python modules:
     
     # Debian/Ubuntu
     apt-get install bwa python-pip python-matplotlib
-    sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader
+    sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas twobitreader
     
 or 
    
     # Fedora/Centos/Redhat/Scientific Linux
     yum install bwa python-pip python-devel tkinter
-    sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
+    sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas matplotlib twobitreader
     
 For the Cpf1 scoring model:
 

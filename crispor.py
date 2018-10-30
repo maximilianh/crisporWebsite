@@ -24,10 +24,10 @@ except ImportError:
 
 # try to load external dependencies
 # we're going into great lengths to create a readable error message
-needModules = set(["tabix", "twobitreader", "pandas", "matplotlib", "scipy"])
+needModules = set(["pytabix", "twobitreader", "pandas", "matplotlib", "scipy"])
 try:
     import tabix # if not found, install with 'pip install pytabix'
-    needModules.remove("tabix")
+    needModules.remove("pytabix")
 except:
     pass
 
