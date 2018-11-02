@@ -1797,7 +1797,9 @@ def calcSaHitScore(guideSeq, otSeq):
         saGuide = guideSeq
         saScorer = predictSingle.SaCas9Scorer(len(guideSeq))
 
-    return saScorer.calcScore(guideSeq, otSeq)
+    # to be compatible with the MIT score, has to be in the range 0-100
+    # for the MIT aggregate guide specificity score
+    return 100.0*saScorer.calcScore(guideSeq, otSeq)
 
 # MIT offtarget scoring, "Hsu score"
 
@@ -2459,7 +2461,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     print '''</small>'''
 
     if not cpf1Mode:
-        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
+        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">Specificity Score</a>' % batchId
         if pamIsSaCas9(pam):
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This specificity score has been adapted for SaCas9 and based on the off-target scores shown on mouse-over. The algorithm was provided by Josh Tycko. Like the MIT score for spCas9, it is aggregated from all off-target scores and ranges 0-100. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
         else:
@@ -2471,7 +2473,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     else:
        print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
-    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
+    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
 
     if not cpf1Mode and not pamIsSaCas9(pam):
         if cgiParams.get("showAllScores", "0")=="0":
@@ -2492,7 +2494,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
             oofName="Out-of- Frame"
             oofDesc = "Click score for details"
 
-        print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
+        print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score. Hover over the (i) to show information about this score. Click the scores themselves to see the predicted indel pattern around the guide.">%s</a>' % (oofWidth, batchId, oofName)
         htmlHelp(scoreDescs["oof"][1])
         print "<br><br><small>%s</small>" % oofDesc
         print '</th>'
