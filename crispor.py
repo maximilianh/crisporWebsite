@@ -3399,11 +3399,16 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     altPats = ",".join(offtargetPams.get(pam, ["na"]))
     bedFnameTmp = bedFname+".tmp"
     altPamMinScore = str(ALTPAMMINSCORE)
-    # EXTRACTION OF SEQUENCES + ANNOTATION
+    shmFaFname = join("/dev/shm", genome+".fa")
+
+    # EXTRACTION OF SEQUENCES + ANNOTATION - big headache!!
     # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it should be OK
-    # Hiram says this is faster:
-    # bedtools getfasta -s -name -fi %(genome)s.fa -bed %(matchesBedFname)s -fo /dev/stdout  | xxx
-    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    # bedtools uses an fa.idx file and also mmap, so is a LOT faster
+    if isfile(shmFaFname):
+        logging.info("Using bedtools and genome fasta on ramdisk, %s" % shmFaFname)
+        cmd = "time bedtools getfasta -s -name -fi %(shmFaFname)s -bed %(matchesBedFname)s -fo /dev/stdout | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    else:
+        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
