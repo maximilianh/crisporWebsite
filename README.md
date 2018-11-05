@@ -19,6 +19,8 @@ interface that may be sufficient for programmers.
 
 # Installation of CRISPOR
 
+CRISPOR uses python2.7. Change `pip` to `pip2` in the commands below if your default python is python3.
+
 Install BWA and a few required python modules:
     
     # Debian/Ubuntu
@@ -161,7 +163,7 @@ Now try to access the script from a webbrowser, http://localhost/crispor.py and 
 
 # Adding a genome
 
-Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome.
+Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome. You may need to download `twoBitToFa` from http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/. 
 
 The subdirectory usrLocalBin contains required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
 

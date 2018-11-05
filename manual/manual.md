@@ -390,6 +390,12 @@ Pools with up to several thousand guides can be ordered from custom oligonucleot
 manufacturers, containing subpools of guides that can induce thousands of deletions into
 a target sequence.
 
+To save money, you usually order several libraries together as a single pool.
+Each library has a unique barcode and you can amplify a library from it with PCR
+and the unique barcode as a primer.
+
+![PCR to amplify a library from the oligo pool](fig/subpools.png)
+
 The CRISPOR Saturating mutagenesis assistant makes this much easier by generating
 tables with all relevant guides in a target sequence, prefixed with the right
 adapter sequences, input files for CRISPRESSO to quantify the guides (see
