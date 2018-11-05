@@ -14,4 +14,8 @@ Doench 2016 score: Azimuth-2.0/ is from https://github.com/MicrosoftResearch/Azi
 
 SaCas9 Score: najm2018/ was sent by email from Mudra Hegde and John Doench. Must be used with Azimuth.
 
+saCas9 off-target score: src/pairwise-library-screen/ received by email from Josh Tycko.
+    paper: https://www.nature.com/articles/s41467-018-05391-2
+    License: src/pairwise-library-screen/LICENSE
+
 azimuthMoreno/: in-vitro model for Azimuth. see README.
