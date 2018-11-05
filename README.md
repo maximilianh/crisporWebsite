@@ -175,6 +175,25 @@ The four |-split values for the --desc option are: internalDatabaseName, scienti
 
 Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used for the directory name.
 
+# "I am running many thousands of guides and it is very slow"
+
+Instead of feeding it a multi-fasta file (where crispor will map every piece to
+the genome first), try to feed it a single sequence and separate every 23bp-target in it with NN.
+This means that you will not get the efficiency scores but you can run these separately or in parallel with 
+crisporEfficiencyScores.py. 
+
+For a major speedup in processing time, try to put the genome onto the ramdisk:
+
+    twoBitToFa genomes/hg19/hg19.2bit /dev/shm/hg19.fa
+
+crispor.py will find the genome file and use bedtools to get the
+flanking sequences. This is almost 10x faster than the twoBitToFa command (at
+the cost of more RAM).
+
+Alternatively, you may want to give flashfry by Aaron McKenna a try. It is
+optimized for large libraries, it uses much more RAM and has fewer scores but
+is sufficient for most large-library-design applications.
+
 # Thanks!
 * Jean-Paul Concordet for numerous ideas on the user interface
 * Alberto Stolfi for the finding the N-SNP-bug
