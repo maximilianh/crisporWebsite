@@ -6,11 +6,16 @@ http://crispor.org
 
 CRISPOR uses BWA, a few tools from the UCSC Genome Browser (twoBitToFa, bedClip),
 various R packages and a huge collection of external packages and source code files
-from published articles, see the file crisporEffScores.py for the exact references.
+from published articles, see the file crisporEffScores.py for the exact references or 
+the tool tips when you mouse over the scores on the interactive website or the user's
+manual http://crispor.org/manual/.
+
+If you need to analyze thousands of guides for a library, the tool FlashFry is
+probably the better tool for you, see https://github.com/aaronmck/FlashFry
 
 If you only need efficiency scores and no interactive website, try "python
 crisporEffScores.py", it is a python module but also has a command line
-interface that may be sufficient for programmers.
+interface that may be sufficient for programmers. 
 
 # Installation of CRISPOR
 
@@ -20,13 +25,13 @@ Install BWA and a few required python modules:
     
     # Debian/Ubuntu
     apt-get install bwa python-pip python-matplotlib
-    sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader
+    sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas twobitreader
     
 or 
    
     # Fedora/Centos/Redhat/Scientific Linux
     yum install bwa python-pip python-devel tkinter
-    sudo pip install biopython numpy scikit-learn==0.16.1 pandas matplotlib twobitreader
+    sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas matplotlib twobitreader
     
 For the Cpf1 scoring model:
 
@@ -171,6 +176,25 @@ E.g. to add the X. laevis genome:
 The four |-split values for the --desc option are: internalDatabaseName, scientificName, commonOrDisplayName, VersionNameOfAssembly
 
 Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used for the directory name.
+
+# "I am running many thousands of guides and it is very slow"
+
+Instead of feeding it a multi-fasta file (where crispor will map every piece to
+the genome first), try to feed it a single sequence and separate every 23bp-target in it with NN.
+This means that you will not get the efficiency scores but you can run these separately or in parallel with 
+crisporEfficiencyScores.py. 
+
+For a major speedup in processing time, try to put the genome onto the ramdisk:
+
+    twoBitToFa genomes/hg19/hg19.2bit /dev/shm/hg19.fa
+
+crispor.py will find the genome file and use bedtools to get the
+flanking sequences. This is almost 10x faster than the twoBitToFa command (at
+the cost of more RAM).
+
+Alternatively, you may want to give flashfry by Aaron McKenna a try. It is
+optimized for large libraries, it uses much more RAM and has fewer scores but
+is sufficient for most large-library-design applications.
 
 # Thanks!
 * Jean-Paul Concordet for numerous ideas on the user interface

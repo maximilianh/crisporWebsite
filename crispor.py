@@ -3162,8 +3162,13 @@ def runCmd(cmd, ignoreExitCode=False, useShell=True):
             print "please send us an email, we will fix this error as quickly as possible. %s " % contactEmail
             sys.exit(0)
 
+def isAltChrom(chrom):
+    """ return true is chrom name looks like it's not on the primary assembly. This is mostly relevant for hg38.
+    examples: chr6_xxx_alt (hg38)
+    """
+    return chrom.endswith("_alt")
 
-def parseOfftargets(bedFname):
+def parseOfftargets(bedFname, onTargetChrom=""):
     """ parse a bed file with annotataed off target matches from overlapSelect,
     has two name fields, one with the pam position/strand and one with the
     overlapped segment 
@@ -3172,6 +3177,14 @@ def parseOfftargets(bedFname):
     segType is "ex" "int" or "ig" (=intergenic)
     if intergenic, geneNameStr is two genes, split by |
     """
+    # edge case: target is on chr6_alt -> we remove a single off-target with 0 mismatches on chr6
+    targetIsAlt = isAltChrom(onTargetChrom)
+    # keep track of pamIds already handled for this edge case
+    skippedPams = set()
+    # ideally we would check if the offtarget falls into the chrom area that gave rise to the alt
+    # but that would mean parsing yet another non-small file and this case should be sufficiently rare
+    # to not bother 99% of users.
+
     # example input:
     # chrIV 9864393 9864410 s41-|-|5|ACTTGACTG|0    chrIV   9864303 9864408 ex:K07F5.16
     # chrIV   9864393 9864410 s41-|-|5|ACTGTAGCTAGCT|9999    chrIV   9864408 9864470 in:K07F5.16
@@ -3186,10 +3199,17 @@ def parseOfftargets(bedFname):
         # hg38: ignore alternate chromosomes otherwise the 
         # regions on the main chroms look as if they could not be 
         # targeted at all with Cas9
-        if chrom.endswith("_alt"):
+            
+        if isAltChrom(chrom):
             continue
         nameFields = name.split("|")
         pamId, strand, editDist, seq = nameFields[:4]
+
+        if targetIsAlt:
+            if editDist=='0' and onTargetChrom.split("_")[0]==chrom.split("_")[0] and not pamId in skippedPams:
+                logging.debug("altChrom edge case: target is on alt-chrom, skipping a single 0-mismatch off-target on primary chrom")
+                skippedPams.add(pamId)
+                continue
 
         if len(nameFields)>4:
             x1Count = int(nameFields[4])
@@ -3402,11 +3422,16 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     altPats = ",".join(offtargetPams.get(pam, ["na"]))
     bedFnameTmp = bedFname+".tmp"
     altPamMinScore = str(ALTPAMMINSCORE)
-    # EXTRACTION OF SEQUENCES + ANNOTATION
+    shmFaFname = join("/dev/shm", genome+".fa")
+
+    # EXTRACTION OF SEQUENCES + ANNOTATION - big headache!!
     # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it should be OK
-    # Hiram says this is faster:
-    # bedtools getfasta -s -name -fi %(genome)s.fa -bed %(matchesBedFname)s -fo /dev/stdout  | xxx
-    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    # bedtools uses an fa.idx file and also mmap, so is a LOT faster
+    if isfile(shmFaFname):
+        logging.info("Using bedtools and genome fasta on ramdisk, %s" % shmFaFname)
+        cmd = "time bedtools getfasta -s -name -fi %(shmFaFname)s -bed %(matchesBedFname)s -fo /dev/stdout | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    else:
+        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
@@ -4048,7 +4073,7 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
 
     json.dump(batchData, ofh)
     ofh.close()
-    # fixes a run condition
+    # fixes a race condition
     os.rename(batchJsonTmpName, batchJsonName)
     return batchId, posStr, extSeq
 
@@ -4772,7 +4797,7 @@ def crisprSearch(params):
         print "</div>"
         #print " (link to Genome Browser)</div>"
 
-    otMatches = parseOfftargets(otBedFname)
+    otMatches = parseOfftargets(otBedFname, chrom)
     effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy, org=org)
@@ -5438,6 +5463,7 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat
 def readBatchAndGuides(batchId):
     " parse the input file, the batchId-json file and the offtargets and link everything together "
     seq, org, pam, position, extSeq = readBatchParams(batchId)
+    chrom, _, _, _ = parsePos(position)
     pam = setupPamInfo(pam)
     uppSeq = seq.upper()
 
@@ -5446,7 +5472,7 @@ def readBatchAndGuides(batchId):
     otBedFname = join(batchDir, batchId+".bed")
     effScoreFname = join(batchDir, batchId+".effScores.tab")
 
-    otMatches = parseOfftargets(otBedFname)
+    otMatches = parseOfftargets(otBedFname, chrom)
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
@@ -5458,7 +5484,9 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
     inSeq, db, pamPat, position, extSeq = readBatchParams(batchId)
     batchBase = join(batchDir, batchId)
     otBedFname = batchBase+".bed"
-    otMatches = parseOfftargets(otBedFname)
+
+    chrom, _, _, _ = parsePos(position)
+    otMatches = parseOfftargets(otBedFname, chrom)
 
     startDict, endSet = findAllPams(inSeq, pamPat)
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
@@ -6466,6 +6494,7 @@ def findBestMatch(genome, seq, batchId):
 
     chrom, start, end = None, None, None
     logging.debug("Parsing SAM file %s" % samFname)
+    matches = []
     for l in open(samFname):
         if l.startswith("@"):
             continue
@@ -6493,12 +6522,20 @@ def findBestMatch(genome, seq, batchId):
         matchLen = int(cleanCigar)
         chrom, start, end =  rName, int(pos)-1, int(pos)-1+matchLen # SAM is 1-based
         assert("|" not in chrom) # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
+        matches.append( (chrom, start, end, strand) )
 
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
-    logging.debug("Found best match at %s:%d-%d:%s" % (chrom, start, end, strand))
-    return chrom, start, end, strand
+
+    nonAltMatches = [x for x in matches if not isAltChrom(x[0])]
+    if len(nonAltMatches)!=0:
+        bestMatch = nonAltMatches[0]
+    else:
+        bestMatch = matches[0]
+
+    logging.debug("Found %d best matches, %d on non-alts. matches: %s, best match %s" % (len(matches), len(nonAltMatches), matches, bestMatch))
+    return bestMatch
 
 def maskLowercase(seq):
     " replace all lowercase letters with 'N' "
