@@ -1088,6 +1088,9 @@ def calcWuCrisprScore(seqs):
             continue
         seqId, score, seq, orient, pos = line.split("\t")
         #print "got wucrisp row", seqId, score, seq, orient, pos
+        if pos=="":
+            # strange case that appeared a couple of times in the logs. e.g. 64lC1lFkH1uuKE2XZuRz
+            continue
         start = int(pos.split(",")[0])-1
         if not (start == 0 and orient=="sense"):
             #print "skipping, incorrect position"
