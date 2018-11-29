@@ -1087,7 +1087,6 @@ def calcWuCrisprScore(seqs):
         if line.startswith("seqId"):
             continue
         seqId, score, seq, orient, pos = line.split("\t")
-        #print "got wucrisp row", seqId, score, seq, orient, pos
         if pos=="":
             # strange case that appeared a couple of times in the logs. e.g. 64lC1lFkH1uuKE2XZuRz
             continue
@@ -1095,9 +1094,7 @@ def calcWuCrisprScore(seqs):
         if not (start == 0 and orient=="sense"):
             #print "skipping, incorrect position"
             continue
-        #print "keeping seq/score", seq, score
         scoreDict[seq] = int(score)
-        #scores.append(int(score))
 
     # return 0 for all sequences where we didn't get a score back from
     # wu-crispr
