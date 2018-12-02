@@ -7,9 +7,9 @@
 
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
-import Cookie, time, sys, cgi, re, random, platform, os
+import Cookie, time, sys, cgi, re, random, platform, os, pipes
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
-import traceback, json, pwd, pickle
+import traceback, json, pwd, pickle, gzip
 
 from datetime import datetime
 from collections import defaultdict, namedtuple
@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.5"
+versionStr = "4.6"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -3171,7 +3171,7 @@ def isAltChrom(chrom):
 def parseOfftargets(bedFname, onTargetChrom=""):
     """ parse a bed file with annotataed off target matches from overlapSelect,
     has two name fields, one with the pam position/strand and one with the
-    overlapped segment 
+    overlapped segment
     
     return as dict pamId -> editDist -> (chrom, start, end, seq, strand, segType, segName, x1Score)
     segType is "ex" "int" or "ig" (=intergenic)
@@ -3193,13 +3193,19 @@ def parseOfftargets(bedFname, onTargetChrom=""):
     # first sort into dict (pamId,chrom,start,end,editDist,strand) 
     # -> (segType, segName) 
     pamData = {}
-    for line in open(bedFname):
+
+    if bedFname.endswith(".gz"):
+        ifh = gzip.open(bedFname)
+    else:
+        ifh = open(bedFname)
+
+    for line in ifh:
         fields = line.rstrip("\n").split("\t")
         chrom, start, end, name, segment = fields
         # hg38: ignore alternate chromosomes otherwise the 
         # regions on the main chroms look as if they could not be 
         # targeted at all with Cas9
-            
+
         if isAltChrom(chrom):
             continue
         nameFields = name.split("|")
@@ -3250,7 +3256,7 @@ def annotateBedWithPos(inBed, outBed):
     given an input bed4 and an output bed filename, add an additional column 5 to the bed file
     that is a descriptive text of the chromosome pos (e.g. chr1:1.23 Mbp).
     """
-    ofh = open(outBed, "w")
+    ofh = gzip.open(outBed, "w")
     for line in open(inBed):
         chrom, start = line.split("\t")[:2]
         start = int(start)
@@ -3440,7 +3446,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 | gzip > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -4105,7 +4111,9 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
     pam = setupPamInfo(pamDesc)
     assert('-' not in pam)
     batchBase = join(batchDir, batchId)
-    otBedFname = batchBase+".bed"
+
+    otBedFname = batchBase+".bed.gz"
+
     flagFile = batchBase+".running"
 
     if isfile(flagFile):
@@ -4393,7 +4401,6 @@ def showSeqDownloadMenu(batchId):
     html = '<a href="%s">ApE</a> (<a target=_blank href="http://biologylabs.utah.edu/jorgensen/wayned/ape/">free</a>)' % myUrl
     htmls.append(html)
 
-    #myUrl = "http://crispor.tefor.net/"+cgiGetSelfUrl({"download":"genomecompiler"})
     myUrl = "http://crispor.tefor.net/crispor.py?batchId=%s&download=genomecompiler" % batchId
     #backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
     backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
@@ -4769,6 +4776,7 @@ def crisprSearch(params):
 
     elif position=='?':
         printQueryNotFoundNote(dbInfo)
+        chrom = ""
     else:
         genomePosStr = ":".join(position.split(":")[:2])
         chrom, start, end, strand = parsePos(position)
@@ -4981,7 +4989,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         oligoPrefix, oligoSuffix, primerFwPrefix, primerRevPrefix, batchId, genome, position, ampLen, tm = satMutOpt
 
         batchBase = join(batchDir, batchId)
-        otBedFname = batchBase+".bed"
+        otBedFname = batchBase+".bed.gz"
         otMatches = parseOfftargets(otBedFname)
 
         guideData.sort(key=operator.itemgetter(3)) # sort by position, makes more sense here
@@ -5469,7 +5477,7 @@ def readBatchAndGuides(batchId):
 
     startDict, endSet = findAllPams(uppSeq, pam)
 
-    otBedFname = join(batchDir, batchId+".bed")
+    otBedFname = join(batchDir, batchId+".bed.gz")
     effScoreFname = join(batchDir, batchId+".effScores.tab")
 
     otMatches = parseOfftargets(otBedFname, chrom)
@@ -6014,10 +6022,6 @@ can be selectively amplified from the pool.<br>
         ("ontargetAmplicons", "D - Cleavage Validation/Analysis: PCR Amplicons and guide sequence (CrispressoPooled)")
     ]
 
-    #print("Output file:")
-    #printDropDown("download", outTypes, "satMut")
-    #print("</p>")
-
     formats = [
         ("html", "Do not download, display as webpage to get an idea"),
         ("xls", "Default: Excel for A and text for B/C/D"),
@@ -6489,7 +6493,8 @@ def findBestMatch(genome, seq, batchId):
     samFname = tmpSamFh.name
 
     bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
-    cmd = "true %(batchId)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
+    remoteAddr = pipes.quote(os.environ["REMOTE_ADDR"])
+    cmd = "true %(batchId)s %(remoteAddr)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
