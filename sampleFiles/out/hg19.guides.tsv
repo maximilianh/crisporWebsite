@@ -1,0 +1,59 @@
+#seqId	guideId	targetSeq	mitSpecScore	offtargetCount	targetGenomeGeneLocus	Doench '16-Score	Doench '16-Old-Score	Chari-Score	Xu-Score	Doench '14-Score	Wang-Score	Moreno-Mateos-Score	Azimuth in-vitro-Score	CCTop-Score	Out-of-Frame-Score
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	447rev	ATTGAGTGACCACTCTACGGTGG	95	46	intergenic:FBXL18-ACTB	70	66	96	0.995483	41	90	47	43	0.8341651	53
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	243forw	TCCTCTATACCCGCACTATCTGG	94	34	intergenic:FBXL18-ACTB	37	41	42	-0.641813	10	12	28	29	0.473720165	72
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	445rev	TGAGTGACCACTCTACGGTGGGG	93	59	intergenic:FBXL18-ACTB	66	65	65	0.746217	21	86	60	49	0.74056298	58
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	75rev	ACTTTGATGAACACGAGCATCGG	92	78	intergenic:FBXL18-ACTB	60	54	36	0.510203	42	74	49	47	0.711288455	88
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	74rev	CTTTGATGAACACGAGCATCGGG	91	77	intergenic:FBXL18-ACTB	50	48	40	-0.308925	12	20	46	35	0.53368129	88
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	446rev	TTGAGTGACCACTCTACGGTGGG	91	57	intergenic:FBXL18-ACTB	60	57	34	0.331928	22	58	56	49	0.625146375	52
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	458forw	TAGCCTCCCCCACCGTAGAGTGG	90	58	intergenic:FBXL18-ACTB	57	60	89	0.290784	30	68	47	49	0.74802302	66
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	224rev	GCCAGATAGTGCGGGTATAGAGG	88	49	intergenic:FBXL18-ACTB	50	46	84	-0.118752	17	47	48	54	0.672713965	68
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	173rev	CACCAGGCACCCAGTTTAATGGG	85	89	intergenic:FBXL18-ACTB	16	32	12	-0.668159	11	15	32	29	0.583822915	71
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	217forw	GGACACGGAACACATCTGGTTGG	84	92	intergenic:FBXL18-ACTB	69	67	89	-0.252022	64	73	30	38	0.69216565	65
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	172rev	ACCAGGCACCCAGTTTAATGGGG	83	121	intergenic:FBXL18-ACTB	57	66	93	0.279011	31	50	46	38	0.779754905	74
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	444rev	GAGTGACCACTCTACGGTGGGGG	83	47	intergenic:FBXL18-ACTB	63	62	50	0.477853	25	82	85	73	0.743591525	52
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	151rev	GGAAGACATCACAAGCACGAAGG	82	177	intergenic:FBXL18-ACTB	75	72	98	0.75635	58	90	51	39	0.70191154	66
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	232rev	CTATTTGTGCCAGATAGTGCGGG	82	91	intergenic:FBXL18-ACTB	61	60	23	0.380265	60	69	34	41	0.749123245	60
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	191forw	TCCCCATTAAACTGGGTGCCTGG	81	94	intergenic:FBXL18-ACTB	47	45	19	-0.8489	4	11	20	27	0.503559075	73
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	213forw	GTGAGGACACGGAACACATCTGG	81	123	intergenic:FBXL18-ACTB	49	47	45	-0.258769	15	48	50	40	0.69591238	65
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	263forw	TGGCACAAATAGTGATTGGATGG	79	139	intergenic:FBXL18-ACTB	56	57	33	-0.200197	10	45	47	29	0.454986395	68
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	441rev	TGACCACTCTACGGTGGGGGAGG	79	71	intergenic:FBXL18-ACTB	55	54	82	0.69494	16	77	62	71	0.65791891	57
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	450rev	TTCATTGAGTGACCACTCTACGG	79	126	intergenic:FBXL18-ACTB	51	57	74	-0.149662	24	33	48	39	0.61117632	63
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	474forw	AGAGTGGTCACTCAATGAATGGG	79	129	intergenic:FBXL18-ACTB	39	50	10	0.364836	20	74	55	37	0.67089784	59
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	4rev	TACTTCAAACCTTATCTAATTGG	76	144	intergenic:FBXL18-ACTB	23	14	13	-0.935767	4	14	-5	10	0.596791605	67
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	174rev	TCACCAGGCACCCAGTTTAATGG	76	147	intergenic:FBXL18-ACTB	27	32	68	-0.438686	23	34	28	42	0.73626611	70
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	233rev	ACTATTTGTGCCAGATAGTGCGG	76	152	intergenic:FBXL18-ACTB	48	58	77	-0.146959	16	55	48	33	0.57031211	60
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	492forw	ATGGGGGTTGAATGATTAAGTGG	76	176	intergenic:FBXL18-ACTB	57	63	58	0.476668	13	60	65	38	0.646379815	60
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	259forw	TATCTGGCACAAATAGTGATTGG	74	118	intergenic:FBXL18-ACTB	57	49	26	-0.121156	33	43	38	18	0.689754775	71
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	3rev	ACTTCAAACCTTATCTAATTGGG	71	181	intergenic:FBXL18-ACTB	22	42	19	-0.439324	3	17	31	17	0.569134935	65
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	183forw	TGATGTCTTCCCCATTAAACTGG	71	195	intergenic:FBXL18-ACTB	27	27	22	-0.209158	9	39	24	35	0.6814863	68
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	499forw	TTGAATGATTAAGTGGCCCAAGG	71	136	intergenic:FBXL18-ACTB	60	64	84	0.541589	6	69	56	56	0.59460934	68
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	112rev	CAGTGACATGCTGTGATCATAGG	70	226	intergenic:FBXL18-ACTB	54	49	33	-0.060375	6	29	75	45	0.673926385	69
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	473forw	TAGAGTGGTCACTCAATGAATGG	70	180	intergenic:FBXL18-ACTB	49	47	41	-0.103815	15	51	63	42	0.543539375	60
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	418rev	CTACTGAGATGACCTGGACAAGG	69	179	intergenic:FBXL18-ACTB	66	63	64	0.323376	33	65	17	29	0.771361775	53
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	475forw	GAGTGGTCACTCAATGAATGGGG	69	163	intergenic:FBXL18-ACTB	62	63	63	0.006039	8	72	52	40	0.718365815	68
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	189rev	ATGTGTTCCGTGTCCTCACCAGG	68	148	intergenic:FBXL18-ACTB	53	54	2	-0.114528	9	25	64	57	0.658180695	73
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	184forw	GATGTCTTCCCCATTAAACTGGG	66	190	intergenic:FBXL18-ACTB	57	62	36	-0.009488	57	57	18	30	0.72895054	65
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	476forw	AGTGGTCACTCAATGAATGGGGG	65	223	intergenic:FBXL18-ACTB	72	72	97	0.895598	58	83	60	60	0.866252625	66
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	196forw	ATTAAACTGGGTGCCTGGTGAGG	62	230	intergenic:FBXL18-ACTB	58	59	63	0.185436	6	59	65	44	0.667154845	73
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	381rev	GAGCTGTCAGTCTGGAAGTGAGG	61	284	intergenic:FBXL18-ACTB	64	62	77	-0.268402	6	67	71	64	0.694952495	74
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	424rev	GGGAGGCTACTGAGATGACCTGG	59	228	intergenic:FBXL18-ACTB	54	62	19	-0.160866	13	64	39	46	0.529250435	63
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	426forw	CCAGGGCAGGGTCCTTGTCCAGG	58	363	intergenic:FBXL18-ACTB	40	42	15	-0.02693	1	55	49	48	0.82963962	60
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	50rev	GATGTTCATTATGTCGATTGTGG	56	421	intergenic:FBXL18-ACTB	62	63	59	-0.181454	3	61	55	50	0.804863535	55
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	406rev	CCTGGACAAGGACCCTGCCCTGG	52	320	intergenic:FBXL18-ACTB	48	47	56	0.328894	5	68	38	47	0.81076487	58
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	389rev	CCCTGGAGGAGCTGTCAGTCTGG	49	361	intergenic:FBXL18-ACTB	37	36	34	-0.72507	0	20	40	38	0.5920005	74
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	35rev	GATTGTGGTGGTGGTCTTGCAGG	41	1389	intergenic:FBXL18-ACTB	40	37	52	-0.440895	7	39	62	46	0.65938875	41
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	202forw	CTGGGTGCCTGGTGAGGACACGG	37	578	intergenic:FBXL18-ACTB	58	55	4	0.331882	5	52	79	61	0.581515145	60
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	47rev	GTTCATTATGTCGATTGTGGTGG	36	458	intergenic:FBXL18-ACTB	63	68	57	0.06596	15	76	51	42	0.74922171	40
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	44rev	CATTATGTCGATTGTGGTGGTGG	32	547	intergenic:FBXL18-ACTB	48	48	20	0.205931	14	63	43	40	0.616702525	34
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	408forw	TCCAGACTGACAGCTCCTCCAGG	32	342	intergenic:FBXL18-ACTB	50	48	54	-0.089756	5	39	22	28	0.706960705	53
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	403rev	GGACAAGGACCCTGCCCTGGAGG	31	498	intergenic:FBXL18-ACTB	60	62	97	0.245398	19	76	64	65	0.70669892	59
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	409forw	CCAGACTGACAGCTCCTCCAGGG	31	447	intergenic:FBXL18-ACTB	63	64	79	0.226421	67	69	60	55	0.74094566	58
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	267forw	ACAAATAGTGATTGGATGGATGG	30	405	intergenic:FBXL18-ACTB	60	60	68	-0.295422	20	56	38	33	0.48407999	66
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	413forw	ACTGACAGCTCCTCCAGGGCAGG	19	828	intergenic:FBXL18-ACTB	41	43	50	0.455402	3	73	34	42	0.65913133	57
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	414forw	CTGACAGCTCCTCCAGGGCAGGG	14	1001	intergenic:FBXL18-ACTB	57	56	11	0.276537	26	61	55	54	0.48789755	55
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	271forw	ATAGTGATTGGATGGATGGATGG	3	3837	intergenic:FBXL18-ACTB	58	58	75	-0.077167	21	70	52	35	0.68630683	68
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	275forw	TGATTGGATGGATGGATGGATGG	0	0		57	51	79	-0.074617	14	66	55	52	0.63884259	69
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	287forw	TGGATGGATGGATGAATGAATGG	0	0		51	52	58	-0.110315	11	55	67	54	0.51507305	65
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	333rev	ATTCATTCATTCATTCATTGAGG	0	0		60	49	53	-0.329833	16	32	20	12	0.735044325	67
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	363forw	TGAATGAATGAATGAATGAATGG	0	0		50	47	65	-0.162671	4	62	34	23	0.52888082	67
+hg19_dna range=chr7:5564967-5565467 5'pad=0 3'pad=0 strand=+ repeatMasking=none	364forw	GAATGAATGAATGAATGAATGGG	0	0		41	53	13	0.500514	6	74	49	30	0.557347145	65

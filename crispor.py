@@ -6,10 +6,10 @@
 # OOF scores should not be shown for Cpf1... staggered cut!
 
 # python std library
-import Cookie, time, sys, cgi, re, random, platform, os
-import hashlib, base64, string, logging, operator, urllib, sqlite3, time
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
-import traceback, json, pwd, pickle
+import Cookie, time, sys, cgi, re, random, platform, os, pipes
+import hashlib, base64, string, logging, operator, urllib, sqlite3, time
+import traceback, json, pwd, pickle, gzip
 
 from StringIO import StringIO
 from collections import defaultdict, namedtuple
@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.5"
+versionStr = "4.6"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -155,6 +155,7 @@ ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAAC
 
 pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNG','20bp-NNG - Cas9 S. canis'),
+         ('NNGT','20bp-NNGT - Cas9 S. canis - high efficiency PAM, recommended'),
          ('NAA','20bp-NAA - iSpyMacCas9'),
          #('TTN','TTN-23bp - Cpf1 F. Novicida'), # Jean-Paul: various people have shown that it's not usable yet
          ('NNGRRT','21bp-NNG(A/G)(A/G)T - Cas9 S. Aureus'),
@@ -1796,7 +1797,9 @@ def calcSaHitScore(guideSeq, otSeq):
         saGuide = guideSeq
         saScorer = predictSingle.SaCas9Scorer(len(guideSeq))
 
-    return saScorer.calcScore(guideSeq, otSeq)
+    # to be compatible with the MIT score, has to be in the range 0-100
+    # for the MIT aggregate guide specificity score
+    return 100.0*saScorer.calcScore(guideSeq, otSeq)
 
 # MIT offtarget scoring, "Hsu score"
 
@@ -2458,7 +2461,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     print '''</small>'''
 
     if not cpf1Mode:
-        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score">Specificity Score</a>' % batchId
+        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">Specificity Score</a>' % batchId
         if pamIsSaCas9(pam):
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This specificity score has been adapted for SaCas9 and based on the off-target scores shown on mouse-over. The algorithm was provided by Josh Tycko. Like the MIT score for spCas9, it is aggregated from all off-target scores and ranges 0-100. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
         else:
@@ -2470,7 +2473,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     else:
        print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
-    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to do a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
+    htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
 
     if not cpf1Mode and not pamIsSaCas9(pam):
         if cgiParams.get("showAllScores", "0")=="0":
@@ -2491,7 +2494,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
             oofName="Out-of- Frame"
             oofDesc = "Click score for details"
 
-        print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score">%s</a>' % (oofWidth, batchId, oofName)
+        print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score. Hover over the (i) to show information about this score. Click the scores themselves to see the predicted indel pattern around the guide.">%s</a>' % (oofWidth, batchId, oofName)
         htmlHelp(scoreDescs["oof"][1])
         print "<br><br><small>%s</small>" % oofDesc
         print '</th>'
@@ -3159,16 +3162,28 @@ def runCmd(cmd, ignoreExitCode=False, useShell=True):
             print "please send us an email, we will fix this error as quickly as possible. %s " % contactEmail
             sys.exit(0)
 
+def isAltChrom(chrom):
+    """ return true is chrom name looks like it's not on the primary assembly. This is mostly relevant for hg38.
+    examples: chr6_xxx_alt (hg38)
+    """
+    return chrom.endswith("_alt")
 
-def parseOfftargets(bedFname):
+def parseOfftargets(bedFname, onTargetChrom=""):
     """ parse a bed file with annotataed off target matches from overlapSelect,
     has two name fields, one with the pam position/strand and one with the
     overlapped segment
-
     return as dict pamId -> editDist -> (chrom, start, end, seq, strand, segType, segName, x1Score)
     segType is "ex" "int" or "ig" (=intergenic)
     if intergenic, geneNameStr is two genes, split by |
     """
+    # edge case: target is on chr6_alt -> we remove a single off-target with 0 mismatches on chr6
+    targetIsAlt = isAltChrom(onTargetChrom)
+    # keep track of pamIds already handled for this edge case
+    skippedPams = set()
+    # ideally we would check if the offtarget falls into the chrom area that gave rise to the alt
+    # but that would mean parsing yet another non-small file and this case should be sufficiently rare
+    # to not bother 99% of users.
+
     # example input:
     # chrIV 9864393 9864410 s41-|-|5|ACTTGACTG|0    chrIV   9864303 9864408 ex:K07F5.16
     # chrIV   9864393 9864410 s41-|-|5|ACTGTAGCTAGCT|9999    chrIV   9864408 9864470 in:K07F5.16
@@ -3177,16 +3192,29 @@ def parseOfftargets(bedFname):
     # first sort into dict (pamId,chrom,start,end,editDist,strand)
     # -> (segType, segName)
     pamData = {}
-    for line in open(bedFname):
+
+    if bedFname.endswith(".gz"):
+        ifh = gzip.open(bedFname)
+    else:
+        ifh = open(bedFname)
+
+    for line in ifh:
         fields = line.rstrip("\n").split("\t")
         chrom, start, end, name, segment = fields
         # hg38: ignore alternate chromosomes otherwise the
         # regions on the main chroms look as if they could not be
         # targeted at all with Cas9
-        if chrom.endswith("_alt"):
+
+        if isAltChrom(chrom):
             continue
         nameFields = name.split("|")
         pamId, strand, editDist, seq = nameFields[:4]
+
+        if targetIsAlt:
+            if editDist=='0' and onTargetChrom.split("_")[0]==chrom.split("_")[0] and not pamId in skippedPams:
+                logging.debug("altChrom edge case: target is on alt-chrom, skipping a single 0-mismatch off-target on primary chrom")
+                skippedPams.add(pamId)
+                continue
 
         if len(nameFields)>4:
             x1Count = int(nameFields[4])
@@ -3227,7 +3255,7 @@ def annotateBedWithPos(inBed, outBed):
     given an input bed4 and an output bed filename, add an additional column 5 to the bed file
     that is a descriptive text of the chromosome pos (e.g. chr1:1.23 Mbp).
     """
-    ofh = open(outBed, "w")
+    ofh = gzip.open(outBed, "w")
     for line in open(inBed):
         chrom, start = line.split("\t")[:2]
         start = int(start)
@@ -3399,11 +3427,16 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     altPats = ",".join(offtargetPams.get(pam, ["na"]))
     bedFnameTmp = bedFname+".tmp"
     altPamMinScore = str(ALTPAMMINSCORE)
-    # EXTRACTION OF SEQUENCES + ANNOTATION
+    shmFaFname = join("/dev/shm", genome+".fa")
+
+    # EXTRACTION OF SEQUENCES + ANNOTATION - big headache!!
     # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it should be OK
-    # Hiram says this is faster:
-    # bedtools getfasta -s -name -fi %(genome)s.fa -bed %(matchesBedFname)s -fo /dev/stdout  | xxx
-    cmd = "$BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    # bedtools uses an fa.idx file and also mmap, so is a LOT faster
+    if isfile(shmFaFname):
+        logging.info("Using bedtools and genome fasta on ramdisk, %s" % shmFaFname)
+        cmd = "time bedtools getfasta -s -name -fi %(shmFaFname)s -bed %(matchesBedFname)s -fo /dev/stdout | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+    else:
+        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
@@ -3412,7 +3445,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     # if we have gene model segments, annotate them, otherwise just use the chrom position
     if isfile(segFname):
         queue.startStep(batchId, "genes", "Annotating matches with genes")
-        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 > %(bedFnameTmp)s " % locals()
+        cmd = "cat %(filtMatchesBedFname)s | $BIN/overlapSelect %(segFname)s stdin stdout -mergeOutput -selectFmt=bed -inFmt=bed | cut -f1,2,3,4,8 | gzip > %(bedFnameTmp)s " % locals()
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
@@ -3854,7 +3887,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>New in V4.5, Sep 2018: saCas9 specificity score from Josh Tycko - <a href="doc/changes.html">Full list of changes</a></i>
+<br><i>Nov 2018: Fixed S. aureus Tycko score <a href="doc/changes.html">Full list of changes</a></i>
 
  </div>
 
@@ -4045,7 +4078,7 @@ def newBatch(batchName, seq, org, pam, skipAlign=False):
 
     json.dump(batchData, ofh)
     ofh.close()
-    # fixes a run condition
+    # fixes a race condition
     os.rename(batchJsonTmpName, batchJsonName)
     return batchId, posStr, extSeq
 
@@ -4077,7 +4110,9 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
     pam = setupPamInfo(pamDesc)
     assert('-' not in pam)
     batchBase = join(batchDir, batchId)
-    otBedFname = batchBase+".bed"
+
+    otBedFname = batchBase+".bed.gz"
+
     flagFile = batchBase+".running"
 
     if isfile(flagFile):
@@ -4365,7 +4400,6 @@ def showSeqDownloadMenu(batchId):
     html = '<a href="%s">ApE</a> (<a target=_blank href="http://biologylabs.utah.edu/jorgensen/wayned/ape/">free</a>)' % myUrl
     htmls.append(html)
 
-    #myUrl = "http://crispor.tefor.net/"+cgiGetSelfUrl({"download":"genomecompiler"})
     myUrl = "http://crispor.tefor.net/crispor.py?batchId=%s&download=genomecompiler" % batchId
     #backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
     backUrl = "https://designer.genomecompiler.com/plasmid_iframe?file_url=%s#/plasmid" % urllib.quote(myUrl)
@@ -4741,6 +4775,7 @@ def crisprSearch(params):
 
     elif position=='?':
         printQueryNotFoundNote(dbInfo)
+        chrom = ""
     else:
         genomePosStr = ":".join(position.split(":")[:2])
         chrom, start, end, strand = parsePos(position)
@@ -4769,7 +4804,7 @@ def crisprSearch(params):
         print "</div>"
         #print " (link to Genome Browser)</div>"
 
-    otMatches = parseOfftargets(otBedFname)
+    otMatches = parseOfftargets(otBedFname, chrom)
     effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy, org=org)
@@ -4953,7 +4988,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         oligoPrefix, oligoSuffix, primerFwPrefix, primerRevPrefix, batchId, genome, position, ampLen, tm = satMutOpt
 
         batchBase = join(batchDir, batchId)
-        otBedFname = batchBase+".bed"
+        otBedFname = batchBase+".bed.gz"
         otMatches = parseOfftargets(otBedFname)
 
         guideData.sort(key=operator.itemgetter(3)) # sort by position, makes more sense here
@@ -5435,15 +5470,16 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat
 def readBatchAndGuides(batchId):
     " parse the input file, the batchId-json file and the offtargets and link everything together "
     seq, org, pam, position, extSeq = readBatchParams(batchId)
+    chrom, _, _, _ = parsePos(position)
     pam = setupPamInfo(pam)
     uppSeq = seq.upper()
 
     startDict, endSet = findAllPams(uppSeq, pam)
 
-    otBedFname = join(batchDir, batchId+".bed")
+    otBedFname = join(batchDir, batchId+".bed.gz")
     effScoreFname = join(batchDir, batchId+".effScores.tab")
 
-    otMatches = parseOfftargets(otBedFname)
+    otMatches = parseOfftargets(otBedFname, chrom)
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
@@ -5455,7 +5491,9 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
     inSeq, db, pamPat, position, extSeq = readBatchParams(batchId)
     batchBase = join(batchDir, batchId)
     otBedFname = batchBase+".bed"
-    otMatches = parseOfftargets(otBedFname)
+
+    chrom, _, _, _ = parsePos(position)
+    otMatches = parseOfftargets(otBedFname, chrom)
 
     startDict, endSet = findAllPams(inSeq, pamPat)
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
@@ -5983,10 +6021,6 @@ can be selectively amplified from the pool.<br>
         ("ontargetAmplicons", "D - Cleavage Validation/Analysis: PCR Amplicons and guide sequence (CrispressoPooled)")
     ]
 
-    #print("Output file:")
-    #printDropDown("download", outTypes, "satMut")
-    #print("</p>")
-
     formats = [
         ("html", "Do not download, display as webpage to get an idea"),
         ("xls", "Default: Excel for A and text for B/C/D"),
@@ -6458,11 +6492,13 @@ def findBestMatch(genome, seq, batchId):
     samFname = tmpSamFh.name
 
     bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
-    cmd = "true %(batchId)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
+    remoteAddr = pipes.quote(os.environ["REMOTE_ADDR"])
+    cmd = "true %(batchId)s %(remoteAddr)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
     logging.debug("Parsing SAM file %s" % samFname)
+    matches = []
     for l in open(samFname):
         if l.startswith("@"):
             continue
@@ -6490,12 +6526,20 @@ def findBestMatch(genome, seq, batchId):
         matchLen = int(cleanCigar)
         chrom, start, end =  rName, int(pos)-1, int(pos)-1+matchLen # SAM is 1-based
         assert("|" not in chrom) # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
+        matches.append( (chrom, start, end, strand) )
 
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
-    logging.debug("Found best match at %s:%d-%d:%s" % (chrom, start, end, strand))
-    return chrom, start, end, strand
+
+    nonAltMatches = [x for x in matches if not isAltChrom(x[0])]
+    if len(nonAltMatches)!=0:
+        bestMatch = nonAltMatches[0]
+    else:
+        bestMatch = matches[0]
+
+    logging.debug("Found %d best matches, %d on non-alts. matches: %s, best match %s" % (len(matches), len(nonAltMatches), matches, bestMatch))
+    return bestMatch
 
 def maskLowercase(seq):
     " replace all lowercase letters with 'N' "
