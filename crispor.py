@@ -166,6 +166,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNRRT-20','20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides'),
          ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
+         ('NNNNCC','24bp-NNNNCC - Nme2Cas9'),
          ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
          ('NGGNG','20bp-NGGNG - Cas9 S. Thermophilus'),
@@ -424,6 +425,9 @@ def setupPamInfo(pam):
         saCas9Mode = True
         cpf1Mode = False
         scoreNames = saCas9ScoreNames
+    elif pam=="NNNNCC":
+        GUIDELEN = 24
+        cpf1Mode = False
     else:
         GUIDELEN = 20
         cpf1Mode = False
@@ -1813,7 +1817,8 @@ def calcHitScore(string1,string2):
     matrixStart = 0
     maxDist = 19
 
-    if len(string1)==21:
+    #for nmCas9 and a few others with longer guides, we limit ourselves to 20bp
+    if len(string1)>20:
         string1 = string1[-20:]
         string2 = string2[-20:]
     # for 19bp guides, we fudge a little, but first pos has no weight anyways
@@ -3168,7 +3173,7 @@ def isAltChrom(chrom):
     """
     return chrom.endswith("_alt")
 
-def parseOfftargets(bedFname, onTargetChrom=""):
+def parseOfftargets(batchId, onTargetChrom=""):
     """ parse a bed file with annotataed off target matches from overlapSelect,
     has two name fields, one with the pam position/strand and one with the
     overlapped segment
@@ -3185,6 +3190,8 @@ def parseOfftargets(bedFname, onTargetChrom=""):
     # but that would mean parsing yet another non-small file and this case should be sufficiently rare
     # to not bother 99% of users.
 
+    batchBase = join(batchDir, batchId)
+    bedFname = batchBase+".bed.gz"
     # example input:
     # chrIV 9864393 9864410 s41-|-|5|ACTTGACTG|0    chrIV   9864303 9864408 ex:K07F5.16
     # chrIV   9864393 9864410 s41-|-|5|ACTGTAGCTAGCT|9999    chrIV   9864408 9864470 in:K07F5.16
@@ -3194,10 +3201,8 @@ def parseOfftargets(bedFname, onTargetChrom=""):
     # -> (segType, segName) 
     pamData = {}
 
-    if bedFname.endswith(".gz"):
-        ifh = gzip.open(bedFname)
-    else:
-        ifh = open(bedFname)
+    #ifh = open(bedFname) # switched to gzip compression in Dec 2018, converted old files with bash script
+    ifh = gzip.open(bedFname)
 
     for line in ifh:
         fields = line.rstrip("\n").split("\t")
@@ -4105,13 +4110,12 @@ def printQueryNotFoundNote(dbInfo):
 
 def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
     """ write guides to fasta and run bwa or use cached results.
-    Return name of the BED file with the matches.
+    Return name of the BED file with the matches or None if not yet available.
     Write progress status updates to queue object.
     """
     pam = setupPamInfo(pamDesc)
     assert('-' not in pam)
     batchBase = join(batchDir, batchId)
-
     otBedFname = batchBase+".bed.gz"
 
     flagFile = batchBase+".running"
@@ -4130,7 +4134,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
         else:
             # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
             q = JobQueue()
-            ip = os.environ["REMOTE_ADDR"]
+            ip = os.environ.get("REMOTE_ADDR", "noIp")
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc))
             if not wasOk:
                 #print "CRISPOR job is running..." % batchId
@@ -4757,9 +4761,9 @@ def crisprSearch(params):
     # search PAMs
     uppSeq = seq.upper()
     startDict, endSet = findAllPams(uppSeq, pam)
-    otBedFname = getOfftargets(uppSeq, org, pamDesc, batchId, startDict, None)
+    otDone = getOfftargets(uppSeq, org, pamDesc, batchId, startDict, None)
 
-    if otBedFname is None:
+    if otDone is None:
         # this can happen only in CGI mode. Job has been added to the queue or is not done yet. 
         #startAjaxWait(batchId)
         printStatus(batchId, warnMsg)
@@ -4773,6 +4777,7 @@ def crisprSearch(params):
     if dbInfo==None:
         print "<div class='title'>No Genome selected, specificity scoring is deactivated</div>"
         print('<div style="text-align:left;"><strong>Note:</strong> There are no predicted off-targets below and all specificity scores are shown in red as their score is 0. <br></div>')
+        chrom = ""
 
     elif position=='?':
         printQueryNotFoundNote(dbInfo)
@@ -4805,7 +4810,7 @@ def crisprSearch(params):
         print "</div>"
         #print " (link to Genome Browser)</div>"
 
-    otMatches = parseOfftargets(otBedFname, chrom)
+    otMatches = parseOfftargets(batchId, chrom)
     effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy, org=org)
@@ -4988,9 +4993,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         headers.append("AdapterHandle+PrimerRev")
         oligoPrefix, oligoSuffix, primerFwPrefix, primerRevPrefix, batchId, genome, position, ampLen, tm = satMutOpt
 
-        batchBase = join(batchDir, batchId)
-        otBedFname = batchBase+".bed.gz"
-        otMatches = parseOfftargets(otBedFname)
+        otMatches = parseOfftargets(batchId)
 
         guideData.sort(key=operator.itemgetter(3)) # sort by position, makes more sense here
 
@@ -5477,10 +5480,9 @@ def readBatchAndGuides(batchId):
 
     startDict, endSet = findAllPams(uppSeq, pam)
 
-    otBedFname = join(batchDir, batchId+".bed.gz")
     effScoreFname = join(batchDir, batchId+".effScores.tab")
 
-    otMatches = parseOfftargets(otBedFname, chrom)
+    otMatches = parseOfftargets(batchId, chrom)
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
@@ -5490,11 +5492,8 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
     outType can be "primers" or "amplicons"
     """
     inSeq, db, pamPat, position, extSeq = readBatchParams(batchId)
-    batchBase = join(batchDir, batchId)
-    otBedFname = batchBase+".bed"
-
     chrom, _, _, _ = parsePos(position)
-    otMatches = parseOfftargets(otBedFname, chrom)
+    otMatches = parseOfftargets(batchId, chrom)
 
     startDict, endSet = findAllPams(inSeq, pamPat)
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
@@ -5803,9 +5802,7 @@ def writeAmpliconFile(params, batchId, pamId, outFh):
 
     inSeq, db, pam, position, extSeq = readBatchParams(batchId)
 
-    batchBase = join(batchDir, batchId)
-    otBedFname = batchBase+".bed"
-    pamOtMatches = parseOfftargets(otBedFname)
+    pamOtMatches = parseOfftargets(batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
@@ -5824,10 +5821,7 @@ def otPrimerPage(params):
     tm = cgiGetNum(params, "tm", 60)
 
     inSeq, db, pam, position, extSeq = readBatchParams(batchId)
-
-    batchBase = join(batchDir, batchId)
-    otBedFname = batchBase+".bed"
-    pamOtMatches = parseOfftargets(otBedFname)
+    pamOtMatches = parseOfftargets(batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
@@ -6493,7 +6487,7 @@ def findBestMatch(genome, seq, batchId):
     samFname = tmpSamFh.name
 
     bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
-    remoteAddr = pipes.quote(os.environ["REMOTE_ADDR"])
+    remoteAddr = pipes.quote(os.environ.get("REMOTE_ADDR", "noIp"))
     cmd = "true %(batchId)s %(remoteAddr)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
@@ -6962,7 +6956,6 @@ def printAmpLenAndTm(ampLen, tm):
 def printValidationPcrSection(batchId, genome, pamId, position, params,
         guideStart, guideEnd, primerGuideName, guideSeq):
     " print the PCR section of the primer page "
-    batchBase = join(batchDir, batchId)
 
     # check the input parameters: ampLen, tm
     ampLen = params.get("ampLen", "400")
@@ -6976,8 +6969,8 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
     tm = int(tm)
 
     print "<h2 id='ontargetPcr'>PCR to amplify the on-target site</h2>"
-    otBedFname = batchBase+".bed"
-    otMatches = parseOfftargets(otBedFname)
+
+    otMatches = parseOfftargets(batchId)
     chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
     if not isUnique:
         print "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue'>"
@@ -7742,8 +7735,8 @@ def mainCommandLine():
 
         startDict, endSet = findAllPams(seq, pamPat)
 
-        otBedFname = getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
-        otMatches = parseOfftargets(otBedFname)
+        getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
+        otMatches = parseOfftargets(batchId)
 
         # Special batch primer / Crispresso mode
         if options.ampDir:
