@@ -6575,7 +6575,6 @@ def findBestMatch(genome, seq, batchId):
         assert("|" not in chrom) # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
         matches.append( (chrom, start, end, strand) )
 
-    print matches
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
