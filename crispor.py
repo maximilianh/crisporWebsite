@@ -1734,11 +1734,15 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
             if cfdScore != None:
                 cfdScores.append(cfdScore)
 
-            posStr = "%s:%d-%s:%s" % (chrom, int(start)+1,end, strand)
+            posStr = "%s:%d-%s:%s" % (chrom, start+1,end, strand)
             if (chrom==inChrom):
                 dist = abs(start-inStart)
             else:
                 dist = None
+
+            parNum = isInPar(org, chrom, start, end)
+            if parNum is not None:
+                posStr += " PAR%s" % parNum
 
             alnHtml, hasLast12Mm = makeAlnStr(org, guideSeq, otSeq, pam, mitScore, cfdScore, posStr, dist)
             if not hasLast12Mm:
@@ -3173,7 +3177,7 @@ def isAltChrom(chrom):
     """
     return chrom.endswith("_alt")
 
-def parseOfftargets(batchId, onTargetChrom=""):
+def parseOfftargets(db, batchId, onTargetChrom=""):
     """ parse a bed file with annotataed off target matches from overlapSelect,
     has two name fields, one with the pam position/strand and one with the
     overlapped segment
@@ -3234,11 +3238,18 @@ def parseOfftargets(batchId, onTargetChrom=""):
         start, end = int(start), int(end)
         otKey = (pamId, chrom, start, end, editDist, seq, strand, x1Count)
 
+        # if an offtarget is in the PAR region, we keep only the chrY off-target
+        parNum = isInPar(db, chrom, start, end)
+        # keep only matches on chrX
+        if parNum is not None and chrom=="chrX":
+            continue
+
         # if a offtarget overlaps an intron/exon or ig/exon boundary it will
         # appear twice; in this case, we only keep the exon offtarget
         if otKey in pamData and segType!="ex":
             continue
         pamData[otKey] = (segType, segName)
+
 
     # index by pamId and edit distance
     indexedOts = defaultdict(dict)
@@ -4494,7 +4505,7 @@ def makeCustomTrack(org, chrom, seqStart, seqEnd, seqStrand, guideData, batchId,
         oofScore = str(effScores.get("oof", -1))
 
         name = pamId
-        bed = [chrom, chromStart, chromEnd, name, mitScore, strand, thickStart, thickEnd, rgb, guideSeq, pamSeq, mitScore, fusiScore, crisprScanScore, oofScore, batchId]
+        bed = [chrom, chromStart, chromEnd, name, mitScore, chromStrand, thickStart, thickEnd, rgb, guideSeq, pamSeq, mitScore, fusiScore, crisprScanScore, oofScore, batchId]
         rows.append(bed)
 
     # sort and write to file
@@ -4809,7 +4820,7 @@ def crisprSearch(params):
         print "</div>"
         #print " (link to Genome Browser)</div>"
 
-    otMatches = parseOfftargets(batchId, chrom)
+    otMatches = parseOfftargets(org, batchId, chrom)
     effScores = readEffScores(batchId)
     sortBy = (params.get("sortBy", None))
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, sortBy, org=org)
@@ -4826,6 +4837,10 @@ def crisprSearch(params):
         print("If you pasted a cDNA sequence, note that sequences with score 0, e.g. splice junctions, are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
 
     chrom, start, end, strand = parsePos(position)
+
+    parNum = isInPar(org, chrom, start, end)
+    if parNum!=None:
+        print("<div style='text-align:left; background-color: aliceblue; padding:5px; border: 1px solid black'><strong>Note</strong>: The target sequence is in the PAR%s region. The off-targets on chrY's PAR copy have been removed from the off-target search. We treat the PAR regions as a single region, as all guides are assumed to modify both copies.</div>" % parNum)
 
     # get list of variant databases
     varLabel = None
@@ -4992,7 +5007,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         headers.append("AdapterHandle+PrimerRev")
         oligoPrefix, oligoSuffix, primerFwPrefix, primerRevPrefix, batchId, genome, position, ampLen, tm = satMutOpt
 
-        otMatches = parseOfftargets(batchId)
+        otMatches = parseOfftargets(genome, batchId)
 
         guideData.sort(key=operator.itemgetter(3)) # sort by position, makes more sense here
 
@@ -5481,7 +5496,7 @@ def readBatchAndGuides(batchId):
 
     effScoreFname = join(batchDir, batchId+".effScores.tab")
 
-    otMatches = parseOfftargets(batchId, chrom)
+    otMatches = parseOfftargets(org, batchId, chrom)
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, position, effScores, org=org)
     return seq, org, pam, position, guideData
@@ -5492,7 +5507,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
     """
     inSeq, db, pamPat, position, extSeq = readBatchParams(batchId)
     chrom, _, _, _ = parsePos(position)
-    otMatches = parseOfftargets(batchId, chrom)
+    otMatches = parseOfftargets(db, batchId, chrom)
 
     startDict, endSet = findAllPams(inSeq, pamPat)
     pamSeqs = list(flankSeqIter(inSeq, startDict, len(pamPat), True))
@@ -5801,7 +5816,7 @@ def writeAmpliconFile(params, batchId, pamId, outFh):
 
     inSeq, db, pam, position, extSeq = readBatchParams(batchId)
 
-    pamOtMatches = parseOfftargets(batchId)
+    pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
@@ -5820,7 +5835,7 @@ def otPrimerPage(params):
     tm = cgiGetNum(params, "tm", 60)
 
     inSeq, db, pam, position, extSeq = readBatchParams(batchId)
-    pamOtMatches = parseOfftargets(batchId)
+    pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
@@ -6101,6 +6116,40 @@ def printLibForm(params):
     print("""<input id="submitGenes" type="submit" name="submit" value="Submit">""")
     #print('<input type="hidden" name="libDesign" value="1">')
     print("""</form>""")
+
+def isInPar(db, chrom, start, end):
+    """ return None if not in PAR or "1" or "2" if genome is hg19 or hg38 and chrom:start-end is in a PAR1/2 region """
+    if db not in ("hg19", "hg38"):
+        return None
+    if not chrom in ("chrX", "chrY"):
+        return None
+
+    # all coordinates are from https://en.wikipedia.org/wiki/Pseudoautosomal_region
+    # and look like they're 1-based
+    if db=="hg38":
+        if chrom=="chrX":
+            if start >= 10001 and end < 2781479:
+                return "1"
+            if start >= 155701383 and end < 156030895:
+                return "2"
+        elif chrom=="chrY":
+            if start >= 10001 and end < 2781479:
+                return "1"
+            if start >= 56887903 and end < 57217415:
+                return "2"
+    elif db=="hg19":
+        if chrom=="chrX":
+            if start >= 60001 and end < 2699520:
+                return "1"
+            if start >= 154931044 and end < 155260560:
+                return "2"
+        elif chrom=="chrY":
+            if start >= 10001 and end < 2649520:
+                return "1"
+            if start >= 59034050 and end < 59363566:
+                return "2"
+
+    return None
 
 def getControls(org):
     " return controls as a list "
@@ -6519,9 +6568,14 @@ def findBestMatch(genome, seq, batchId):
             return None, None, None, None
         matchLen = int(cleanCigar)
         chrom, start, end =  rName, int(pos)-1, int(pos)-1+matchLen # SAM is 1-based
+        if isInPar(genome, chrom, start, end) is not None:
+            # only keep matches on chrY
+            if chrom=="chrX":
+                continue
         assert("|" not in chrom) # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
         matches.append( (chrom, start, end, strand) )
 
+    print matches
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
@@ -6563,7 +6617,6 @@ def getGenomeSeqs(genome, coordList, doRepeatMask=False):
             seq = maskLowercase(seq)
         seqs.append((chrom, start, end, name, seq) )
     return seqs
-
 
 def designPrimer(
     genome,
@@ -7040,7 +7093,7 @@ def printValidationPcrSection(batchId, genome, pamId, position, params,
 
     print "<h2 id='ontargetPcr'>PCR to amplify the on-target site</h2>"
 
-    otMatches = parseOfftargets(batchId)
+    otMatches = parseOfftargets(genome, batchId)
     chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
     if not isUnique:
         print "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue'>"
@@ -7806,7 +7859,7 @@ def mainCommandLine():
         startDict, endSet = findAllPams(seq, pamPat)
 
         getOfftargets(seq, org, pamPat, batchId, startDict, ConsQueue())
-        otMatches = parseOfftargets(batchId)
+        otMatches = parseOfftargets(org, batchId)
 
         # Special batch primer / Crispresso mode
         if options.ampDir:
