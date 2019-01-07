@@ -785,12 +785,6 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
 
     guideSeqs = trimSeqs(seqs, -20, 0)
 
-    if inList(scoreNames, "finalGc6"):
-        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
-
-    if inList(scoreNames, "finalGg"):
-        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
-
     if enzyme is None:
         enzyme = "spcas9"
 
@@ -799,6 +793,12 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
         scoreNames = possibleScores[enzyme]
 
     logging.debug("Calculating efficiency scores %s for enzyme %s" % (scoreNames, enzyme))
+
+    if inList(scoreNames, "finalGc6"):
+        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
+
+    if inList(scoreNames, "finalGg"):
+        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
 
     unknownScores = set(scoreNames) - set(possibleScores[enzyme])
     if len(unknownScores)!=0:
