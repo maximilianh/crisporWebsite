@@ -3325,7 +3325,7 @@ def calcGuideEffScores(seq, extSeq, pam):
         elif pamIsSaCas9(pam):
             enz = "sacas9"
 
-        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz)
+        effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz, scoreNames=scoreNames)
 
         # make sure the "N bug" reported by Alberto does never happen again:
         # we must get back as many scores as we have sequences
@@ -3337,13 +3337,13 @@ def calcGuideEffScores(seq, extSeq, pam):
     else:
         effScores = {}
 
-    scoreNames = effScores.keys()
+    activeScoreNames = effScores.keys()
 
     # reformat to rows, write all scores to file
     rows = []
     for i, (guideId, guide, longSeq) in enumerate(zip(guideIds, guides, longSeqs)):
         row = [guideId, guide, longSeq]
-        for scoreName in scoreNames:
+        for scoreName in activeScoreNames:
             scoreList = effScores[scoreName]
             if len(scoreList) > 0:
                 row.append(scoreList[i])
@@ -3352,7 +3352,7 @@ def calcGuideEffScores(seq, extSeq, pam):
         rows.append(row)
 
     headerRow = ["guideId", "guide", "longSeq"]
-    headerRow.extend(scoreNames)
+    headerRow.extend(activeScoreNames)
     rows.insert(0, headerRow)
     return rows
 
@@ -7573,7 +7573,9 @@ Command line interface for the Crispor tool.
     parser.add_option("", "--skipAlign", dest="skipAlign", \
         action="store_true", help="Assume that the input is not in the genome: do not align the input sequence. The on-target will be a random match with 0 mismatches. Switches off efficiency scoring as there is no sequence context.")
     parser.add_option("", "--noEffScores", dest="noEffScores", \
-        action="store_true", help="do not calculate the efficiency scores")
+        action="store_true", help="do not calculate any efficiency score")
+    parser.add_option("", "--effScores", dest="effScores", \
+        action="store", help="calculate only these efficiency scores. Comma-sep list. Possible values, per enzyme: %s" % crisporEffScores.possibleScores)
     parser.add_option("", "--minAltPamScore", dest="minAltPamScore", \
         action="store", type="float", help="minimum MIT off-target score for alternative PAMs, default %default", \
         default=ALTPAMMINSCORE)
@@ -7781,6 +7783,14 @@ def handleOptions(options):
     if options.pam:
         pam = setupPamInfo(options.pam)
 
+    # show all scores in command line mode output files
+    global scoreNames
+    if options.effScores:
+        scoreNames = options.effScores.split(",")
+    else:
+        scoreNames = allScoreNames
+    logging.debug("Active efficiency scores are: %s" % scoreNames)
+
     # this comes after setupPamInfo, so it overwrites the defaults
     if options.guideLen:
         global GUIDELEN
@@ -7791,10 +7801,6 @@ def mainCommandLine():
     " main entry if called from command line "
     global commandLineMode
     commandLineMode = True
-
-    # show all scores in command line mode output files
-    global scoreNames
-    scoreNames = allScoreNames
 
     args, options = parseArgs()
 

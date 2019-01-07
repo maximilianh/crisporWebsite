@@ -756,7 +756,19 @@ def calcFreeEnergy(seqs):
     """
     return 0
 
-def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
+def inList(l, name):
+    " return true if name is in list l  "
+    return (name in l)
+
+# list of possible score names, by enzyme
+possibleScores = {
+    "spcas9" : ["fusi", "fusiOld", "housden", "wang", "wangOrig", "doench", "ssc",
+        "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop"],
+    "cpf1" : ["deepCpf1"],
+    "sacas9" : ["najm"]
+}
+
+def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scoreNames=None):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
@@ -765,7 +777,6 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTANCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
     [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
-    logging.debug("Calculating efficiency scores for enzyme %s" % enzyme)
     scores = {}
 
     for s in seqs:
@@ -774,14 +785,35 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
 
     guideSeqs = trimSeqs(seqs, -20, 0)
 
-    if enzyme==None or enzyme=="spcas9":
-        logging.debug("Azimuth score")
-        scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
+    if inList(scoreNames, "finalGc6"):
+        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
 
-        # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
-        # scores are the not exactly the same!
-        logging.debug("Fusi score")
-        scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+    if inList(scoreNames, "finalGg"):
+        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
+
+    if enzyme is None:
+        enzyme = "spcas9"
+
+    if scoreNames is None:
+        logging.debug("Using default scores for enzyme %s" % enzyme)
+        scoreNames = possibleScores[enzyme]
+
+    logging.debug("Calculating efficiency scores %s for enzyme %s" % (scoreNames, enzyme))
+
+    unknownScores = set(scoreNames) - set(possibleScores[enzyme])
+    if len(unknownScores)!=0:
+        raise Exception("Unknown score names: %s" % unknownScores)
+
+    if enzyme=="spcas9":
+        if inList(scoreNames, "fusi"):
+            logging.debug("Azimuth score")
+            scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
+
+        if inList(scoreNames, "fusiOld"):
+            # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
+            # scores are the not exactly the same!
+            logging.debug("Fusi score")
+            scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
         # the fusi score calculated by the Microsoft Research Server is not run by
         # default, requires an apiKey
@@ -795,69 +827,78 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
         #if "fusiForce" in addOpt:
             #scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
-        logging.debug("Housden scores")
-        scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
-        #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
+        if inList(scoreNames, "housden"):
+            logging.debug("Housden scores")
+            scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
+            #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
 
-        logging.debug("Wang scores")
-        scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
-        if "wangOrig" in addOpt or doAll:
+        if inList(scoreNames, "wang"):
+            logging.debug("Wang scores")
+            scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
+
+        if inList(scoreNames, "wangOrig"):
             scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
 
-        logging.debug("Doench score")
-        scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
+        if inList(scoreNames, "doench"):
+            logging.debug("Doench score")
+            scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
 
-        logging.debug("SSC score")
-        scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
+        if inList(scoreNames, "ssc"):
+            logging.debug("SSC score")
+            scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
 
-        logging.debug("CrisprScan score")
-        scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
+        if inList(scoreNames, "crisprScan"):
+            logging.debug("CrisprScan score")
+            scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
 
-        if not "wuCrispr" in skipScores:
+        if inList(scoreNames, "wuCrispr"):
+        #if not "wuCrispr" in skipScores:
             logging.debug("wuCrispr score")
             scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
-        else:
-            scores["wuCrispr"] = [-1]*len(seqs)
 
-        logging.debug("Chari score")
-        chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
-        scores["chariRaw"] = chariScores[0]
-        scores["chariRank"] = chariScores[1]
+        if inList(scoreNames, "chariRank") or inList(scoreNames, "chari"):
+            logging.debug("Chari score")
+            chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
+            scores["chariRaw"] = chariScores[0]
+            scores["chariRank"] = chariScores[1]
 
-        logging.debug("Azimuth in-vitro")
-        scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
+        if inList(scoreNames, "aziInVitro"):
+            logging.debug("Azimuth in-vitro")
+            scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
 
-        scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
-
-        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
-        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
-
+        if inList(scoreNames, "ccTop"):
+            scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
     
     elif enzyme=="cpf1":
         deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
         cpfScores = calcDeepCpf1Scores(deepSeqs)
-        scores["seqDeepCpf1"] = cpfScores[0]
-        scores["deepCpf1NoDnase"] = cpfScores[1]
-        scores["deepCpf1Dnase"] = cpfScores[2]
+        if inList(scoreNames, "deepCpf1"):
+            scores["seqDeepCpf1"] = cpfScores[0]
+            scores["deepCpf1NoDnase"] = cpfScores[1]
+            scores["deepCpf1Dnase"] = cpfScores[2]
 
     elif enzyme=="sacas9":
-        logging.debug("Najm 2018 score")
-        scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
+        if inList(scoreNames, "najm"):
+            logging.debug("Najm 2018 score")
+            scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
 
-    logging.debug("OOF scores")
-    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
-    scores["oof"] = oof
-    scores["mh"] = mh
+    if inList(scoreNames, "oof"):
+        logging.debug("OOF scores")
+        mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
+        scores["oof"] = oof
+        scores["mh"] = mh
 
+    # not used anymore:
     # the fusi score calculated by the Microsoft Research Server is not run by
     # default, requires an apiKey
-    if "fusiOnline" in addOpt or doAll:
+    if inList(scoreNames, "fusiOnline"):
         scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
     # by default, I use the python source code sent to me by John Doench
 
+    # not used anymore:
     # fusiForce is a request to the online API that will not fail
     # if any exception is thrown, we set the scores to -1
-    if "fusiForce" in addOpt:
+    if inList(scoreNames, "fusiOnline"):
         scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
     #logging.debug("self-complementarity using mfold")
@@ -1122,7 +1163,7 @@ def calcCctopScore(seqs):
     scores = []
     for seq in seqs:
         score = CCTop.getScore(seq)
-        scores.append(score)
+        scores.append(100*score)
     return scores
 
 # ----------- MAIN --------------
