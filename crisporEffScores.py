@@ -762,10 +762,10 @@ def inList(l, name):
 
 # list of possible score names, by enzyme
 possibleScores = {
-    "spcas9" : ["fusi", "fusiOld", "housden", "wang", "wangOrig", "doench", "ssc",
-        "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop"],
-    "cpf1" : ["deepCpf1"],
-    "sacas9" : ["najm"]
+    "spcas9" : ["fusi", "housden", "wang", "doench", "ssc",
+        "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
+    "cpf1" : ["deepCpf1", "oof"],
+    "sacas9" : ["najm", "oof"]
 }
 
 def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scoreNames=None):
