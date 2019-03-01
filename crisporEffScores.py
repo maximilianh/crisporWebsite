@@ -762,7 +762,7 @@ def inList(l, name):
 
 # list of possible score names, by enzyme
 possibleScores = {
-    "spcas9" : ["fusi", "housden", "wang", "doench", "ssc",
+    "spcas9" : ["fusi", "fusiOld", "housden", "wang", "doench", "ssc",
         "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
     "cpf1" : ["deepCpf1", "oof"],
     "sacas9" : ["najm", "oof"]
@@ -811,7 +811,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
 
         if inList(scoreNames, "fusiOld"):
             # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
-            # scores are the not exactly the same!
+            # scores are the not exactly the same, they differ by 2-3%, but somtimes more!
             logging.debug("Fusi score")
             scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
@@ -1092,7 +1092,7 @@ def calcWuCrisprScore(seqs):
     for s in seqs:
         assert(len(s)==24)
 
-    #tempFh = open("temp.fa", "w")
+    #tempFh = open("/tmp/temp.fa", "w")
     tempFh = tempfile.NamedTemporaryFile()
 
     for s in seqs:
@@ -1106,7 +1106,7 @@ def calcWuCrisprScore(seqs):
     wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
     logging.debug("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
-    cmd = "perl wu-crispr.pl -f %s > /dev/null" % tmpPath
+    cmd = "perl wu-crispr.pl -f %s > /dev/null 2> /dev/null" % tmpPath
     logging.debug("Running %s" % cmd)
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
