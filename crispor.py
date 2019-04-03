@@ -1342,13 +1342,15 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
 
     print "<div class='substep'>"
     print '<a id="seqStart"></a>'
-    print "Found %d possible guide sequences in input (%d bp). Click on a PAM %s match to show its %d bp guide sequence.<br>" % (len(guideScores), len(seq), pam, GUIDELEN)
+    print "Your input sequence is %d bp long. It contains %d possible guide sequences.<br>" % (len(seq), len(guideScores))
 
     if not cpf1Mode:
-        print "Shown below are the PAM site and the expected cleavage position located -3bp 5' of the PAM site.<br>"
+        print "Shown below are their PAM sites and the expected cleavage position located -3bp 5' of the PAM site.<br>"
+        print "Click on a match for the PAM %s below to show its %d bp-long guide sequence. " % (pam, GUIDELEN)
+        print "(Need help? Look at the <a target=_blank href='manual/#annotseq'>CRISPOR manual</a>)<br>"
         print '''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>'''
     else:
-        print ""
+        print "Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>" % (pam, GUIDELEN)
 
     if baseEditor or varDb or len(exonLines)>0:
         print("""<form style="display:inline" id="paramForm" action="%s" method="GET">""" % basename(__file__))
@@ -1615,10 +1617,10 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
         if chromDist!=None and org!=None:
             htmlText2 += "<br><small>Distance from target: %.3f Mbp</small>" % (float(chromDist)/1000000.0)
             if org.startswith("mm") or org.startswith("hg") or org.startswith("rn"):
-                if chromDist > 4000000:
-                    htmlText2 += "<br><small>&gt;4Mbp = unlikely to be in linkage with target</small>"
+                if chromDist > 20000000:
+                    htmlText2 += "<br><small>&gt;20Mbp = unlikely to be in linkage with target</small>"
                 else:
-                    htmlText2 += "<br><small>&lt;4Mbp= likely to be in linkage with target!</small>"
+                    htmlText2 += "<br><small>&lt;20Mbp= likely to be in linkage with target!</small>"
 
     hasLast12Mm = last12MmCount>0
     return htmlText1+htmlText2, hasLast12Mm
@@ -2804,7 +2806,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         if otData==None:
             # no genome match
             print otDesc
-            htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences<br>This warning also appears if you have selected the wrong or no genome.")
+            htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences. If you only have a cDNA sequence, please BLAST or BLAT your sequence first against the genome, then use the resulting exon from the genome for CRISPOR.<br>This warning also appears if you have selected the wrong or no genome.")
         elif subOptMatchCount > MAXOCC:
             print ("Repeat")
             htmlHelp("At <= 4 mismatches, %d hits were found in the genome for this sequence. <br>This guide is a repeated region, it is too unspecific.<br>Usually, CRISPR cannot be used to target repeats. Note that sequences that include long repeats will make the CRISPOR website very slow. You can always mask repeats with Ns to speed up the search." % subOptMatchCount)
@@ -3925,7 +3927,7 @@ def printForm(params):
     </div>
 
     <textarea tabindex="1" style="width:100%%" name="seq" rows="12"
-              placeholder="Paste here the genomic - not cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp.">%s</textarea>
+              placeholder="Paste here the genomic - not a cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp. If you only have a cDNA, please BLAST or BLAT the cDNA first to find the right exon sequence for CRISPOR.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 </div>
 <div class="windowstep subpanel" style="width:50%%">
@@ -4834,7 +4836,7 @@ def crisprSearch(params):
 
     if hasNotFound and not position=="?":
         print('<div style="text-align:left"><strong>Note:</strong> At least one of the possible guide sequences was not found in the genome. ')
-        print("If you pasted a cDNA sequence, note that sequences with score 0, e.g. splice junctions, are not in the genome, only in the cDNA and are not usable as CRISPR guides.</div><br>")
+        print("If you pasted a cDNA sequence, note that sequences with score 0, e.g. splice junctions, are not in the genome, only in the cDNA and are not usable as CRISPR guides. To find the genomic exon sequence for your cDNA (which contains possibly PCR mutations), please use BLAST or BLAT, pick the exon and then paste the exon sequence into CRISPOR.</div><br>")
 
     chrom, start, end, strand = parsePos(position)
 
@@ -5320,7 +5322,7 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
 
-        if fileFormat in ["geneious"]:
+        if fileFormat in ["geneious", "snapgene"]:
             # this code annotates only the guide sequence, suggested by Alyce Chen
             start = guideStart + 1
             end = start + len(guideSeq) - 1
@@ -5885,6 +5887,14 @@ def otPrimerPage(params):
 
     if pamId not in pamOtMatches:
         errAbort("pamId %s not valid" % pamId)
+
+    print('''<form id="paramForm" action="%s" method="GET">''' % basename(__file__))
+
+    printAmpLenAndTm(ampLen, tm)
+    printHiddenFields(params, {"batchId":batchId, "pamId":pamId, "otPrimers":"1"})
+    print("""<input type="submit" name="submit" value="Update">""")
+    print("</form>")
+    print("<p>")
 
 
     printPrimerTable(primerTable, withTm=True, withScore=True)
@@ -7442,7 +7452,7 @@ def primerDetailsPage(params):
         guideStart, guideEnd, primerGuideName, guideSeq)
     print "<hr>"
 
-    if len(mutEnzymes)!=0:
+    if len(mutEnzymes)!=0 and targetSeq is not None:
         printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStartOnTarget, guideEndOnTarget)
         print "<hr>"
 
