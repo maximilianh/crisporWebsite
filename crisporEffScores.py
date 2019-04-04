@@ -1,4 +1,6 @@
-# this library re-implements the efficiency scoring functions of these articles:
+# main functions: calcAllScores and calcMutSeqs 
+
+# this library re-implements the efficiency scoring functions of these articles in calcAllScores():
 
 # - WangSvm: Wang et al, Science 2014, PMID 24336569, no website
 # - Doench: Doench et al, Nat Biotech 2014, PMID 25184501, http://www.broadinstitute.org/rnai/public/analysis-tools/sgrna-design
@@ -7,10 +9,13 @@
 # - Chari: Chari et al, PMID 26167643 http://crispr.med.harvard.edu/sgRNAScorer
 # - Fusi: Fusi et al, prepublication manuscript on bioarxiv, http://dx.doi.org/10.1101/021568 http://research.microsoft.com/en-us/projects/azimuth/, only available as a web API
 # - Housden: Housden et al, PMID 26350902, http://www.flyrnai.org/evaluateCrispr/
-# - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
 # - Wu-Crispr: Wong et al, http://www.genomebiology.com/2015/16/1/218
 # - DeepCpf1, Kim et al, PMID 29431740, https://www.ncbi.nlm.nih.gov/pubmed/29431740
 # - SaCas9 efficiency score (no name), Najm et al, https://www.ncbi.nlm.nih.gov/pubmed/29251726
+
+# Also includes the prediction of DSB-repair outcome in calcMutSeqs:
+# - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
+# - Wei Chen et al: 
 
 # the input are 100bp sequences that flank the basepair just 5' of the PAM +/-50bp.
 # so 50bp 5' of the PAM, and 47bp 3' of the PAM -> 100bp
@@ -40,6 +45,9 @@ sys.path.insert(0, najm2018Dir)
 
 cctopDir = join(dirname(__file__), "bin/src/cctop_standalone")
 sys.path.insert(0, cctopDir)
+
+weiChenDir = join(dirname(__file__), "bin/src/weichen")
+sys.path.insert(0, weiChenDir)
 
 # import numpy as np
 
@@ -568,6 +576,11 @@ def trimSeqs(seqs, fiveFlank, threeFlank):
         trimSeqs.append(seq)
     return trimSeqs
 
+def trimSeqsForGuides(seqs, fiveFlank, threeFlank):
+    " like trimSeqs, but yield  (guide, trimmedSeq) "
+    trimmedSeqs = trimSeq(seqs, fiveFlank, threeFlank)
+    return zip(seqs, trimmedSeqs)
+
 def iterSvmRows(seqs):
     """ translate sequences to wang/sabatini/lander paper representation
     >>> list(iterSvmRows(["ATAGACCTACCTTGTTGAAG"]))
@@ -648,10 +661,26 @@ def cacheScores(scoreName, scoreFunc, seqs):
     assert(len(allScores)==len(seqs))
     return allScores
 
+def calcCasporScores(seqIds, seqs):
+    """ run model by Wei Chen. seqs is 100bp long sequences around beginning of PAM, like all other code.
+    returns dict with seqId -> (probability of frameshift, mutSeqs)
+    """
+    import weiChen
+    fsProbs, mutSeqsList = weiChen.calcScores(trimSeqs(seqs, -34, 26))
+
+    assert(len(seqIds)==len(mutSeqsList))
+
+    seqDict = {}
+    for seqId, fsProb, mutSeqs in zip(seqIds, fsProbs, mutSeqsList):
+        seqDict[seqId] = (fsProb, mutSeqs)
+
+    return seqDict
+
 def calcAllBaeScores(seqs):
     """
     run seqs through calcMicroHomolScore()
     PAM-site has to start at the nucleotide exactly in the middle of the sequence.
+
     >>> calcAllBaeScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])[:2]
     ([7829], [46])
     >>> calcAllBaeScores(["AGCAGGATAGTCCTTCCGAGTGGANNNAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])[:2]
@@ -738,6 +767,11 @@ def calcMicroHomolScore(seq, left):
     oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
     return int(mhScore), int(oofScore), seqs
 
+def calcWeiChenScores(seqs):
+    """ Calc weiChen score 
+    """
+    return fs
+
 def isCas9(enzyme):
     return (enzyme==None or enzyme=="spcas9")
 
@@ -766,6 +800,13 @@ possibleScores = {
         "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
     "cpf1" : ["deepCpf1", "oof"],
     "sacas9" : ["najm", "oof"]
+}
+
+# list of possible DSB repair score names, by enzyme
+possibleMutScores = {
+    "spcas9" : ["oof", "casporPfs"],
+    "cpf1" : ["oof"],
+    "sacas9" : ["oof", "casporPfs"],
 }
 
 def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scoreNames=None):
@@ -881,12 +922,6 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
         if inList(scoreNames, "najm"):
             logging.debug("Najm 2018 score")
             scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
-
-    if inList(scoreNames, "oof"):
-        logging.debug("OOF scores")
-        mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
-        scores["oof"] = oof
-        scores["mh"] = mh
 
     # not used anymore:
     # the fusi score calculated by the Microsoft Research Server is not run by
@@ -1164,6 +1199,48 @@ def calcCctopScore(seqs):
     for seq in seqs:
         score = CCTop.getScore(seq)
         scores.append(100*score)
+    return scores
+
+def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
+    """ run predictors that return the result of DSB repair. seqs is a list of 100bp long sequences.
+
+    returns dict with the score name as the key.
+    Each value is a dict again. The keys are the name of the resulting score e.g. "oof" (out of frame score) and
+    at least the key "seqs", a dict with seqId -> (score, sequence).
+    """
+    if enzyme is None:
+        enzyme="spcas9"
+
+    if scoreNames is None:
+        scoreNames = possibleMutScores[enzyme]
+
+    logging.debug("Calculating mutated sequences, models: %s, for enzyme %s" % (scoreNames, enzyme))
+    scores = {}
+
+    for s in seqs:
+        if len(s)!=100:
+            raise Exception("sequence %s is %d bp and not 100 bp long" % (s, len(s)))
+
+    if inList(scoreNames, "oof"):
+        logging.debug("Bae et al, OOF scores")
+        baeRes = {}
+        mhList, oofList, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
+        #baeRes["oof"] = oofList
+        #baeRes["mh"] = mhList
+        assert(len(seqIds)==len(mhSeqs))
+
+        seqDict = {}
+        for seqId, oof, mhSeq in zip(seqIds, oofList, mhSeqs):
+            seqDict[seqId] = (oof, mhSeq)
+        scores["oof"] = seqDict
+
+    if inList(scoreNames, "casporPfs"):
+        logging.debug("caspor scores")
+        mutSeqDict = calcCasporScores(seqIds, seqs)
+        #weiScores["pfs"] = fsRatios # probability of frameshift
+        #weiScores["seqs"] = mutSeqDict
+        scores["casporPfs"] = mutSeqDict
+
     return scores
 
 # ----------- MAIN --------------

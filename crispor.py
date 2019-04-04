@@ -7,9 +7,9 @@
 
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
-import Cookie, time, sys, cgi, re, random, platform, os, pipes
+import Cookie, time, sys, cgi, re, random, platform, os, pipes, gdbm
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
-import traceback, json, pwd, pickle, gzip
+import traceback, json, pwd, pickle, gzip, zlib
 
 from StringIO import StringIO
 from collections import defaultdict, namedtuple
@@ -277,6 +277,8 @@ commandLineMode = False
 scoreNames = ["fusi", "crisprScan"]
 allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
 
+mutScoreNames = ["oof", "casporPfs"]
+
 cpf1ScoreNames = ["seqDeepCpf1"]
 
 saCas9ScoreNames = ["najm"]
@@ -366,7 +368,8 @@ scoreDescs = {
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
     "seqDeepCpf1" : ("DeepCpf1", "Range: ~ 0-100. Convolutional Neural Network trained on ~20k Cpf1 lentiviral guide results. This is the score without DNAse information, 'Seq-DeepCpf1' in the paper. See <a target='_blank' href='https://www.nature.com/articles/nbt.4061'>Kim et al. 2018</a>"),
-    "oof" : ("Out-of-Frame", "Range: 0-100. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al.</a>. Click the score to show the most likely deletions for this guide.")
+    "oof" : ("Out-of-Frame", "Range: 0-100. Only for deletions. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>. Click the score to show the predicted deletions."),
+    "casporPfs": ("CasPOR", "Wei-Chen Frameshift ratio (0-100). Predicts probability of a frameshift. See <a href='https://www.biorxiv.org/content/10.1101/481069v1'>Wei Chen et al, Bioarxiv 2018</a>. Click the score to see the most likely deletions and insertions.")
 }
 
 # the headers for the guide and offtarget output files
@@ -1170,9 +1173,9 @@ def getSelGeneModel(org):
 
 def printSeqForCopy(seq):
     " print a hidden text area so we can copy the sequence to the clipboard "
-    print('<textarea id="seqAsText" style="display:none">')
+    print('<input id="seqAsText" type="text" style="display:none">')
     print(seq)
-    print("</textarea>")
+    print("</input>")
 
 def calcKomorScore(guideSeq, pos):
     " return base editing score given the guide sequence and the position "
@@ -2282,17 +2285,25 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
         $("guideRow").show();
     }
 
-    function copySeq() {
-        var c = new ClipboardJS('#seqAsText');
-        var copyText = document.getElementById("seqAsText");
-        var selRes = copyText.select();
-        var val = copyText.value;
-        var res = document.execCommand("copy");
-        alert("The input sequence is now in your clipboard. You can paste it into other programs.");
-    }
+    //function copySeq() {
+        //var c = new ClipboardJS('#seqAsText');
+        //var copyText = document.getElementById("seqAsText");
+        //var selRes = copyText.select();
+        //var val = copyText.value;
+        //var res = document.execCommand("copy");
+        //alert("The input sequence is now in your clipboard. You can paste it into other programs.");
+    //}
 
     $(document).ready( function() {
-        $('#copyLink').click( copySeq );
+        //#$('#copyLink').click( copySeq );
+        var clipboard = new ClipboardJS('#copyLink');
+        clipboard.on('success', function(e) {
+            alert("The input sequence is now in your clipboard. You can paste it into other programs.");
+            console.info('Action:', e.action);
+            console.info('Text:', e.text);
+            console.info('Trigger:', e.trigger);
+            e.clearSelection();
+        });
 
         $('d').mouseenter( onEditHover );
         $('d').mouseleave ( onEditOut );
@@ -2472,12 +2483,15 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     print '''</small>'''
 
     if not cpf1Mode:
-        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">Specificity Score</a>' % batchId
+        print '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>' % batchId
         if pamIsSaCas9(pam):
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This specificity score has been adapted for SaCas9 and based on the off-target scores shown on mouse-over. The algorithm was provided by Josh Tycko. Like the MIT score for spCas9, it is aggregated from all off-target scores and ranges 0-100. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
         else:
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print "</th>"
+
+    print '<th style="width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Specificity score</a></th>' % batchId
+
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
        print '<th style="width:150px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
@@ -2496,16 +2510,17 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     print '</th>'
 
     if not baseEditor:
-        if len(scoreNames)<=2:
+        if len(mutScoreNames)<=2:
             oofWidth=100
-            oofName="Out-of-Frame score"
-            oofDesc = "Click on score to show micro-homology"
+            mhColName="Outcome"
+            #oofDesc = "Click on score to show micro-homology"
+            oofDesc = ""
         else:
             oofWidth=45
-            oofName="Out-of- Frame"
+            mhColName="Outcome"
             oofDesc = "Click score for details"
 
-        print '<th style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Click to sort the table by Out-of-Frame score. Hover over the (i) to show information about this score. Click the scores themselves to see the predicted indel pattern around the guide.">%s</a>' % (oofWidth, batchId, oofName)
+        print '<th colspan=2 style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>' % (oofWidth, batchId, mhColName)
         htmlHelp(scoreDescs["oof"][1])
         print "<br><br><small>%s</small>" % oofDesc
         print '</th>'
@@ -2546,12 +2561,13 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
 
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
+    print '<th style="border-top:none"></th>'
 
     if not cpf1Mode:
         print '<th style="border-top:none"></th>'
 
     for scoreName in scoreNames:
-        if scoreName in ["oof", "proxGc"]:
+        if scoreName in ["oof", "proxGc"] or "oof" in scoreName:
             continue
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
@@ -2563,7 +2579,10 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
         print '''<a title="This column shows two heuristics based on observations rather than computational models: <a href='http://www.cell.com/cell-reports/abstract/S2211-1247%2814%2900827-4'>Ren et al</a> 2014 obtained the highest cleavage in Drosophila when the final 6bp contained &gt;= 4 GCs, based on data from 39 guides. <a href='http://www.genetics.org/content/early/2015/02/18/genetics.115.175166.abstract'>Farboud et al.</a> obtained the highest cleavage in C. elegans for the 10 guides that ended with -GG, out of the 50 guides they tested.<br>The column contains + if the final GC count is &gt;= 4 and GG if the guide ends with GG." href="crispor.py?batchId=%s&sortBy=finalGc6" class="tooltipsterInteract">Prox GC</span></div></th>''' % (batchId)
 
     # these are empty cells to fill up the row and avoid white space
-    print '<th style="border-top:none"></th>'
+    for scoreName in mutScoreNames:
+        scoreLabel, scoreDesc = scoreDescs[scoreName]
+        print '<th style="width: 10px; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>' % (scoreDesc, batchId, scoreName, scoreLabel)
+
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
 
@@ -2749,6 +2768,15 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 print "%d" % guideScore
             print "</td>"
 
+        # guide score based on CFD scores, aka guidescan score
+        print "<td>"
+        if not cpf1Mode:
+            if guideCfdScore==None:
+                print "No matches"
+            else:
+                print "%d" % guideCfdScore
+        print "</td>"
+
         # eff scores
         if effScores==None:
             print '<td colspan="%d">Too close to end</td>' % len(scoreNames)
@@ -2791,14 +2819,15 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print "</td>"
 
         if not baseEditor:
-            print "<td>"
-            oofScore = str(effScores.get("oof", None))
-            if oofScore==None:
-                print "--"
-            else:
-                print """<a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster" title="This score indicates how likely out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), oofScore)
-                #print """<br><br><small><a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster">Micro-homology</a></small>""" % (myName, batchId, pamId)
-            print "</td>"
+            for mutScoreName in mutScoreNames:
+                print "<td>"
+                oofScore = str(effScores.get(mutScoreName, None))
+                if oofScore==None:
+                    print "--"
+                else:
+                    print """<a href="%s?batchId=%s&pamId=%s&showMh=%s" target=_blank class="tooltipster" title="This score indicates how likely out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), mutScoreName, oofScore)
+                    #print """<br><br><small><a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster">Micro-homology</a></small>""" % (myName, batchId, pamId)
+                print "</td>"
 
         # mismatch description
         print "<td>"
@@ -3295,11 +3324,20 @@ def findAllGuides(seq, pam):
     pamInfo = list(flankSeqIter(seq, startDict, len(pam), False))
     return pamInfo
 
-def calcGuideEffScores(seq, extSeq, pam):
+def extractMutScores(scoreDict, pamIds):
+    " make a list of the guide-related outcome scores in the order of pamIds "
+    res = []
+    for pamId in pamIds:
+        res.append(scoreDict[pamId][0])
+    return res
+
+def calcSaveEffScores(batchId, seq, extSeq, pam):
     """ given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores.
     Return a
     list of rows [headers, (guideSeq, 100mer, score1, score2, score3,...), ... ]
+
+    Also write the results to a database so they can be retrieved later.
 
     extSeq can be None, if we were unable to extend the sequence
     """
@@ -3309,7 +3347,7 @@ def calcGuideEffScores(seq, extSeq, pam):
 
     pamInfo = findAllGuides(seq, pam)
 
-    guideIds = []
+    pamIds = []
     guides = []
     longSeqs = []
     for pamId, startPos, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamInfo:
@@ -3318,7 +3356,7 @@ def calcGuideEffScores(seq, extSeq, pam):
         longSeq = getExtSeq(seq, gStart, gEnd, strand, 50-GUIDELEN, 50, extSeq) # +-50 bp from the end of the guide
         if longSeq!=None:
             longSeqs.append(longSeq)
-            guideIds.append(pamId)
+            pamIds.append(pamId)
 
     if len(longSeqs)>0 and not skipAlign:
         enz = None
@@ -3328,6 +3366,14 @@ def calcGuideEffScores(seq, extSeq, pam):
             enz = "sacas9"
 
         effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz, scoreNames=scoreNames)
+
+        # these are slow algorithms, store the results for later
+        mutScores = crisporEffScores.calcMutSeqs(pamIds, longSeqs, enz)
+        saveOutcomeData(batchId, mutScores)
+
+        # for output and sorting, it's easier to treat the outcome-derived scores with the efficiency scores
+        for mutScoreName in mutScoreNames:
+            effScores[mutScoreName] = extractMutScores(mutScores[mutScoreName], pamIds)
 
         # make sure the "N bug" reported by Alberto does never happen again:
         # we must get back as many scores as we have sequences
@@ -3342,8 +3388,9 @@ def calcGuideEffScores(seq, extSeq, pam):
     activeScoreNames = effScores.keys()
 
     # reformat to rows, write all scores to file
+    assert(len(pamIds)==len(guides)==len(longSeqs))
     rows = []
-    for i, (guideId, guide, longSeq) in enumerate(zip(guideIds, guides, longSeqs)):
+    for i, (guideId, guide, longSeq) in enumerate(zip(pamIds, guides, longSeqs)):
         row = [guideId, guide, longSeq]
         for scoreName in activeScoreNames:
             scoreList = effScores[scoreName]
@@ -3376,7 +3423,7 @@ def createBatchEffScoreTable(batchId):
     if extSeq:
         extSeq = extSeq.upper()
 
-    guideRows = calcGuideEffScores(seq, extSeq, pam)
+    guideRows = calcSaveEffScores(batchId, seq, extSeq, pam)
     guideFh = open(outFname, "w")
     for row in guideRows:
         writeRow(guideFh, row)
@@ -4045,6 +4092,53 @@ def readBatchParams(batchId):
 
     return inSeq, genome, pamSeq, position, extSeq
 
+def gzipStr(s):
+    " compress a string with gzip and return "
+    out = StringIO()
+    with gzip.GzipFile(fileobj=out, mode="w") as f:
+         f.write(s)
+    return out.getvalue()
+
+def gunzipStr(s):
+    " uncompress a string with gzip and return "
+    print len(s), type(s), dir(s)
+    f = gzip.GzipFile(StringIO(s))
+    result = f.read()
+    f.close()
+    return result
+
+def saveOutcomeData(batchId, data):
+    """ save outcome data of batch. data is a dictionary with key = score name """
+    batchBase = join(batchDir, batchId)
+    dbFname = batchBase+".gdbm"
+    db = gdbm.open(dbFname, "c")
+    #conn = sqlite3.connect(dbFname, "w")
+    #c = conn.cursor()
+    #c.execute('''CREATE TABLE outcomes (id text PRIMARY KEY, data blob))''' % scoreName)
+    #c.commit()
+
+    for scoreName, data in data.iteritems():
+        #c.execute("INSERT INTO outcomes values (?, ?)", (scoreName, gzipStr(json.dumps(data))))
+        db[scoreName] = zlib.compress(json.dumps(data))
+
+    db.close()
+
+    #c.commit()
+
+def readOutcomeData(batchId, scoreName):
+    """ open outcome data of batch, key is score name """
+    batchBase = join(batchDir, batchId)
+    dbFname = batchBase+".gdbm"
+    #conn = sqlite3.connect(dbFname, "r")
+    #c = conn.cursor()
+    #binData = c.execute("SELECT data FROM outcomes where id=?", scoreName)
+    db = gdbm.open(dbFname, "r")
+    dbObj = db[scoreName]
+    jsonStr = zlib.decompress(dbObj)
+    data = json.loads(jsonStr)
+    db.close()
+    return data
+
 def findAllPams(seq, pam):
     """ find all matches for PAM and return as dict startPos -> strand and a set
     of end positions
@@ -4451,7 +4545,7 @@ def showSeqDownloadMenu(batchId):
     html = "<a href='%s'>FASTA</a>" % myUrl
     htmls.append(html)
 
-    html = "<a id='copyLink' href='#'>Copy sequence to clipboard</a>"
+    html = "<div id='copyLink' data-clipboard-target='#seqAsText'>Copy sequence to clipboard</div>"
     htmls.append(html)
 
     print " - ".join(htmls)
@@ -4994,6 +5088,7 @@ def makeGuideHeaders():
     tableScoreNames = list(tuple(scoreNames))
     if not cpf1Mode:
         tableScoreNames.append("oof")
+        tableScoreNames.append("casporPfs")
 
     for scoreName in tableScoreNames:
         headers.append(scoreDescs[scoreName][0]+"-Score")
@@ -5957,38 +6052,71 @@ def microHomPage(params):
     #gEnd = gStart+GUIDELEN
     strand = pamId[-1]
 
+    print "<strong>Guide:</strong> %s<p>" % guideSeqHtml
+
+    scoreCode = params["showMh"]
+
+    outcome = readOutcomeData(batchId, scoreCode)[pamId]
     # extend guide to get +- 50 bp around it
     longSeq = getExtSeq(inSeq, guideStart, guideEnd, strand, 50-GUIDELEN, 50, extSeq=extSeq)
-    mh, oof, mhSeqs = crisporEffScores.calcAllBaeScores(crisporEffScores.trimSeqs([longSeq], -40, 40))
-    mhSeqs1 = mhSeqs[0]
-    mhSeqs1.sort(reverse=True)
+    if scoreCode=="oof":
+        oof, mhSeqs = outcome
+        mhSeqs.sort(reverse=True)
+        print """The following table lists possible deletions. """
 
-    print "<strong>Guide:</strong> %s<p>" % guideSeqHtml
-    print """The following table lists possible deletions. """
-    print("""Each sequence below represents the context around the guide's target, with deleted nucleotides shown as "-". They are ranked by the "micro-homology score". This score is correlated to the likelihood of finding a particular deletion, as predicted by the method of <a target=_blank href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>.<p>""")
+    elif scoreCode=="casporPfs":
+        fsProb, mhSeqs = outcome
+        print """The following table lists possible deletions and insertions. """
+
+    else:
+        errAbort("Invalid score code")
+
+    print("""Each sequence below represents the context around the guide's target, with deleted nucleotides shown as "-".<br>""")
+
+    if scoreCode=="oof":
+        print("""Sequences  are ranked by micro-homology score. This score is correlated to the likelihood of finding a particular deletion, as predicted by the method of <a target=_blank href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>.<p>""")
+        scoreName = "Bae-Score"
+
+    elif scoreCode=="casporPfs":
+        print("""Sequences are ranked by the probability to observe them, as predicted by the method of <a target=_blank href='https://www.biorxiv.org/content/10.1101/481069v1 '>Chen et al. 2018</a>.<p>""")
+        scoreName = "probability"
+
+    else:
+        errAbort("Unknown score code")
 
     print "<table>"
     print "<tr>"
-    print "<th>Bae-Score</th>"
+    print "<th>%s</th>" % scoreName
     print "<th>Sequence</th>"
     print "<th>Effect</th>"
     print "</th>"
 
     print "<tr>"
     print "<td></td>"
-    print "<td><tt>%s</tt></td>" % longSeq[10:-10].upper()
+    if scoreCode=="oof":
+        print "<td><tt>%s</tt></td>" % longSeq[10:-10].upper()
+    elif scoreCode=="casporPfs":
+        targetSeq = longSeq[16:-24].upper()
+        targetSeq = targetSeq[:30] + " " + targetSeq[31:]
+        print "<td><tt>%s</tt></td>" %  targetSeq
+
     print "<td>(Wild-type sequence)</td>"
     print "</tr>"
-    for score, seq in mhSeqs1:
+
+    for row in mhSeqs:
+        score, seq = row[:2]
         print "<tr>"
-        print "<td>%s</td>" % score
+        print "<td>%.2f%%</td>" % score
         print "<td><tt>%s</tt></td>" % seq
-        delCount = seq.count("-")
-        if delCount % 3 == 0:
-            resStr = "no frameshift"
+        if scoreCode=="oof":
+            delCount = seq.count("-")
+            if delCount % 3 == 0:
+                resStr = "no frameshift"
+            else:
+                resStr = "frameshift"
+            print "<td><tt>%d bp deleted &rarr; %s</tt></td>" % (delCount, resStr)
         else:
-            resStr = "frameshift"
-        print "<td><tt>%d bp deleted &rarr; %s</tt></td>" % (delCount, resStr)
+            print "<td>%s</td>" % (row[2])
         print "</tr>"
     print "</table>"
 
