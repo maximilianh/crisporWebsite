@@ -660,6 +660,19 @@ we still recommend them. They should save screening time in the long run as
 they decrease your chances of stumbling over a very inefficient guide.
 Just make sure that you look at the right score for your expression system.
 
+Adding a genome {#addgenome}
+===============
+
+If you need a genome that is not already in the our list, please send us the
+UCSC genome name or the Ensembl taxon ID or the NCBI RefSeq Assembly ID, which
+starts with GCF_ or GCA_. GCF_ genomes come with 
+gene models, for exon filtering, GCA_ accessions do not, so when in doubt,
+prefer GCF_ genomes.  You can find these numbers by searching [NCBI
+Assembly](https://www.ncbi.nlm.nih.gov/assembly) for your genome of interest. 
+We can exceptionally also add individual FASTA and GFF files, which you can
+send by URL or as a Dropbox link. We have received more than 150 genomes from
+users by email until now, mostly using NCBI RefSeq genome accessions.
+
 Frequently Asked Questions {#faq}
 ==========================
 
@@ -683,17 +696,6 @@ score to rank guides.
 * Can I score my existing single guides with CRISPOR ?
 
 Of course, just paste the target sequence, i.e. the guide + the PAM sequence, into the sequence input box.
-
-* Can you add my genome? {#addgenome}
-
-Yes, please send us the UCSC genome name or the Ensembl taxon ID or the NCBI
-RefSeq Assembly ID, which starts with GCF_ or GCA_. GCF_ genomes come with 
-gene models, for exon filtering, GCA_ accessions do not, so when in doubt,
-prefer GCF_ genomes.  You can find these numbers by searching [NCBI
-Assembly](https://www.ncbi.nlm.nih.gov/assembly) for your genome of interest. 
-We can exceptionally also add individual FASTA and GFF files, which you can
-send by URL or as a Dropbox link. We have received more than 150 genomes from
-users by email until now, mostly using NCBI RefSeq genome accessions.
 
 * Can you add my genome and not share it?
 

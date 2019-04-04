@@ -389,7 +389,6 @@ def calcChariScores(seqs, baseDir="."):
     chariDir = join(binDir, "src", "sgRNA.Scorer.1.0")
     modelFname = join(chariDir,'293T.HiSeq.SP.Nuclease.100.SVM.Model.txt')
     dataIn = seqsToChariSvml(seqs)
-    #print repr(dataIn)
 
     #tempFh = tempfile.NamedTemporaryFile()
     tempFname = tempfile.mktemp()
@@ -411,7 +410,6 @@ def calcChariScores(seqs, baseDir="."):
     except CalledProcessError:
         raise Exception("Could not run command '%s'" % (" ".join(cmd)))
 
-    #print " ".join(cmd)
     dataOut = open(outName).read()
     os.remove(outName)
     os.remove(tempFname)
@@ -559,7 +557,6 @@ def sendFusiRequest(seqs):
     except urllib2.HTTPError, error:
         print("The request failed with status code: " + str(error.code))
 
-        # Print the headers - they include the request ID and the timestamp, which are useful for debugging the failure
         print(error.info())
 
         print(json.loads(error.read())) 
@@ -798,15 +795,16 @@ def inList(l, name):
 possibleScores = {
     "spcas9" : ["fusi", "fusiOld", "housden", "wang", "doench", "ssc",
         "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
-    "cpf1" : ["deepCpf1", "oof"],
+    "cpf1" : ["seqDeepCpf1", "oof"],
     "sacas9" : ["najm", "oof"]
 }
 
 # list of possible DSB repair score names, by enzyme
 possibleMutScores = {
-    "spcas9" : ["oof", "casporPfs"],
+    # removed casporPfs from spcas9 and sacas9 from possibleMutScore
+    "spcas9" : ["oof"],
     "cpf1" : ["oof"],
-    "sacas9" : ["oof", "casporPfs"],
+    "sacas9" : ["oof"],
 }
 
 def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scoreNames=None):
@@ -843,7 +841,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
 
     unknownScores = set(scoreNames) - set(possibleScores[enzyme])
     if len(unknownScores)!=0:
-        raise Exception("Unknown score names: %s" % unknownScores)
+        raise Exception("Unknown score names: %s. Enzyme: %s, scoreNames: %s" % (unknownScores, enz, scoreNames))
 
     if enzyme=="spcas9":
         if inList(scoreNames, "fusi"):
@@ -913,7 +911,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
     elif enzyme=="cpf1":
         deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
         cpfScores = calcDeepCpf1Scores(deepSeqs)
-        if inList(scoreNames, "deepCpf1"):
+        if inList(scoreNames, "seqDeepCpf1"):
             scores["seqDeepCpf1"] = cpfScores[0]
             scores["deepCpf1NoDnase"] = cpfScores[1]
             scores["deepCpf1Dnase"] = cpfScores[2]

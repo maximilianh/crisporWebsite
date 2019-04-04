@@ -25,7 +25,7 @@ debugMode = False
 global FORCE
 FORCE = False
 
-ENSGRELEASE = "36"
+ENSGRELEASE = "42"
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|ncbi <taxId1> <taxId2> ... - add genome to crispr site
@@ -76,16 +76,18 @@ def errAbort(msg):
     print "Need help or have feedback? Email crispor@tefor.net"
     exit(0)
 
-def runCmd(cmd, mustRun=True):
+def runCmd(cmd, mustRun=True, useSys=False):
     " wrapper around os.system that prints error messages "
     if debugMode:
         print cmd
-    #cmd = "bash -e -o pipefail -c " + cmd
-    args = ["/bin/bash", "-e", "-o", "pipefail", "-c"]
-    logging.info("Running: %s" % cmd)
-    args.append(cmd)
-    #print args
-    ret = subprocess.call(args)
+    if useSys:
+        ret = os.system(cmd)
+    else:
+        args = ["/bin/bash", "-e", "-o", "pipefail", "-c", cmd]
+        logging.info("Running: %s" % args)
+        args.append(cmd)
+        #print args
+        ret = subprocess.call(args)
     if ret!=0 and mustRun:
         print "Could not run command %s" % cmd
         sys.exit(0)
@@ -362,7 +364,8 @@ def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir):
 def geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp):
     " convert genes to segments "
     printMsg("Downloading gene models to segments")
-    cmd = "cat %(geneTmp)s | cut -f2- | genePredToBed stdin stdout | bedToExons stdin stdout | lstOp replace stdin %(accToSymTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
+    # the awk command translates spaces to underscores. genePredToBed cannot deal with these.
+    cmd = """cat %(geneTmp)s | cut -f2- | awk 'BEGIN {FS=OFS="\t";} // { gsub(" " , "_", $1); gsub(" ", "_", $12); print }' | genePredToBed stdin stdout | bedToExons stdin stdout | lstOp replace stdin %(accToSymTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s""" % locals()
     runCmd(cmd)
     assert(getsize(segTmp)!=0) # no segments - email Max!
 
@@ -554,14 +557,15 @@ def selectEnsGenomes(genomeIds):
 
     return rows
 
-def getDownloadUrl(division, org, assembly, release, dataType):
+def getEnsDownloadUrls(division, org, assembly, release, dataType):
     " get the ftp url for a given ensembl species file, dataType is fasta or gtf"
     # ftp://ftp.ensemblgenomes.org/pub/current/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.23.dna_sm.toplevel.fa.gz
+    logging.info("Getting URL for: Ensembl group %s, org %s, assembly %s, release %s, dataType %s" % (division, org, assembly, release, dataType))
     org = org.replace(" ", "_").lower()
     orgCap = org.capitalize()
     division=division.lower()
 
-    if division=="ensembl":
+    if division=="ensemblvertebrates":
         url = "ftp://ftp.ensembl.org/pub/current_%(dataType)s/%(org)s/" % locals()
     else:
         divDir = division.replace("ensembl","")
@@ -608,21 +612,30 @@ def getEnsGenomes(genomeRows, onlyGenes):
             continue
 
         sizesTmp = join(dbTmpDir, db+".sizes")
+        twoBitTmp = join(dbTmpDir, db+".2bit")
         if not onlyGenes and not (FORCE and isfile(sizesTmp)):
             printMsg("Genome: " + db)
             printMsg("Downloading")
             faTmp = join(dbTmpDir, db+".fa")
-            url = getDownloadUrl(row.server, row.scientificName, row.sourceName, row.nibPath, "fasta")
+            url = getEnsDownloadUrls(row.server, row.scientificName, row.sourceName, row.nibPath, "fasta")
             # XX tmp hack
             if str(row.taxId)=="511145":
                 url = "ftp://ftp.ensemblgenomes.org/pub/current/bacteria/fasta/bacteria_0_collection/escherichia_coli_str_k_12_substr_mg1655/dna/Escherichia_coli_str_k_12_substr_mg1655.ASM584v2.31.dna_sm.toplevel.fa.gz"
-            cmd = "wget %s -O - | zcat > %s" % (url, faTmp)
+            # XX tmp hack ensembl plants nonsense
+            if "Hv_IBSC_PGSB_v2" in url:
+                url = url.replace("Hv_IBSC_PGSB_v2", "IBSC_v2")
+
+            cmd = "set -euf -o pipefail; wget %s -O - | zcat > %s" % (url, faTmp)
             runCmd(cmd)
 
             indexFasta(faTmp, db, twoBitTmp, sizesTmp)
         else:
-            twoBitTmp = join(dbTmpDir, db+".2bit")
+            if not isfile(twoBitTmp):
+                twoBitTmp = join(finalDbDir, db+".2bit")
+
+            print twoBitTmp
             assert(isfile(twoBitTmp))
+
             # for the case onlyGenes and no .sizes file yet
             if not isfile(sizesTmp):
                 origSizes = join(finalDbDir, db+".sizes")
@@ -648,7 +661,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
             martOpt += " --schema=%s_mart" %  (egType)
 
         cmd = """retrBiomart %s %s ensembl_transcript_id ensembl_gene_id external_gene_name | gawk 'BEGIN {OFS="\t"; FS="\t"} {if ($3!="") {$2=$3}; print}' | cut -f1,2 > %s""" % (martOpt, martName, ensToGeneTmp)
-        runCmd(cmd, mustRun=False)
+        runCmd(cmd, mustRun=False, useSys=True)
         # a hack for ensG deviating again from ensg
         if getsize(ensToGeneTmp)==0:
             cmd = cmd.replace('external_gene_name', "external_gene_id")
@@ -658,9 +671,12 @@ def getEnsGenomes(genomeRows, onlyGenes):
         # segment genome into named exons/non-exons
         printMsg("Downloading gene models and converting to segments")
         segTmp = join(dbTmpDir, "%s.segments.bed" % db)
-        gtfUrl = getDownloadUrl(row.server, row.scientificName, row.sourceName, row.nibPath, "gtf")
+        gtfUrl = getEnsDownloadUrls(row.server, row.scientificName, row.sourceName, row.nibPath, "gtf")
         gpTmp = join(dbTmpDir, "%s.gp" % db)
 
+        # XX tmp hack ensembl plants nonsense
+        if "Hv_IBSC_PGSB_v2" in gtfUrl:
+            gtfUrl = gtfUrl.replace("Hv_IBSC_PGSB_v2", "IBSC_v2")
 
         tmpGffName = join(dbTmpDir, "transcripts.gff")
         cmd    = """wget %(gtfUrl)s -O - | zcat > %(tmpGffName)s""" % locals()
@@ -738,7 +754,9 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
         logging.info("Genepred file has 0 size. No gene models are available")
         return False
 
-    cmd = "genePredToBed %(gpFname)s stdout | bedToExons stdin stdout | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(chromSizesFname)s | bedSort stdin %(segFname)s" % locals()
+    # genePredTo cannot deal with spaces, so replace these with underscores. 
+    # No idea why NCBI has spaces in gene identifiers, in some obscure cases
+    cmd = """cat %(gpFname)s | awk 'BEGIN {FS=OFS="\t";} // { gsub(" " , "_", $1); gsub(" ", "_", $12); print }' | genePredToBed stdin stdout | bedToExons stdin stdout | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(chromSizesFname)s | bedSort stdin %(segFname)s""" % locals()
     logging.info("converting genePred to segment names: %s" % cmd)
     runCmd(cmd)
 
@@ -784,7 +802,9 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
                 shutil.copy(row.url, faTmp)
 
         seqLine = open(faTmp).readline()
-        assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
+        if "|" in seqLine:
+            print("sequence id '%s' : | is not allowed in the fa file. We need it as a separator in the bed file." % seqLine)
+            sys.exit(1)
 
         line1 = open(faTmp).readline()
         assert("|" not in line1) # I use | as a separator in crispor
@@ -982,6 +1002,8 @@ elif site=="ncbi":
         if genomeInfo is None:
             fname = getNcbiIndex("genbank")
             genomeInfo, ftpUrl = getNcbiInfo(fname, acc)
+        if genomeInfo is None:
+            errAbort("Could not find accession %s, not in RefSeq and neither in Genbank. You want to remove the temp file to trigger a re-download of NCBI organism data." % acc)
 
         getNcbiGenome(ftpUrl, genomeInfo, options)
 

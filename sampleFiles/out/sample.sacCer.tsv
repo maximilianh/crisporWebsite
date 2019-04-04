@@ -1,8 +1,8 @@
-#seqId	guideId	targetSeq	mitSpecScore	offtargetCount	targetGenomeGeneLocus	Doench '16-Score	Chari-Score	Xu-Score	Doench '14-Score	Wang-Score	Moreno-Mateos-Score	Housden-Score	ProxGCCount-Score	Doench '16-Old-Score	Azimuth in-vitro-Score	Out-of-Frame-Score
-testSeq	41forw	TACATAAACATATTGGCTTGTGG	68	6	exon:YAL069W/YAL068W-A	58	66	-0.236583	3	45	38	6.1	NotEnoughFlankSeq	NotEnoughFlankSeq	37	69
-testSeq	137forw	AGAATATTTCGTACTTACACAGG	54	6	intergenic:YAL069W/YAL068W-A-PAU8	56	7	0.101159	11	65	19	5.6	NotEnoughFlankSeq	NotEnoughFlankSeq	30	63
-testSeq	58forw	TTGTGGTAGCAACACTATCATGG	50	1	intergenic:YAL069W/YAL068W-A-PAU8	54	37	-0.074883	4	61	39	7.0	NotEnoughFlankSeq	NotEnoughFlankSeq	23	76
-testSeq	34forw	ACAATAATACATAAACATATTGG	48	8	exon:YAL069W/YAL068W-A	44	19	-0.088649	25	47	17	6.4	NotEnoughFlankSeq	NotEnoughFlankSeq	20	58
-testSeq	80rev	TCAAGCAAATTGCAATATTGAGG	43	13	intergenic:YAL069W/YAL068W-A-PAU8	52	79	-0.082989	15	45	31	3.8	NotEnoughFlankSeq	NotEnoughFlankSeq	16	73
-testSeq	104forw	AATATTGCAATTTGCTTGAACGG	18	14	intergenic:YAL069W/YAL068W-A-PAU8	40	15	-0.499977	12	26	49	4.7	NotEnoughFlankSeq	NotEnoughFlankSeq	22	69
-testSeq	140rev	TGACATATTATTCTAATGTATGG	16	14	intergenic:YAL069W/YAL068W-A-PAU8	47	24	-0.235785	5	34	21	5.5	NotEnoughFlankSeq	NotEnoughFlankSeq	26	64
+#seqId	guideId	targetSeq	mitSpecScore	offtargetCount	targetGenomeGeneLocus	Doench '16-Score	Doench '16-Old-Score	Chari-Score	Xu-Score	Doench '14-Score	Wang-Score	Moreno-Mateos-Score	Azimuth in-vitro-Score	Out-of-Frame-Score
+testSeq	41forw	TACATAAACATATTGGCTTGTGG	68	6	exon:YAL069W/YAL068W-A	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
+testSeq	58forw	TTGTGGTAGCAACACTATCATGG	50	1	intergenic:YAL069W/YAL068W-A-PAU8	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
+testSeq	34forw	ACAATAATACATAAACATATTGG	48	8	exon:YAL069W/YAL068W-A	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
+testSeq	80rev	TCAAGCAAATTGCAATATTGAGG	43	13	intergenic:YAL069W/YAL068W-A-PAU8	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
+testSeq	137forw	AGAATATTTCGTACTTACACAGG	38	6	intergenic:PAU21-YOR394C-A	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
+testSeq	104forw	AATATTGCAATTTGCTTGAACGG	18	14	intergenic:YIL177C-PAU14	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq
+testSeq	140rev	TGACATATTATTCTAATGTATGG	16	14	intergenic:YAL069W/YAL068W-A-PAU8	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq	NotEnoughFlankSeq

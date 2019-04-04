@@ -12,7 +12,7 @@
 import sys, logging
 pam = sys.argv[1]
 guideLen = int(sys.argv[2])
-isCpf1 = (pam in ["TTTN", "TTN"])
+isCpf1 = (pam in ["TTTN", "TTN", "TTTV"])
 pamLen = len(pam)
 
 exprMatchStr = str(guideLen)+"M"
