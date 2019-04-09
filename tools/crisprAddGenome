@@ -6,6 +6,8 @@ from os.path import *
 
 import MySQLdb # install with "sudo apt-get install python-mysqldb"
 
+# todo: add genbank downloader, e.g. 
+# wget -O NC_001416.1.fasta 'https://www.ncbi.nlm.nih.gov/search/api/sequence/NC_001416.1/?report=fasta'
 
 # temp dir on local disk
 tmpDir = os.environ.get("TMPDIR", "/tmp")

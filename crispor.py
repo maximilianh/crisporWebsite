@@ -274,7 +274,7 @@ pamPlusLen = 5
 commandLineMode = False
 
 # names/order of efficiency scores to show in UI
-scoreNames = ["fusi", "crisprScan"]
+cas9ScoreNames = ["fusi", "crisprScan"]
 allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
 
 #mutScoreNames = ["oof", "casporPfs"]
@@ -415,6 +415,7 @@ def setupPamInfo(pam):
             baseEditor = "BE1"
 
     PAMLEN = len(pam)
+
     if pamIsCpf1(pam):
         logging.debug("switching on Cpf1 mode, guide length is 23bp")
         GUIDELEN = 23
@@ -432,9 +433,11 @@ def setupPamInfo(pam):
     elif pam=="NNNNCC":
         GUIDELEN = 24
         cpf1Mode = False
+        scoreNames = cas9ScoreNames
     else:
         GUIDELEN = 20
         cpf1Mode = False
+        scoreNames = cas9ScoreNames
 
     return pam
 
@@ -1516,7 +1519,7 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None):
         url = "http://%s/%s/Location/View?r=%s" % (baseUrl, org, pos)
     elif dbInfo.server=="ucsc":
         urlLabel = "UCSC"
-        if pos[0].isdigit():
+        if len(pos)>0 and pos[0].isdigit():
             pos = "chr"+pos
         # remove the strand
         pos = pos.replace(":+","").replace(":-","")
@@ -2805,7 +2808,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 elif scoreName=="ssc":
                     # save some space
                     numStr = '%.1f' % (float(score))
-                    print '''<td>%s</td>'''  % numStr
+                    print '''<td style="font-size:small">%s</td>'''  % numStr
                 elif scoreDigits.get(scoreName, 0)==0:
                     print '''<td>%d</td>''' % int(score)
                 else:
@@ -3375,6 +3378,11 @@ def calcSaveEffScores(batchId, seq, extSeq, pam):
             enz = "cpf1"
         elif pamIsSaCas9(pam):
             enz = "sacas9"
+
+        # for spcas9, we use the extended list for the calculation
+        global scoreNames
+        if enz is None:
+            scoreNames = allScoreNames
 
         effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz, scoreNames=scoreNames)
 
@@ -3980,7 +3988,7 @@ def printForm(params):
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
 <br><i>Apr 2019: Improved site stability, Sanger off-target primers <a href="doc/changes.html">Full list of changes</a></i><br>
-Update - Apr 4 2019: job queuing updates. Most errors should be fixed, but do not hesitate to send email if you find an issue.
+Update - Apr 9 2019: After the most recent update, a few small things were fixed. Thanks for all the emails. Let me know if you experience problems -> crispor@tefor.net
 
  </div>
 
@@ -4815,6 +4823,8 @@ def checkOtherArgs(params):
     varDb = params.get("varDb", None)
 
     pam = params.get("pam", None)
+    org = params.get("org", None)
+
     if pamIsXCas9(pam) and org=="noGenome":
         errAbort("You selected no genome, so only efficiency scoring is active. "
            "You also selected the enzyme xCas9. "

@@ -841,7 +841,7 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
 
     unknownScores = set(scoreNames) - set(possibleScores[enzyme])
     if len(unknownScores)!=0:
-        raise Exception("Unknown score names: %s. Enzyme: %s, scoreNames: %s" % (unknownScores, enz, scoreNames))
+        raise Exception("Unknown score names: %s. Enzyme: %s, scoreNames: %s" % (unknownScores, enzyme, scoreNames))
 
     if enzyme=="spcas9":
         if inList(scoreNames, "fusi"):
