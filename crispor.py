@@ -277,8 +277,7 @@ commandLineMode = False
 cas9ScoreNames = ["fusi", "crisprScan"]
 allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
 
-#mutScoreNames = ["oof", "casporPfs"]
-mutScoreNames = ["oof"]
+mutScoreNames = ["oof", "lindel"]
 
 cpf1ScoreNames = ["seqDeepCpf1"]
 
@@ -370,7 +369,7 @@ scoreDescs = {
     "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
     "seqDeepCpf1" : ("DeepCpf1", "Range: ~ 0-100. Convolutional Neural Network trained on ~20k Cpf1 lentiviral guide results. This is the score without DNAse information, 'Seq-DeepCpf1' in the paper. See <a target='_blank' href='https://www.nature.com/articles/nbt.4061'>Kim et al. 2018</a>"),
     "oof" : ("Out-of-Frame", "Range: 0-100. Only for deletions. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>. Click the score to show the predicted deletions."),
-    "casporPfs": ("CasPOR", "Wei-Chen Frameshift ratio (0-100). Predicts probability of a frameshift. See <a href='https://www.biorxiv.org/content/10.1101/481069v1'>Wei Chen et al, Bioarxiv 2018</a>. Click the score to see the most likely deletions and insertions.")
+    "lindel": ("Lindel", "Wei Chen Frameshift ratio (0-100). Predicts probability of a frameshift caused by any type of insertion or deletion. See <a href='https://www.biorxiv.org/content/10.1101/481069v1'>Wei Chen et al, Bioarxiv 2018</a>. Click the score to see the most likely deletions and insertions.")
 }
 
 # the headers for the guide and offtarget output files
@@ -2518,17 +2517,17 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     mhColName="Outcome"
     if not baseEditor:
         if len(mutScoreNames)<=1:
-            oofWidth=67
-            #oofDesc = "Click on score to show micro-homology"
-            oofDesc = ""
-        else:
             oofWidth=45
-            oofDesc = "Click score for details"
+            #oofDesc = "Click on score to show micro-homology"
+            #oofDesc = ""
+        else:
+            oofWidth=67
+            #oofDesc = "Click score for details"
 
         colSpan = len(mutScoreNames)
         print '<th colspan=%d style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>' % (colSpan, oofWidth, batchId, mhColName)
         #htmlHelp(scoreDescs["oof"][1])
-        print "<br><br><small>%s</small>" % oofDesc
+        #print "<small>%s</small>" % oofDesc
         print '</th>'
 
     print '<th style="width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>' % (batchId)
@@ -2836,10 +2835,16 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             for mutScoreName in mutScoreNames:
                 print "<td>"
                 oofScore = str(effScores.get(mutScoreName, None))
+
+                if mutScoreName=="oof":
+                    scoreDesc = "out-of-frame deletions"
+                else:
+                    scoreDesc = "frameshift mutations"
+
                 if oofScore==None:
                     print "--"
                 else:
-                    print """<a href="%s?batchId=%s&pamId=%s&showMh=%s" target=_blank class="tooltipster" title="This score indicates how likely out-of-frame deletions are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), mutScoreName, oofScore)
+                    print """<a href="%s?batchId=%s&pamId=%s&showMh=%s" target=_blank class="tooltipster" title="This score indicates how likely %s are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), mutScoreName, scoreDesc, oofScore)
                     #print """<br><br><small><a href="%s?batchId=%s&pamId=%s&showMh=1" target=_blank class="tooltipster">Micro-homology</a></small>""" % (myName, batchId, pamId)
                 print "</td>"
 
@@ -3345,7 +3350,7 @@ def extractMutScores(scoreDict, pamIds):
         res.append(scoreDict[pamId][0])
     return res
 
-def calcSaveEffScores(batchId, seq, extSeq, pam):
+def calcSaveEffScores(batchId, seq, extSeq, pam, queue):
     """ given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores.
     Return a
@@ -3386,7 +3391,8 @@ def calcSaveEffScores(batchId, seq, extSeq, pam):
 
         effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz, scoreNames=scoreNames)
 
-        # these are slow algorithms, store the results for later
+        # these are slow algorithms, so store the results for later
+        queue.startStep(batchId, "outcome", "Calculating editing outcomes")
         mutScores = crisporEffScores.calcMutSeqs(pamIds, longSeqs, enz)
         saveOutcomeData(batchId, mutScores)
 
@@ -3429,7 +3435,7 @@ def writeRow(ofh, row):
     ofh.write("\t".join(row))
     ofh.write("\n")
 
-def createBatchEffScoreTable(batchId):
+def createBatchEffScoreTable(batchId, queue):
     """ annotate all potential guides with efficiency scores and write to file.
     tab-sep file for easier debugging, no pickling
     """
@@ -3445,7 +3451,7 @@ def createBatchEffScoreTable(batchId):
     if extSeq:
         extSeq = extSeq.upper()
 
-    guideRows = calcSaveEffScores(batchId, seq, extSeq, pam)
+    guideRows = calcSaveEffScores(batchId, seq, extSeq, pam, queue)
     guideFh = open(outFname, "w")
     for row in guideRows:
         writeRow(guideFh, row)
@@ -3810,9 +3816,12 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     """
     batchInfo = readBatchAsDict(batchId)
 
-    queue.startStep(batchId, "bwasw", "Searching genome for one 100% identical match to input sequence")
-    posStr = findPerfectMatch(batchId)
-    batchInfo["posStr"] = posStr
+    if genome=="noGenome":
+        posStr = "?"
+    else:
+        queue.startStep(batchId, "bwasw", "Searching genome for one 100% identical match to input sequence")
+        posStr = findPerfectMatch(batchId)
+        batchInfo["posStr"] = posStr
 
     if posStr!="?":
         # get a 100bp-extended version of the input seq
@@ -3823,7 +3832,7 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
 
     if doEffScoring:
         queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
-        createBatchEffScoreTable(batchId)
+        createBatchEffScoreTable(batchId, queue)
 
     if genome=="noGenome":
         # skip the off-target search entirely
@@ -5122,8 +5131,6 @@ def makeGuideHeaders():
     tableScoreNames = list(tuple(scoreNames))
     if not cpf1Mode:
         tableScoreNames.extend(mutScoreNames)
-        #tableScoreNames.append("oof")
-        #tableScoreNames.append("casporPfs")
 
     for scoreName in tableScoreNames:
         headers.append(scoreDescs[scoreName][0]+"-Score")
@@ -6101,6 +6108,7 @@ def microHomPage(params):
 
     scoreCode = params["showMh"]
 
+    #mutScores = crisporEffScores.calcMutSeqs(pamIds, longSeqs, enz, scoreNames=[scoreCode])
     outcome = readOutcomeData(batchId, scoreCode)[pamId]
     # extend guide to get +- 50 bp around it
     longSeq = getExtSeq(inSeq, guideStart, guideEnd, strand, 50-GUIDELEN, 50, extSeq=extSeq)
@@ -6109,7 +6117,7 @@ def microHomPage(params):
         mhSeqs.sort(reverse=True)
         print """The following table lists possible deletions. """
 
-    elif scoreCode=="casporPfs":
+    elif scoreCode=="lindel":
         fsProb, mhSeqs = outcome
         print """The following table lists possible deletions and insertions. """
 
@@ -6122,9 +6130,9 @@ def microHomPage(params):
         print("""Sequences  are ranked by micro-homology score. This score is correlated to the likelihood of finding a particular deletion, as predicted by the method of <a target=_blank href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>.<p>""")
         scoreName = "Bae-Score"
 
-    elif scoreCode=="casporPfs":
+    elif scoreCode=="lindel":
         print("""Sequences are ranked by the probability to observe them, as predicted by the method of <a target=_blank href='https://www.biorxiv.org/content/10.1101/481069v1 '>Chen et al. 2018</a>.<p>""")
-        scoreName = "probability"
+        scoreName = "Probability"
 
     else:
         errAbort("Unknown score code")
@@ -6136,22 +6144,27 @@ def microHomPage(params):
     print "<th>Effect</th>"
     print "</th>"
 
-    print "<tr>"
-    print "<td></td>"
     if scoreCode=="oof":
+        print "<tr>"
+        print "<td></td>"
         print "<td><tt>%s</tt></td>" % longSeq[10:-10].upper()
-    elif scoreCode=="casporPfs":
-        targetSeq = longSeq[16:-24].upper()
-        targetSeq = targetSeq[:30] + " " + targetSeq[31:]
-        print "<td><tt>%s</tt></td>" %  targetSeq
+        print "<td>(Wild-type sequence)</td>"
+        print "</tr>"
 
-    print "<td>(Wild-type sequence)</td>"
-    print "</tr>"
+    #elif scoreCode=="lindel":
+        #targetSeq = longSeq[16:-24].upper()
+        #targetSeq = targetSeq[:30] + " " + targetSeq[31:]
+        #print "<td><tt>%s</tt></td>" %  targetSeq
+
 
     for row in mhSeqs:
         score, seq = row[:2]
         print "<tr>"
-        print "<td>%.2f%%</td>" % score
+        if score==0:
+            print "<td></td>"
+        else:
+            print "<td>%.2f%%</td>" % score
+
         print "<td><tt>%s</tt></td>" % seq
         if scoreCode=="oof":
             delCount = seq.count("-")
@@ -6161,7 +6174,10 @@ def microHomPage(params):
                 resStr = "frameshift"
             print "<td><tt>%d bp deleted &rarr; %s</tt></td>" % (delCount, resStr)
         else:
-            print "<td>%s</td>" % (row[2])
+            if score==0.0:
+                print "<td>wild-type</td>" # for lindel
+            else:
+                print "<td>%s</td>" % (row[2])
         print "</tr>"
     print "</table>"
 
@@ -6740,7 +6756,7 @@ def findPerfectMatch(batchId):
 
     chrom, start, end = None, None, None
     logging.debug("Parsing SAM file %s" % samFname)
-    matches = []
+    matchByChrom = defaultdict(list)
     for l in open(samFname):
         if l.startswith("@"):
             continue
@@ -6755,28 +6771,39 @@ def findPerfectMatch(batchId):
         else:
             strand = "+"
         if not re.compile("[0-9]*").match(cigar):
+            logging.debug("CIGAR is not number")
             continue
         if cigar=="*":
-            logging.debug("No best match found")
-            return "?"
+            logging.debug("CIGAR is *")
+            continue
             #errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
         # Todo: why do we get soft clipped sequences from BWA? repeats?
         cleanCigar = cigar.replace("M","").replace("S", "")
         if not cleanCigar.isdigit():
-            logging.debug("Best match found, but cigar string was %s" % cigar)
-            return "?"
+            logging.debug("match found, but cigar string was %s" % cigar)
+            continue
         matchLen = int(cleanCigar)
         chrom, start, end =  rName, int(pos)-1, int(pos)-1+matchLen # SAM is 1-based
+        assert("|" not in chrom) # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
+        matchByChrom[chrom].append( (chrom, start, end, strand) )
+
+    # second pass, to handle the PAR matches properly
+    matches = []
+    for chrom, matchList in matchByChrom.iteritems():
         if isInPar(genome, chrom, start, end) is not None:
             # only keep matches on chrY
-            if chrom=="chrX":
+            if chrom=="chrX" and "chrY" in matchByChrom:
+                logging.debug("In PAR region, so skipping chrX")
                 continue
-        assert("|" not in chrom) # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
-        matches.append( (chrom, start, end, strand) )
+        for m in matchList:
+            matches.append(m)
 
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
+
+    if len(matches)==0:
+        return "?"
 
     nonAltMatches = [x for x in matches if not isAltChrom(x[0])]
     if len(nonAltMatches)!=0:
