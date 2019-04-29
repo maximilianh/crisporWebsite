@@ -1,0 +1,3 @@
+include Lindel/model_prereq.pkl
+include Lindel/Model_weights.pkl
+include README.md
