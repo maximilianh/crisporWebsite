@@ -32,22 +32,22 @@ import urllib2, pickle
 import json
 
 fusiDir = join(dirname(__file__), "bin/fusiDoench")
-sys.path.insert(0, join(fusiDir, "analysis"))
+sys.path.append(join(fusiDir, "analysis"))
 
 deepCpf1Dir = join(dirname(__file__), "bin/deepCpf1")
-sys.path.insert(0, deepCpf1Dir)
+sys.path.append(deepCpf1Dir)
 
 aziDir = join(dirname(__file__), "bin/Azimuth-2.0/")
-sys.path.insert(0, aziDir)
+sys.path.append(aziDir)
 
 najm2018Dir = join(dirname(__file__), "bin/najm2018/")
-sys.path.insert(0, najm2018Dir)
+sys.path.append(najm2018Dir)
 
 cctopDir = join(dirname(__file__), "bin/src/cctop_standalone")
-sys.path.insert(0, cctopDir)
+sys.path.append(cctopDir)
 
-weiChenDir = join(dirname(__file__), "bin/src/weichen")
-sys.path.insert(0, weiChenDir)
+lindelDir = join(dirname(__file__), "bin/src/lindel")
+sys.path.append(lindelDir)
 
 # import numpy as np
 
@@ -658,20 +658,56 @@ def cacheScores(scoreName, scoreFunc, seqs):
     assert(len(allScores)==len(seqs))
     return allScores
 
-def calcCasporScores(seqIds, seqs):
+def runLindel(seqIds, seqs):
+    """ based on Lindel_prediction.py sent by Wei Chen
+    runtime 1-2 seconds.
+    Return: a dict with seqId -> list of (fs-score, list of (seq-illustration, score, indel-desc))
+    >>> ret = runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
+    >>> ret["test"][0]
+    70.36
+    >>> ret["test"][1][1]
+    ('4.91554921', 'CCCTGGCGGCCTAAGGACTCGGCGCGCCGG | ------CCAGGGCGGGGGCGACCTCGGCTCACAG', 'D6  0')
+    """
+    import Lindel
+    import Lindel.Predictor
+    import pickle as pkl
+
+    weights = pkl.load(open(os.path.join(Lindel.__path__[0], "Model_weights.pkl"),'rb'))
+    prerequesites = pkl.load(open(os.path.join(Lindel.__path__[0],'model_prereq.pkl'),'rb'))
+
+    ret = {}
+    assert(len(seqIds)==len(seqs))
+    for seqId, seq in zip(seqIds, seqs):
+        if "N" in seq:
+            logging.warn("guide %s contains at least one N" % seq)
+            assert(seq.count("N")<=3)
+            seq = seq.replace("N", "A") # hack. But Ns are rare
+
+        logging.debug("Lindel: %s - %s" % (seqId, seq))
+        try:
+            y_hat, fs = Lindel.Predictor.gen_prediction(seq,weights,prerequesites)
+        except ValueError:
+            print('Error: No PAM sequence found. Please check your sequence and try again')
+            raise
+
+        rev_index = prerequesites[1]
+        pred_freq = {}
+        for i in range(len(y_hat)):
+            if y_hat[i]!=0:
+                pred_freq[rev_index[i]] = y_hat[i]
+        pred_sorted = sorted(pred_freq.items(), key=lambda kv: kv[1],reverse=True)
+
+        indelData = Lindel.Predictor.iter_results(seq, pred_sorted, pred_freq)
+        ret[seqId] = (int(round(100*fs)), list(indelData))
+
+    return ret
+
+def calcLindelScore(seqIds, seqs):
     """ run model by Wei Chen. seqs is 100bp long sequences around beginning of PAM, like all other code.
     returns dict with seqId -> (probability of frameshift, mutSeqs)
     """
-    import weiChen
-    fsProbs, mutSeqsList = weiChen.calcScores(trimSeqs(seqs, -34, 26))
-
-    assert(len(seqIds)==len(mutSeqsList))
-
-    seqDict = {}
-    for seqId, fsProb, mutSeqs in zip(seqIds, fsProbs, mutSeqsList):
-        seqDict[seqId] = (fsProb, mutSeqs)
-
-    return seqDict
+    assert(len(seqIds)==len(seqs))
+    return runLindel(seqIds, trimSeqs(seqs, -33, 27))
 
 def calcAllBaeScores(seqs):
     """
@@ -784,6 +820,7 @@ def forceWrapper(func, seqs):
 def calcFreeEnergy(seqs):
     """ runs a list of 20bp guide sequences through mfold and returns their gibbs free energy
     >>> calcFreeEnergy(["GGGTGGGGGGAGTTTGCTCCTGG"])
+    0
     """
     return 0
 
@@ -801,8 +838,7 @@ possibleScores = {
 
 # list of possible DSB repair score names, by enzyme
 possibleMutScores = {
-    # removed casporPfs from spcas9 and sacas9 from possibleMutScore
-    "spcas9" : ["oof"],
+    "spcas9" : ["oof", "lindel"],
     "cpf1" : ["oof"],
     "sacas9" : ["oof"],
 }
@@ -812,9 +848,9 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    [('aziInVitro', [39]), ('ccTop', [64.53235600000001]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('fusi', [55]), ('fusiOld', [56]), ('housden', [6.3]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTANCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    [('aziInVitro', [39]), ('ccTop', [64.53235600000001]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [40]), ('doench', [10]), ('fusi', [55]), ('fusiOld', [56]), ('housden', [6.3]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
     scores = {}
 
@@ -1232,17 +1268,25 @@ def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
             seqDict[seqId] = (oof, mhSeq)
         scores["oof"] = seqDict
 
-    if inList(scoreNames, "casporPfs"):
-        logging.debug("caspor scores")
-        mutSeqDict = calcCasporScores(seqIds, seqs)
-        #weiScores["pfs"] = fsRatios # probability of frameshift
-        #weiScores["seqs"] = mutSeqDict
-        scores["casporPfs"] = mutSeqDict
+    if inList(scoreNames, "lindel"):
+        logging.debug("lindel scores")
+        mutSeqDict = calcLindelScore(seqIds, seqs)
+        scores["lindel"] = mutSeqDict
 
     return scores
 
 # ----------- MAIN --------------
 if __name__=="__main__":
+    import cProfile
+    #cProfile.runctx('print runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])', globals(), locals())
+    pr = cProfile.Profile()
+    pr.enable()
+    runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
+    pr.disable()
+    pr.print_stats(sort='tottime')
+    sys.exit(0)
+
+
     args, options = parseArgs()
     if options.test:
         test()
