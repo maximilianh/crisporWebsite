@@ -40,7 +40,7 @@ my $scaffold_seq = "GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGT
 my $min_pos = 0;    
 my $max_pos = 100000000; 
 my $retained_portion = 1; 
-my $scoreFilter = 1; 
+my $scoreFilter = 0; 
 
 ################################### USER INPUTS ############################################################
 
