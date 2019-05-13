@@ -56,7 +56,7 @@ sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevi
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-a", "--auto", dest="auto", action="store_true", help="auto-mode: don't ask the user, always choose the newest assembly")
 parser.add_option("-g", "--genes", dest="onlyGenes", action="store_true", help="download only gene models, not the assembly and replace the existing gene models. Also write assembly info file genomeInfo.tab")
-parser.add_option("", "--geneTable", dest="geneTable", action="store", help="in UCSC mode: use another gene table than ensGene, e.g. refGene or wgEncodeGencodeBasicV22", default="ensGene")
+parser.add_option("", "--geneTable", dest="geneTable", action="store", help="in UCSC mode: use another gene table than ensGene, e.g. refGene or wgEncodeGencodeBasicV22 or 'none' to deactivate gene table download", default="ensGene")
 parser.add_option("", "--symFixFile", dest="symFixFile", action="store", help="in UCSC mode: add a file with some manual geneId<tab>symbol mappings to fix the provided ones")
 parser.add_option("", "--desc", dest="desc", action="store", help="in manual mode: description of genome, a | separated string of dbName, scientificName, commonName, dbVersion. Make sure to quote this string. Example: 'hg19|Homo sapiens|Human|Feb 2009 (GRCh37)'")
 parser.add_option("", "--gff", dest="gffFname", action="store", help="read gene models from this gff3 file")
@@ -349,19 +349,22 @@ def fixSymFile(accToSymTmp, symFixFile):
 
 def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir):
     " copy seg, sizes and twobit to finalDbDir and clean up dbTmpDir "
-    cmd = "rm %s" % accToSymTmp
-    runCmd(cmd)
+    if accToSymTmp:
+        cmd = "rm %s" % accToSymTmp
+        runCmd(cmd)
 
     printMsg("Moving output files into crispr tool directory")
     outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
-    outFnames.extend([segTmp, sizesTmp, twoBitTmp])
+    if segTmp:
+        outFnames.extend([segTmp])
+
+    outFnames.extend([sizesTmp, twoBitTmp])
     if not isdir(finalDbDir):
         os.makedirs(finalDbDir)
     moveToDest(outFnames, finalDbDir)
 
     cmd = "rm -rf %s" % dbTmpDir
     runCmd(cmd)
-
 
 def geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp):
     " convert genes to segments "
@@ -470,26 +473,30 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
 
             indexFasta(faTmp, db, twoBitTmp, sizesTmp)
 
-        accToSymTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
-        if geneTable!="ensGene":
-            printMsg("Downloading mapping of %s transcript IDs to gene symbols" % geneTable)
-            cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/%s.txt.gz -O - | zcat | cut -f2,13 | sort -u > %s" % (db, geneTable, accToSymTmp)
+        if geneTable=="none":
+            accToSymTmp = None
+            segTmp = None
         else:
-            printMsg("Downloading ensembl transcripts to gene name table")
-            cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/ensemblToGeneName.txt.gz -O - | zcat > %s" % (db, accToSymTmp)
-        runCmd(cmd)
-        assert(getsize(accToSymTmp)!=0) # no symbols - email Max!
+            accToSymTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
+            if geneTable!="ensGene":
+                printMsg("Downloading mapping of %s transcript IDs to gene symbols" % geneTable)
+                cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/%s.txt.gz -O - | zcat | cut -f2,13 | sort -u > %s" % (db, geneTable, accToSymTmp)
+            else:
+                printMsg("Downloading ensembl transcripts to gene name table")
+                cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/ensemblToGeneName.txt.gz -O - | zcat > %s" % (db, accToSymTmp)
+            runCmd(cmd)
+            assert(getsize(accToSymTmp)!=0) # no symbols - email Max!
 
-        if symFixFile:
-            fixSymFile(accToSymTmp, symFixFile)
+            if symFixFile:
+                fixSymFile(accToSymTmp, symFixFile)
 
-        printMsg("Downloading gene models")
-        geneTmp = join(dbTmpDir, "genes.txt")
-        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(geneTable)s.txt.gz -O - | zcat > %(geneTmp)s" % locals()
-        runCmd(cmd)
+            printMsg("Downloading gene models")
+            geneTmp = join(dbTmpDir, "genes.txt")
+            cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(geneTable)s.txt.gz -O - | zcat > %(geneTmp)s" % locals()
+            runCmd(cmd)
 
-        segTmp = join(dbTmpDir, "%s.segments.bed" % db)
-        geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp)
+            segTmp = join(dbTmpDir, "%s.segments.bed" % db)
+            geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp)
 
         ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir)
         writeGenomeInfo(row, addUcsc=True)

@@ -702,7 +702,7 @@ def runLindel(seqIds, seqs):
         if "N" in seq:
             logging.warn("guide %s contains at least one N" % seq)
             if seq.count("N")>3:
-                ret[seqId] = None
+                ret[seqId] = ( None, [] )
                 continue
 
         seq = seq.replace("N", "A") # hack. Chen confirmed that Ns are not in the mode. But Ns are rare in the genome
@@ -722,7 +722,7 @@ def runLindel(seqIds, seqs):
         pred_sorted = sorted(pred_freq.items(), key=lambda kv: kv[1],reverse=True)
 
         indelData = Lindel.Predictor.iter_results(seq, pred_sorted, pred_freq)
-        ret[seqId] = (int(round(100*fs)), list(indelData))
+        ret[seqId] = ( int(round(100*fs)), list(indelData) )
 
     return ret
 
