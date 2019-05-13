@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.8"
+versionStr = "4.91"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -275,9 +275,11 @@ commandLineMode = False
 
 # names/order of efficiency scores to show in UI
 cas9ScoreNames = ["fusi", "crisprScan"]
-allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
+allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "wuCrispr", "doench", "wang", "crisprScan", "aziInVitro", "ccTop"]
 
-mutScoreNames = ["oof", "lindel"]
+mutScoreNames = []
+spCas9MutScoreNames = ["oof", 'lindel'] # lindel is only added for spCas9
+otherMutScoreNames = ["oof"] # lindel is only added for spCas9
 
 cpf1ScoreNames = ["seqDeepCpf1"]
 
@@ -356,20 +358,21 @@ rebaseSuppliers = {
 # labels and descriptions of eff. scores
 scoreDescs = {
     "doench" : ("Doench '14", "Range: 0-100. Linear regression model trained on 880 guides transfected into human MOLM13/NB4/TF1 cells (three genes) and mouse cells (six genes). Delivery: lentivirus. The Fusi score can be considered an updated version this score, as their training data overlaps a lot. See <a target='_blank' href='http://www.nature.com/nbt/journal/v32/n12/full/nbt.3026.html'>Doench et al.</a>"),
+    "wuCrispr" : ("Wu-Crispr", "Range 0-100. Aka 'Wong score'. SVM model trained on previously published data. The aim is to identify only a subset of efficient guides, many guides will have a score of 0. Takes into account RNA structure. See <a target='_blank' href='https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0784-0'>Wong et al., Gen Biol 2015</a>"),
     "ssc" : ("Xu", "Range ~ -2 - +2. Aka 'SSC score'. Linear regression model trained on data from &gt;1000 genes in human KBM7/HL60 cells (Wang et al) and mouse (Koike-Yusa et al.). Delivery: lentivirus. Ranges mostly -2 to +2. See <a target='_blank' href='http://genome.cshlp.org/content/early/2015/06/10/gr.191452.115'>Xu et al.</a>"),
     "crisprScan" : ["Moreno-Mateos", "Also called 'CrisprScan'. Range: mostly 0-100. Linear regression model, trained on data from 1000 guides on &gt;100 genes, from zebrafish 1-cell stage embryos injected with mRNA. See <a target=_blank href='http://www.nature.com/nmeth/journal/v12/n10/full/nmeth.3543.html'>Moreno-Mateos et al.</a>. Recommended for guides transcribed <i>in-vitro</i> (T7 promoter). Click to sort by this score."],
     "wang" : ("Wang", "Range: 0-100. SVM model trained on human cell culture data on guides from &gt;1000 genes. The Xu score can be considered an updated version of this score, as the training data overlaps a lot. Delivery: lentivirus. See <a target='_blank' href='http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3972032/'>Wang et al.</a>"),
     "chariRank" : ("Chari", "Range: 0-100. Support Vector Machine, converted to rank-percent, trained on data from 1235 guides targeting sequences that were also transfected with a lentivirus into human 293T cells. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v12/n9/abs/nmeth.3473.html'>Chari et al.</a>"),
     "fusi" : ("Doench '16", "Aka the 'Fusi-Score', since V4.4 using the version 'Azimuth', scores are slightly different than before April 2018 but very similar (click 'show all' to see the old scores). Range: 0-100. Boosted Regression Tree model, trained on data produced by Doench et al (881 guides, MOLM13/NB4/TF1 cells + unpublished additional data). Delivery: lentivirus. See <a target='_blank' href='http://biorxiv.org/content/early/2015/06/26/021568'>Fusi et al. 2015</a> and <a target='_blank' href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench et al. 2016</a> and <a target=_blank href='https://crispr.ml/'>crispr.ml</a>. Recommended for guides expressed in cells (U6 promoter). Click to sort the table by this score."),
-    "fusiOld" : ("Doench '16-Old", "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018."),
+    "fusiOld" : ("OldDoench '16", "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018."),
     "najm" : ("Najm 2018", "A modified version of the Doench 2016 score ('Azimuth'), by Mudra Hegde for S. aureus Cas9. Range 0-100. See <a target=_blank href='https://www.nature.com/articles/nbt.4048'>Najm et al 2018</a>."),
     "ccTop" : ("CCTop", "The efficiency score used by CCTop, called 'crisprRank'."),
     "aziInVitro" : ("Azimuth in-vitro", "The Doench 2016 model trained on the Moreno-Mateos zebrafish data. Unpublished model, gratefully provided by J. Listgarden"),
     "housden" : ("Housden", "Range: ~ 1-10. Weight matrix model trained on data from Drosophila mRNA injections. See <a target='_blank' href='http://stke.sciencemag.org/content/8/393/rs9.long'>Housden et al.</a>"),
     "proxGc" : ("ProxGCCount", "Number of GCs in the last 4pb before the PAM"),
     "seqDeepCpf1" : ("DeepCpf1", "Range: ~ 0-100. Convolutional Neural Network trained on ~20k Cpf1 lentiviral guide results. This is the score without DNAse information, 'Seq-DeepCpf1' in the paper. See <a target='_blank' href='https://www.nature.com/articles/nbt.4061'>Kim et al. 2018</a>"),
-    "oof" : ("Out-of-Frame", "Range: 0-100. Only for deletions. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>. Click the score to show the predicted deletions."),
-    "lindel": ("Lindel", "Wei Chen Frameshift ratio (0-100). Predicts probability of a frameshift caused by any type of insertion or deletion. See <a href='https://www.biorxiv.org/content/10.1101/481069v1'>Wei Chen et al, Bioarxiv 2018</a>. Click the score to see the most likely deletions and insertions.")
+    "oof" : ("Out-of-Frame", "Range: 0-100. Out-of-Frame score, only for deletions. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>. Click the score to show the predicted deletions."),
+    "lindel": ("Lindel", "Wei Chen Frameshift ratio (0-100). Predicts probability of a frameshift caused by any type of insertion or deletion. See <a href='https://www.biorxiv.org/content/10.1101/481069v1'>Wei Chen et al, 2018</a> (article under review). Click the score to see the most likely deletions and insertions.")
 }
 
 # the headers for the guide and offtarget output files
@@ -406,6 +409,7 @@ def setupPamInfo(pam):
     global scoreNames
     global baseEditor
     global saCas9Mode
+    global mutScoreNames
 
     pamOpt = None
     if "-" in pam:
@@ -437,6 +441,12 @@ def setupPamInfo(pam):
         GUIDELEN = 20
         cpf1Mode = False
         scoreNames = cas9ScoreNames
+
+    if GUIDELEN==20 and pam=="NGG":
+        mutScoreNames = spCas9MutScoreNames
+    else:
+        mutScoreNames = otherMutScoreNames
+
 
     return pam
 
@@ -2501,7 +2511,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
        print '<th style="width:150px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
     else:
-       print '<th style="width:230px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
+       print '<th style="width:270px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
     htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
 
@@ -2510,13 +2520,14 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
             print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>""" % cgiGetSelfUrl({"showAllScores":"1"}, anchor="otTable"))
             scoreDescs["crisprScan"][0] = "Mor.-Mateos"
         else:
-            print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Main scores</a>""" % cgiGetSelfUrl({"showAllScores":None}, anchor="otTable"))
+            print("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Show main scores</a>""" % cgiGetSelfUrl({"showAllScores":None}, anchor="otTable"))
 
     print '</th>'
 
     mhColName="Outcome"
     if not baseEditor:
         if len(mutScoreNames)<=1:
+            mhColName = ""
             oofWidth=45
             #oofDesc = "Click on score to show micro-homology"
             #oofDesc = ""
@@ -2747,6 +2758,13 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             htmlWarn(text)
             print ' Not with U6/U3'
             print "<br>"
+
+        if crisporEffScores.isGrafGuide(guideSeq):
+            text = "This guide contains one of the motifs described by <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/'>Graf et al, Cell Reports 2019</a>. It is very likely to be an inefficient guide."
+            htmlWarn(text)
+            print ' Inefficient'
+            print "<br>"
+
 
         if gcContent(guideSeq)>0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had almost as many off-targets as all other sequences combined. We do not recommend using guide sequences with such a high GC content."
@@ -3393,12 +3411,13 @@ def calcSaveEffScores(batchId, seq, extSeq, pam, queue):
 
         # these are slow algorithms, so store the results for later
         queue.startStep(batchId, "outcome", "Calculating editing outcomes")
-        mutScores = crisporEffScores.calcMutSeqs(pamIds, longSeqs, enz)
+        mutScores = crisporEffScores.calcMutSeqs(pamIds, longSeqs, enz, scoreNames=mutScoreNames)
         saveOutcomeData(batchId, mutScores)
 
         # for output and sorting, it's easier to treat the outcome-derived scores like an efficiency score
         for mutScoreName in mutScoreNames:
-            effScores[mutScoreName] = extractMutScores(mutScores[mutScoreName], pamIds)
+            if mutScoreName in mutScores:
+                effScores[mutScoreName] = extractMutScores(mutScores[mutScoreName], pamIds)
 
         # make sure the "N bug" reported by Alberto does never happen again:
         # we must get back as many scores as we have sequences
@@ -3472,7 +3491,9 @@ def readEffScores(batchId):
             allScoreNames = row._fields[3:]
             for scoreName in allScoreNames:
                 score = rowDict[scoreName]
-                if "." in score or "e" in score:
+                if score=="None":
+                    score = "NA"
+                elif "." in score or "e" in score:
                     score = float(score)
                 else:
                     score = int(score)
@@ -3996,8 +4017,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>Apr 2019: Improved site stability, Sanger off-target primers <a href="doc/changes.html">Full list of changes</a></i><br>
-Update - Apr 9 2019: After the most recent update, a few small things were fixed. Thanks for all the emails. Let me know if you experience problems -> crispor@tefor.net
+<br><i>May 2019: Added Lindel DSB-repair outcomes, Graf et al. motifs <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -6091,7 +6111,6 @@ def printBackLink():
 def microHomPage(params):
     " show the Bae et al microhomology sequences "
     printBackLink()
-    print "<h2>Micro-homology scoring of potential deletions</h2>"
     batchId, pamId = params["batchId"], params["pamId"]
     inSeq, db, pam, position, extSeq = readBatchParams(batchId)
     pam = setupPamInfo(pam)
@@ -6104,9 +6123,10 @@ def microHomPage(params):
     #gEnd = gStart+GUIDELEN
     strand = pamId[-1]
 
-    print "<strong>Guide:</strong> %s<p>" % guideSeqHtml
-
     scoreCode = params["showMh"]
+
+    print "<h2>DNA break repair outcome predictions</h2>"
+    print "<strong>Guide:</strong> %s<p>" % guideSeqHtml
 
     #mutScores = crisporEffScores.calcMutSeqs(pamIds, longSeqs, enz, scoreNames=[scoreCode])
     outcome = readOutcomeData(batchId, scoreCode)[pamId]
@@ -6119,7 +6139,7 @@ def microHomPage(params):
 
     elif scoreCode=="lindel":
         fsProb, mhSeqs = outcome
-        print """The following table lists possible deletions and insertions. """
+        print """The following table lists possible deletions and insertions, scored by the <i>Lindel</i> repair model.<br> """
 
     else:
         errAbort("Invalid score code")
@@ -6128,10 +6148,10 @@ def microHomPage(params):
 
     if scoreCode=="oof":
         print("""Sequences  are ranked by micro-homology score. This score is correlated to the likelihood of finding a particular deletion, as predicted by the method of <a target=_blank href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>.<p>""")
-        scoreName = "Bae-Score"
+        scoreName = "mh- Score"
 
     elif scoreCode=="lindel":
-        print("""Sequences are ranked by the probability to observe them, as predicted by the method of <a target=_blank href='https://www.biorxiv.org/content/10.1101/481069v1 '>Chen et al. 2018</a>.<p>""")
+        print("""Sequences are ranked by their probability, as predicted by the method of <a target=_blank href='https://www.biorxiv.org/content/10.1101/481069v1 '>Chen et al. 2018</a>.<p>""")
         scoreName = "Probability"
 
     else:
@@ -6151,19 +6171,16 @@ def microHomPage(params):
         print "<td>(Wild-type sequence)</td>"
         print "</tr>"
 
-    #elif scoreCode=="lindel":
-        #targetSeq = longSeq[16:-24].upper()
-        #targetSeq = targetSeq[:30] + " " + targetSeq[31:]
-        #print "<td><tt>%s</tt></td>" %  targetSeq
-
-
     for row in mhSeqs:
         score, seq = row[:2]
         print "<tr>"
         if score==0:
             print "<td></td>"
         else:
-            print "<td>%.2f%%</td>" % score
+            if scoreCode=="oof":
+                print "<td>%d</td>" % score
+            else:
+                print "<td>%.2f%%</td>" % score
 
         print "<td><tt>%s</tt></td>" % seq
         if scoreCode=="oof":
