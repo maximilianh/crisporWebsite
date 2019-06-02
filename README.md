@@ -25,17 +25,17 @@ Install BWA and a few required python modules:
     
     # Debian/Ubuntu
     apt-get install bwa python-pip python-matplotlib
-    sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas twobitreader
+    sudo pip install -r requirements.txt
     
 or 
    
     # Fedora/Centos/Redhat/Scientific Linux
     yum install bwa python-pip python-devel tkinter
-    sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas matplotlib twobitreader
+    sudo pip install -r requirements.txt
     
 For the Cpf1 scoring model:
 
-    sudo pip install keras tensorflow h5py
+    sudo pip install -r requirements-Cpf1-scoring-model.txt
 
 Install required R libraries for the WangSVM efficiency score:
    
