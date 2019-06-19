@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-import logging, sys, optparse, os, shutil, glob, json, urllib2, subprocess, urllib, gzip
+import logging, sys, optparse, os, shutil, glob, json, subprocess, gzip
+
+try:
+    from urllib import urlopen
+except:
+    from urllib.request import urlopen
+
 from collections import namedtuple
 from os.path import *
 
@@ -74,24 +80,23 @@ else:
 # ==== FUNCTIONs =====
 def errAbort(msg):
     " show msg and abort. Like errAbort.c "
-    print msg
-    print "Need help or have feedback? Email crispor@tefor.net"
+    print(msg)
+    print("Need help or have feedback? Email crispor@tefor.net")
     exit(0)
 
 def runCmd(cmd, mustRun=True, useSys=False):
     " wrapper around os.system that prints error messages "
     if debugMode:
-        print cmd
+        print(cmd)
     if useSys:
         ret = os.system(cmd)
     else:
         args = ["/bin/bash", "-e", "-o", "pipefail", "-c", cmd]
         logging.info("Running: %s" % args)
         args.append(cmd)
-        #print args
         ret = subprocess.call(args)
     if ret!=0 and mustRun:
-        print "Could not run command %s" % cmd
+        print(("Could not run command %s" % cmd))
         sys.exit(0)
     return ret
     
@@ -114,7 +119,7 @@ def lineFileNext(fh, skipLines=0):
         fields = line.split("\t")
         try:
             rec = Record(*fields)
-        except Exception, msg:
+        except Exception as msg:
             logging.error("Exception occured while parsing line, %s" % msg)
             logging.error("Filename %s" % fh.name)
             logging.error("Line was: %s" % repr(line))
@@ -219,8 +224,8 @@ def selectUcscGenomes(taxIds, quiet):
     data = {}
     dbRows = []
     for taxId in taxIds:
-        print "taxon ID or db name:",taxId
-        print
+        print("taxon ID or db name:",taxId)
+        print()
         if taxId.isdigit():
             query = 'SELECT * FROM dbDb WHERE taxId="%s" ORDER BY orderKey DESC' % taxId
         else:
@@ -228,40 +233,40 @@ def selectUcscGenomes(taxIds, quiet):
         rows = querySql(conn, query)
 
         if len(rows)==0:
-            print "Sorry, this taxon ID is not served by UCSC"
+            print("Sorry, this taxon ID is not served by UCSC")
             continue
 
         choice = None
-        possChoices = range(1, len(rows)+1)
+        possChoices = list(range(1, len(rows)+1))
         if quiet or len(possChoices)==1:
             choice = possChoices[-1]
         while choice not in possChoices:
-            print "Please select the assembly:"
-            print
+            print("Please select the assembly:")
+            print()
             for i, row in enumerate(rows):
-                print i+1, "- ", row.name, " - ", row.description
-            print
-            print "Type the number of the assembly and press Return:"
-            print "(If you just enter Return, number %d will be used)" % possChoices[-1]
-            num = raw_input()
+                print(i+1, "- ", row.name, " - ", row.description)
+            print()
+            print("Type the number of the assembly and press Return:")
+            print("(If you just enter Return, number %d will be used)" % possChoices[-1])
+            num = input()
             if num=="":
                 num = str(possChoices[-1])
             if not num.isdigit():
-                print "error: you did not type a number"
+                print("error: you did not type a number")
                 continue
 
             num = int(num)
             if num in possChoices:
                 choice = num
             else:
-                print "error: not a valid number you can select, select one of", possChoices
+                print("error: not a valid number you can select, select one of", possChoices)
         dbRows.append(rows[choice-1])
 
     return dbRows
 
 def printMsg(msg):
     " print with some highlighting "
-    print " ==== "+msg+" ==== "
+    print(" ==== "+msg+" ==== ")
 
 def moveToDest(outFnames, finalDbDir):
     if not isdir(finalDbDir):
@@ -270,12 +275,12 @@ def moveToDest(outFnames, finalDbDir):
         finalPath = join(finalDbDir, basename(outFname))
         if isfile(finalPath):
             if not isfile(outFname):
-                print "does not exist, not copying %s" % outFname
+                print("does not exist, not copying %s" % outFname)
             else:
-                print "already exists: copying %s to %s " % (outFname, finalPath)
+                print("already exists: copying %s to %s " % (outFname, finalPath))
                 shutil.copyfile(outFname, finalPath)
         else:
-            print "moving %s to crispr genome dir %s" % (outFname, finalDbDir)
+            print("moving %s to crispr genome dir %s" % (outFname, finalDbDir))
             shutil.move(outFname, finalDbDir)
 
 def writeGenomeInfo(row, addUcsc=False):
@@ -297,7 +302,7 @@ def writeGenomeInfo(row, addUcsc=False):
     giFh.write("\n")
 
     giFh.close()
-    print("wrote %s" % genomeInfoPath)
+    print(("wrote %s" % genomeInfoPath))
 
 def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
     " index fasta with bwa and make chrom sizes "
@@ -343,7 +348,7 @@ def fixSymFile(accToSymTmp, symFixFile):
         data[key] = val
 
     ofh = open(accToSymTmp, "w")
-    for key, val in data.iteritems():
+    for key, val in data.items():
         ofh.write("%s\t%s\n" % (key, val))
     ofh.close()
 
@@ -382,13 +387,13 @@ def indexLocalGenome(dbInfo, geneTable):
 
     try:
         os.makedirs(dbTmpDir)
-        print("made %s" % dbTmpDir)
+        print(("made %s" % dbTmpDir))
     except:
-        print("%s already exists, not creating" % dbTmpDir)
+        print(("%s already exists, not creating" % dbTmpDir))
 
     if isdir(finalDbDir):
-        print "the directory %s already exists" % finalDbDir
-        print "looks like this genome has already been indexed"
+        print("the directory %s already exists" % finalDbDir)
+        print("looks like this genome has already been indexed")
         return
 
 
@@ -446,16 +451,16 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
         if checkDir:
             if isdir(dbTmpDir):
                 if not onlyGenes:
-                    print ("there exists already a directory %s" % dbTmpDir)
+                    print(("there exists already a directory %s" % dbTmpDir))
                     print ("are you sure there is not already a process in a different terminal that indexes this genome?")
-                    print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
+                    print(("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir))
                     #sys.exit(1)
             else:
                 os.makedirs(dbTmpDir)
 
             if isdir(finalDbDir):
-                print "the directory %s already exists" % finalDbDir
-                print "looks like this genome has already been indexed"
+                print("the directory %s already exists" % finalDbDir)
+                print("looks like this genome has already been indexed")
                 continue
 
         sizesTmp = join(dbTmpDir, db+".sizes")
@@ -523,7 +528,7 @@ def selectEnsGenomes(genomeIds):
         logging.info("Reading %s" % path)
         if not isfile(path):
             logging.info("Could not find %s, downloading %s" % (path, url))
-            data = urllib2.urlopen(url).read()
+            data = urlopen(url).read()
             open(path, "w").write(data)
             
         content = open(path).read()
@@ -607,17 +612,17 @@ def getEnsGenomes(genomeRows, onlyGenes):
 
         if not onlyGenes:
             if isdir(dbTmpDir):
-                print ("there exists already a directory %s" % dbTmpDir)
+                print(("there exists already a directory %s" % dbTmpDir))
                 print ("are you sure there is not already a process in a different terminal that indexes this genome?")
-                print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
+                print(("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir))
                 if not FORCE:
                     sys.exit(1)
             else:
                 os.makedirs(dbTmpDir)
 
         if isdir(finalDbDir) and not onlyGenes:
-            print "the directory %s already exists" % finalDbDir
-            print "looks like this genome has already been indexed"
+            print("the directory %s already exists" % finalDbDir)
+            print("looks like this genome has already been indexed")
             continue
 
         sizesTmp = join(dbTmpDir, db+".sizes")
@@ -642,7 +647,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
             if not isfile(twoBitTmp):
                 twoBitTmp = join(finalDbDir, db+".2bit")
 
-            print twoBitTmp
+            print(twoBitTmp)
             assert(isfile(twoBitTmp))
 
             # for the case onlyGenes and no .sizes file yet
@@ -782,16 +787,16 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
 
         if not options.onlyGenes:
             if isdir(dbTmpDir):
-                print ("there exists already a directory %s" % dbTmpDir)
+                print(("there exists already a directory %s" % dbTmpDir))
                 print ("are you sure there is not already a process in a different terminal that indexes this genome?")
-                print ("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir)
+                print(("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir))
                 sys.exit(1)
             else:
                     os.makedirs(dbTmpDir)
 
             if isdir(finalDbDir):
-                print "the directory %s already exists" % finalDbDir
-                print "looks like this genome has already been indexed"
+                print("the directory %s already exists" % finalDbDir)
+                print("looks like this genome has already been indexed")
                 continue
 
         printMsg("Genome: " + db)
@@ -812,7 +817,7 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
 
         seqLine = open(faTmp).readline()
         if "|" in seqLine:
-            print("sequence id '%s' : | is not allowed in the fa file. We need it as a separator in the bed file." % seqLine)
+            print(("sequence id '%s' : | is not allowed in the fa file. We need it as a separator in the bed file." % seqLine))
             sys.exit(1)
 
         line1 = open(faTmp).readline()
@@ -858,18 +863,14 @@ def getNcbiIndex(dbType):
     cmd = "wget %s -O %s" % (url, fname)
     logging.info("Downloading %s" % url)
     runCmd(cmd)
-    #data = urllib2.urlopen(url).read()
-    #ofh = open(fname, "w")
-    #ofh.write(data)
-    #ofh.close()
     return fname
 
 def getNameForTaxId(taxId):
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
     import xml.etree.ElementTree as etree
     taxId = int(taxId)
     url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id=%d" % taxId
-    data = urllib2.urlopen(url).read()
+    data = urlopen(url).read()
     root = etree.fromstring(data)
     nameEls = list(reversed(root.findall("Taxon/OtherNames/CommonName")))
     if len(nameEls)==0:

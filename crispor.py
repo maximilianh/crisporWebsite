@@ -835,29 +835,6 @@ def debug(msg):
         print msg
         print "<br>"
 
-def matchNuc(pat, nuc):
-    " returns true if pat (single char) matches nuc (single char) "
-    if pat in ["A", "C", "T", "G"] and pat==nuc:
-        return True
-    elif pat=="S" and nuc in ["G", "C"]:
-        return True
-    elif pat=="M" and nuc in ["A", "C"]:
-        return True
-    elif pat=="D" and nuc in ["AGT"]:
-        return True
-    elif pat=="W" and nuc in ["A", "T"]:
-        return True
-    elif pat=="K" and nuc in ["T", "G"]:
-        return True
-    elif pat=="R" and nuc in ["A", "G"]:
-        return True
-    elif pat=="Y" and nuc in ["C", "T"]:
-        return True
-    elif pat=="V" and nuc in "ACG":
-        return True
-    else:
-        return False
-
 def gcContent(seq):
     " return GC content as a float "
     c = 0
@@ -871,26 +848,10 @@ def findPat(seq, pat):
     """
     seq = seq.upper()
     pat = pat.upper()
-    for i in range(0, len(seq)-len(pat)+1):
-        #print "new pos", i, seq[i:i+len(pat)],"<br>"
-        found = True
-        for x in range(0, len(pat)):
-            #print "new step", x, "<br>"
-            if pat[x]=="N":
-                #print "N","<br>"
-                continue
-            seqPos = i+x
-            if seqPos == len(seq):
-                found = False
-                break
-            if not matchNuc(pat[x], seq[seqPos]):
-            #if not patMatch(seq[seqPos], pat[x]):
-                #print i, x, pat[x], seq[seqPos], "no match<br>"
-                found = False
-                break
-            #print "match", i, x, found, "<br>"
-        if found:
-            #print "yielding", i, "<br>"
+    patLen = len(pat)
+    for i in range(0, len(seq)-patLen+1):
+        subseq = seq[i:i+patLen]
+        if patMatch(subseq, pat):
             yield i
 
 def rndSeq(seqLen):
@@ -987,7 +948,6 @@ def findPams (seq, pam, strand, startDict, endSet):
     ({129: '-', 37: '-'}, set([41, 133]))
     >>> findPams("GTTGTGTTTTACAATGCAGAGAGTGGAGGATGCTTTTTATACATTGGTGAGAGAGATCCGACAGTACAGATTGAAAAAAATCAGCAAAGAAGAAAAGACTCCTGGCTGTGTGAAAATTAAAAAATGCGTTATAATGTAATCTGGTAAGTTGAGCATATTCATTCTGGTACAAAGCAGATGTCTTCAGAGGTAACA", "TATV", "+", {}, set())
     ({129: '+', 37: '+'}, set([41, 133]))
-
 
     """
     assert(cpf1Mode is not None)
@@ -2118,33 +2078,37 @@ def patMatch(seq, pat, notDegPos=None):
         assert(nuc in "MKYRACTGNWSDX")
 
         if notDegPos!=None and x==notDegPos and patChar!=nuc:
-            #print x, seq, pat, notDegPos, patChar, nuc, "<br>"
             return False
 
         if nuc=="X":
             return False
+
         if patChar=="N":
             continue
-        if patChar=="D" and nuc in ["AGT"]:
+
+        if patChar=="D" and nuc in "AGT":
             continue
-        if patChar=="B" and nuc in ["CGT"]:
+        if patChar=="B" and nuc in "CGT":
             continue
-        if patChar=="V" and nuc in ["ACG"]:
+        if patChar=="V" and nuc in "ACG":
             continue
-        if patChar=="W" and nuc in ["A", "T"]:
+
+        if patChar=="W" and nuc in "AT":
             continue
-        if patChar=="S" and nuc in ["G", "C"]:
+        if patChar=="S" and nuc in "GC":
             continue
-        if patChar=="M" and nuc in ["A", "C"]:
+        if patChar=="M" and nuc in "AC":
             continue
-        if patChar=="K" and nuc in ["T", "G"]:
+        if patChar=="K" and nuc in "TG":
             continue
-        if patChar=="R" and nuc in ["A", "G"]:
+        if patChar=="R" and nuc in "AG":
             continue
-        if patChar=="Y" and nuc in ["C", "T"]:
+        if patChar=="Y" and nuc in "CT":
             continue
+
         if patChar!=nuc:
             return False
+
     return True
 
 def findSite(seq, restrSite):
@@ -2155,7 +2119,6 @@ def findSite(seq, restrSite):
     posList = []
     for i in range(0, len(seq)-len(restrSite)+1):
         subseq = seq[i:i+len(restrSite)]
-        #print subseq==restrSite, subseq, restrSite,"<br>"
 
         # JP does not want any potential site to be suppressed
         #if i<len(restrSite):
@@ -2281,7 +2244,7 @@ def hasGeneModels(org):
     geneFname = join(genomesDir, org, org+".segments.bed")
     return isfile(geneFname)
 
-def printTableHead(pam, batchId, chrom, org, varHtmls):
+def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     " print guide score table description and columns "
     # one row per guide sequence
     if not cpf1Mode:
@@ -2504,12 +2467,14 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print "</th>"
 
-    print '<th style="width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>' % batchId
-    htmlHelp("The CFD specificity score - used by guidescan.com - behaves like the MIT specificity score, but it is based on the CFD off-target model.")
-    print "</th>"
+    #if not pamIsSaCas9(pam) and cpf1Mode:
+    if "cfdGuideScore" in showColumns:
+        print '<th style="width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>' % batchId
+        htmlHelp("The CFD specificity score - used by guidescan.com - behaves like the MIT specificity score, but it is based on the CFD off-target model.")
+        print "</th>"
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
-       print '<th style="width:150px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
+       print '<th style="width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))
     else:
        print '<th style="width:270px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)) # -1 because proxGc is in scoreNames but has no column
 
@@ -2577,7 +2542,9 @@ def printTableHead(pam, batchId, chrom, org, varHtmls):
 
     print '<th style="border-top:none"></th>'
     print '<th style="border-top:none"></th>'
-    print '<th style="border-top:none"></th>'
+
+    if "cfdGuideScore" in showColumns:
+        print '<th style="border-top:none"></th>'
 
     if not cpf1Mode:
         print '<th style="border-top:none"></th>'
@@ -2692,9 +2659,15 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
     if (cgiParams.get("showAllScores", "0")=="1"):
         scoreNames = allScoreNames
 
+    showColumns = set()
+
+    # show the CFD guide score?
+    if pamIsSpCas9(pam):
+        showColumns.add("cfdGuideScore")
+
     showPamWarning(pam)
     showNoGenomeWarning(dbInfo)
-    printTableHead(pam, batchId, chrom, org, varHtmls)
+    printTableHead(pam, batchId, chrom, org, varHtmls, showColumns)
 
     count = 0
     effScoresCount = 0
@@ -2759,8 +2732,14 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print ' Not with U6/U3'
             print "<br>"
 
-        if crisporEffScores.isGrafGuide(guideSeq):
-            text = "This guide contains one of the motifs described by <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/'>Graf et al, Cell Reports 2019</a>. It is very likely to be an inefficient guide."
+        grafType = crisporEffScores.getGrafType(guideSeq)
+        if grafType:
+            if grafType=="tt":
+                grafText = "The TT motif was found. These guides should be avoided in polymerase III (Pol III)-based gene editing experiments requiring high sgRNA expression levels."
+            elif grafType=="ggc":
+                grafText = "The GGC motif was found. These sgRNAs appear to be inefficient irrespective of the delivery method and should thus be generally avoided."
+
+            text = "This guide contains one of the motifs described by <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/'>Graf et al, Cell Reports 2019</a>. %s " % grafText
             htmlWarn(text)
             print ' Inefficient'
             print "<br>"
@@ -2791,6 +2770,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         print "</td>"
 
         # off-target score, aka specificity score aka MIT score
+        #if not cpf1Mode and not pamIsSaCas9(pam):
         if not cpf1Mode:
             print "<td>"
             if guideScore==None:
@@ -2800,13 +2780,13 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print "</td>"
 
         # guide score based on CFD scores, aka guidescan score
-        print "<td>"
-        if not cpf1Mode:
+        if "cfdGuideScore" in showColumns:
+            print "<td>"
             if guideCfdScore==None:
                 print "No matches"
             else:
                 print "%d" % guideCfdScore
-        print "</td>"
+            print "</td>"
 
         # eff scores
         if effScores==None:
@@ -3842,7 +3822,8 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     else:
         queue.startStep(batchId, "bwasw", "Searching genome for one 100% identical match to input sequence")
         posStr = findPerfectMatch(batchId)
-        batchInfo["posStr"] = posStr
+
+    batchInfo["posStr"] = posStr
 
     if posStr!="?":
         # get a 100bp-extended version of the input seq
@@ -4307,7 +4288,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
            "and try again, e.g. by reloading this page. If you see this message for "
            "more than 2-3 minutes, please send an email to %s. Thanks!" % contactEmail)
 
-    if not isfile(otBedFname) or commandLineMode or not "posStr" in batchInfo: # pre-4.8 batches don't have a posStr at all
+    if not isfile(otBedFname) or commandLineMode or not "posStr" in batchInfo or (batchInfo["posStr"]=="" and not batchInfo["org"]=="noGenome"): # pre-4.8 batches don't have a posStr at all
         # write potential PAM sites to file
         faFname = batchBase+".fa"
         writePamFlank(seq, startDict, pam, faFname)
@@ -8307,4 +8288,5 @@ def main():
     else:
         mainCommandLine()
 
-main()
+if __name__=="__main__":
+    main()

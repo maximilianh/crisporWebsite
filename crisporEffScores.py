@@ -658,26 +658,38 @@ def cacheScores(scoreName, scoreFunc, seqs):
     assert(len(allScores)==len(seqs))
     return allScores
 
-def isGrafGuide(seq):
-    " check if a guide fulfills the criteria described in Graf et al, Cell Reports 2019 "
+def getGrafType(seq):
+    """ check if a guide fulfills the criteria described in Graf et al, Cell Reports 2019
+    returns "tt" or "ggc" depending on the motif found or None if none of them were found.
+    """
     # guide ends with TTC or TTT
+    #seq = seq.upper()
+    #if seq.endswith("TTC") or seq.endswith("TTT"):
+        #return "tt"
+
     seq = seq.upper()
+
     if seq.endswith("TTC") or seq.endswith("TTT"):
-        return True
+        return "tt"
 
     # the last 4 nucleotides contain only T and C and more than 2 Ts
-    suffix = seq[:4]
+    suffix = seq[-4:]
     if set(suffix)==set(["T", "C"]) and suffix.count("T")>=2:
-        return True
+        return "tt"
+
+    # the last four positions contain "TT" and at last one more T or C 
+    if "TT" in suffix and (suffix.count("T")>=3 or suffix.count("C")>=1):
+        return "tt"
 
     # the guide ends with [AGT]GCC
     if seq.endswith("GCC") and suffix[-4] in ["A", "G", "T"]:
-        return True
+        return "ggc"
 
     # the guide ends with GCCT
     if seq.endswith("GCCT"):
-        return True
-    
+        return "ggc"
+
+    return None
 
 def runLindel(seqIds, seqs):
     """ based on Lindel_prediction.py sent by Wei Chen
