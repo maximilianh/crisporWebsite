@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.91"
+versionStr = "4.92"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -2074,7 +2074,7 @@ def patMatch(seq, pat, notDegPos=None):
         patChar = pat[x]
         nuc = seq[x]
 
-        assert(patChar in "MKYRACTGNWSDVB")
+        assert(patChar in "MKYRACTGNWSDVBH")
         assert(nuc in "MKYRACTGNWSDX")
 
         if notDegPos!=None and x==notDegPos and patChar!=nuc:
@@ -2086,6 +2086,8 @@ def patMatch(seq, pat, notDegPos=None):
         if patChar=="N":
             continue
 
+        if patChar=="H" and nuc in "ACT":
+            continue
         if patChar=="D" and nuc in "AGT":
             continue
         if patChar=="B" and nuc in "CGT":
@@ -2648,7 +2650,7 @@ def printWarning(s):
 
 def printNoEffScoreFoundWarn(effScoresCount):
     if effScoresCount==0 and not cpf1Mode:
-        note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence.</div><br>"
+        note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence."
         printNote(note)
 
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls):
@@ -4339,7 +4341,7 @@ def showPamWarning(pam):
 
 def showNoGenomeWarning(dbInfo):
     if dbInfo==None:
-        printNote('As there is no genome that can be used to get flanking sequence for your sequence, efficiency scores 50bp from the start or the end of your sequence cannot be calculated and are shown as "--". If needed, extend the input sequence and retry.</div>')
+        printNote('As there is no genome that can be used to get flanking sequence for your sequence, efficiency scores 50bp from the start or the end of your sequence cannot be calculated and are shown as "--". If needed, extend the input sequence and retry.')
 
 def getSeq(db, posStr):
     """
