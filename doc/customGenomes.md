@@ -138,3 +138,7 @@ sudo crisprAddGenome fasta *.fa --desc 'faSfru31|Spodoptera frugiperda|Fall Army
 wget https://de.cyverse.org/dl/d/8160A757-0E05-4157-99ED-FD6A48ED6E9E/JCVI.Medtr.v4.20130313.fasta
 wget https://de.cyverse.org/dl/d/495B7D67-19AB-4C42-ABA8-8A146C9DCDBB/Mt4.0v2_genes_20140818_1100.gff3
 sudo crisprAddGenome fasta *.fasta --desc 'faMedTru43|Medicago truncatula|barrel medic|medicagogenome.org V4.3' --gff *.gff3
+# better bread wheat assembly, but still huuuge...
+https://wheat-urgi.versailles.inra.fr/Seq-Repository/Assemblies
+sudo crisprAddGenome fasta 161010_Chinese_Spring_v1.0_pseudomolecules.fasta --desc faTriAes1|Triticum aestivum|Bread wheat|IWGSC RefSeq 1.0
+echo sudo crisprAddGenome fasta 161010_Chinese_Spring_v1.0_pseudomolecules.fasta --desc 'faTriAes1|Triticum aestivum|Bread wheat|IWGSC RefSeq 1.0' >> log.txt 
