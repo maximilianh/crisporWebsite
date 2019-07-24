@@ -51,11 +51,16 @@ warning will be displayed during processing if characters were removed.
     - the input sequence is usually genomic DNA sequence but any input sequence can be submitted
     - your input sequence should usually be contained in the selected genome, but it may
       not be present, e.g. if you are designing guides against a transgene, like
-      GFP. A warning will appear in this case. This warning will also appear if you
-      have accidentally used cDNA sequence as input. Using cDNA is not recommended
+      GFP. A warning will appear in this case.
+    - cDNA: This warning will also appear if you
+      have accidentally used cDNA sequence as input. Using cDNA will usually not work
       since guide sequences that overlap exon-exon boundaries will not have bona
-      fide targets in the genome.
-    - case of the input sequence will be retained in the output. As such, you can 
+      fide targets in the genome. Also cDNAs from PCR will often include PCR errors.
+    - if all you have is a cDNA sequence, please use BLAST or BLAT first to obtain 
+      exons. Pick one of the exons and use these as the input for CRISPOR. Pasting cDNA
+      sequences is still one of the most common mistakes when using a CRISPR design 
+      tool.
+    - character case of the input sequence will be retained in the output. As such, you can 
       mark any sequence of interest (exons, ATG or stop codons, coding
       sequence of catalytic sites, …) using upper/lower case in order to easily
       visualize where the different guide sequences are positioned relative to
@@ -66,7 +71,11 @@ warning will be displayed during processing if characters were removed.
       polymorphisms (SNPs also known as SNVs, single nucleotide variants).
     - you can give your input sequence an optional name. It will be shown on the
       output page and appended to all oligonucleotides that you download later.
-   
+    - if you can want to check multiple guides with a single CRISPOR run, you
+      can separate them with two N characters. In this way, not NGG pattern will go across them.
+      However, the efficiency scores cannot be calculated, as there is not enough 
+      context.
+
 2. Genome: Select your genome of interest from the list. 
 You can scroll through and select from the drop-down or
 type and search the names of the species, using latin or English common names. 
@@ -651,6 +660,19 @@ we still recommend them. They should save screening time in the long run as
 they decrease your chances of stumbling over a very inefficient guide.
 Just make sure that you look at the right score for your expression system.
 
+Adding a genome {#addgenome}
+===============
+
+If you need a genome that is not already in the our list, please send us the
+UCSC genome name or the Ensembl taxon ID or the NCBI RefSeq Assembly ID, which
+starts with GCF_ or GCA_. GCF_ genomes come with 
+gene models, for exon filtering, GCA_ accessions do not, so when in doubt,
+prefer GCF_ genomes.  You can find these numbers by searching [NCBI
+Assembly](https://www.ncbi.nlm.nih.gov/assembly) for your genome of interest. 
+We can exceptionally also add individual FASTA and GFF files, which you can
+send by URL or as a Dropbox link. We have received more than 150 genomes from
+users by email until now, mostly using NCBI RefSeq genome accessions.
+
 Frequently Asked Questions {#faq}
 ==========================
 
@@ -674,13 +696,6 @@ score to rank guides.
 * Can I score my existing single guides with CRISPOR ?
 
 Of course, just paste the target sequence, i.e. the guide + the PAM sequence, into the sequence input box.
-
-* Can you add my genome?
-
-Yes, please send us the UCSC genome name or the Ensembl name or the NCBI
-RefSeq Assembly ID, which starts with GCF_ or GCA_. We can also add individual FASTA
-and GFF files, which you can send by URL or as a Dropbox link. We have received
-more than 150 genomes from users by email until now.
 
 * Can you add my genome and not share it?
 

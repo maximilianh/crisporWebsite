@@ -163,9 +163,9 @@ Now try to access the script from a webbrowser, http://localhost/crispor.py and 
 
 # Adding a genome
 
-Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome. You may need to download `twoBitToFa` from http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/. 
+Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome. You may need to download `twoBitToFa` from http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/ and install the tool `gffread` by installing cufflinks on your machine (e.g. with `apt-get install cufflinks`). 
 
-The subdirectory usrLocalBin contains required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
+The subdirectory usrLocalBin contains other required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
 
 The script can auto-download genomes from Ensembl, UCSC or NCBI or allows you to add
 your own custom genome in .fasta format and .gff.

@@ -17,10 +17,38 @@ body { margin-left: 20px }
 <h2><a href="../">CRISPOR</a> Changes</h2>
 <p>Many thanks to the users that have contacted me, suggested features and tested them!</p>
 
+<h4>Version 4.91, May 1st 2019 - Lindel predictions, Graf et al criteria</h4>
+<ul>
+<li>Finally fixed 'no genome' scoring option, thanks to Sanika Derebail, Harvard
+<li>Added Lindel outcome prediction model, see <a href="https://www.biorxiv.org/content/10.1101/481069v1">preprint</a>, thanks to Wei Chen, UW
+<li>Added Graf et al. most-inefficient-guide motifs, see <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/">Graf et al Cell Reports 2019</a>, thanks to Frederic Flamant, ENS Lyon, France.
+</ul>
+
+<h4>Version 4.8, Mar 2019 - Queueing changes, Off-target primers</h4>
+<ul>
+<li>Adding primer parameters on off-target primer designer page. Thanks to Lian Liu, Tsinghua.
+<li>BWASW on-target alignment is now part of the queued job. Thanks to 100+ people who complained about crashed jobs. :-)
+<li>Added a CFD guide specificity score, thanks to Evgeni Frenkel, MIT
+<li>Bae et al. are now cached and we have a new main column for outcome scores
+<li>Fixed serious bug that made TTTV PAM almost unusable
+</ul>
+
+<h4>Version 4.7, Jan 2019 - PAR loci, CCtop </h4>
+<ul>
+<li>Added new enzyme NmeCas9. Thanks to Alireza Edraki, U Mass Med
+<li>Treat human PAR regions as one. Thanks to Evgeni Frenkel, MIT
+<li>Fixed the new CCtop efficiency score. Thanks to Florian LAFARGUETTE, Genoway
+</ul>
+
+<h4>Version 4.6, Nov 2018 - alternate loci </h4>
+<ul>
+<li>When off-targets are found on both an _alt sequence and a normal chromosome, the first 100% identical off-target on the _alt is ignored. Thanks to Jean-Paul.
+</ul>
+
 <h4>Version 4.5, Sep 2018 - saCas9 specificity scores</h4>
 <ul>
-<li>Improved the Saturating Mutagenesis Assistant for our CRISPOR ASHG Workshop in San Diego, Oct 17, 2018, with Neville Sanjana, Luca Pinello and Kendell Clement. Looking forward to seeing you there!
-<li>Added saCas9 specificity from Tycko et al, many thanks to Josh Tycko for his source code
+<li>Improved the Saturating Mutagenesis Assistant for our CRISPOR ASHG Workshop in San Diego, Oct 17, 2018, with Neville Sanjana, Luca Pinello and Kendell Clement. It was great to see some of you there.
+<li>Added saCas9 specificity from Tycko et al, many thanks to Josh Tycko for his source code. Nov 2018: fixed the score. 
 <li>Added Enzyme ScanisCas9 PAM NNG: works with any base after the NNG but is high efficiency with T. Chatterjee et al, Science Advances, in press.  ScanisCas9 works with the same guide RNAs as SpyCas9.
 <li>Added Enzyme iSpyMacCas9 PAM NAA: <a href="https://doi.org/10.1101/429654">Preprint</a>. iSpyMacCas9 works with the same guide RNAs as SpyCas9.
 </ul>

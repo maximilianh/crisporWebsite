@@ -1,4 +1,6 @@
-# this library re-implements the efficiency scoring functions of these articles:
+# main functions: calcAllScores and calcMutSeqs 
+
+# this library re-implements the efficiency scoring functions of these articles in calcAllScores():
 
 # - WangSvm: Wang et al, Science 2014, PMID 24336569, no website
 # - Doench: Doench et al, Nat Biotech 2014, PMID 25184501, http://www.broadinstitute.org/rnai/public/analysis-tools/sgrna-design
@@ -7,10 +9,13 @@
 # - Chari: Chari et al, PMID 26167643 http://crispr.med.harvard.edu/sgRNAScorer
 # - Fusi: Fusi et al, prepublication manuscript on bioarxiv, http://dx.doi.org/10.1101/021568 http://research.microsoft.com/en-us/projects/azimuth/, only available as a web API
 # - Housden: Housden et al, PMID 26350902, http://www.flyrnai.org/evaluateCrispr/
-# - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
 # - Wu-Crispr: Wong et al, http://www.genomebiology.com/2015/16/1/218
 # - DeepCpf1, Kim et al, PMID 29431740, https://www.ncbi.nlm.nih.gov/pubmed/29431740
 # - SaCas9 efficiency score (no name), Najm et al, https://www.ncbi.nlm.nih.gov/pubmed/29251726
+
+# Also includes the prediction of DSB-repair outcome in calcMutSeqs:
+# - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
+# - Wei Chen et al: 
 
 # the input are 100bp sequences that flank the basepair just 5' of the PAM +/-50bp.
 # so 50bp 5' of the PAM, and 47bp 3' of the PAM -> 100bp
@@ -27,19 +32,22 @@ import urllib2, pickle
 import json
 
 fusiDir = join(dirname(__file__), "bin/fusiDoench")
-sys.path.insert(0, join(fusiDir, "analysis"))
+sys.path.append(join(fusiDir, "analysis"))
 
 deepCpf1Dir = join(dirname(__file__), "bin/deepCpf1")
-sys.path.insert(0, deepCpf1Dir)
+sys.path.append(deepCpf1Dir)
 
 aziDir = join(dirname(__file__), "bin/Azimuth-2.0/")
-sys.path.insert(0, aziDir)
+sys.path.append(aziDir)
 
 najm2018Dir = join(dirname(__file__), "bin/najm2018/")
-sys.path.insert(0, najm2018Dir)
+sys.path.append(najm2018Dir)
 
 cctopDir = join(dirname(__file__), "bin/src/cctop_standalone")
-sys.path.insert(0, cctopDir)
+sys.path.append(cctopDir)
+
+lindelDir = join(dirname(__file__), "bin/src/lindel")
+sys.path.append(lindelDir)
 
 # import numpy as np
 
@@ -381,7 +389,6 @@ def calcChariScores(seqs, baseDir="."):
     chariDir = join(binDir, "src", "sgRNA.Scorer.1.0")
     modelFname = join(chariDir,'293T.HiSeq.SP.Nuclease.100.SVM.Model.txt')
     dataIn = seqsToChariSvml(seqs)
-    #print repr(dataIn)
 
     #tempFh = tempfile.NamedTemporaryFile()
     tempFname = tempfile.mktemp()
@@ -403,7 +410,6 @@ def calcChariScores(seqs, baseDir="."):
     except CalledProcessError:
         raise Exception("Could not run command '%s'" % (" ".join(cmd)))
 
-    #print " ".join(cmd)
     dataOut = open(outName).read()
     os.remove(outName)
     os.remove(tempFname)
@@ -551,7 +557,6 @@ def sendFusiRequest(seqs):
     except urllib2.HTTPError, error:
         print("The request failed with status code: " + str(error.code))
 
-        # Print the headers - they include the request ID and the timestamp, which are useful for debugging the failure
         print(error.info())
 
         print(json.loads(error.read())) 
@@ -567,6 +572,11 @@ def trimSeqs(seqs, fiveFlank, threeFlank):
         seq = s[50+fiveFlank:50+threeFlank].upper()
         trimSeqs.append(seq)
     return trimSeqs
+
+def trimSeqsForGuides(seqs, fiveFlank, threeFlank):
+    " like trimSeqs, but yield  (guide, trimmedSeq) "
+    trimmedSeqs = trimSeq(seqs, fiveFlank, threeFlank)
+    return zip(seqs, trimmedSeqs)
 
 def iterSvmRows(seqs):
     """ translate sequences to wang/sabatini/lander paper representation
@@ -648,10 +658,98 @@ def cacheScores(scoreName, scoreFunc, seqs):
     assert(len(allScores)==len(seqs))
     return allScores
 
+def getGrafType(seq):
+    """ check if a guide fulfills the criteria described in Graf et al, Cell Reports 2019
+    returns "tt" or "ggc" depending on the motif found or None if none of them were found.
+    """
+    # guide ends with TTC or TTT
+    #seq = seq.upper()
+    #if seq.endswith("TTC") or seq.endswith("TTT"):
+        #return "tt"
+
+    seq = seq.upper()
+
+    if seq.endswith("TTC") or seq.endswith("TTT"):
+        return "tt"
+
+    # the last 4 nucleotides contain only T and C and more than 2 Ts
+    suffix = seq[-4:]
+    if set(suffix)==set(["T", "C"]) and suffix.count("T")>=2:
+        return "tt"
+
+    # the last four positions contain "TT" and at last one more T or C 
+    if "TT" in suffix and (suffix.count("T")>=3 or suffix.count("C")>=1):
+        return "tt"
+
+    # the guide ends with [AGT]GCC
+    if seq.endswith("GCC") and suffix[-4] in ["A", "G", "T"]:
+        return "ggc"
+
+    # the guide ends with GCCT
+    if seq.endswith("GCCT"):
+        return "ggc"
+
+    return None
+
+def runLindel(seqIds, seqs):
+    """ based on Lindel_prediction.py sent by Wei Chen
+    runtime 1-2 seconds.
+    Return: a dict with seqId -> list of (fs-score, list of (seq-illustration, score, indel-desc))
+    >>> ret = runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
+    >>> ret["test"][0]
+    70.36
+    >>> ret["test"][1][1]
+    ('4.91554921', 'CCCTGGCGGCCTAAGGACTCGGCGCGCCGG | ------CCAGGGCGGGGGCGACCTCGGCTCACAG', 'D6  0')
+    """
+    import Lindel
+    import Lindel.Predictor
+    import pickle as pkl
+
+    weights = pkl.load(open(os.path.join(Lindel.__path__[0], "Model_weights.pkl"),'rb'))
+    prerequesites = pkl.load(open(os.path.join(Lindel.__path__[0],'model_prereq.pkl'),'rb'))
+
+    ret = {}
+    assert(len(seqIds)==len(seqs))
+    for seqId, seq in zip(seqIds, seqs):
+        if "N" in seq:
+            logging.warn("guide %s contains at least one N" % seq)
+            if seq.count("N")>3:
+                ret[seqId] = ( None, [] )
+                continue
+
+        seq = seq.replace("N", "A") # hack. Chen confirmed that Ns are not in the mode. But Ns are rare in the genome
+
+        logging.debug("Lindel: %s - %s" % (seqId, seq))
+        try:
+            y_hat, fs = Lindel.Predictor.gen_prediction(seq,weights,prerequesites)
+        except ValueError:
+            print('Error: No PAM sequence found. Please check your sequence and try again')
+            raise
+
+        rev_index = prerequesites[1]
+        pred_freq = {}
+        for i in range(len(y_hat)):
+            if y_hat[i]!=0:
+                pred_freq[rev_index[i]] = y_hat[i]
+        pred_sorted = sorted(pred_freq.items(), key=lambda kv: kv[1],reverse=True)
+
+        indelData = Lindel.Predictor.iter_results(seq, pred_sorted, pred_freq)
+        ret[seqId] = ( int(round(100*fs)), list(indelData) )
+
+    return ret
+
+def calcLindelScore(seqIds, seqs):
+    """ run model by Wei Chen. seqs is 100bp long sequences around beginning of PAM, like all other code.
+    returns dict with seqId -> (probability of frameshift, mutSeqs)
+    """
+    assert(len(seqIds)==len(seqs))
+    return runLindel(seqIds, trimSeqs(seqs, -33, 27))
+
 def calcAllBaeScores(seqs):
     """
     run seqs through calcMicroHomolScore()
     PAM-site has to start at the nucleotide exactly in the middle of the sequence.
+
     >>> calcAllBaeScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])[:2]
     ([7829], [46])
     >>> calcAllBaeScores(["AGCAGGATAGTCCTTCCGAGTGGANNNAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGGAGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])[:2]
@@ -738,6 +836,11 @@ def calcMicroHomolScore(seq, left):
     oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
     return int(mhScore), int(oofScore), seqs
 
+def calcWeiChenScores(seqs):
+    """ Calc weiChen score 
+    """
+    return fs
+
 def isCas9(enzyme):
     return (enzyme==None or enzyme=="spcas9")
 
@@ -753,19 +856,38 @@ def forceWrapper(func, seqs):
 def calcFreeEnergy(seqs):
     """ runs a list of 20bp guide sequences through mfold and returns their gibbs free energy
     >>> calcFreeEnergy(["GGGTGGGGGGAGTTTGCTCCTGG"])
+    0
     """
     return 0
 
-def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
+def inList(l, name):
+    " return true if name is in list l  "
+    return (name in l)
+
+# list of possible score names, by enzyme
+possibleScores = {
+    "spcas9" : ["fusi", "fusiOld", "housden", "wang", "doench", "ssc",
+        "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
+    "cpf1" : ["seqDeepCpf1", "oof"],
+    "sacas9" : ["najm", "oof"]
+}
+
+# list of possible DSB repair score names, by enzyme
+possibleMutScores = {
+    "spcas9" : ["oof", "lindel"],
+    "cpf1" : ["oof"],
+    "sacas9" : ["oof"],
+}
+
+def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scoreNames=None):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    [('aziInVitro', [39]), ('ccTop', [64.53235600000001]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('fusi', [55]), ('fusiOld', [56]), ('housden', [6.3]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTANCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('finalGc6', [1]), ('finalGg', [0]), ('fusi', [56]), ('housden', [6.3]), ('mh', [4404]), ('oof', [51]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    [('aziInVitro', [39]), ('ccTop', [64.53235600000001]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [40]), ('doench', [10]), ('fusi', [55]), ('fusiOld', [56]), ('housden', [6.3]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
-    logging.debug("Calculating efficiency scores for enzyme %s" % enzyme)
     scores = {}
 
     for s in seqs:
@@ -774,14 +896,35 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
 
     guideSeqs = trimSeqs(seqs, -20, 0)
 
-    if enzyme==None or enzyme=="spcas9":
-        logging.debug("Azimuth score")
-        scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
+    if enzyme is None:
+        enzyme = "spcas9"
 
-        # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
-        # scores are the not exactly the same!
-        logging.debug("Fusi score")
-        scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+    if scoreNames is None:
+        logging.debug("Using default scores for enzyme %s" % enzyme)
+        scoreNames = possibleScores[enzyme]
+
+    logging.debug("Calculating efficiency scores %s for enzyme %s" % (scoreNames, enzyme))
+
+    if inList(scoreNames, "finalGc6"):
+        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
+
+    if inList(scoreNames, "finalGg"):
+        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
+
+    unknownScores = set(scoreNames) - set(possibleScores[enzyme])
+    if len(unknownScores)!=0:
+        raise Exception("Unknown score names: %s. Enzyme: %s, scoreNames: %s" % (unknownScores, enzyme, scoreNames))
+
+    if enzyme=="spcas9":
+        if inList(scoreNames, "fusi"):
+            logging.debug("Azimuth score")
+            scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
+
+        if inList(scoreNames, "fusiOld"):
+            # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
+            # scores are the not exactly the same, they differ by 2-3%, but somtimes more!
+            logging.debug("Fusi score")
+            scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
         # the fusi score calculated by the Microsoft Research Server is not run by
         # default, requires an apiKey
@@ -795,69 +938,72 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None):
         #if "fusiForce" in addOpt:
             #scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
-        logging.debug("Housden scores")
-        scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
-        #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
+        if inList(scoreNames, "housden"):
+            logging.debug("Housden scores")
+            scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
+            #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
 
-        logging.debug("Wang scores")
-        scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
-        if "wangOrig" in addOpt or doAll:
+        if inList(scoreNames, "wang"):
+            logging.debug("Wang scores")
+            scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
+
+        if inList(scoreNames, "wangOrig"):
             scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
 
-        logging.debug("Doench score")
-        scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
+        if inList(scoreNames, "doench"):
+            logging.debug("Doench score")
+            scores["doench"] = calcDoenchScores(trimSeqs(seqs, -24, 6))
 
-        logging.debug("SSC score")
-        scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
+        if inList(scoreNames, "ssc"):
+            logging.debug("SSC score")
+            scores["ssc"] = calcSscScores(trimSeqs(seqs, -20, 10))
 
-        logging.debug("CrisprScan score")
-        scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
+        if inList(scoreNames, "crisprScan"):
+            logging.debug("CrisprScan score")
+            scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
 
-        if not "wuCrispr" in skipScores:
+        if inList(scoreNames, "wuCrispr"):
+        #if not "wuCrispr" in skipScores:
             logging.debug("wuCrispr score")
             scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
-        else:
-            scores["wuCrispr"] = [-1]*len(seqs)
 
-        logging.debug("Chari score")
-        chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
-        scores["chariRaw"] = chariScores[0]
-        scores["chariRank"] = chariScores[1]
+        if inList(scoreNames, "chariRank") or inList(scoreNames, "chari"):
+            logging.debug("Chari score")
+            chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
+            scores["chariRaw"] = chariScores[0]
+            scores["chariRank"] = chariScores[1]
 
-        logging.debug("Azimuth in-vitro")
-        scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
+        if inList(scoreNames, "aziInVitro"):
+            logging.debug("Azimuth in-vitro")
+            scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
 
-        scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
-
-        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
-        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
-
+        if inList(scoreNames, "ccTop"):
+            scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
     
     elif enzyme=="cpf1":
         deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
         cpfScores = calcDeepCpf1Scores(deepSeqs)
-        scores["seqDeepCpf1"] = cpfScores[0]
-        scores["deepCpf1NoDnase"] = cpfScores[1]
-        scores["deepCpf1Dnase"] = cpfScores[2]
+        if inList(scoreNames, "seqDeepCpf1"):
+            scores["seqDeepCpf1"] = cpfScores[0]
+            scores["deepCpf1NoDnase"] = cpfScores[1]
+            scores["deepCpf1Dnase"] = cpfScores[2]
 
     elif enzyme=="sacas9":
-        logging.debug("Najm 2018 score")
-        scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
+        if inList(scoreNames, "najm"):
+            logging.debug("Najm 2018 score")
+            scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
 
-    logging.debug("OOF scores")
-    mh, oof, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
-    scores["oof"] = oof
-    scores["mh"] = mh
-
+    # not used anymore:
     # the fusi score calculated by the Microsoft Research Server is not run by
     # default, requires an apiKey
-    if "fusiOnline" in addOpt or doAll:
+    if inList(scoreNames, "fusiOnline"):
         scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
     # by default, I use the python source code sent to me by John Doench
 
+    # not used anymore:
     # fusiForce is a request to the online API that will not fail
     # if any exception is thrown, we set the scores to -1
-    if "fusiForce" in addOpt:
+    if inList(scoreNames, "fusiOnline"):
         scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
     #logging.debug("self-complementarity using mfold")
@@ -1051,7 +1197,7 @@ def calcWuCrisprScore(seqs):
     for s in seqs:
         assert(len(s)==24)
 
-    #tempFh = open("temp.fa", "w")
+    #tempFh = open("/tmp/temp.fa", "w")
     tempFh = tempfile.NamedTemporaryFile()
 
     for s in seqs:
@@ -1065,7 +1211,7 @@ def calcWuCrisprScore(seqs):
     wuCrispDir = getBinPath("WU-CRISPR", isDir=True)
     logging.debug("Running wu-crisp in %s" % wuCrispDir)
     os.chdir(wuCrispDir)
-    cmd = "perl wu-crispr.pl -f %s > /dev/null" % tmpPath
+    cmd = "perl wu-crispr.pl -f %s > /dev/null 2> /dev/null" % tmpPath
     logging.debug("Running %s" % cmd)
     assert(os.system(cmd)==0)
     os.chdir(oldCwd)
@@ -1087,14 +1233,14 @@ def calcWuCrisprScore(seqs):
         if line.startswith("seqId"):
             continue
         seqId, score, seq, orient, pos = line.split("\t")
-        #print "got wucrisp row", seqId, score, seq, orient, pos
+        if pos=="":
+            # strange case that appeared a couple of times in the logs. e.g. 64lC1lFkH1uuKE2XZuRz
+            continue
         start = int(pos.split(",")[0])-1
         if not (start == 0 and orient=="sense"):
             #print "skipping, incorrect position"
             continue
-        #print "keeping seq/score", seq, score
         scoreDict[seq] = int(score)
-        #scores.append(int(score))
 
     # return 0 for all sequences where we didn't get a score back from
     # wu-crispr
@@ -1122,11 +1268,61 @@ def calcCctopScore(seqs):
     scores = []
     for seq in seqs:
         score = CCTop.getScore(seq)
-        scores.append(score)
+        scores.append(100*score)
+    return scores
+
+def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
+    """ run predictors that return the result of DSB repair. seqs is a list of 100bp long sequences.
+
+    returns dict with the score name as the key.
+    Each value is a dict again. The keys are the name of the resulting score e.g. "oof" (out of frame score) and
+    at least the key "seqs", a dict with seqId -> (score, sequence).
+    """
+    if enzyme is None:
+        enzyme="spcas9"
+
+    if scoreNames is None:
+        scoreNames = possibleMutScores[enzyme]
+
+    logging.debug("Calculating mutated sequences, models: %s, for enzyme %s" % (scoreNames, enzyme))
+    scores = {}
+
+    for s in seqs:
+        if len(s)!=100:
+            raise Exception("sequence %s is %d bp and not 100 bp long" % (s, len(s)))
+
+    if inList(scoreNames, "oof"):
+        logging.debug("Bae et al, OOF scores")
+        baeRes = {}
+        mhList, oofList, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
+        #baeRes["oof"] = oofList
+        #baeRes["mh"] = mhList
+        assert(len(seqIds)==len(mhSeqs))
+
+        seqDict = {}
+        for seqId, oof, mhSeq in zip(seqIds, oofList, mhSeqs):
+            seqDict[seqId] = (oof, mhSeq)
+        scores["oof"] = seqDict
+
+    if inList(scoreNames, "lindel"):
+        logging.debug("lindel scores")
+        mutSeqDict = calcLindelScore(seqIds, seqs)
+        scores["lindel"] = mutSeqDict
+
     return scores
 
 # ----------- MAIN --------------
 if __name__=="__main__":
+    import cProfile
+    #cProfile.runctx('print runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])', globals(), locals())
+    pr = cProfile.Profile()
+    pr.enable()
+    runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
+    pr.disable()
+    pr.print_stats(sort='tottime')
+    sys.exit(0)
+
+
     args, options = parseArgs()
     if options.test:
         test()

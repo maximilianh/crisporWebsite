@@ -40,7 +40,7 @@ my $scaffold_seq = "GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGT
 my $min_pos = 0;    
 my $max_pos = 100000000; 
 my $retained_portion = 1; 
-my $scoreFilter = 1; 
+my $scoreFilter = 0; 
 
 ################################### USER INPUTS ############################################################
 
@@ -74,6 +74,7 @@ elsif($option eq '-f' or $option eq '--file'){
                 # MAX - changing output file names
                 $result_dir = $inputFile.".outDir";
                 $outputFile = $inputFile.".outTab";
+                $result_file = $inputFile.".result.tab";
                 # -- MAX
                 @sequences = importFasta($inputFile);  
         }else{
@@ -147,7 +148,13 @@ while (<RESULT>) {
         my $orient = $inline[4];
         $seqId = $inline[3];
         $resultSeqs{$seq}{'orient'} = $orient;
-        my $oligoSearch = $id2Sequence{$seqId};
+        # XX modified by Max
+        my $oligoSearch = "";
+        if (exists($id2Sequence{$seqId})) {
+                $oligoSearch = $id2Sequence{$seqId};
+                }
+        # XX end modify
+
         my $oligoLoc;
         $seqSearch = reverse($seq) and $seqSearch =~ tr/atcg/tagc/ if $orient eq 'antisense';
         my @pos1based;
@@ -166,8 +173,6 @@ open(OUT, ">$outputFile") or die "$outputFile could not be opened for writing\n"
 
 print OUT "seqId\tScore\tSequence\tOrientation\tPosition\n";
 foreach my $sequenceId (sort keys %scoreList){
-        
-        print $result_file;
         foreach my $line (sort {$b cmp $a} @{$scoreList{$sequenceId}}){                my ($score,$seq) = split /\t/, $line;
                 next if $score<50 and $scoreFilter ==1;
                 my $direction = $resultSeqs{$seq}{'orient'};
@@ -461,7 +466,7 @@ sub libsvm {
     }
     close(SVM);
 
-    open(OUT, ">$result_file");
+    open(OUT, ">$result_file") or die "can not open $result_file for writing: $!\n";
 
     my @svm_header = split / /, $prediction[0];
     print OUT join("\t", @svm_header), "\tsequenceID\tOrientation\tPosition in Exon\tPosition in CDS\tCDS Length\tOligo Sequence\n";
@@ -492,9 +497,9 @@ sub dG_binding {
 
 sub foldingdG {
    my $sequence = shift;
-   my $tempSeq = "tempSeq$$";
+   my $tempSeq = "/tmp/tempSeq$$";
    my $host = hostname();
-   my $tempOUT = "$host.tempOUT$$";
+   my $tempOUT = "/tmp/$host.tempOUT$$";
 
    $sequence =~ s/[5|3|'|\-|\s+]//g;
    $sequence =~ tr/Tt/Uu/;
@@ -504,7 +509,7 @@ sub foldingdG {
    close OLIGO;
 
    my $dG;
-   system("./RNAfold < $tempSeq > $tempOUT");
+   system("./RNAfold −−noPS < $tempSeq > $tempOUT");
    open(RESULT, "$tempOUT") or die "Cannot open $tempOUT for reading $!\n";
    while(my $line = <RESULT>){
       if($line =~ /([\-|\d][\.|\d]+)\)/){
@@ -520,9 +525,9 @@ sub foldingdG {
 
 sub RNA_fold {
    my $sequence = shift;
-   my $tempSeq = "tempSeq$$";
+   my $tempSeq = "/tmp/tempSeq$$";
    my $host = hostname();
-   my $tempOUT = "$host.tempOUT$$";
+   my $tempOUT = "/tmp/$host.tempOUT$$";
    $sequence =~ s/[5|3|'|\-|\s+]//g;
    $sequence =~ tr/Tt/Uu/;
    
@@ -531,7 +536,7 @@ sub RNA_fold {
    close OLIGO;
 
    my ($dG, $align);
-   system("./RNAfold < $tempSeq > $tempOUT");
+   system("./RNAfold −−noPS < $tempSeq > $tempOUT");
    open(RESULT, "$tempOUT") or die "Cannot open $tempOUT for reading $!\n";
    while(my $line = <RESULT>){
          if($line =~ /([\-|\d][\.|\d]+)\)/){
@@ -652,7 +657,7 @@ sub importTabSeq {
 
 sub importFasta {
     my ($fastaFile) = @_;
-    my $tabFile = "$fastaFile $$.tab";
+    my $tabFile = "$fastaFile-$$.tab";
     fastaToTab($fastaFile, $tabFile);
     my @seq = importTabSeq($tabFile);
     unlink $tabFile if -e $tabFile;

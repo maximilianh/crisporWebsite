@@ -1,9 +1,11 @@
 Indel predictions:
 - Chakrabarti et al Mol Cell 2018 https://www.sciencedirect.com/science/article/pii/S1097276518310013?via%3Dihub
 - Wei of Jay Shendure's group 
+Add more deletion predictors:
+- https://www.nature.com/articles/nbt.4317
+- https://partslab.sanger.ac.uk/FORECasT
 
 Make the new TATV Cpf1 PAM work, cite 10.1038/nbt.3900 when done.
-=======
 - Ajouter explications pourquoi saCas9. -> manuel -> warning
 - Ajouter warning pour Cpf1, ajouter TTTV
 
