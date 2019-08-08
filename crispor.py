@@ -1995,11 +1995,6 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
     """
     assert(start>=0)
     assert(end<=len(seq))
-    # check if the extended sequence really contains the whole input seq
-    # e.g. when user has added nucleotides to a otherwise matching sequence
-    if extSeq!=None and (seq.upper() not in extSeq.upper()):
-        debug("seq is not in extSeq")
-        extSeq = None
 
     # extend
     if strand=="+":
@@ -2022,6 +2017,12 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
 
     if strand=="-":
         subSeq = revComp(subSeq)
+
+    # check that the extended sequence really contains the whole input seq
+    # e.g. when user has added nucleotides to a otherwise matching sequence
+    if seq.upper() not in subSeq.upper():
+        debug("seq is not in extSeq")
+        subSeq = None
 
     return subSeq
 
@@ -2854,7 +2855,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         if otData==None:
             # no genome match
             print otDesc
-            htmlHelp("Sequence was not found in genome.<br>If you have pasted a cDNA sequence, note that sequences that overlap a splice site cannot be used as guide sequences. If you only have a cDNA sequence, please BLAST or BLAT your sequence first against the genome, then use the resulting exon from the genome for CRISPOR.<br>This warning also appears if you have selected the wrong or no genome.")
+            htmlHelp("This exact sequence was not found in the genome.<br>If you have pasted a cDNA multi-exon sequence, note that sequences that overlap a splice site cannot be used as guide sequences. If you only have a cDNA sequence, please BLAST or BLAT your sequence first against the genome, then use the resulting exon from the genome for CRISPOR.<br>This warning also appears if you have selected the wrong or no genome.")
         elif subOptMatchCount > MAXOCC:
             print ("Repeat")
             htmlHelp("At <= 4 mismatches, %d hits were found in the genome for this sequence. <br>This guide is a repeated region, it is too unspecific.<br>Usually, CRISPR cannot be used to target repeats. Note that sequences that include long repeats will make the CRISPOR website very slow. You can always mask repeats with Ns to speed up the search." % subOptMatchCount)
@@ -4000,7 +4001,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>May 2019: Added Lindel DSB-repair outcomes, Graf et al. motifs <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>August 2019: better detection when users paste a cDNA sequence <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -4300,6 +4301,8 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
             # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
             q = JobQueue()
             ip = os.environ.get("REMOTE_ADDR", "noIp")
+            if ip=="195.176.112.240":
+                errAbort("IP address blocked.")
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc))
             if not wasOk:
                 #print "CRISPOR job is running..." % batchId
@@ -6778,7 +6781,10 @@ def findPerfectMatch(batchId):
             continue
             #errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
         # Todo: why do we get soft clipped sequences from BWA? repeats?
-        cleanCigar = cigar.replace("M","").replace("S", "")
+        if "S" in cigar:
+            logging.debug("match found, but soft-clipped, cigar: %s" % cigar)
+            continue
+        cleanCigar = cigar.replace("M","")
         if not cleanCigar.isdigit():
             logging.debug("match found, but cigar string was %s" % cigar)
             continue
