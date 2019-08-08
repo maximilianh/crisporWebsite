@@ -12,6 +12,9 @@ from os.path import *
 
 import MySQLdb # install with "sudo apt-get install python-mysqldb"
 
+# Todo to make this CGIable:
+# - run mac2unix and dos2unix onto the input file, remove newlines, refuse files that still contain a newline
+# - refuse files with ":" in any sequence identifier
 # todo: add genbank downloader, e.g. 
 # wget -O NC_001416.1.fasta 'https://www.ncbi.nlm.nih.gov/search/api/sequence/NC_001416.1/?report=fasta'
 
@@ -1021,6 +1024,3 @@ else:
 
 cmd = "cd /data/www/crispor && ./makeGenomeInfo"
 runCmd(cmd)
-    
-    # import httplib2, sys
-     
