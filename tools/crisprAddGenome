@@ -866,7 +866,6 @@ def getNcbiIndex(dbType):
     return fname
 
 def getNameForTaxId(taxId):
-    import urllib.request, urllib.error, urllib.parse
     import xml.etree.ElementTree as etree
     taxId = int(taxId)
     url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id=%d" % taxId
