@@ -687,11 +687,15 @@ high number. We do not know why, but it may also be related to repeats. Desktop
 Genetics only can find off-targets with up to three mismatches, so their MIT score
 is also slightly different.
 
-* Why is there a CFD off-target score but not a CFD guide score?
+* What is the CFD Specificity score?
 
-Because the CFD score by Doench et al. is not defined on the level of guides.
-It is only useful for ranking off-targets. This is why we and others use the MIT
-score to rank guides.
+The MIT Guide Specificity score summarizes the individual Hsu MIT off-target scores for
+all off-targets of a guide, 100/(100+sum(mitScores)).  The more recent and more
+accurate CFD off-target score by Doench et al. is not defined on the level of
+guides.  As a result, the authors of GuideScan.com have inventend a new guide
+specificity score, by taking the taking the sum of all CFD scores for all
+off-targets of a guide and taking 100/(100+sum) of that. Since May 2019, we are
+also showing this score for guides, in addition to the MIT score.
 
 * Can I score my existing single guides with CRISPOR ?
 

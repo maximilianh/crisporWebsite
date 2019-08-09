@@ -2020,9 +2020,9 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
 
     # check that the extended sequence really contains the whole input seq
     # e.g. when user has added nucleotides to a otherwise matching sequence
-    if seq.upper() not in subSeq.upper():
-        debug("seq is not in extSeq")
-        subSeq = None
+    #if seq.upper() not in subSeq.upper():
+        #debug("seq is not in extSeq")
+        #subSeq = None
 
     return subSeq
 
@@ -2738,9 +2738,9 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         grafType = crisporEffScores.getGrafType(guideSeq)
         if grafType:
             if grafType=="tt":
-                grafText = "The TT motif was found. These guides should be avoided in polymerase III (Pol III)-based gene editing experiments requiring high sgRNA expression levels."
+                grafText = "The guide ends with TTC or TTT or contains only T and C in the last four nucleotides and more than 2 Ts or at least one TT and one T or C ('TT-motif'). These guides should be avoided in polymerase III (Pol III)-based gene editing experiments requiring high sgRNA expression levels."
             elif grafType=="ggc":
-                grafText = "The GGC motif was found. These sgRNAs appear to be inefficient irrespective of the delivery method and should thus be generally avoided."
+                grafText = "The guide ends with [AGT]GCC or GCCT ('GGC motif'). These sgRNAs appear to be inefficient irrespective of the delivery method and should thus be generally avoided."
 
             text = "This guide contains one of the motifs described by <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/'>Graf et al, Cell Reports 2019</a>. %s " % grafText
             htmlWarn(text)
@@ -2842,7 +2842,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 else:
                     scoreDesc = "frameshift mutations"
 
-                if oofScore==None:
+                if oofScore==None or oofScore=="None":
                     print "--"
                 else:
                     print """<a href="%s?batchId=%s&pamId=%s&showMh=%s" target=_blank class="tooltipster" title="This score indicates how likely %s are. Click to show the induced deletions based on the micro-homology around the cleavage site.">%s</a>""" % (myName, batchId, urllib.quote(pamId), mutScoreName, scoreDesc, oofScore)
@@ -4158,10 +4158,6 @@ def readBatchParams(batchId):
     if "extSeq" in seqs:
         extSeq = seqs["extSeq"]
 
-    # older batch files don't include a position yet
-    #if position==None:
-        #position = coordsToPosStr(*findPerfectMatch(genome, inSeq, batchId))
-
     return inSeq, genome, pamSeq, position, extSeq
 
 def gzipStr(s):
@@ -5146,8 +5142,10 @@ def effScorePass(effScores, minFusi):
     if minFusi is None:
         return True
     if effScores.get("fusi", 999) < minFusi:
+        logging.debug("Fusi score Does not pass min fusi filter")
         return False
     if effScores.get("najm", 999) < minFusi:
+        logging.debug("Najm score Does not pass min fusi filter")
         return False
     return True
 
