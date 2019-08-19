@@ -1968,9 +1968,17 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN):
     seqs = parseFasta(faFile)
     assert(len(seqs)==1)
     seq = seqs.values()[0].upper()
+
+
     if strand=="-":
         seq = revComp(seq)
 
+    genomeSeq = seq[FLANKLEN:(FLANKLEN+len(oldSeq))].upper()
+    if oldSeq.upper() not in genomeSeq:
+        logging.warn("Input sequence: %s" % oldSeq)
+        logging.warn("Genome sequence: %s" % genomeSeq)
+        logging.warn("Input sequence has SNPs compared to genome, not returning extended seq")
+        return None
     # ? make sure that user annotations, like added Ns, are retained in the long sequence
     #fixedSeq = seq[:100]+oldSeq+seq[-100:]
     #assert(len(fixedSeq)==len(seq))
@@ -2004,6 +2012,7 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
 
     # check for out of bounds and get seq
     if extStart >= 0 and extEnd <= len(seq):
+        logging.debug("using input seq, pos %d-%d" % (extStart, extEnd))
         subSeq = seq[extStart:extEnd]
     else:
         if extSeq==None:
@@ -2014,8 +2023,10 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
         assert(extStart >= 0)
         assert(extEnd <= len(extSeq))
         subSeq = extSeq[extStart:extEnd]
+        logging.debug("using extended seq, pos %d-%d" % (extStart, extEnd))
 
     if strand=="-":
+        logging.debug("revcomp'ing result")
         subSeq = revComp(subSeq)
 
     # check that the extended sequence really contains the whole input seq
@@ -2024,6 +2035,8 @@ def getExtSeq(seq, start, end, strand, extUpstream, extDownstream, extSeq=None, 
         #debug("seq is not in extSeq")
         #subSeq = None
 
+    logging.debug("Got -%d/+%d-extended seq for (%d, %d, %s) = %s. Result: %s." %
+        (extUpstream, extDownstream, start, end, strand, seq[start:end], subSeq))
     return subSeq
 
 def pamStartToGuideRange(startPos, strand, pamLen):
@@ -3370,7 +3383,9 @@ def calcSaveEffScores(batchId, seq, extSeq, pam, queue):
     pamIds = []
     guides = []
     longSeqs = []
+
     for pamId, startPos, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamInfo:
+        logging.debug("PAM ID: %s - guideSeq %s" % (pamId, guideSeq))
         gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
         longSeq = getExtSeq(seq, gStart, gEnd, strand, 50-GUIDELEN, 50, extSeq) # +-50 bp from the end of the guide
         if longSeq!=None:
@@ -3831,8 +3846,18 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     if posStr!="?":
         # get a 100bp-extended version of the input seq
         chrom, start, end, strand = parsePos(posStr)
-        batchInfo["extSeq"] = extendAndGetSeq(genome, chrom, start, end, strand, batchInfo["seq"])
+        extSeq = extendAndGetSeq(genome, chrom, start, end, strand, batchInfo["seq"])
+        if extSeq is None:
+            # this can only happen if there is a 100%-M match but small SNPs in it compared to the input sequence
+            # so the extension of the input fails.
+            # in this case, we also invalidate the position, as there was no perfect match and the user
+            # has to do something to fix it
+            batchInfo["posStr"] = "?"
+        else:
+            logging.debug("100pb-extended seq (len: %d) is: %s" % (len(extSeq), extSeq))
+            batchInfo["extSeq"] = extSeq
 
+    # must save the batch again, as otherwise display won't work, we need the position saved
     writeBatchAsDict(batchInfo, batchId)
 
     if doEffScoring:
@@ -4041,7 +4066,7 @@ def printForm(params):
     <small>Note: pre-calculated exonic guides for this species are on the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
     </div>
     """
-    print '<small style="float:left">We have %d genomes, but not the one you need? Send its FASTA/GFF URL to <a href="mailto:%s">CRISPOR support</a></small>' % (len(genomes), contactEmail)
+    print '<small style="float:left">We have %d genomes, but not yours? Search <a href="https://www.ncbi.nlm.nih.gov/assembly">NCBI assembly</a> and send a GCF_/GCA_ ID to <a href="mailto:%s">CRISPOR support</a>.</small>' % (len(genomes), contactEmail)
     print """
     </div>
     <div class="windowstep subpanel" style="width:50%%; height:158px">
@@ -4209,7 +4234,8 @@ def readOutcomeData(batchId, scoreName):
 
 def findAllPams(seq, pam):
     """ find all matches for PAM and return as dict startPos -> strand and a set
-    of end positions
+    of end positions. The start positions for the negative strand are for the
+    rev-complemented PAM
     """
     seq = seq.upper()
     startDict, endSet = findPams(seq, pam, "+", {}, set())
@@ -4249,7 +4275,7 @@ def readDbInfo(org):
     return dbInfo
 
 def printQueryNotFoundNote(dbInfo):
-    print "<div class='title'>Query sequence, not present in the selected genome, %s (%s)</div>" % (dbInfo.scientificName, dbInfo.name)
+    print "<div class='title'>Query sequence, not found in the selected genome, %s (%s)</div>" % (dbInfo.scientificName, dbInfo.name)
     print "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue'>"
     print "<strong>Warning:</strong> The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
