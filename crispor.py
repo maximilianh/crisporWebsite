@@ -7,7 +7,7 @@
 
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
-import Cookie, time, sys, cgi, re, random, platform, os, pipes, gdbm
+import Cookie, time, sys, cgi, re, random, platform, os, pipes
 import hashlib, base64, string, logging, operator, urllib, sqlite3, time
 import traceback, json, pwd, pickle, gzip, zlib
 
@@ -4203,8 +4203,10 @@ def gunzipStr(s):
 def saveOutcomeData(batchId, data):
     """ save outcome data of batch. data is a dictionary with key = score name """
     batchBase = join(batchDir, batchId)
-    dbFname = batchBase+".gdbm"
-    db = gdbm.open(dbFname, "c")
+    dbFname = batchBase
+    import dbm
+    db = dbm.open(dbFname, "c")
+
     #conn = sqlite3.connect(dbFname, "w")
     #c = conn.cursor()
     #c.execute('''CREATE TABLE outcomes (id text PRIMARY KEY, data blob))''' % scoreName)
@@ -4221,11 +4223,18 @@ def saveOutcomeData(batchId, data):
 def readOutcomeData(batchId, scoreName):
     """ open outcome data of batch, key is score name """
     batchBase = join(batchDir, batchId)
-    dbFname = batchBase+".gdbm"
     #conn = sqlite3.connect(dbFname, "r")
     #c = conn.cursor()
     #binData = c.execute("SELECT data FROM outcomes where id=?", scoreName)
-    db = gdbm.open(dbFname, "r")
+    import dbm
+    try:
+        db = dbm.open(batchBase, "r") # dbm always adds .db to the file name
+    except:
+        # old batches on crispor.org are still using gdbm
+        dbFname = batchBase+".gdbm"
+        import gdbm
+        db = gdbm.open(dbFname, "r")
+
     dbObj = db[scoreName]
     jsonStr = zlib.decompress(dbObj)
     data = json.loads(jsonStr)
