@@ -3839,6 +3839,8 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
 
     if genome=="noGenome":
         posStr = "?"
+    elif "batchName" in batchInfo and batchInfo["batchName"].count(":")==2: # chrom:start-end:strand
+        posStr = batchInfo["batchName"]
     else:
         queue.startStep(batchId, "bwasw", "Searching genome for one 100% identical match to input sequence")
         posStr = findPerfectMatch(batchId)
@@ -8142,7 +8144,7 @@ def mainCommandLine():
         seqList = getGenomeSeqs(org, regions)
         seqs = {}
         for chrom, start, end, name, score, strand, seq in seqList:
-            seqId = "%s:%d-%d:%s:%s" % (chrom, start, end, strand, name)
+            seqId = "%s:%d-%d:%s" % (chrom, start, end, strand)
             seqs[seqId] = seq
     else:
         seqs = parseFasta(open(inSeqFname))

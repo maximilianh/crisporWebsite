@@ -119,7 +119,10 @@ def gen_prediction(seq,wb,prereq):
     pam = {'AGG':0,'TGG':0,'CGG':0,'GGG':0}
     guide = seq[13:33]
     if seq[33:36] not in pam:
-        return ('Error: No PAM sequence is identified.')
+        #return ('Error: No PAM sequence is identified.', None)
+        raise Exception('Error for guide %s: the PAM %s (pos 33-36 in input seq) is not supported by Lindel.' %
+            (guide, seq[33:36]))
+
     w1,b1,w2,b2,w3,b3 = wb
     label,rev_index,features,frame_shift = prereq
     indels = gen_indel(seq,30) 

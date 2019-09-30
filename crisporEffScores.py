@@ -695,6 +695,7 @@ def runLindel(seqIds, seqs):
     """ based on Lindel_prediction.py sent by Wei Chen
     runtime 1-2 seconds.
     Return: a dict with seqId -> list of (fs-score, list of (seq-illustration, score, indel-desc))
+    NGG must be at seq[33:36]
     >>> ret = runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
     >>> ret["test"][0]
     70.36
@@ -714,17 +715,22 @@ def runLindel(seqIds, seqs):
         if "N" in seq:
             logging.warn("guide %s contains at least one N" % seq)
             if seq.count("N")>3:
-                ret[seqId] = ( None, [] )
+                logging.debug("Refusing to run Lindel on input seqs with more than three Ns")
+                ret[seqId] = ( None, [] ) # do not return a score if too many Ns
                 continue
 
-        seq = seq.replace("N", "A") # hack. Chen confirmed that Ns are not in the mode. But Ns are rare in the genome
+            logging.debug("Replacing all Ns with A")
+            seq = seq.replace("N", "A") # Chen confirmed that Ns are not in the model. But Ns are rare in the genome
 
-        logging.debug("Lindel: %s - %s" % (seqId, seq))
+        guide = seq[13:33]
+        logging.debug("Lindel: %s - %s - %s" % (seqId, seq, guide))
         try:
             y_hat, fs = Lindel.Predictor.gen_prediction(seq,weights,prerequesites)
-        except ValueError:
+        except ValueError, Exception:
             print('Error: No PAM sequence found. Please check your sequence and try again')
             raise
+
+        ret[seqId] = ( None, [] ) # do not return a score if too many Ns
 
         rev_index = prerequesites[1]
         pred_freq = {}

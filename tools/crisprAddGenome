@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import logging, sys, optparse, os, shutil, glob, json, subprocess, gzip
 
@@ -522,9 +522,9 @@ def selectEnsGenomes(genomeIds):
     Rec = namedtuple("dbDb", headers)
 
     url1 = "http://rest.ensembl.org/info/species?content-type=application/json"
-    url2 = "http://rest.ensemblgenomes.org/info/species?content-type=application/json"
+    #url2 = "http://rest.ensemblgenomes.org/info/species?content-type=application/json"
 
-    fnames = [("ensMain.json", url1), ("ensOther.json", url2)]
+    fnames = [("ensMain.json", url1)]
     rows = []
     for fname, url in fnames:
         path = join(crisprGenomeDir, fname)
@@ -539,7 +539,8 @@ def selectEnsGenomes(genomeIds):
 
         newOrgs = []
         for od in orgDicts["species"]:
-            taxId = od["taxon_id"]
+            taxId = str(od["taxon_id"])
+            print(taxId, genomeIds)
             if taxId not in genomeIds:
                 name = od["name"]
                 if name not in genomeIds:
@@ -552,7 +553,10 @@ def selectEnsGenomes(genomeIds):
             shortName = "".join(parts[0][:3]).title()+"".join(parts[1][:3]).title()
 
             no["name"] = "ens"+str(od["release"])+shortName
-            no["description"] = "%s %s (%s)" % (od["division"], od["release"], od["assembly"])
+            if od["accession"]:
+                no["description"] = "%s %s (%s, %s)" % (od["division"], od["release"], od["assembly"], od["accession"])
+            else:
+                no["description"] = "%s %s (%s)" % (od["division"], od["release"], od["assembly"])
             no["nibPath"] = od["release"]
             commName = od["common_name"]
             if commName==None:
@@ -930,10 +934,12 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
         cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
         runCmd(cmd)
 
+    gffTmp = None
+
     if options.gffFname:
         gffTmp = options.gffFname
     else:
-        if not isfile(gffTmp):
+        if not "GCA_" in faFtpUrl:
             gffFtpUrl = baseFtp + ".gff.gz"
             printMsg("Downloading gff")
             cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
@@ -963,7 +969,11 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     useAltProg = True
     if options.gffFname:
         useAltProg = False
-    hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, useAltProg)
+
+    if gffTmp is None:
+        hasGff = False
+    else:
+        hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, useAltProg)
 
     if hasGff:
         outFnames.extend([gpTmp, segTmp])
