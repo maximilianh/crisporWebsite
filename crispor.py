@@ -172,6 +172,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NGGNG','20bp-NGGNG - Cas9 S. Thermophilus'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
+         ('TTCN','20bp-TTCN - CasX'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp. - recommended'),
          ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency')
          #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
@@ -1975,8 +1976,9 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN):
 
     genomeSeq = seq[FLANKLEN:(FLANKLEN+len(oldSeq))].upper()
     if oldSeq.upper() not in genomeSeq:
-        logging.warn("Input sequence: %s" % oldSeq)
+        logging.warn("Input sequence:  %s" % oldSeq)
         logging.warn("Genome sequence: %s" % genomeSeq)
+        logging.warn("Diff String    : %s" % highlightMismatches(oldSeq, genomeSeq, 0))
         logging.warn("Input sequence has SNPs compared to genome, not returning extended seq")
         return None
     # ? make sure that user annotations, like added Ns, are retained in the long sequence
@@ -4026,7 +4028,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>August 2019: better detection when users paste a cDNA sequence <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>August 2019: better detect when user mistakenly enters a cDNA sequence <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -6085,8 +6087,8 @@ def otPrimerPage(params):
 
     printPrimerTable(primerTable, withTm=True, withScore=True)
 
-    print("<h2 id='ampliconSeqs'>Off-target amplicon sequences</h2>")
-    print("<p>Primers underlined, off-targets in bold.</p>")
+    print("<h2 id='ampliconSeqs'>Off-target amplicon sequences with primers</h2>")
+    print("<p>These only list off-targets that have primers in the table above. Primers underlined, off-targets in bold.</p>")
 
     print("<table>")
     for score, seqName, primerInfo in scoredPrimers:
@@ -6718,6 +6720,12 @@ PRIMER_THERMODYNAMIC_PARAMETERS_PATH=%(primer3ConfigDir)s/
         pos1 = int(p3["PRIMER_LEFT_0"].split(",")[0])
         pos2 = int(p3["PRIMER_RIGHT_0"].split(",")[0])
         ret[seqId] = seq1, tm1, pos1, seq2, tm2, pos2
+
+    # make sure that unsuccessful sequences are not missing from the response
+    for seqId, seq in seqs:
+        if seqId not in ret:
+            ret[seqId] = None, None, None, None, None, None
+
     return ret
 
 def parseFastaAsList(fileObj):
@@ -6865,7 +6873,7 @@ def maskLowercase(seq):
 
 def getGenomeSeqs(genome, coordList, doRepeatMask=False):
     """ return dict of genome sequences,
-    coordList has format (chrom, start, end, name)
+    coordList has format (chrom, start, end, name, score, strand)
     returns list (chrom, start, end, name, seq)
     """
     binFname = join(binDir, "twoBitToFa")
@@ -6875,11 +6883,17 @@ def getGenomeSeqs(genome, coordList, doRepeatMask=False):
     tbf = twobitreader.TwoBitFile(twoBitPath)
     seqs = []
     for coordTuple in coordList:
-        chrom, start, end, name = coordTuple
+        if len(coordTuple)==4:
+            chrom, start, end, name = coordTuple
+        else:
+            chrom, start, end, name, score, strand = coordTuple
+
         seq = tbf[chrom][start:end]
+        if strand=="-":
+            seq = revComp(seq)
         if doRepeatMask:
             seq = maskLowercase(seq)
-        seqs.append((chrom, start, end, name, seq) )
+        seqs.append( (chrom, start, end, name, score, strand, seq) )
     return seqs
 
 def designPrimer(
@@ -7812,17 +7826,22 @@ def runTests():
 
 def parseArgs():
     " parse command line options into args and options "
-    parser = optparse.OptionParser("""usage: %prog [options] org fastaInFile guideOutFile
+    parser = optparse.OptionParser("""usage: %prog [options] org inFile guideOutFile
 
 Command line interface for the Crispor tool.
 
     org          = genome identifier, like hg19 or ensHumSap
-    fastaInFile  = Fasta file
+    inFile       = Fasta or BED input file
     guideOutFile = tab-sep file, one row per guide
 
-    If many guides have to scored in batch: Add GGG to them to make them valid
+    If many guides have to scored: Add GGG to them to make them valid
     guides, separate these sequences by N characters and supply as a single
-    fasta sequence, a few dozen to ~100 per file.
+    fasta sequence, a few dozen to ~100 per file. This is faster than providing a multi-FASTA file
+    or providing a BED file.
+
+    Examples:
+    crispor.py hg38 regions.bed scoreGuides.tsv
+    crispor.py mm10 exons.fa scoreGuides.tsv -o offtargets.tsv
     """)
 
     parser.add_option("-d", "--debug", dest="debug", \
@@ -8068,6 +8087,29 @@ def handleOptions(options):
         GUIDELEN=options.guideLen
         logging.info("Overriding guide length with %d bp as set on command line" % GUIDELEN)
 
+def parseBed(inFname):
+    " parse bed  file and return rows "
+    rows = []
+    for line in open(inFname):
+        row = line.rstrip("\n").split()
+        name = "noName"
+        score = "0"
+        strand = "+"
+
+        if len(row)==3:
+            chrom, start, end = row
+        elif len(row)==4:
+            chrom, start, end, name = row
+        else:
+            chrom, start, end, name, score, strand = row[:6]
+
+        start, end = int(start), int(end)
+        assert(strand in ".+-")
+        rows.append( (chrom, start, end, name, score, strand) )
+
+    return rows
+
+
 def mainCommandLine():
     " main entry if called from command line "
     global commandLineMode
@@ -8095,7 +8137,15 @@ def mainCommandLine():
         genomesDir = options.genomeDir
 
     # get sequence
-    seqs = parseFasta(open(inSeqFname))
+    if inSeqFname.endswith(".bed"):
+        regions = parseBed(inSeqFname)
+        seqList = getGenomeSeqs(org, regions)
+        seqs = {}
+        for chrom, start, end, name, score, strand, seq in seqList:
+            seqId = "%s:%d-%d:%s:%s" % (chrom, start, end, strand, name)
+            seqs[seqId] = seq
+    else:
+        seqs = parseFasta(open(inSeqFname))
 
     # make a directory for the temp files
     # and put it into a global variable, so all functions will use it
