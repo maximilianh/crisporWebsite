@@ -1528,10 +1528,11 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None):
 
 def highlightMismatches(guide, offTarget, pamLen):
     " return a string that marks mismatches between guide and offtarget with * "
-    if cpf1Mode:
-        offTarget = offTarget[pamLen:]
-    else:
-        offTarget = offTarget[:-pamLen]
+    if pamLen!=0:
+        if cpf1Mode:
+            offTarget = offTarget[pamLen:]
+        else:
+            offTarget = offTarget[:-pamLen]
     assert(len(guide)==len(offTarget))
 
     s = []
@@ -1976,10 +1977,10 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN):
 
     genomeSeq = seq[FLANKLEN:(FLANKLEN+len(oldSeq))].upper()
     if oldSeq.upper() not in genomeSeq:
-        logging.warn("Input sequence:  %s" % oldSeq)
-        logging.warn("Genome sequence: %s" % genomeSeq)
-        logging.warn("Diff String    : %s" % highlightMismatches(oldSeq, genomeSeq, 0))
-        logging.warn("Input sequence has SNPs compared to genome, not returning extended seq")
+        logging.warn("Input sequence has SNPs compared to genome, not returning extended seq:")
+        logging.warn("- Input sequence:  %s" % oldSeq)
+        logging.warn("- Genome sequence: %s" % genomeSeq)
+        logging.warn("- Diff String    : %s" % highlightMismatches(oldSeq, genomeSeq, 0))
         return None
     # ? make sure that user annotations, like added Ns, are retained in the long sequence
     #fixedSeq = seq[:100]+oldSeq+seq[-100:]
