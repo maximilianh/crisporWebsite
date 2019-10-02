@@ -794,7 +794,7 @@ def makeTempFile(prefix, suffix):
         fname = join("/tmp", prefix+suffix)
         fh = open(fname, "w")
     else:
-        fh = tempfile.NamedTemporaryFile(prefix="primer3In", suffix=".txt")
+        fh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="primer3In", suffix=".txt")
     return fh
 
 def pamIsCpf1(pam):
@@ -2246,6 +2246,7 @@ def printDownloadTableLinks(batchId, addTsv=False):
     print '<div id="downloads" style="text-align:left">'
     print "Download as Excel tables: ",
     print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;/&nbsp;' % batchId,
+    print '<a href="crispor.py?batchId=%s&showAllScores=1&download=guides&format=xls">Guides, all scores</a>&nbsp;/&nbsp;' % batchId,
     print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>&nbsp;/&nbsp;' % batchId,
     print('<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis assistant</a><br>' % batchId)
     #print "<small>Plasmid Editor: ",
@@ -2269,7 +2270,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     if not cpf1Mode:
         print '''<div class='substep'>Ranked by default from highest to lowest specificity score (<a target='_blank' href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al., Nat Biot 2013</a>). Click on a column title to rank by a score.<br>'''
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
-        print('''If you use this website, please cite our <a href="http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">CRISPOR paper in Gen Biol 2016</a>.''')
+        print('''If you use this website, please cite our <a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">paper in NAR 2018</a>.''')
         print("Too much information? Look at the <a target=_blank href='manual/'>CRISPOR manual</a>.<p>")
         print('</div>')
 
@@ -5208,6 +5209,8 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
     else:
         headers[0] = "#"+headers[0]
 
+    headers.append("grafType")
+
     if addHeaders:
         yield headers
 
@@ -5231,6 +5234,11 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
 
         for scoreName in tableScoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
+
+        grafType = crisporEffScores.getGrafType(guideSeq)
+        if grafType is None:
+            grafType = "GrafOK"
+        row.append(grafType)
 
         if satMutOpt:
             oligo = oligoPrefix+guideSeq+oligoSuffix
@@ -5787,7 +5795,6 @@ def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=
         row = [str(x) for x in row]
         rows.append(row)
 
-    #xlsWrite(rows, "target locations", ofh, [10,8,8,2,23,], fileFormat, seq, org, pam, position, batchId, optFields=optFields)
     # crisprsurf takes only csv files
     if fileFormat=="tsv":
         fileFormat="csv"
@@ -5809,6 +5816,8 @@ def fastaWrite(seqId, seq, fh, width=80):
 
 def downloadFile(params):
     " "
+    global scoreNames
+
     batchId = params["batchId"]
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
@@ -5840,6 +5849,8 @@ def downloadFile(params):
         doDownload = False
 
     if fileType=="guides":
+        if cgiParams.get("showAllScores", "0")=="1":
+            scoreNames = allScoreNames
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat), doDownload)
         xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position, batchId)
 
@@ -6786,14 +6797,16 @@ def findPerfectMatch(batchId):
     genome = batchInfo["org"]
 
     # write seq to tmp file
-    tmpFaFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".fa")
+    #tmpFaFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".fa")
+    tmpFaFh = makeTempFile(prefix="bwaswInput", suffix=".fa")
     tmpFaFh.write(">tmp\n%s" % seq)
     tmpFaFh.flush()
     logging.debug("seq: %s" % open(tmpFaFh.name).read())
     faFname = tmpFaFh.name
 
     # create temp SAM file
-    tmpSamFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".sam")
+    #tmpSamFh = tempfile.NamedTemporaryFile(dir=TEMPDIR, prefix="crisporBestMatch", suffix=".sam")
+    tmpSamFh = makeTempFile(prefix="bwaswOutput", suffix=".sam")
     samFname = tmpSamFh.name
 
     bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
