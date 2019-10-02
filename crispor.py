@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.92"
+versionStr = "4.95"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -4032,7 +4032,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>August 2019: better detect when user mistakenly enters a cDNA sequence <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>Sep 2019: improvements for hg38, Graf et al types written to Excel <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -6811,7 +6811,7 @@ def findPerfectMatch(batchId):
 
     bwaIndexPath = abspath(join(genomesDir, genome, genome+".fa"))
     remoteAddr = pipes.quote(os.environ.get("REMOTE_ADDR", "noIp")) # so I can figure out is someone is hammering the server
-    cmd = "true %(batchId)s %(remoteAddr)s && $BIN/bwa bwasw -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
+    cmd = "true %(batchId)s %(remoteAddr)s && $BIN/bwa bwasw -b 100 -q 100 -T 20 %(bwaIndexPath)s %(faFname)s > %(samFname)s" % locals()
     runCmd(cmd)
 
     chrom, start, end = None, None, None
