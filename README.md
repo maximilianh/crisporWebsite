@@ -10,14 +10,20 @@ from published articles, see the file crisporEffScores.py for the exact referenc
 the tool tips when you mouse over the scores on the interactive website or the user's
 manual http://crispor.org/manual/.
 
-If you need to analyze thousands of guides for a library, the tool FlashFry is
-probably the better tool for you, see https://github.com/aaronmck/FlashFry
+If you need to analyze hundreds of thousands of guides for a library, the tool FlashFry is
+probably the better tool for you, see https://github.com/aaronmck/FlashFry. That being said, CRISPOR 
+now has .bed input, so as long as you are not running on thousands of exons, it is probably
+fast enough for most applications.
 
 If you only need efficiency scores and no interactive website, try "python
 crisporEffScores.py", it is a python module but also has a command line
 interface that may be sufficient for programmers. 
 
 # Installation of CRISPOR
+
+If you are unsure what the things below mean or if you just want to try it and not install it or modify your server setup,
+you may want to try the virtual machine, which is a complete 
+installation of CRISPOR with everything included: http://crispor.org/downloads/
 
 CRISPOR uses python2.7. Change `pip` to `pip2` in the commands below if your default python is python3.
 
@@ -179,7 +185,9 @@ Make sure that internalDatabaseName does not include special characters, spaces 
 
 # "I am running many thousands of guides and it is very slow"
 
-Instead of feeding it a multi-fasta file (where crispor will map every piece to
+The .bed input is always fastest, as it saves the initial BWASW step where crispor maps to the target genome.
+
+If you are using the FASTA input, instead of feeding it a multi-fasta file (where crispor will map every piece to
 the genome first), try to feed it a single sequence and separate every 23bp-target in it with NN.
 This means that you will not get the efficiency scores but you can run these separately or in parallel with 
 crisporEfficiencyScores.py. 
@@ -198,7 +206,7 @@ is sufficient for most large-library-design applications.
 
 # Thanks!
 * Jean-Paul Concordet for numerous ideas on the user interface
-* Alberto Stolfi for the finding the N-SNP-bug
+* Alberto Stolfi for finding the N-SNP-bug
 * Mark Diekhans for patching twoBitToFa and making it 100 times faster
 * See the file changes.html for the full list of acknowledgements for every feature
 
