@@ -153,7 +153,15 @@ of any other column, click the name of the column in the first row.
 
 Column 1 - guide name: this is the position of the PAM on the
 input sequence and the strand, e.g. "13+". You can sort by position by clicking
-the header "Position/Strand" in the table.
+the header "Position/Strand" in the table. The position is always on the forward
+strand of the reference genome, 5'-3' on the DNA, so if the input sequence is
+on the reverse strand, position 1 in this table will be the last base pair of
+the input sequence. (In general, we do not recommend entering sequences on the
+reverse strand. it makes everything easier if you always keep genomic sequences
+on the forward strand, even if transcription can go backwards, CRISPR modifies
+the genome and having all sequences in one direction makes any position
+information easier to calculate in your head and to display in genome browsers 
+and related tools.)
 
 Column 2 - guide sequence: the sequence of the guide target and the PAM and also
 one of the most important features of CRISPOR, the link to its "PCR and cloning primers"
