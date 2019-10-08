@@ -8,14 +8,17 @@ Files available:
 <li>A virtualBox virtual machine image for Windows/OSX/Linux that includes CRISPOR. You can use this to run CRISPOR on your own computer, on Windows, OSX or Linux</li>
   <ul>
   <li>Install <a href="http://virtualbox.org">VirtualBox</a> for your operating system first, Windows, OSX or Linux</li>
-  <li><a href="crisporVm.zip">Download the virtual machine image</a> (930MB, free for non-commercial use)
-  <li>Extract the virtual machine image, double-click it or import the file crispor.vbox file in VirtualBox</li>
-  <li>When the virtual machine is running, point your internet browser to <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a></li>
-  <li>To run the command line version, go to the directory /var/www/html/ and run crispor.cgi in the built in terminal</li>
+  <li><a href="crisporVm.zip">Download the virtual machine image</a> (~1GB, free for non-commercial use)
+  <li>If you already use another VM software (e.g. VMWare), <a href="crispor.ova">download the virtual machine in OVA format</a> (we have not tested all environments, let us know if you cannot import the OVA in your software)</li>
+  <li>Extract the virtual machine image, double-click it or "Machine &gt; Add" the file crispor.vbox file in VirtualBox</li>
+  <li>Boot the virtual machine by clicking the "Start" button
+  <li>When the virtual machine is running, point your internet browser to <a href="http://127.0.0.1:4444">http://127.0.0.1:4444</a>. You should be using your own copy of crispor.org</li>
+  <li>If you need to look at the VM, you can use the console. Username is "crispor", password, "crispor". The user "crispor" has sudo rights on the machine</li>
+  <li>Run the command "crisprUpdate" to update CRISPOR to the most current version</li>
+  <li>Run the command "crisprDownload [genomeCode]" to download a genome, e.g. "crisprDownload hg38anset"</li>
+  <li>To run the command line version, go to the directory /var/www/html/ and run crispor.py in the built-in terminal</li>
   <li>You can also ssh to port 2222 on localhost, e.g. <tt>ssh crispor@localhost -p 2222</tt>, password "crispor"</li>
-  <li>The user "crispor" has sudo rights on the machine</li>
-  <li>To add more genomes, download them from our list of <a href="http://crispor.tefor.net/genomes/">pre-indexed genomes</a> and copy to /var/www/html/genomes in the virtual machine</li>
-  <li>To add your own genome, the easiest way forward may be to email us and ask me to add it to our site. Otherwise, look at the script I'm using to add genomes, crisprAddGenome, in the <a href="https://github.com/maximilianh/crisporWebsite/tree/master/tools">tools directory</a>. This script is using various external tools. You can find binary 64Bit static compiled versions in the directory usrLocalBin/ under the tools directory.</li>
+  <li>To add your own genome, the easiest way forward may be to email us and ask us to add it to our site, then use crisprDownload. Otherwise, look at the script to add genomes, crisprAddGenome, in the <a href="https://github.com/maximilianh/crisporWebsite/tree/master/tools">tools directory</a>. This script is using various external tools. You can find binary 64Bit static versions in the directory usrLocalBin/ under the tools directory.</li>
   </ul>
 </li>
 </ul>
