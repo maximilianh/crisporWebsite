@@ -200,7 +200,8 @@ offtargetPams = {
     "NGN" : ["GAW"],
     "NGK" : ["GAW"],
     "NGA" : ["NGG"],
-    "NNGRRT" : ["NNGRRN"]
+    "NNGRRT" : ["NNGRRN"],
+    "TTTV" : ["TTTN"]
 }
 
 # maximum size of an input sequence
@@ -2752,18 +2753,18 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print ' Not with U6/U3'
             print "<br>"
 
-        grafType = crisporEffScores.getGrafType(guideSeq)
-        if grafType:
-            if grafType=="tt":
-                grafText = "The guide ends with TTC or TTT or contains only T and C in the last four nucleotides and more than 2 Ts or at least one TT and one T or C ('TT-motif'). These guides should be avoided in polymerase III (Pol III)-based gene editing experiments requiring high sgRNA expression levels."
-            elif grafType=="ggc":
-                grafText = "The guide ends with [AGT]GCC or GCCT ('GGC motif'). These sgRNAs appear to be inefficient irrespective of the delivery method and should thus be generally avoided."
+        if pam=="NGG":
+            grafType = crisporEffScores.getGrafType(guideSeq)
+            if grafType:
+                if grafType=="tt":
+                    grafText = "The guide ends with TTC or TTT or contains only T and C in the last four nucleotides and more than 2 Ts or at least one TT and one T or C ('TT-motif'). These guides should be avoided in polymerase III (Pol III)-based gene editing experiments requiring high sgRNA expression levels."
+                elif grafType=="ggc":
+                    grafText = "The guide ends with [AGT]GCC or GCCT ('GGC motif'). These sgRNAs appear to be inefficient irrespective of the delivery method and should thus be generally avoided."
 
-            text = "This guide contains one of the motifs described by <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/'>Graf et al, Cell Reports 2019</a>. %s " % grafText
-            htmlWarn(text)
-            print ' Inefficient'
-            print "<br>"
-
+                text = "This guide contains one of the motifs described by <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/'>Graf et al, Cell Reports 2019</a>. %s " % grafText
+                htmlWarn(text)
+                print ' Inefficient'
+                print "<br>"
 
         if gcContent(guideSeq)>0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had almost as many off-targets as all other sequences combined. We do not recommend using guide sequences with such a high GC content."
@@ -6901,6 +6902,8 @@ def getGenomeSeqs(genome, coordList, doRepeatMask=False):
     for coordTuple in coordList:
         if len(coordTuple)==4:
             chrom, start, end, name = coordTuple
+            strand = "+"
+            score = "0"
         else:
             chrom, start, end, name, score, strand = coordTuple
 
@@ -7097,6 +7100,10 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
 
     primers["T7iv"].append(("guideRNA%sT7crTarget" % guideName, specPrimer))
     primers["T7iv"].append(("guideRNAallT7common (constant primer used for all guide RNAs)", "AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC"))
+
+    # geneart primers
+    primers["geneArt"].append(("guideRNA%sGeneArtFw" % guideName, "TACGACTCACTATAG<b>"+guideSeq+"</b>"))
+    primers["geneArt"].append(("guideRNA%sGeneArtRev" % guideName, "TTCTAGCTCTAAAAC<b>"+revComp(guideSeq)+"</b>"))
 
     # U6 - mammalian cells
     fwName = "guideRNA%sU6sense" % guideName
@@ -7595,6 +7602,12 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     print('Do not use G-prefixing with high-fidelity Cas9 Variants like HF1 and eSpCas9 1.1 when this adds a mismatch in the genome as the efficiency will most likely be very low.')
 
+    # T7 from primers, in vitro
+    print "<h3 id='geneArt'>T7 <i>in vitro</i> expression with the GeneArt kit</h3>"
+    print "Use these two primers for the Invitrogen GeneArt kit:<p>"
+
+    printPrimerTable(primers["geneArt"])
+
     # MAMMALIAN CELLS
     print "<h3 id='u6plasmid'>U6 expression from an Addgene plasmid</h3>"
     if "tttt" in guideSeq.lower():
@@ -7725,6 +7738,7 @@ def primerDetailsPage(params):
     print("<li><a href='#cloning'>Cloning or expression of guide RNA</a>")
     print("<ul><li><a href='#t7plasmid'>T7 <i>in vitro</i> expression from a plasmid</a></li></ul>")
     print("<ul><li><a href='#t7oligo'>T7 <i>in vitro</i> expression from overlapping oligonucleotides</a></li></ul>")
+    print("<ul><li><a href='#geneArt'>T7 expression with the GeneArt kit</a></li></ul>")
     print("<ul><li><a href='#u6plasmid'>U6 expression from an Addgene plasmid</a></li></ul>")
     print("<ul><li><a href='#ciona'>Direct PCR for <i>C. intestinalis</i></a></li></ul>")
     print("<ul><li><a href='#gibson'>Lentiviral vectors: Cloning with Gibson assembly</a></li></ul>")

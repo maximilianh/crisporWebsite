@@ -51,7 +51,7 @@ def calcHitScore(string1,string2):
     # The Patrick Hsu weighting scheme
     # S. aureus requires 21bp long guides. We fudge by using only last 20bp
     matrixStart = 0
-    if len(string1)==21:
+    if len(string1)>20:
         string1 = string1[-20:]
         string2 = string2[-20:]
     # for 19bp guides, we fudge a little, but first pos has no weight anyways
@@ -167,7 +167,11 @@ def main():
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(pamGenomeSeq, altPat):
-                            hitScore = calcHitScore(guideSeq, seq[:-pamLen])
+                            if isCpf1:
+                                otSeq = seq[pamLen:]
+                            else:
+                                otSeq = seq[:-pamLen]
+                            hitScore = calcHitScore(guideSeq, otSeq)
                             if hitScore > altScore:
                                 doesPass = True
                                 break
