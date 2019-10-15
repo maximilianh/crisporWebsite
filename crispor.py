@@ -166,7 +166,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNRRT-20','20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides'),
          ('NGA','20bp-NGA - Cas9 S. Pyogenes mutant VQR'),
-         ('NNNNCC','24bp-NNNNCC - Nme2Cas9, NEW! 2019, A. Edraki'),
+         ('NNNNCC','24bp-NNNNCC - Nme2Cas9'),
          ('NGCG','20bp-NGCG - Cas9 S. Pyogenes mutant VRER'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
          ('NGGNG','20bp-NGGNG - Cas9 S. Thermophilus'),
@@ -174,7 +174,8 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
          ('TTCN','20bp-TTCN - CasX'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp. - recommended'),
-         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency')
+         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency'),
+         ('ATTN','ATTN-23bp - BhCas12b v4')
          #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
          #('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
        ]
@@ -201,7 +202,8 @@ offtargetPams = {
     "NGK" : ["GAW"],
     "NGA" : ["NGG"],
     "NNGRRT" : ["NNGRRN"],
-    "TTTV" : ["TTTN"]
+    "TTTV" : ["TTTN"],
+    'ATTN' : ["TTTN", "GTTN"]
 }
 
 # maximum size of an input sequence
@@ -800,7 +802,7 @@ def makeTempFile(prefix, suffix):
 
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed! "
-    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV"])
+    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN"])
 
 def pamIsSaCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
@@ -4353,7 +4355,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
 def showPamWarning(pam):
     if pamIsCpf1(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
-        print "<strong>Note:</strong> You are using the Cpf1 enzyme."
+        print "<strong>Note:</strong> You are using the Cpf1 enzyme or related enzyme."
         print "While there is an efficiency score specificially for Cpf1, there is no off-target ranking algorithm available in the literature, to our knowledge. We use Hsu and CFD scores below for off-target ranking, but they were developed for spCas9. There is not enough data yet to support their usefulness for Cpf1. Contact us for more info if you need to rank Cpf1 off-targets for validation or if you have a dataset that could elucidate this question. We are showing out-of-frame scores, but they are based on micro-homology that assumes a spCas9 cut site, so most likely the out-of-frame scores are not accurate for the staggered cut of Cpf1 either."
         print '</div>'
     #elif pamIsSaCas9(pam):
