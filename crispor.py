@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/cluster/software/bin/python2.7
 # the tefor crispr tool
 # can be run as a CGI or from the command line
 
@@ -132,7 +132,7 @@ batchDir = join(baseDir,"temp")
 jobQueueUseMysql = False
 
 # the file where the sqlite job queue is stored
-JOBQUEUEDB = join("/tmp/crisporJobs.db")
+JOBQUEUEDB = join(TEMPDIR, "crisporJobs.db")
 
 # alternatively: connection info for mysql
 jobQueueMysqlConn = {"socket":None, "host":None, "user": None, "password" : None}
@@ -3537,7 +3537,8 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     maxOcc = MAXOCC # create local var from global
     # EXTRACTION OF POSITIONS + CONVERSION + SORT/CLIP
     # the sorting should improve the twoBitToFa runtime
-    cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | $SCRIPT/samToBed %(pam)s %(seqLen)d | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
+    python = sys.executable
+    cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | %(python)s $SCRIPT/samToBed %(pam)s %(seqLen)d | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
     # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
@@ -3549,13 +3550,13 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     shmFaFname = join("/dev/shm", genome+".fa")
 
     # EXTRACTION OF SEQUENCES + ANNOTATION - big headache!!
-    # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it should be OK
-    # bedtools uses an fa.idx file and also mmap, so is a LOT faster
+    # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it is better
+    # but bedtools uses an fa.idx file and also mmap, so is a LOT faster
     if isfile(shmFaFname):
         logging.info("Using bedtools and genome fasta on ramdisk, %s" % shmFaFname)
         cmd = "time bedtools getfasta -s -name -fi %(shmFaFname)s -bed %(matchesBedFname)s -fo /dev/stdout | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     else:
-        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | %(python)s $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
@@ -4958,11 +4959,6 @@ def crisprSearch(params):
     # if we reach this, the batch has been processed
     batchInfo = readBatchAsDict(batchId)
     position = batchInfo.get("posStr") # if there was no match, the posStr key is "?"
-
-    # be more sensitive if only a single guide seq is run
-    #if len(startDict)==1:
-        #global MAXOCC
-        #MAXOCC=max(HIGH_MAXOCC, MAXOCC)
 
     if dbInfo==None:
         print "<div class='title'>No Genome selected, specificity scoring is deactivated</div>"
