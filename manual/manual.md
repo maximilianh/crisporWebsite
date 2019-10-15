@@ -174,6 +174,9 @@ In addition, depending on the genome and guide, additional data is displayed in 
 - High-GC-content (>80%) guides are flagged, as are low-GC content (<20%)
   targets. Various studies have reported that both cases lead to low target
   cleavage efficiency.
+- Graf et al. guides are flagged. Some motifs were described by 
+  [Graf et al](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/) as
+  leading to very inefficient guides. See below for more details.
 - Restriction enzyme sites that overlap the three base pairs 5’ of the PAM
   site.  These will likely be disrupted during DNA repair of the double-strand
   break made by the Cas9 nuclease and may therefore be convenient to use for
@@ -662,6 +665,16 @@ from the same authors is plotted here, the results are probably too good
 and should be somewhat worse in practice, more like the cell culture diagram.
 
 ![Distribution of efficiency by prediction score bin](fig/scoreHistograms.png)
+
+{#graf}
+A special case of efficiency scoring are the [Graf et
+al](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6352712/) motifs. The authors
+claim that certain nucleotide sequences (two to 16, depending on how you count)
+at the end of the guide lead to extremely low efficiency. This is already
+captured by the efficiency scores, as shown below. But the simple nature of the
+Graf et al. motifs makes these guides easy to avoid.
+
+![Link between Graf et al motifs and Doench 2016 Azimuth scores. Shown over the bars is the number of guide in the respective bin. Many thanks to Tyler Fair, UCSF, for this diagram](fig/Azimuth_Graf.png)
 
 So while you may have heard that efficiency predictions are of little value,
 we still recommend them. They should save screening time in the long run as
