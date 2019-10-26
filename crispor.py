@@ -2493,7 +2493,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     #if not pamIsSaCas9(pam) and cpf1Mode:
     if "cfdGuideScore" in showColumns:
         print '<th style="width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>' % batchId
-        htmlHelp("The CFD specificity score - implemented but hidden in older versions of Crispor, always used by guidescan.com - behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is used by Crispor to rank the off-targets. This specificity score correlates better than the MIT score with the off-target effects of a guide, especially for CRISPR/i, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al</a>")
+        htmlHelp("The CFD specificity score - implemented but hidden in older versions of Crispor, always used by guidescan.com - behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is used by Crispor to rank the off-targets. This specificity score correlates better than the MIT score with the off-target effects of a guide, especially for CRISPR/i, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a>")
         print "</th>"
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
