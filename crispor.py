@@ -3129,16 +3129,16 @@ div.contentcentral { text-align: left; float: left}
 
 def firstFreeLine(lineMasks, y, start, end):
     " recursively search for first free line to place a feature (start, end) "
-    #print "called with y", y
+    #print "first free line called with y", y, "<br>"
     if y>=len(lineMasks):
         return None
     lineMask = lineMasks[y]
     for x in range(start, end):
+        #print "checking pos", x, "<br>"
         if lineMask[x]!=0:
             return firstFreeLine(lineMasks, y+1, start, end)
-        else:
-            return y
-    return None
+    return y
+    #return None
 
 def distrOnLines(seq, startDict, featLen):
     """ given a dict with start -> (start,end,name,strand) and a motif len, create lines of annotations such that
@@ -3195,19 +3195,27 @@ def distrOnLines(seq, startDict, featLen):
                 startFt = start
                 endFt = end + 3
 
+        #print "feature", strand, start, startFt, endFt, SLOP,"<br>"
+        #print "mask", lineMasks[0][startFt:endFt], "<br>"
         y = firstFreeLine(lineMasks, 0, startFt, endFt)
+        #print "free line: %s<br>" % y
         if y==None:
             errAbort("not enough space to plot features")
 
         # fill the current mask
         mask = lineMasks[y]
-        for i in range(max(startFt-SLOP, 0), min(endFt+SLOP, len(seq))):
+        maskStart = max(startFt-SLOP, 0)
+        maskEnd = min(endFt+SLOP, len(seq))
+        #print "mask:", maskStart, maskEnd
+        for i in range(maskStart, maskEnd):
             mask[i]=1
 
         maxY = max(y, maxY)
 
         pamId = "s%d%s" % (start, strand)
         ft = (startFt, endFt, label, strand, pamId)
+        #print "labelLen: %d<br>" % len(label)
+        #print "ft: %s<br>" % repr(ft)
         ftsByLine[y].append(ft )
     return ftsByLine, maxY
 
