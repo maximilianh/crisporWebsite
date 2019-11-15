@@ -12,15 +12,15 @@
 import sys, logging
 pam = sys.argv[1]
 guideLen = int(sys.argv[2])
-isCpf1 = (pam in ["TTTN", "TTN", "TTTV"])
+isCpf1 = (pam in ["TTTN", "TTN", "TTTV", "ATTN"])
 pamLen = len(pam)
 
 exprMatchStr = str(guideLen)+"M"
 
 # example input:
-# t5    272 chrIII  12975327    0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5
-# t5  272 chrIII  6585026 0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5
-# t5  256 chrIV   4450550 0   20M *   0   0   TGCTCGATTATGGTGAGTAG    *   NM:i:5
+# t5    272 chrIII  12975327    0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5 XXA:i:1
+# t5  272 chrIII  6585026 0   20M *   0   0   CTACTCACCATAATCGAGCA    *   NM:i:5 XXA:i:1
+# t5  256 chrIV   4450550 0   20M *   0   0   TGCTCGATTATGGTGAGTAG    *   NM:i:5 XXA:i:1
 # s87+    0   chr8    35976504    0   20M *   0   0   TGCTTTTTACTTCACTGTGA    *   XT:A:R  NM:i:0  X0:i:2  X1:i:10622  XM:i:0  XO:i:0  XG:i:0  MD:Z:20
 
 import sys
@@ -33,24 +33,40 @@ for line in sys.stdin:
     qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
     pos = int(pos)
 
-    # parse tags: skip line if too many matches and extract mismatch count
-    #skipLine = False
-    x1Score = "0"
+    # parse tags
+    x1Score = 0
+    x0Score = 0
     tags = fs[11:]
+    hasXa = False
     for t in tags:
         tagName, dType, val = t.split(":")
         if tagName=="X1":
-            #skipLine = True
-            x1Score = val
+            x1Score = int(val)
+        if tagName=="X0":
+            x0Score = int(val)
         if tagName=="NM":
             mmCount = val
+        if tagName=="XA":
+            hasXa = True
+            # test    0       chr2    193781026       0       23M     *       0       0       CACCGCATATTCTCACTCATAGG *       XT:A:R  NM:i:0      X0:i:5220       X1:i:39469      XM:i:0  XO:i:0  XG:i:0  MD:Z:23 XA:Z:chr20,-29472646,23M,0;chrY,+23480383,23M,0;chr7,-118956379,23M,0;chrX,+103661825,23M,0;chr10,-110070117,23M,0;chr1,+81416985,23M,0;chr11,+92300965,23M,0;chr13,-74027349,23
+            #locs = val.split(";")
+            #alnLocs = []
+            #for l in locs:
+                #chrom, strandPos,cigar, mmCount = l.split(",")
+                #strand = strandPos[0]
+                #pos = strandPos[1:]
 
-    #if skipLine:
-        #continue
+
+    totalAlnCount = x0Score + x1Score
+
+    isRep = "0"
+    # alignments with high X0/X1 values and no XA tag -> we cannot ever get alignments for these
+    # -> flag as repetitive
+    if not hasXa and totalAlnCount > 1:
+        isRep = "1"
 
     strand = "+"
     if (int(flag) & 16) == 16:
-        #print "on neg strand"
         strand = "-"
 
     if cigar=="*":
@@ -59,7 +75,7 @@ for line in sys.stdin:
     # ARH! SAM IS 1-BASED! !!!
     startPos = pos-1
     if cigar != exprMatchStr:
-        logging.error("cigar %s was not <number>M, line %s" % (cigar, line))
+        logging.error("cigar '%s' was not <number>M, line %s" % (cigar, line))
         assert(False) # cigar was not 20M or 19M or 23M?
 
     endPos = startPos+guideLen
@@ -78,7 +94,7 @@ for line in sys.stdin:
     if startPos < 0:
         continue
 
-    nameInfo = [qName, rName, str(startPos), str(endPos), strand, mmCount, x1Score]
+    nameInfo = [qName, rName, str(startPos), str(endPos), strand, mmCount, str(totalAlnCount), isRep]
     name = "|".join(nameInfo)
 
     row = [rName, str(startPos), str(endPos), name, mmCount, strand]

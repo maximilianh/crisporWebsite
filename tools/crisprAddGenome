@@ -922,7 +922,6 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     finalDbDir = join(crisprGenomeDir, db)
     sizesTmp = join(dbTmpDir, db+".sizes")
     faTmp = join(dbTmpDir, db+".fa")
-    gffTmp = join(dbTmpDir, db+".gff")
 
     ncbiAsmDesc = genomeInfo.description.split("(")[-1].rstrip(")")
     baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+ncbiAsmDesc+"_genomic"
@@ -940,6 +939,7 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
         gffTmp = options.gffFname
     else:
         if not "GCA_" in faFtpUrl:
+            gffTmp = join(dbTmpDir, db+".gff")
             gffFtpUrl = baseFtp + ".gff.gz"
             printMsg("Downloading gff")
             cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)

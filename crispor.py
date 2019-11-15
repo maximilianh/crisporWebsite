@@ -171,13 +171,19 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNAGAA','20bp-NNAGAA - Cas9 S. Thermophilus'),
          ('NGGNG','20bp-NGGNG - Cas9 S. Thermophilus'),
          ('NNNNGMTT','20bp-NNNNG(A/C)TT - Cas9 N. Meningitidis'),
-         ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni'),
+         ('NNNNACA','20bp-NNNNACA - Cas9 Campylobacter jejuni, original PAM'),
+         ('NNNNRYAC','22bp-NNNNRYAC - Cas9 Campylobacter jejuni, revised PAM'),
+         ('NNNVRYAC','22bp-NNNVRYAC - Cas9 Campylobacter jejuni, opt. efficiency'),
          ('TTCN','20bp-TTCN - CasX'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp. - recommended'),
          ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency'),
-         ('ATTN','ATTN-23bp - BhCas12b v4')
-         #('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
-         #('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V')
+         ('ATTN','ATTN-23bp - BhCas12b v4'),
+         ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
+         ('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V'),
+         ('TTTA','TTTA-23bp - TTTA LbCpf1'),
+         ('TCTA','TCTA-23bp - TCTA LbCpf1'),
+         ('TCCA','TCCA-23bp - TCCA LbCpf1'),
+         ('CCCA','CCCA-23bp - CCCA LbCpf1')
        ]
 
 DEFAULTPAM = 'NGG'
@@ -380,7 +386,7 @@ scoreDescs = {
 }
 
 # the headers for the guide and offtarget output files
-guideHeaders = ["guideId", "targetSeq", "mitSpecScore", "offtargetCount", "targetGenomeGeneLocus"]
+guideHeaders = ["guideId", "targetSeq", "mitSpecScore", "cfdSpecScore", "offtargetCount", "targetGenomeGeneLocus"]
 offtargetHeaders = ["guideId", "guideSeq", "offtargetSeq", "mismatchPos", "mismatchCount", "mitOfftargetScore", "cfdOfftargetScore", "chrom", "start", "end", "strand", "locusDesc"]
 
 # library descriptions
@@ -423,11 +429,16 @@ def setupPamInfo(pam):
 
     PAMLEN = len(pam)
 
+    cpf1Mode = False
+    scoreNames = cas9ScoreNames
+
     if pamIsCpf1(pam):
         logging.debug("switching on Cpf1 mode, guide length is 23bp")
         GUIDELEN = 23
         cpf1Mode = True
         scoreNames = cpf1ScoreNames
+    elif pam=="NNNNRYAC" or pam=="NNNVRYAC":
+        GUIDELEN = 22
     elif pam=="NNGRRT" or pam=="NNNRRT":
         logging.debug("switching on S. aureus mode, guide length is 21bp")
         addGenePlasmids = addGenePlasmidsAureus
@@ -435,16 +446,11 @@ def setupPamInfo(pam):
         if pamOpt=="20":
             GUIDELEN=20
         saCas9Mode = True
-        cpf1Mode = False
         scoreNames = saCas9ScoreNames
     elif pam=="NNNNCC":
         GUIDELEN = 24
-        cpf1Mode = False
-        scoreNames = cas9ScoreNames
     else:
         GUIDELEN = 20
-        cpf1Mode = False
-        scoreNames = cas9ScoreNames
 
     if GUIDELEN==20 and pam=="NGG":
         mutScoreNames = spCas9MutScoreNames
@@ -802,7 +808,7 @@ def makeTempFile(prefix, suffix):
 
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed! "
-    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN"])
+    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA"])
 
 def pamIsSaCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
@@ -967,16 +973,17 @@ def findPams (seq, pam, strand, startDict, endSet):
         # OKOKOKOKOK
         maxPosMinus = len(seq)-(GUIDELEN+len(pam))
 
-    #print "new search", seq, pam, "<br>"
+    #print "new search", seq, pam, "minPosPlus=",minPosPlus, "guideLen=", GUIDELEN, "<br>"
     for start in findPat(seq, pam):
         if cpf1Mode:
             # need enough flanking seq on one side
-            #print "found", start,"<br>"
+            #print "Cpf1 mode found", start,"<br>"
             if strand == "+" and start > maxPosPlus:
                 continue
             if strand == "-" and start < minPosMinus:
                 continue
         else:
+            #print "non-Cpf1 mode found", start,"<br>"
             if strand=="+" and start < minPosPlus:
                 continue
             if strand=="-" and start > maxPosMinus:
@@ -1651,7 +1658,8 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
     cfdScores = []
     last12MmCounts = []
     ontargetDesc = ""
-    subOptMatchCount = 0
+    repCount = 0 # if repCount for a guide is !=0, then the guide should not be used. repCount is then the number
+    # of matches for the guide in the genome (not looking at the PAM)
 
     # for each edit distance, get the off targets and iterate over them
     foundOneOntarget = False
@@ -1667,7 +1675,12 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
 
         # create html and score for every offtarget
         otCount = 0
-        for chrom, start, end, otSeq, strand, segType, geneNameStr, x1Count in matches:
+        for chrom, start, end, otSeq, strand, segType, geneNameStr, totalAlnCount, isRep in matches:
+            # if repCount is > 0, then this means that the guide should not be used and we cannot
+            # even get any off-targets
+            if (totalAlnCount > MAXOCC) or (totalAlnCount > 1 and isRep):
+                repCount = totalAlnCount # any off-target with this condition will trigger the whole guide to be suppressed
+
             # skip on-targets
             if segType!="":
                 segTypeDesc = segTypeConv[segType]
@@ -1676,12 +1689,13 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
             else:
                 geneDesc = geneNameStr
 
-            # is this the on-target?
+            # is this not an off-target but the on-target?
             # if we got a genome position, use it. Otherwise use a random off-target with 0MMs
-            # as the on-target ("auto-ontarget")
+            # as the on-target ("auto-ontarget" mode)
             if editDist==0 and \
-                ((chrom==inChrom and start >= inStart and end <= inEnd and x1Count < MAXOCC) \
-                or (inChrom=='' and foundOneOntarget==False and x1Count < MAXOCC)):
+                repCount==0 and \
+                ((chrom==inChrom and start >= inStart and end <= inEnd) \
+                or (inChrom=='' and foundOneOntarget==False)):
                 foundOneOntarget = True
                 ontargetDesc = geneDesc
                 continue
@@ -1733,9 +1747,6 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
             if not hasLast12Mm:
                 last12MmOtCount+=1
             posList.append( (otSeq, mitScore, cfdScore, editDist, posStr, geneDesc, alnHtml) )
-            # taking the maximum is probably not necessary,
-            # there should be only one offtarget for X1-exceeding matches
-            subOptMatchCount = max(int(x1Count), subOptMatchCount)
 
         last12MmCounts.append(str(last12MmOtCount))
         # create a list of number of offtargets for this edit dist
@@ -1746,7 +1757,7 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
         guideScore = -1
         guideCfdScore = -1
     else:
-        if subOptMatchCount > MAXOCC:
+        if repCount>0:
             guideScore = 0
             guideCfdScore = 0
         else:
@@ -1754,7 +1765,7 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
             guideCfdScore = calcMitGuideScore(sum(cfdScores))
 
     # obtain the off-target info: coordinates, descriptions and off-target counts
-    if subOptMatchCount > MAXOCC:
+    if repCount>0:
         posList = []
         ontargetDesc = ""
         last12DescStr = ""
@@ -1771,7 +1782,7 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
         posList.sort(reverse=True, key=operator.itemgetter(2))
 
     return posList, otDescStr, guideScore, guideCfdScore, last12DescStr, \
-        ontargetDesc, subOptMatchCount
+        ontargetDesc, repCount
 
 # --- START OF SCORING ROUTINES
 
@@ -2209,8 +2220,11 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             guideSeqFull = concatGuideAndPam(guideSeq, pamSeq)
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq)
             posList, otDesc, guideScore, guideCfdScore, last12Desc, ontargetDesc, \
-               subOptMatchCount = \
+               repCount = \
                    makePosList(org, pamMatches, guideSeqFull, pamPat, inputPos)
+            if repCount!=0:
+                guideScore = 0
+                guideCfdScore = 0
 
         # no off-targets found?
         else:
@@ -2220,10 +2234,10 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             hasNotFound = True
             mutEnzymes = []
             ontargetDesc = ""
-            subOptMatchCount = False
+            repCount = 0
             seq34Mer = None
 
-        guideRow = [guideScore, guideCfdScore, effScores.get(pamId, {}), pamStart, guideStart, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount]
+        guideRow = [guideScore, guideCfdScore, effScores.get(pamId, {}), pamStart, guideStart, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount]
         guideData.append( guideRow )
         guideScores[pamId] = guideScore
         pamIdToSeq[pamId] = guideSeq
@@ -2464,7 +2478,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     htmlHelp("You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page.")
     print '</th>'
 
-    print '<th style="width:230px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
+    print '<th style="width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
 
     print ('+ Restriction Enzymes')
     htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA using PCR and Restrictrion frament length polymorphism (RFLP).<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
@@ -2493,7 +2507,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     #if not pamIsSaCas9(pam) and cpf1Mode:
     if "cfdGuideScore" in showColumns:
         print '<th style="width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>' % batchId
-        htmlHelp("The CFD specificity score - implemented but hidden in older versions of Crispor, always used by guidescan.com - behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is used by Crispor to rank the off-targets. This specificity score correlates better than the MIT score with the off-target effects of a guide, especially for CRISPR/i, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a>")
+        htmlHelp("The CFD specificity score, inspired like guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>.")
         print "</th>"
 
     if len(scoreNames)==2 or cpf1Mode or pamIsSaCas9(pam):
@@ -2698,7 +2712,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, pamStart, guideStart, strand, pamId, guideSeq, \
-            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount = guideRow
 
         color = scoreToColor(guideScore)[0]
 
@@ -2786,7 +2800,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             print "</i></div>"
 
         scriptName = basename(__file__)
-        if otData!=None and subOptMatchCount <= MAXOCC:
+        if otData!=None and repCount == 0:
             print('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>Cloning / PCR primers</strong></a>' % (scriptName, batchId, urllib.quote(str(pamId)), pam) )
 
         print "</small>"
@@ -2876,9 +2890,9 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             # no genome match
             print otDesc
             htmlHelp("This exact sequence was not found in the genome.<br>If you have pasted a cDNA multi-exon sequence, note that sequences that overlap a splice site cannot be used as guide sequences. If you only have a cDNA sequence, please BLAST or BLAT your sequence first against the genome, then use the resulting exon from the genome for CRISPOR.<br>This warning also appears if you have selected the wrong or no genome.")
-        elif subOptMatchCount > MAXOCC:
+        elif repCount > 0:
             print ("Repeat")
-            htmlHelp("At <= 4 mismatches, %d hits were found in the genome for this sequence. <br>This guide is a repeated region, it is too unspecific.<br>Usually, CRISPR cannot be used to target repeats. Note that sequences that include long repeats will make the CRISPOR website very slow. You can always mask repeats with Ns to speed up the search." % subOptMatchCount)
+            htmlHelp("At <= 4 mismatches, %d alignments were found in the genome for this sequence, without looking at the PAM sequence around these alignments.<br>This guide is a repeated region, it is too unspecific.<br>Usually, CRISPR cannot be used to target repeats. Also, note that sequences that include long repeats will make the CRISPOR website slow. You can mask repeats with Ns to speed up the search." % repCount)
         else:
             print otDesc
             print "<br>"
@@ -3260,9 +3274,12 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
     """ parse a bed file with annotataed off target matches from overlapSelect,
     has two name fields, one with the pam position/strand and one with the
     overlapped segment
-    return as dict pamId -> editDist -> (chrom, start, end, seq, strand, segType, segName, x1Score)
+    return as dict pamId -> editDist -> (chrom, start, end, seq, strand, segType, segName, totalAlnCount, isRep)
     segType is "ex" "int" or "ig" (=intergenic)
     if intergenic, geneNameStr is two genes, split by |
+
+    The isRep flag is true if BWA reported more than one alignment with X0+X1 but didn't report these with the
+    XA tag. It means that we can't get the alignments for this sequence from BWA (=repeats).
     """
     # edge case: target is on chr6_alt -> we remove a single off-target with 0 mismatches on chr6
     targetIsAlt = isAltChrom(onTargetChrom)
@@ -3304,10 +3321,22 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
                 skippedPams.add(pamId)
                 continue
 
-        if len(nameFields)>4:
-            x1Count = int(nameFields[4])
-        else:
-            x1Count = 0
+        isRep = 0
+        totalAlnCount = 0
+        # for compatibility with old bed files, only parse these fields if they are present
+        # note: for some reason, the MIT hitScore was always written to these files
+        # However, it's not parsed here and never was. In order to not break the old files
+        # I kept it in the files, but am not reading it here
+        # these are the different formats until now:
+        # seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+str(hitScore) # five fields
+        # seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+x1Score+"|"+str(hitScore) # six fields
+        # (x1Score was roughly the alnCount, similar enough for practical purposes, fixed in 2019)
+        # seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+alnCount+"|"+str(hitScore)+"|"+isRep # seven fields
+        if len(nameFields)>5:
+            totalAlnCount = int(nameFields[4])
+            if len(nameFields)>6:
+                isRep = bool(int(nameFields[6]))
+
         editDist = int(editDist)
         # some gene models include colons
         if ":" in segment:
@@ -3315,7 +3344,7 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
         else:
             segType, segName = "", segment
         start, end = int(start), int(end)
-        otKey = (pamId, chrom, start, end, editDist, seq, strand, x1Count)
+        otKey = (pamId, chrom, start, end, editDist, seq, strand, totalAlnCount, isRep)
 
         # if an offtarget is in the PAR region, we keep only the chrY off-target
         parNum = isInPar(db, chrom, start, end)
@@ -3333,9 +3362,9 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
     # index by pamId and edit distance
     indexedOts = defaultdict(dict)
     for otKey, otVal in pamData.iteritems():
-        pamId, chrom, start, end, editDist, seq, strand, x1Score = otKey
+        pamId, chrom, start, end, editDist, seq, strand, totalAlnCount, isRep = otKey
         segType, segName = otVal
-        otTuple = (chrom, start, end, seq, strand, segType, segName, x1Score)
+        otTuple = (chrom, start, end, seq, strand, segType, segName, totalAlnCount, isRep)
         indexedOts[pamId].setdefault(editDist, []).append( otTuple )
 
     return indexedOts
@@ -3549,7 +3578,6 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     cmd = "$BIN/bwa samse -n %(maxOcc)d %(genomeDir)s/%(genome)s/%(genome)s.fa %(saFname)s %(faFname)s | $SCRIPT/xa2multi.pl | %(python)s $SCRIPT/samToBed %(pam)s %(seqLen)d | sort -k1,1 -k2,2n | $BIN/bedClip stdin %(genomeDir)s/%(genome)s/%(genome)s.sizes stdout >> %(matchesBedFname)s " % locals()
     runCmd(cmd)
 
-    # arguments: guideSeq, mainPat, altPats, altScore, passX1Score
     filtMatchesBedFname = batchBase+".filtMatches.bed"
     queue.startStep(batchId, "filter", "Removing matches without a PAM motif")
     altPats = ",".join(offtargetPams.get(pam, ["na"]))
@@ -3560,11 +3588,12 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
     # EXTRACTION OF SEQUENCES + ANNOTATION - big headache!!
     # twoBitToFa was 15x slower than python's twobitreader, after markd's fix it is better
     # but bedtools uses an fa.idx file and also mmap, so is a LOT faster
+    # arguments: guideSeq, mainPat, altPats, altScore, passTotalAlnCount
     if isfile(shmFaFname):
         logging.info("Using bedtools and genome fasta on ramdisk, %s" % shmFaFname)
-        cmd = "time bedtools getfasta -s -name -fi %(shmFaFname)s -bed %(matchesBedFname)s -fo /dev/stdout | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+        cmd = "time bedtools getfasta -s -name -fi %(shmFaFname)s -bed %(matchesBedFname)s -fo /dev/stdout | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s > %(filtMatchesBedFname)s" % locals()
     else:
-        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | %(python)s $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
+        cmd = "time $BIN/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -bed=%(matchesBedFname)s | %(python)s $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s > %(filtMatchesBedFname)s" % locals()
     #cmd = "$SCRIPT/twoBitToFaPython %(genomeDir)s/%(genome)s/%(genome)s.2bit %(matchesBedFname)s | $SCRIPT/filterFaToBed %(faFname)s %(pam)s %(altPats)s %(altPamMinScore)s %(maxOcc)d > %(filtMatchesBedFname)s" % locals()
     runCmd(cmd)
 
@@ -4378,13 +4407,20 @@ def showPamWarning(pam):
         print "Please bear in mind that specificity and efficiency scores were designed using data with S. Pyogenes Cas9 and will very likely not be applicable to this particular Cas9. There is nothing we can do about this, we are unaware of a published dataset for this enzyme. If you know one, please contact us.<br>"
         print '</div>'
 
+    if pam=="NNNNACA":
+        printNote("You selected the old version of the CjCas9 PAM. You may want to select the more recent "+
+        "PAMs from the menu on the first page, based on the study by "+
+        "<a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5473640/'>Kim et al 2017</a>.")
+
     if pam=="NGN":
         printNote("You have selected the NGN pam for xCas9. While this PAM is documented to work, "+
         "if you read the paper in detail, you will notice that the editing efficiency is much lower. "+
         "For optimal efficiency, consider going back and switching to the 'high-efficiency' xCas9 PAM.")
 
     if pam=="NGK":
-        printNote("You have selected the most efficient PAM for xCas9. You can also select the more general NGN PAM from the menu when you submit your job. If you read the xCas9 paper in detail, you will find that NGN is not as efficient though.")
+        printNote("You have selected the most efficient PAM for xCas9. You can also select the more general/flexible"+
+        " NGN PAM from the menu when you submit your job. If you read the xCas9 paper in detail, you will find "+
+        "that NGN is not as efficient though.")
 
     if pam=="TTTN":
         printWarning("You selected TTTN as the PAM for Cpf1. " +
@@ -4672,7 +4708,7 @@ def makeCustomTrack(org, chrom, seqStart, seqEnd, seqStrand, guideData, batchId,
     rows = []
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, pamStart, guideStart, guideStrand, pamId, guideSeq, \
-            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount = guideRow
 
         rgb = hexToRgb(scoreToColor(guideScore)[0])
         chromStart, chromEnd, thickStart, thickEnd, chromStrand = mapToGenome(seqStart, seqStrand, pamStart, guideStart, guideStrand)
@@ -5184,6 +5220,10 @@ def makeGuideHeaders():
 
     for scoreName in tableScoreNames:
         headers.append(scoreDescs[scoreName][0]+"-Score")
+
+    if not cpf1Mode:
+        headers.append("GrafEtAlStatus")
+
     return headers, tableScoreNames
 
 def effScorePass(effScores, minFusi):
@@ -5223,7 +5263,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
 
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
-            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount = guideRow
         if minSpec and guideScore < minSpec:
             continue
 
@@ -5237,7 +5277,7 @@ def iterGuideRows(guideData, addHeaders=False, seqId=None, satMutOpt=None, minSp
         guideDesc = intToExtPamId(pamId)
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
-        row = [guideDesc, fullSeq, guideScore, otCount, ontargetDesc]
+        row = [guideDesc, fullSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
 
         for scoreName in tableScoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
@@ -5288,7 +5328,7 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, \
-            ontargetDesc, subOptMatchCount = guideRow
+            ontargetDesc, repCount = guideRow
 
         if otData!=None:
             otCount = len(otData)
@@ -5518,7 +5558,7 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
-            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount = guideRow
 
         guideUrl = batchUrl+"&pamId="+urllib.quote(pamId)+"&pam="+pam
 
@@ -5736,7 +5776,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
     #for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
     for guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
             guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, \
-            ontargetDesc, subOptMatchCount in guideData:
+            ontargetDesc, repCount in guideData:
 
         if guideScore < minSpec:
             continue
@@ -5768,7 +5808,7 @@ def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
     " write the guide sequences and their pam to ofh "
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, strand, pamId, \
-            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount = guideRow
         if minSpec and guideScore < minSpec:
             continue
         if minFusi and effScores["fusi"] < minFusi:
@@ -5790,7 +5830,7 @@ def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=
 
     for guideRow in guideData:
         guideScore, guideCfdScore, effScores, startPos, guideStart, guideStrand, pamId, \
-            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, subOptMatchCount = guideRow
+            guideSeq, pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, totalAlnCount = guideRow
         if minSpec and guideScore < minSpec:
             continue
         if not effScorePass(effScores, minFusi):
@@ -5972,8 +6012,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
     nameToOtScoreSeq = {}
     for mismCount, otMatchRows in otMatches.iteritems():
         for otMatch in otMatchRows:
-            # (chrom, start, end, seq, strand, segType, segName, x1Score
-            chrom, start, end, otSeq, strand, segType, segName, x1Score = otMatch
+            chrom, start, end, otSeq, strand, segType, segName, totalAlnCount, fromXaTag = otMatch
             if chrom==targetChrom and start>=targetStart and end<=targetEnd:
                 prefix = "ontarget_"
             else:
@@ -7336,7 +7375,7 @@ def findOntargetPos(otMatches, pamId, position, absentOk=False):
     global batchName
     batchName = batchName.replace(" ", "_")
 
-    chrom, start, end, seq, strand, segType, segName, x1Count = matchList[0]
+    chrom, start, end, seq, strand, segType, segName, alnCount, hasXa = matchList[0]
     start = int(start)
     end = int(end)
     return chrom, start, end, strand, segName, isUnique

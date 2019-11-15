@@ -716,7 +716,19 @@ accurate CFD off-target score by Doench et al. is not defined on the level of
 guides.  As a result, the authors of GuideScan.com have inventend a new guide
 specificity score, by taking the taking the sum of all CFD scores for all
 off-targets of a guide and taking 100/(100+sum) of that. Since May 2019, we are
-also showing this score for guides, in addition to the MIT score.
+also showing this score for guides, in addition to the MIT score. This is based
+on comparisons done by Josh Tycko, shown below, that show a better correlation of the 
+CFD specificty score with total off-target read fraction than with MIT specificity score.
+
+![Guide-Seq total off-target fraction per guide vs. MIT guide specificity score, by email from Josh Tycko ]( fig/guideSeqOtFracMit.png )
+
+![Guide-Seq total off-target fraction per guide vs. GuideScan CFD specificity score, from https://www.nature.com/articles/s41467-019-11955-7 ]( fig/guideSeqOtFracGuideScan.png )
+
+For a given guide, the GuideScan specificity score is not exactly the same as
+the Crispor CFD specificity score, even though they both use the same formula:
+CRISPOR considers all genome sites with 4 mismatches as off-targets, where
+GuideScan uses only 3 mismatches. As shown above and in our paper, we think 4
+mismatches is a better parameter for off-target searches than 3.
 
 * Can I score my existing single guides with CRISPOR ?
 
