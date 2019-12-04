@@ -79,7 +79,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.95"
+versionStr = "4.97"
 
 # contact email
 contactEmail='crispor@tefor.net'
