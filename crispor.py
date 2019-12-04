@@ -175,8 +175,9 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNNRYAC','22bp-NNNNRYAC - Cas9 Campylobacter jejuni, revised PAM'),
          ('NNNVRYAC','22bp-NNNVRYAC - Cas9 Campylobacter jejuni, opt. efficiency'),
          ('TTCN','20bp-TTCN - CasX'),
-         ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp. - recommended'),
-         ('TTTN','TTTN-23bp - Cas12a (Cpf1) Acidaminoc. / Lachnosp - low efficiency'),
+         ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1)  - recommended, 23bp guides'),
+         ('TTTV-21','TTT(A/C/G)-21bp - Cas12a (Cpf1) - 21bp guides recommended by some suppliers'),
+         ('TTTN','TTTN-23bp - Cas12a (Cpf1) - low efficiency'),
          ('ATTN','ATTN-23bp - BhCas12b v4'),
          ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
          ('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V'),
@@ -437,6 +438,8 @@ def setupPamInfo(pam):
         GUIDELEN = 23
         cpf1Mode = True
         scoreNames = cpf1ScoreNames
+        if pamOpt:
+            GUIDELEN=int(pamOpt)
     elif pam=="NNNNRYAC" or pam=="NNNVRYAC":
         GUIDELEN = 22
     elif pam=="NNGRRT" or pam=="NNNRRT":
@@ -6010,6 +6013,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
     coords = []
     names = []
     nameToOtScoreSeq = {}
+    flankSize = 1000
     for mismCount, otMatchRows in otMatches.iteritems():
         for otMatch in otMatchRows:
             chrom, start, end, otSeq, strand, segType, segName, totalAlnCount, fromXaTag = otMatch
@@ -6019,16 +6023,16 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
                 prefix = ""
             segDesc = segTypeConv.get(segType, "") # some genomes do not have descriptions
             name = "%(prefix)smm%(mismCount)d_%(segDesc)s_%(segName)s_%(chrom)s_%(start)d" % locals()
-            if start-1000 < 0 or end+1000 > chromSizes[chrom]:
+            if start-flankSize < 0 or end+flankSize > chromSizes[chrom]:
                 print("Cannot design primer for %s, too close to chromosome boundary" % name)
             else:
-                coords.append( (chrom, start-1000, end+1000, name) )
+                coords.append( (chrom, start-flankSize, end+flankSize, name) )
                 otScore = calcCfdScore(guideSeq, otSeq)
                 nameToOtScoreSeq[name] = (otScore, otSeq)
 
     # coords -> sequences
     flankSeqs = getGenomeSeqs(db, coords, doRepeatMask=True)
-    targetSeqs = [(x[3], x[4]) for x in flankSeqs] # strip coords, keep name+seq
+    targetSeqs = [(x[3], x[6]) for x in flankSeqs] # strip coords, keep name+seq
     nameToSeq = dict(targetSeqs)
 
     # sequences -> primers
@@ -6036,7 +6040,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
     ampMin = ampLen-110
     ampRange = "%d-%d" % (ampMin, ampLen)
 
-    primers = runPrimer3(targetSeqs, 1000, GUIDELEN+len(pamSeq), ampRange, tm, {})
+    primers = runPrimer3(targetSeqs, flankSize, GUIDELEN+len(pamSeq), ampRange, tm, {})
 
     # sort primers by CFD off-target score
     scoredPrimers = []
@@ -6132,6 +6136,10 @@ def otPrimerPage(params):
     print("<h2 id='primers'>%sPCR primers for off-targets of %s</h2>" % (prefix, guideSeqHtml))
     print("<p>In the table below, Illumina Nextera Handle sequences have been added and highlighted in bold. Primers for the on-target have been added for convenience. The table below is sorted by the CFD off-target score. Sites with very low CFD scores &lt; 0.02 are unlikely to be cleaved, see our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>, Figure 2.</p>")
     print("<p>In the protocol by Matthew Canver, Harvard, two PCRs are run: one PCR to amplify the potential off-target, then a second PCR to extend the handles with Illumina barcodes. Please <a href='downloads/prot/canverProtocol.pdf'>click here</a> to download the protocol. Alternatively, you can have a look at <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3988262/#S8'>Fu et al, 2014</a>.</p>")
+    print("<p>If a primer was not found, the reason is usually that the region around the off-target is too repetitive. "
+        "To avoid unspecific primers, all repeats are masked for the primer design (not for off-target search). "
+        "If you think that we should change the parameters here or should use different primer3 settings, please let "
+        "us know.</p>")
 
     if pamId not in pamOtMatches:
         errAbort("pamId %s not valid" % pamId)
@@ -6938,7 +6946,6 @@ def getGenomeSeqs(genome, coordList, doRepeatMask=False):
     coordList has format (chrom, start, end, name, score, strand)
     returns list (chrom, start, end, name, seq)
     """
-    binFname = join(binDir, "twoBitToFa")
     twoBitPath = join(genomesDir, "%(genome)s/%(genome)s.2bit" % locals())
     twoBitPath = abspath(twoBitPath)
 

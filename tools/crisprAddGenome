@@ -56,7 +56,7 @@ if mode is "ucsc":
 - accepts UCSC db identifiers instead of taxonId
 
 if mode is "ncbi":
-- only accepts a single Refseq or Genbank assembly identifier, e.g. GCF_000203835.1
+- accepts a space-separated list of Refseq or Genbank assembly identifiers, e.g. GCF_000203835.1
 
 Example:
 sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
