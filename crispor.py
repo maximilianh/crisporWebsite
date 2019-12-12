@@ -176,15 +176,17 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNNVRYAC','22bp-NNNVRYAC - Cas9 Campylobacter jejuni, opt. efficiency'),
          ('TTCN','20bp-TTCN - CasX'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1)  - recommended, 23bp guides'),
-         ('TTTV-21','TTT(A/C/G)-21bp - Cas12a (Cpf1) - 21bp guides recommended by some suppliers'),
+         ('TTTV-21','TTT(A/C/G)-21bp - Cas12a (Cpf1) - 21bp guides recommended by IDT'),
          ('TTTN','TTTN-23bp - Cas12a (Cpf1) - low efficiency'),
          ('ATTN','ATTN-23bp - BhCas12b v4'),
+         ('NGTN','NGTN-23bp - ShCAST/AcCAST, Strecker et al, Science 2019'),
          ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
          ('TATV','TAT(A/C/G)-23bp - TATV As-Cpf1 K548V'),
          ('TTTA','TTTA-23bp - TTTA LbCpf1'),
          ('TCTA','TCTA-23bp - TCTA LbCpf1'),
          ('TCCA','TCCA-23bp - TCCA LbCpf1'),
-         ('CCCA','CCCA-23bp - CCCA LbCpf1')
+         ('CCCA','CCCA-23bp - CCCA LbCpf1'),
+         ('GGTT','GGTT-23bp - CCCA LbCpf1'),
        ]
 
 DEFAULTPAM = 'NGG'
@@ -440,6 +442,10 @@ def setupPamInfo(pam):
         scoreNames = cpf1ScoreNames
         if pamOpt:
             GUIDELEN=int(pamOpt)
+    elif pam=="NGTN":
+        logging.debug("switching on Cpf1 mode for ShCAST, guide length is 23bp")
+        GUIDELEN = 23
+        cpf1Mode = True
     elif pam=="NNNNRYAC" or pam=="NNNVRYAC":
         GUIDELEN = 22
     elif pam=="NNGRRT" or pam=="NNNRRT":
@@ -1273,13 +1279,12 @@ def getBeWin(winVal):
 def printLines(lines, labelLen):
     " print list of (label, string) such that label is at least labelLen characters long "
     for label, mouseOver, line in lines:
-        #print repr(label)+"<br>"
-        #print repr(line)+"<br>"
         if mouseOver is not None:
-            print (('<span title="{:s}">{:'+str(labelLen)+'s} </span>').format(label, mouseOver)),
+            labelStr =('<span title="{:s}">{:'+str(labelLen)+'s} </span>').format(label, mouseOver)
         else:
-            print (('{:'+str(labelLen)+'s} ').format(label)),
-        #print(u''.join(line).encode("utf8"))
+            labelStr = ('{:'+str(labelLen)+'s} ').format(label)
+
+        print (labelStr),
         print(line)
 
 def getMaxLen(lines):
@@ -2420,20 +2425,28 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
             }
     }
 
+    function displayClass(className, dispVal) {
+    /* hide in a loop, works around Safari stack size limits that crash jquery functions */
+        var els = document.getElementsByClassName(className);
+        for (var el of els) {
+            el.style.display = dispVal;
+        }
+    }
+
     function onlyExons() {
     /* show only off-targets in exons */
         if ($("#onlyExonBox").prop("checked")) {
             $(".otMore").show();
             $(".otMoreLink").hide();
             $(".otLessLink").hide();
-            $(".notExon").hide();
+            displayClass("notExon", "none");
         }
         else {
             if ($("#onlySameChromBox").prop("checked")) {
                 $(".notExon:not(.diffChrom)").show();
             }
             else {
-                $(".notExon").show();
+                displayClass("notExon", "block");
                 $(".otMoreLink").show();
                 $(".otMore").hide();
             }
@@ -2644,7 +2657,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
         if len(cssClasses)!=0:
             classStr = ' class="%s"' % " ".join(cssClasses)
 
-        link = makeBrowserLink(dbInfo, pos, gene, alnHtml, cssClasses)
+        link = makeBrowserLink(dbInfo, pos, gene, alnHtml, [])
         editDist = str(editDist)
         links.append( '''<div%(classStr)s>%(editDist)s:%(link)s</div>''' % locals() )
 
@@ -3195,7 +3208,9 @@ def distrOnLines(seq, startDict, featLen):
                 endFt = start+len(label)
             else:
                 #label = '%s..%s'%(seq[start-3].lower(), ftSeq)
-                label = '---%s'%(ftSeq)
+                #label = '---%s'%(ftSeq)
+                #label = '&#45;&#45;&#45;%s'%(ftSeq)
+                label = '&#8722;&#8722;&#8722;%s'%(ftSeq)
                 startFt = start - 3
                 endFt = end
         else:
@@ -3208,7 +3223,7 @@ def distrOnLines(seq, startDict, featLen):
                 endFt = startFt+len(label)
             else:
                 #label = '%s..%s'%(ftSeq, seq[end+2].lower())
-                label = '%s---'%(ftSeq)
+                label = '%s&#45;&#45;&#45;'%(ftSeq)
                 startFt = start
                 endFt = end + 3
 
@@ -3442,7 +3457,7 @@ def calcSaveEffScores(batchId, seq, extSeq, pam, queue):
 
     if len(longSeqs)>0 and doEffScoring:
         enz = None
-        if cpf1Mode:
+        if cpf1Mode and not pam=="NGTN":
             enz = "cpf1"
         elif pamIsSaCas9(pam):
             enz = "sacas9"
@@ -4076,7 +4091,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>Sep 2019: improvements for hg38, Graf et al types written to Excel <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>Dec 2019: bugfixes, ShCast enzymes, 21bp guides for Cpf1<a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -5026,8 +5041,8 @@ def crisprSearch(params):
             print batchName.encode("utf8")+":"
 
         ctUrl = None
-        if org in ["hg19", "mm10"]:
-            ctUrl = ctBaseUrl+"/%s.txt" % batchId
+        #if org in ["hg19", "mm10"]:
+            #ctUrl = ctBaseUrl+"/%s.txt" % batchId
 
         print "%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name)
         print '<span style="text-decoration:underline">'
