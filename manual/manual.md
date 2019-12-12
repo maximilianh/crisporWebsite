@@ -681,6 +681,14 @@ we still recommend them. They should save screening time in the long run as
 they decrease your chances of stumbling over a very inefficient guide.
 Just make sure that you look at the right score for your expression system.
 
+Notes on enzymes {#enzymes}
+================
+
+Cpf1/Cas12a: the original paper described 23bp guides. For higher efficiency, 21bp guides are
+recommended by IDT [on the Cpf1 product
+page](http://www.idtdna.com/pages/products/crispr-genome-editing/alt-r-crispr-cpf1-genome-editing), Figure 3, 
+in the "performance" section.
+
 Adding a genome {#addgenome}
 ===============
 
