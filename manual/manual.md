@@ -748,6 +748,19 @@ Yes, we can add private genomes. People can use them on the website, but they
 will not be able to download the genome. Just tell us that the genome is
 private and shall not be downloadable.
 
+* How do I choose the right exon and transcript?
+
+    * In a short gene, most exons will be essential. In a long gene, use expression databases
+      like GTEX to get an idea what the best transcript for your tissue is. Possibly verify with RT-PCR or
+      your own RNA-seq.
+    * Most users target an exon towards the 5' end, others target essential protein domains.
+      Doench 2016 found that protein domains are as good as a 5' exon. 
+    * There is more and more evidence that having a deletion close to a 
+      splice site can cause trouble, as the deletion may lead to exon
+      skipping. If the exon is in frame/phase 0, a mostly complete
+      protein may result, even if the exon is gone. Avoid guides close
+      to exon boundaries.
+
 * Can you add my genome? By the way, it is 10GB big.
 
 This is tricky. The problem is usually not the size of the genome, but rather the 
