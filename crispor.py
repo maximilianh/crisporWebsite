@@ -2657,7 +2657,7 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
         if len(cssClasses)!=0:
             classStr = ' class="%s"' % " ".join(cssClasses)
 
-        link = makeBrowserLink(dbInfo, pos, gene, alnHtml, [])
+        link = makeBrowserLink(dbInfo, pos, gene, alnHtml, ["tooltipster"])
         editDist = str(editDist)
         links.append( '''<div%(classStr)s>%(editDist)s:%(link)s</div>''' % locals() )
 
