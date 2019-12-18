@@ -4354,6 +4354,8 @@ def printQueryNotFoundNote(dbInfo):
     print "<strong>Warning:</strong> The query sequence was not found in the selected genome."
     print "This can be a valid query, e.g. a GFP sequence.<br>"
     print "If not, you might want to check if you selected the right genome for your query sequence.<br>"
+    print "Use a tool like <a target=_blank href='http://genome.ucsc.edu/cgi-bin/hgBlat'>BLAT</a> to check if the " \
+        "sequence really has a 100% identical match in the target genome.<p>"
     print "When reading the list of guide sequences and off-targets below, bear in mind that in case that the input sequence is really in the genome and just has a few differences, the software will use the first found match as the on-target as it cannot distinguish 0-mismatch off-targets from 0-mismatch on-targets. In this case, the specificity scores of guide sequences are too low. In other words, some guides may be fine, the problem may just be that the on-target is shown as an off-target. <br>"
     print "Because there is no flanking sequence available, the guides in your sequence that are within 50bp of the ends will have no efficiency scores. The efficiency scores will instead be shown as '--'. Include more flanking sequence > 50bp to obtain these scores."
     print "</div>"
