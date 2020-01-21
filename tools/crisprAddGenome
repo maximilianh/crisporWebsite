@@ -58,6 +58,9 @@ if mode is "ucsc":
 if mode is "ncbi":
 - accepts a space-separated list of Refseq or Genbank assembly identifiers, e.g. GCF_000203835.1
 
+if mode is "genbank"
+- accepts a space-spearate list of Genbank identifiers, e.g. JF797219.1
+
 Example:
 sudo crisprAddGenome fasta /tmp2/LAEVIS_7.1.repeatMasked.fa --desc 'xenBaseLaevis71|Xenopus laevis|X. laevis|Xenbase V7.1'
 """)
@@ -913,6 +916,70 @@ def getNcbiInfo(fname, acc):
 
     return None, None
 
+def getGenbankInfo(acc):
+    " given a genbank ID, return genome info "
+    import xml.etree.ElementTree as etree
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=%s&rettype=native&retmode=xml" % acc
+    data = urlopen(url).read()
+    root = etree.fromstring(data)
+    orgRefEl = root.findall("Bioseq-set_seq-set/Seq-entry/Seq-entry_set/Bioseq-set/Bioseq-set_descr/Seq-descr/Seqdesc/Seqdesc_source/BioSource/BioSource_org/Org-ref")[0]
+    taxName = orgRefEl.findall("Org-ref_taxname")[0].text
+    taxId = int(orgRefEl.findall("Org-ref_db/Dbtag/Dbtag_tag/Object-id/Object-id_id")[0].text)
+    name = "gb"+acc
+    strains = []
+    acronyms = []
+    for orgModelEl in orgRefEl.findall("Org-ref_orgname/OrgName/OrgName_mod/OrgMod"):
+        if orgModelEl.findall("OrgMod_subtype")[0].attrib.get("value")=="strain":
+            strains.append(orgModelEl.findall("OrgMod_subname")[0].text)
+        if orgModelEl.findall("OrgMod_subtype")[0].attrib.get("value")=="acronym":
+            acronyms.append(orgModelEl.findall("OrgMod_subname")[0].text)
+
+    scName = taxName
+    if len(strains)!=0:
+        scName = scName + ", strain: "+(";".join(strains))
+
+    description = "Genbank "+acc
+    url = acc
+    server = "genbank"
+    commonName = getNameForTaxId(taxId)
+    if commonName is None:
+        logging.info("NCBI Taxonomy has no common name for tax ID %s" % row.taxid)
+        commonName = scName
+    if len(acronyms)!=0:
+        commonName = commonName + " ("+(", ".join(acronyms))+")"
+
+    headers = ["name", "description", "genome", "scientificName", "url", "server"]
+    Rec = namedtuple("genomeDesc", headers)
+    return Rec(name, description, commonName, scName, url, server)
+
+def getGenbankGenome(genomeInfo):
+    " download genbank sequence and index it "
+    logging.info("Adding genome: %s" % repr(genomeInfo))
+    db = genomeInfo.name
+    dbTmpDir = join(tmpDir, db)
+    if not isdir(dbTmpDir):
+        os.makedirs(dbTmpDir)
+    finalDbDir = join(crisprGenomeDir, db)
+    sizesTmp = join(dbTmpDir, db+".sizes")
+    faTmp = join(dbTmpDir, db+".fa")
+    twoBitTmp = join(dbTmpDir, db+".2bit")
+    gffTmp = None
+    outFnames = []
+
+    if not isfile(sizesTmp):
+        printMsg("Downloading genome and uncompressing (for bwa)")
+        url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=%s&rettype=fasta&retmode=text" % acc
+        cmd = "wget '%s' -O  %s" % (url, faTmp)
+        runCmd(cmd)
+        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+        outFnames.extend([sizesTmp, twoBitTmp])
+
+    # no GFF ?
+
+    moveToDest(outFnames, finalDbDir)
+    writeGenomeInfo(genomeInfo)
+
+
 def getNcbiGenome(ftpUrl, genomeInfo, options):
     " download refseq genome and index it "
     db = genomeInfo.name
@@ -1028,6 +1095,11 @@ elif site=="ncbi":
             errAbort("Could not find accession %s, not in RefSeq and neither in Genbank. You want to remove the temp file to trigger a re-download of NCBI organism data." % acc)
 
         getNcbiGenome(ftpUrl, genomeInfo, options)
+
+elif site=="genbank":
+    for acc in inIds:
+        genomeInfo = getGenbankInfo(acc)
+        getGenbankGenome(genomeInfo)
 
 else:
     raise Exception("site has to be ucsc or ens")
