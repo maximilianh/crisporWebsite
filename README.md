@@ -19,13 +19,22 @@ If you only need efficiency scores and no interactive website, try "python
 crisporEffScores.py", it is a python module but also has a command line
 interface that may be sufficient for programmers. 
 
-# Installation of CRISPOR
+# Installation of a CRISPOR website mirror or as a command line tool
 
-If you are unsure what the things below mean or if you just want to try it and not install it or modify your server setup,
-you may want to try the virtual machine, which is a complete 
-installation of CRISPOR with everything included: http://crispor.org/downloads/
+In this section, I assume that you are root and you want to setup a local CRISPOR website. If you only want
+to use the command line tools, the installation commands below would be the
+same, but 1) you don't need the sudo commands for pip and 2) you can use the 
+option '--user' when running pip to install the tools into your own home directory
+~/.local instead of /usr/ and /var/.
+
+If you are unsure what the things below mean or if you just want to try it and
+not install it or modify your server setup, you may want to try the virtual
+machine, which is a complete installation of CRISPOR with everything included:
+http://crispor.org/downloads/
 
 CRISPOR uses python2.7. Change `pip` to `pip2` in the commands below if your default python is python3.
+I do not have plans to change it to python3 right now as it is still pretty easy on most systems 
+to get a python2 installed. Let me know if this is not the case for your Unix version.
 
 Install BWA and a few required python modules:
     
@@ -39,16 +48,27 @@ or
     yum install bwa python-pip python-devel tkinter
     sudo pip install biopython numpy==1.14.0 scikit-learn==0.16.1 pandas matplotlib twobitreader
     
+The version of scikit-learn is important. If you want to use a newer version, the Microsoft Azimuth
+data files have to be upgraded. Contact me or the Microsoft people if you want to do this.
+
 For the Cpf1 scoring model:
 
     sudo pip install keras tensorflow h5py
+
+I'm using the versions 2.1.5, 1.7.0 and 2.7.1 for these, but I hope that the exact version for these is 
+not important.
 
 Install required R libraries for the WangSVM efficiency score:
    
     sudo Rscript -e 'install.packages(c("e1071"),  repos="http://cran.rstudio.com/")'
     sudo Rscript -e 'source("https://bioconductor.org/biocLite.R"); biocLite(c("limma"));'
 
-When you run crispor.py, it should show the usage message:
+The R packages have not changed in many years. The version should really not matter at all. In principle,
+you can remove the wang score from crispor.py in the global variable where the scores are defined 
+and not worry about R anymore. I don't think that as of 2020 anyone is still using this score 
+for designing their guides.
+
+When you run crispor.py, it should then show the usage message:
 ```
 Usage: crispor.py [options] org fastaInFile guideOutFile 
 
