@@ -2,9 +2,6 @@
 # the tefor crispr tool
 # can be run as a CGI or from the command line
 
-# OOF scores are WRONG for Cpf1! -> where is the cut site?
-# OOF scores should not be shown for Cpf1... staggered cut!
-
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
 import Cookie, time, sys, cgi, re, random, platform, os, pipes
@@ -297,7 +294,6 @@ otherMutScoreNames = ["oof"] # lindel is only added for spCas9
 cpf1ScoreNames = ["seqDeepCpf1"]
 
 saCas9ScoreNames = ["najm"]
-
 
 # how many digits shall we show for each score? default is 0
 scoreDigits = {
@@ -1088,18 +1084,22 @@ def buildOneToThree():
          }
     return oneToThree
 
-def makeExonLines(exonInfo, seq):
-    " create text that reflects exons, input is transId -> (exonNumber, exStart, exEnd, exFrame) "
+def makeExonLines(exonInfo, seq, selTransId):
+    """ create text that draws exons, input is transId -> (exonNumber, exStart, exEnd, exFrame).
+    returns a list of (transId (=label), symbol (=mouseover), ASCII-line) """
     lines = []
-    maxLabelLen = 0
+    #maxLabelLen = 0
     codonTable = buildCodonTable()
     #oneToThree = buildOneToThree()
     seqLen = len(seq)
     seq = seq.upper()
 
-    for (symbol, transId), exRows in exonInfo.iteritems():
+    for (transId, symbol), exRows in exonInfo.iteritems():
+        if selTransId!="allTrans" and transId!=selTransId:
+            continue
         line = [" "]*seqLen
-        for exNum, exStart, exEnd, exFrame, exStrand in exRows:
+        mouseOvers = {} # position -> mouseOver-text or null, for end of mouse over
+        for exIdx, (exNum, exStart, exEnd, exFrame, nextFrame, exStrand) in enumerate(exRows):
             if exFrame==-1:
                 for i in range(exStart, exEnd):
                     line[i]="="
@@ -1114,6 +1114,17 @@ def makeExonLines(exonInfo, seq):
                     line[labStart-1] = " "
                     line[labStart+len(exonLabel)] = " "
             else:
+                exonDesc = "gene %s<br>transcript %s<br>exon %d<br>start phase %s" % (symbol, transId, exNum+1, exFrame)
+                if nextFrame is not None:
+                    exonDesc += "<br>end phase %s" % nextFrame
+                    if (exFrame+nextFrame) % 3 == 0:
+                        exonDesc += "<br>Removing the exon retains the reading frame"
+                    else:
+                        exonDesc += "<br>Removing the exon will destroy the reading frame"
+
+                mouseOvers[exStart] = exonDesc
+                mouseOvers[exEnd] = None
+
                 for i in range(exStart, exStart+exFrame):
                         line[i] = "-"
                 for i in range(exStart+exFrame, exEnd, 3):
@@ -1121,18 +1132,39 @@ def makeExonLines(exonInfo, seq):
                     if len(codon)==3:
                         shortAa = codonTable[codon]
                         if exStrand=="+":
-                            longAa = shortAa+"  "
+                            longAa = shortAa+"]]"
                         else:
-                            longAa = " <"+shortAa # highlighting rev. dir. more
+                            longAa = "[["+shortAa # highlighting rev. dir. more
                     else:
                         # codon is split by splice site
                         longAa = "-"
                     for j in range(0, len(longAa)):
                         line[i+j] = longAa[j]
 
-        lines.append((symbol, transId, "".join(line)))
-        maxLabelLen = max(maxLabelLen, len(transId))
-    return lines, maxLabelLen
+        # now merge the mouse overs as span tags into the ASCII line
+        newLine = []
+        for pos, char in enumerate(line):
+            if pos in mouseOvers:
+                overString = mouseOvers[pos]
+                if overString is not None:
+                    newLine.append("<span class='tooltipsterInteract' title='%s'>" % overString)
+                if char=="-":
+                    newLine.append("<span class='tooltipsterInteract' title='This codon goes over a splice site. The nucleotides of the split codon are not translated to amino acids but shown as dashes.'>-</span>")
+                else:
+                    newLine.append(char)
+                if overString is None:
+                    newLine.append("</span>")
+            else:
+                newLine.append(char)
+
+        # and fix up the < signs
+        newLineStr = "".join(newLine)
+        newLineStr = newLineStr.replace("[[", "<lc>&lt;&lt;</lc>")
+        newLineStr = newLineStr.replace("]]", "<lc>&gt;&gt;</lc>")
+
+        lines.append((symbol, transId, newLineStr))
+        #maxLabelLen = max(maxLabelLen, len(transId))
+    return lines
 
 def getGeneModels(org):
     " read possible gene models for org and return as list (name, desc) or None if no gene models "
@@ -1160,14 +1192,19 @@ def getSelGeneModel(org):
     " return (list of (name, desc) of models, selected gene model name) "
     geneModels = getGeneModels(org)
     selGeneModel = None
+    selTransId = None
 
     if geneModels:
-        selGeneModel = cgiParams.get("geneModel", geneModels[0][0])
+        #selGeneModel = cgiParams.get("geneModel", geneModels[0][0])
+        selGeneModel = cgiParams.get("geneModel", "noGenes")
+        geneModels.insert(0, ("noGenes", "Do not show"))
         possNames = [x for x,y in geneModels]
         if not selGeneModel in possNames:
             errAbort("The gene model name specified with the argument geneModel is invalid")
 
-    return geneModels, selGeneModel
+        selTransId = cgiParams.get("transId", "allTrans")
+
+    return geneModels, selGeneModel, selTransId
 
 def printSeqForCopy(seq):
     " print a hidden text area so we can copy the sequence to the clipboard "
@@ -1280,7 +1317,7 @@ def printLines(lines, labelLen):
     " print list of (label, string) such that label is at least labelLen characters long "
     for label, mouseOver, line in lines:
         if mouseOver is not None:
-            labelStr =('<span title="{:s}">{:'+str(labelLen)+'s} </span>').format(label, mouseOver)
+            labelStr =('<span class="tooltipsterInteract" title="{:s}">{:'+str(labelLen)+'s} </span>').format(label, mouseOver)
         else:
             labelStr = ('{:'+str(labelLen)+'s} ').format(label)
 
@@ -1315,13 +1352,9 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
     editLines = []
     exonLines = []
 
-    #geneModels, selGeneModel = getSelGeneModel(org)
-    selGeneModel = None
-    geneModels = None
-
-    if selGeneModel!=None:
-        exonInfo = getExonInfo(org, selGeneModel, position)
-        exonLines, exonLabelLen = makeExonLines(exonInfo, seq)
+    geneModels, selGeneModel, selTransId = getSelGeneModel(org)
+    #selGeneModel = None
+    #geneModels = None
 
     if baseEditor:
         beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
@@ -1331,6 +1364,10 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
     pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores))
 
     labelLen = max(len(varLabel), len(seqLabel), len(posLabel), getMaxLen(pamLines))
+
+    if selGeneModel!=None:
+        exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, position)
+        labelLen = max(labelLen, maxTransIdLen)
 
     if baseEditor:
         labelLen = max(labelLen, getMaxLen(editLines))
@@ -1349,12 +1386,24 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
     else:
         print "Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>" % (pam, GUIDELEN)
 
-    if baseEditor or varDb or len(exonLines)>0:
+    if baseEditor or varDb or selGeneModel:
         print("""<form style="display:inline" id="paramForm" action="%s" method="GET">""" % basename(__file__))
 
     if geneModels:
-        print ("Genes:")
+        print ("Gene Models:")
         printDropDown("geneModel", geneModels, selGeneModel, style="width:20em")
+        if selGeneModel!="noGenes":
+            print ("Transcript:")
+            transIdInfo = [("allTrans", "All Transcripts")]
+            for transId, sym in exonInfo.keys():
+                transIdInfo.append( (transId, sym+" / "+transId) )
+
+            printDropDown("transId", transIdInfo, selTransId, style="width:20em")
+            # XX XXXXXX
+            #exonLines = makeExonLines(exonInfo, seq, selTransId)
+            exonLines = []
+        print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
+        print("""<br>""")
 
     if baseEditor:
         print ("Base Editor modification window:")
@@ -1383,7 +1432,7 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
             print("""&nbsp; Min. frequency: """)
             print("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq)
         print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
-        print("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can probably add it.</a></small>" % contactEmail)
+        print("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can add it.</a></small>" % contactEmail)
 
     if position=="?":
         print("<small style=''>Input sequence not in genome, cannot show genome variants.</small>")
@@ -1404,9 +1453,9 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
     print ('{:'+str(labelLen)+'s} ').format(seqLabel),
     print (seq)
 
+    printLines(exonLines, labelLen)
 
     if baseEditor:
-        printLines(exonLines, labelLen)
         printLines(editLines, labelLen)
 
     printLines(pamLines, labelLen)
@@ -2631,7 +2680,7 @@ def scoreToColor(guideScore):
     elif guideScore > 20:
         color = ("#ffff00", "yellow")
     elif guideScore==-1:
-        color = ("black", "black")
+        color = ("#000000", "black")
     else:
         color = ("#aa0114", "red")
     return color
@@ -2696,8 +2745,9 @@ def printNote(s):
     print("</div>")
 
 def printWarning(s):
-    print('<div style="text-align:left; background-color: light-red; padding:5px; border: 1px solid black"><strong>Warning:</strong>')
+    print('<div style="text-align:left; background-color: #FFDDDD; padding:5px; border: 1px solid black"><strong>Warning:</strong>')
     print(s)
+    print('</div>')
 
 def printNoEffScoreFoundWarn(effScoresCount):
     if effScoresCount==0 and not cpf1Mode:
@@ -3324,14 +3374,17 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
     for line in ifh:
         fields = line.rstrip("\n").split("\t")
         chrom, start, end, name, segment = fields
+        logging.debug("off-target: %s" % name)
         # hg38: ignore alternate chromosomes otherwise the
         # regions on the main chroms look as if they could not be
         # targeted at all with Cas9
 
         if isAltChrom(chrom):
+            logging.debug("skipping off-target: on alt-chromosome")
             continue
         nameFields = name.split("|")
         pamId, strand, editDist, seq = nameFields[:4]
+        #print pamId, strand, editDist, seq, chrom, start, end, name, segment, "<br>"
 
         if targetIsAlt:
             if editDist=='0' and onTargetChrom.split("_")[0]==chrom.split("_")[0] and not pamId in skippedPams:
@@ -3368,11 +3421,13 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
         parNum = isInPar(db, chrom, start, end)
         # keep only matches on chrX
         if parNum is not None and chrom=="chrX":
+            logging.debug("off-target on PAR region, skipping")
             continue
 
         # if a offtarget overlaps an intron/exon or ig/exon boundary it will
         # appear twice; in this case, we only keep the exon offtarget
         if otKey in pamData and segType!="ex":
+            logging.debug("skipping off-target: ex/ig boundary edge case")
             continue
         pamData[otKey] = (segType, segName)
 
@@ -3633,9 +3688,10 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
 
     # remove the temporary files
     tempFnames = [saFname, matchesBedFname, filtMatchesBedFname]
-    for tfn in tempFnames:
-        if isfile(tfn) and not DEBUG:
-            os.remove(tfn)
+    if not DEBUG:
+        for tfn in tempFnames:
+            if isfile(tfn):
+                os.remove(tfn)
     return bedFname
 
 def makeVariants(seq):
@@ -3940,7 +3996,8 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     else:
         findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFname)
 
-    os.remove(faFname)
+    if not DEBUG:
+        os.remove(faFname)
 
     return bedFname
 
@@ -4424,7 +4481,7 @@ def showPamWarning(pam):
     elif not pamIsSpCas9(pam) and not pamIsSaCas9(pam):
         print '<div style="text-align:left; border: 1px solid; background-color: aliceblue; padding: 3px">'
         print "<strong>Warning:</strong> Your query involves a Cas9 that is not from S. Pyogenes and is also not Cpf1 nor saCas9."
-        print "Please bear in mind that specificity and efficiency scores were designed using data with S. Pyogenes Cas9 and will very likely not be applicable to this particular Cas9. There is nothing we can do about this, we are unaware of a published dataset for this enzyme. If you know one, please contact us.<br>"
+        print "Please bear in mind that specificity and efficiency scores were designed using data with S. Pyogenes Cas9 and will very likely not be applicable to this particular Cas9. There is nothing we can do about this, we are unaware of a published dataset for this enzyme. If you know one, please contact us. Also contact us if you think another one of the existing scoring model would be more appropriate for this enzyme.<br>"
         print '</div>'
 
     if pam=="NNNNACA":
@@ -4832,8 +4889,10 @@ def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand):
     return exStart, exEnd, exStrand
 
 def getExonInfo(org, geneName, position):
-    """ retrieve exon info between position, return format transId -> (exNumber, start, end, strand)
+    """ retrieve exon info between position, return format transId -> (exNumber, start, end, exFrame, nextExonFrame, strand)
     - start and end are relative to position!
+    - exNumber starts at 0
+    - nextExonFrame is relative to strand: for a transcript on the - strand, it is for the more 5' exon
     """
     # bigGenePred format:
     #string chrom;       "Reference sequence chromosome or sca
@@ -4863,8 +4922,12 @@ def getExonInfo(org, geneName, position):
 
     fname = join(genomesDir, org, geneName+".bb")
 
+    maxIdLen = 0
+
     for row in iterBbLines(fname, seqChrom, seqStart, seqEnd, seqStrand):
-        chrom, chromStart, chromEnd, name, score, strand, thickStart, thickEnd, reserved, blockCount, blockSizes, blockStarts, name2, cdsStartStat, cdsEndStat, exonFrames, tType, geneName, geneName2, geneType = row
+        chrom, chromStart, chromEnd, name, score, strand, thickStart, thickEnd, reserved, \
+            blockCount, blockSizes, blockStarts, name2, cdsStartStat, cdsEndStat, exonFrames, \
+            tType, geneName, geneName2, geneType = row
 
         chromStart = int(chromStart)
         chromEnd = int(chromEnd)
@@ -4880,24 +4943,20 @@ def getExonInfo(org, geneName, position):
         if geneName2!="":
             symbol = geneName2
 
-        #if thickStart-chromStart != 0:
-            #utrStart = chromStart+blockStarts[0]-seqStart
-            #utrEnd = thickStart-seqStart
-            #utrStart, utrEnd = trimExonAndFlip(utrStart, utrEnd, seqLen)
-            #if utrStart!=None:
-
-        #if thickEnd-chromEnd != 0:
-            #utrStart = thickEnd-seqStart
-            #utrEnd = chromEnd-seqStart
-            #utrStart, utrEnd = trimExonAndFlip(utrStart, utrEnd, seqLen)
-            #if utrStart!=None:
-                #ret[(name, symbol)].append((-1, utrStart, utrEnd, -1, strand))
-
-        exNum = 0
-        for blockSize, blockStart, exonFrame in zip(blockSizes, blockStarts, exonFrames):
+        blocks = list(zip(blockSizes, blockStarts, exonFrames))
+        for exIdx, (blockSize, blockStart, exonFrame) in enumerate(blocks):
             exChromStart=chromStart+blockStart
             exChromEnd = exChromStart+blockSize
             exStrand = strand
+
+            nextFrame = None
+            if strand=="+":
+                if exIdx+1 < len(blocks):
+                    nextFrame = blocks[exIdx+1][-1]
+            else:
+                if exIdx > 0:
+                    nextFrame = blocks[exIdx-1][-1]
+            #print("next frame", nextFrame, "<br>")
 
             # figure out exon start/end: special case for UTRs: trim down to CDS start/end
             if exChromStart < thickStart < exChromEnd:
@@ -4905,7 +4964,7 @@ def getExonInfo(org, geneName, position):
                 # add the UTR as a special exon
                 utrStart, utrEnd, utrStrand  = trimExonAndFlip(exChromStart-seqStart, exStart, exStrand, seqLen, seqStrand)
                 if utrStart!=None:
-                    ret[(name, symbol)].append((-1, utrStart, utrEnd, -1, utrStrand))
+                    ret[(name, symbol)].append((-1, utrStart, utrEnd, -1, nextFrame, utrStrand))
             else:
                 exStart = chromStart+blockStart-seqStart
 
@@ -4914,7 +4973,7 @@ def getExonInfo(org, geneName, position):
                 # add the UTR as a special exon
                 utrStart, utrEnd, utrStrand = trimExonAndFlip(exEnd, exChromEnd-seqStart, exStrand, seqLen, seqStrand)
                 if utrStart!=None:
-                    ret[(name, symbol)].append((-1, utrStart, utrEnd, -1, utrStrand))
+                    ret[(name, symbol)].append((-1, utrStart, utrEnd, -1, nextFrame, utrStrand))
             else:
                 exEnd = chromStart+blockStart+blockSize-seqStart
 
@@ -4928,9 +4987,10 @@ def getExonInfo(org, geneName, position):
             symbol = ""
             if geneName2!="":
                 symbol = geneName2
-            ret[(name, symbol)].append((exNum, exStart, exEnd, exonFrame, exStrand))
+            ret[(name, symbol)].append((exIdx, exStart, exEnd, exonFrame, nextFrame, exStrand))
+            maxIdLen = max(maxIdLen, len(name))
 
-    return ret
+    return ret, maxIdLen
 
 def checkOtherArgs(params):
     # check if minFreq was specified
@@ -4959,7 +5019,8 @@ def crisprSearch(params):
         db = params["org"]
         twoBitFname = getTwoBitFname(db)
         if not isfile(twoBitFname) and db!="noGenome":
-            errAbort("Sorry, a genome assembly called %s is not on Crispor yet or not anymore. "+
+            errAbort("Sorry, a genome assembly called %s is not on Crispor "\
+                "yet or not anymore. "\
                 "Please send us an email if you want us to add it." % db)
 
     # retrieve sequence if not provided
@@ -5077,9 +5138,16 @@ def crisprSearch(params):
         printNote("At least one of the possible guide sequences was not found "
         "in the genome. If you pasted a cDNA sequence, note that sequences with "
         "score 0, e.g. splice junctions, are not in the genome, only in the cDNA "
-        "and are not usable as CRISPR guides. To find the genomic exon sequence "
-        "for your cDNA (which contains possibly PCR mutations). Please use BLAST "
-        "or BLAT, pick the exon and then paste the exon sequence into CRISPOR.")
+        "and are not usable as CRISPR guides. To find the reference genomic exon sequence "
+        "for your cDNA (which contains possibly PCR mutations), please use BLAST "
+        "or <a href='https://www.genome.ucsc.edu/cgi-bin/hgBlat'>BLAT</a> to find the best match, "
+        "copy the exon sequence from the reference genome and paste it into CRISPOR. <br>"
+        "This also applies to any sequence that is different from the reference genome, e.g. mouse "
+        "strain sequences: you will have to first map these to a reference genome, then enter the "
+        "the reference genome sequence, as otherwise CRISPOR cannot be sure where the target is. "
+        "If you have a strain where a reference genome is available, you can contact us, "
+        "ideally send us the NCBI genome "
+        "identifier (GCA_xxx or GCF_xxx), to crispor@tefor.net")
 
     chrom, start, end, strand = parsePos(position)
 
@@ -5603,12 +5671,30 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 
         colorHex, colorName = scoreToColor(guideScore)
         guideName = intToExtPamId(pamId)
-        fusiScore = str(effScores.get("fusi", -1))
-        crisprScanScore = str(effScores.get("crisprScan", -1))
-        descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, fusiScore, crisprScanScore)
-        guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, fusiScore, crisprScanScore)
-        guideDesc = "guide: %s" % guideSeq
-        longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, full details/primers at %s" % (guideScore, fusiScore, crisprScanScore, guideSeq, guideUrl)
+        urlLink = "full details/primers at %s"  % guideUrl
+
+        if pamIsSpCas9(pam):
+            fusiScore = str(effScores.get("fusi", -1))
+            crisprScanScore = str(effScores.get("crisprScan", -1))
+            descStr = "%s: Spec %s, Eff %s/%s" % (guideName, guideScore, fusiScore, crisprScanScore)
+            guideSeqDescSeq = "Guide %s MIT-Spec %s, Eff Doench2016 %s, Eff Mor.-Mat. %s" % (guideSeq, guideScore, fusiScore, crisprScanScore)
+            longDesc = "MIT-Specificity score: %s, Efficiency Doench2016 = %s, Efficiency Moreno-Mateos = %s, guide sequence: %s, " \
+                "full details/primers at %s" % (guideScore, fusiScore, crisprScanScore, guideSeq, guideUrl)
+        else:
+            mainEffName = scoreNames[0]
+            descStr = "%s: Spec %s, Eff %s" % (guideName, guideScore, effScores.get(mainEffName, -1))
+
+            shortStrList = []
+            longStrList = []
+            for scoreName in scoreNames:
+                scoreVal = str(effScores.get(scoreName, -1))
+                shortStrList.append("Eff %s %s" % (scoreName, scoreVal))
+                longStrList.append("Efficiency %s = %s" % (scoreDescs[scoreName][0], scoreVal))
+
+            guideSeqDescSeq = "Guide %s MIT-Spec %s, %s" % (guideSeq, guideScore, ", ".join(shortStrList))
+            longDesc = "MIT-Specificity score: %s, %s, guide sequence: %s, %s" \
+                % (guideScore, ", ".join(longStrList), guideSeq, urlLink)
+
 
         featType = "misc_feature"
 
@@ -5672,7 +5758,11 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             writeLn(ofh, '''/url="%s"''' % guideUrl, indent=21)
         elif fileFormat in ["geneious"]:
             writeLn(ofh, '''/label="%s"''' % guideName, indent=21, doWrap=False) # geneious translates \n to spaces, breaks link
-            writeLn(ofh, '''/note="%s"''' % longDesc, indent=21, doWrap=False)
+            writeLn(ofh, '''/MIT-spec_score="%s"''' % guideScore, indent=21, doWrap=False)
+            writeLn(ofh, '''/guide_sequence="%s"''' % guideSeq, indent=21, doWrap=False)
+            writeLn(ofh, '''/note="%s"''' % urlLink, indent=21, doWrap=False)
+            if "crisprScan" in effScores:
+                writeLn(ofh, '''/Efficiency="%s"''' % effScores["crisprScan"], indent=21, doWrap=False)
         else:
             writeLn(ofh, '''/label="%s"''' % guideName, indent=21)
             writeLn(ofh, '''/note="%s"''' % longDesc, indent=21)
@@ -5804,7 +5894,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
             continue
 
         chrom, start, end, strand, gene, isUnique = findOntargetPos(otMatches, pamId, position)
-        effScores = allEffScores[pamId]
+        #effScores = allEffScores.get(pamId, None)
 
         note = ""
         if not isUnique:
@@ -5917,7 +6007,8 @@ def downloadFile(params):
 
     if fileType=="guides":
         if cgiParams.get("showAllScores", "0")=="1":
-            scoreNames = allScoreNames
+            if not cpf1Mode and not saCas9Mode:
+                scoreNames = allScoreNames
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat), doDownload)
         xlsWrite(iterGuideRows(guideData, addHeaders=True), "guides", sys.stdout, [9,28,10,10], fileFormat, seq, org, pam, position, batchId)
 
@@ -7146,7 +7237,7 @@ def markupSeq(seq, ulPosList, boldPosList, annots = {}):
     return "".join(ret)
     #return seq[:start]+"<u>"+seq[start:end]+"</u>"+seq[end:]
 
-def makeHelperPrimers(guideName, guideSeq, plasmid):
+def makeHelperPrimers(guideName, guideSeq, plasmid, pam):
     " return dict with various names -> primer for primer page "
     primers = defaultdict(list)
     guideRnaFw = "guideRna%sT7sense" % guideName
@@ -7165,10 +7256,17 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
     if not guideSeq.lower().startswith("g"):
         prefix = "G"
     #specPrimer = "TAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
-    specPrimer = "GAAATTAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
+
+    if pamIsSaCas9(pam):
+        # See http://dx.doi.org/10.1016/j.cell.2015.08.007
+        specPrimer = "GAAATTAATACGACTCACTATA%s<b>%s</b>GTTTTAGTACTCTGGAAACAGAA" % (prefix, guideSeq)
+        tracrPrimer = "GTTTTAGTACTCTGGAAACAGAATCTACTAAAACAAGGCAAAATGCCGTGTTTATCTCGTCAACTTGTTGGCGAGATTTTTTT"
+    else:
+        specPrimer = "GAAATTAATACGACTCACTATA%s<b>%s</b>GTTTTAGAGCTAGAAATAGCAAG" % (prefix, guideSeq)
+        tracrPrimer = "AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC"
 
     primers["T7iv"].append(("guideRNA%sT7crTarget" % guideName, specPrimer))
-    primers["T7iv"].append(("guideRNAallT7common (constant primer used for all guide RNAs)", "AAAAGCACCGACTCGGTGCCACTTTTTCAAGTTGATAACGGACTAGCCTTATTTTAACTTGCTATTTCTAGCTCTAAAAC"))
+    primers["T7iv"].append(("guideRNAallT7common (constant primer used for all guide RNAs)", tracrPrimer))
 
     # geneart primers
     primers["geneArt"].append(("guideRNA%sGeneArtFw" % guideName, "TACGACTCACTATAG<b>"+guideSeq+"</b>"))
@@ -7190,6 +7288,8 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
             addGPrefix = "<u>G</u>"
             addCSuffix = "<u>C</u>"
             primers["mammCellsNote"] = True
+            guideSeqTrunc = guideSeq[1:]
+
 
         u6FwPrefix, u6RwPrefix, u6Suffix = addGenePlasmidInfo[plasmid][:3]
         for pi in addGenePlasmids:
@@ -7197,6 +7297,11 @@ def makeHelperPrimers(guideName, guideSeq, plasmid):
                 plasmidLabel = pi[1][1]
         primers["mammCells"].append((fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeq, u6Suffix)))
         primers["mammCells"].append((revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeq), addCSuffix, u6Suffix)))
+
+        if not guideSeq.lower().startswith("g"):
+            primers["mammCells19"].append(("19bp-"+fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeqTrunc, u6Suffix)))
+            primers["mammCells19"].append(("19bp-"+revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeqTrunc), addCSuffix, u6Suffix)))
+
 
         #if guideSeq.lower().startswith("g"):
             #primers["mammCells"].append((fwName, "ACACC<b>%s</b>G" % guideSeq))
@@ -7635,7 +7740,7 @@ def printEnzymeSection(mutEnzymes, targetSeq, guideSeqWPam, guideStartOnTarget, 
         print markupSeq(targetSeq, [], [(guideStartOnTarget, guideEndOnTarget)], annots)
         print "</tt><br></div>"
 
-def printCloningSection(batchId, primerGuideName, guideSeq, params):
+def printCloningSection(batchId, primerGuideName, guideSeq, params, pam):
     " print the cloning/expression section of the primer page "
     print "<h2 id='cloning'>Cloning and expression of guide RNA</h2>"
 
@@ -7644,7 +7749,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
     if plasmid not in plasmidToName:
         errAbort("Invalid value for the parameter 'plasmid'")
 
-    primers = makeHelperPrimers(primerGuideName, guideSeq, plasmid)
+    primers = makeHelperPrimers(primerGuideName, guideSeq, plasmid, pam)
 
     # T7 from plasmids
     if not cpf1Mode:
@@ -7657,7 +7762,15 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
     # T7 from primers, in vitro
     print "<h3 id='t7oligo'>T7 <i>in vitro</i> expression from overlapping oligonucleotides</h3>"
-    print "Template for <i>in vitro</i> synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>"
+
+    primerType = "spCas9"
+    if pamIsSaCas9(pam):
+        primerType = "saCas9"
+
+    if not pamIsSaCas9(pam) and not pamIsSpCas9(pam):
+        printWarning("The T7 primer information below only applies to %s enzymes. Make sure that you understand the importance of the scaffold sequence in the primers below (both primers depend on the scaffold sequence) and how it is specific to the tracrRNA sequence of your enzyme. Contact us if in doubt, we can quickly adapt the primer for this particular enzyme. " % primerType)
+
+    print "For %s, template for <i>in vitro</i> synthesis of guide RNA with T7 RNA polymerase can be prepared by annealing and primer extension of the following primers:<p>" % primerType
 
     printPrimerTable(primers["T7iv"])
 
@@ -7704,12 +7817,18 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params):
 
         print "<br>"
         if "mammCellsNote" in primers:
-            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This G has been added in the sequence below, it is underlined. For a full discussion about G- prefixing, see the discussion of G-prefixing under <a href='#t7oligo'>overlapping oligonucleotides</a>. Do not use G- prefixing with the high-fidelity Cas9 variants HF1 and eSpCas9 1.1<br>")
+            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This is not the case for this guide, so a 5' G has been added in the sequences below where it is underlined. For a full discussion about G- prefixing, see the discussion of G-prefixing under <a href='#t7oligo'>overlapping oligonucleotides</a>. (For users of HF1 and eSpCas9: G- prefixing with the high-fidelity variants may reduce efficiency, as it introduces a mismatch.)<br>")
 
         printPrimerTable(primers["mammCells"])
 
+        print("<p>For best results, the guide should be truncated to 19bp, so we recommend "
+            "to use primers below, where the guide is shortened to 19bp by removing the 5'-most nucleotide, see "
+            "<a href='https://www.nature.com/articles/s41551-019-0505-1'>Kim et al 2020</a>.")
+
+        printPrimerTable(primers["mammCells19"])
+
         _, _, _, enzyme, protoUrl = addGenePlasmidInfo[plasmid]
-        print("The plasmid has to be digested with: <i>%s</i><br>" % enzyme)
+        print("<p>The plasmid has to be digested with: <i>%s</i><br>" % enzyme)
         print("<a href='%s'>Click here</a> to download the cloning protocol for <i>%s</i>" % (protoUrl, plasmidToName[plasmid][0]))
 
     if not cpf1Mode:
@@ -7820,7 +7939,7 @@ def primerDetailsPage(params):
     print("</ul>")
     print("<hr>")
 
-    printCloningSection(batchId, primerGuideName, guideSeq, params)
+    printCloningSection(batchId, primerGuideName, guideSeq, params, pam)
     print "<hr>"
 
     targetSeq, guideStartOnTarget, guideEndOnTarget = printValidationPcrSection(batchId, genome, pamId, position, params, \
