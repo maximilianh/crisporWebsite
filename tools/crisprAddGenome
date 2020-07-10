@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import logging, sys, optparse, os, shutil, glob, json, subprocess, gzip
+import logging, sys, optparse, os, shutil, glob, json, subprocess, gzip, re, StringIO
 
 try:
     from urllib import urlopen
@@ -275,10 +275,14 @@ def printMsg(msg):
     print(" ==== "+msg+" ==== ")
 
 def moveToDest(outFnames, finalDbDir):
+    """ copy filenames in outFnames list to finalDbDir, remove any .gz strings. skip existing files.
+    relative directories are stripped.
+    """
     if not isdir(finalDbDir):
         os.makedirs(finalDbDir)
     for outFname in outFnames:
         finalPath = join(finalDbDir, basename(outFname))
+        finalPath = finalPath.replace(".gz", "")
         if isfile(finalPath):
             if not isfile(outFname):
                 print("does not exist, not copying %s" % outFname)
@@ -287,7 +291,7 @@ def moveToDest(outFnames, finalDbDir):
                 shutil.copyfile(outFname, finalPath)
         else:
             print("moving %s to crispr genome dir %s" % (outFname, finalDbDir))
-            shutil.move(outFname, finalDbDir)
+            shutil.move(outFname, finalPath)
 
 def writeGenomeInfo(row, addUcsc=False):
     " write basic genome assembly info to finalDbDir "
@@ -310,8 +314,8 @@ def writeGenomeInfo(row, addUcsc=False):
     giFh.close()
     print(("wrote %s" % genomeInfoPath))
 
-def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
-    " index fasta with bwa and make chrom sizes "
+def indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames):
+    " index fasta with bwa and make chrom sizes. Adds file names creates to outFnames "
     if isfile(sizesTmp) and not FORCE:
         printMsg("%s exists - not indexing with BWA and not converting to twobit" % sizesTmp)
         return
@@ -341,6 +345,8 @@ def indexFasta(faTmp, db, twoBitTmp, sizesTmp):
 
     os.rename(sizesTmp2, sizesTmp)
 
+    dbTmpDir = dirname(faTmp)
+    outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
     return sizesTmp
 
 def fixSymFile(accToSymTmp, symFixFile):
@@ -419,7 +425,7 @@ def indexLocalGenome(dbInfo, geneTable):
         cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
         runCmd(cmd)
 
-        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+        indexFasta(faTmp, db, twoBitTmp, sizesTmp, [])
 
     # make transcript -> symbol file
     accToSymTmp = join(dbTmpDir, db+".transToName.txt")
@@ -482,7 +488,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
             cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
             runCmd(cmd)
 
-            indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+            indexFasta(faTmp, db, twoBitTmp, sizesTmp, [])
 
         if geneTable=="none":
             accToSymTmp = None
@@ -637,6 +643,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
 
         sizesTmp = join(dbTmpDir, db+".sizes")
         twoBitTmp = join(dbTmpDir, db+".2bit")
+        outFnames = []
         if not onlyGenes and not (FORCE and isfile(sizesTmp)):
             printMsg("Genome: " + db)
             printMsg("Downloading")
@@ -652,7 +659,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
             cmd = "set -euf -o pipefail; wget %s -O - | zcat > %s" % (url, faTmp)
             runCmd(cmd)
 
-            indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+            indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)
         else:
             if not isfile(twoBitTmp):
                 twoBitTmp = join(finalDbDir, db+".2bit")
@@ -705,7 +712,6 @@ def getEnsGenomes(genomeRows, onlyGenes):
         tmpGffName = join(dbTmpDir, "transcripts.gff")
         cmd    = """wget %(gtfUrl)s -O - | zcat > %(tmpGffName)s""" % locals()
         runCmd(cmd, mustRun=False)
-        outFnames = []
         if getsize(tmpGffName)!=0:
             cmd     = """cat %(tmpGffName)s | grep -v 'exon_number "-1"' | grep -v 'AIG90451' | grep -v AGP50801 | gtfToGenePred -allErrors stdin stdout > %(gpTmp)s""" % locals()
             runCmd(cmd)
@@ -727,7 +733,6 @@ def getEnsGenomes(genomeRows, onlyGenes):
             outFnames.extend([segTmp, bbTmp, bgPred])
 
         printMsg("Moving output files into crispr tool directory")
-        outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
         outFnames.extend([sizesTmp, twoBitTmp])
 
         #if not onlyGenes:
@@ -788,7 +793,7 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
 
 def getFastaAndGff(genomeRows, gff3Fname, options):
     """
-    download fasta file and index it. Also convert gff to genePred
+    copy local fasta file or wget URL and index it. Also convert gff to genePred
     """
     for row in genomeRows:
         db = row.name
@@ -815,29 +820,25 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
 
         # download file
         if not options.onlyGenes:
-            if row.url.startswith("http://") or row.url.startswith("ftp://"):
-                if row.url.endswith(".gz"):
-                    cmd = "wget %s -O - | zcat > %s" % (row.url, faTmp)
-                else:
-                    cmd = "wget %s -O %s" % (row.url, faTmp)
-                runCmd(cmd)
-            else:
+            copyCheckFa(row.url, faTmp)
+            #if row.url.startswith("http://") or row.url.startswith("ftp://"):
+                #if row.url.endswith(".gz"):
+                    #cmd = "wget %s -O - | zcat > %s" % (row.url, faTmp)
+                #else:
+                    #cmd = "wget %s -O %s" % (row.url, faTmp)
+                #runCmd(cmd)
+            #else:
                 # local file, just copy
-                shutil.copy(row.url, faTmp)
-
-        seqLine = open(faTmp).readline()
-        if "|" in seqLine:
-            print(("sequence id '%s' : | is not allowed in the fa file. We need it as a separator in the bed file." % seqLine))
-            sys.exit(1)
-
-        line1 = open(faTmp).readline()
-        assert("|" not in line1) # I use | as a separator in crispor
+                #if row.url.endswith(".gz"):
+                    #faTmp += ".gz"
+                #print("Copy %s to %s" % (row.url, faTmp))
+                #shutil.copy(row.url, faTmp)
 
         outFnames = []
 
         twoBitTmp = join(dbTmpDir, db+".2bit")
         sizesTmp = join(dbTmpDir, db+".sizes")
-        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+        indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)
         outFnames.extend([sizesTmp, twoBitTmp])
 
 
@@ -855,7 +856,6 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
             convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv)
             outFnames.extend([gpTmp, segTmp])
 
-        outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
         moveToDest(outFnames, finalDbDir)
 
         writeGenomeInfo(row)
@@ -957,8 +957,13 @@ def getGenbankGenome(genomeInfo):
     logging.info("Adding genome: %s" % repr(genomeInfo))
     db = genomeInfo.name
     dbTmpDir = join(tmpDir, db)
-    if not isdir(dbTmpDir):
-        os.makedirs(dbTmpDir)
+    if isdir(dbTmpDir):
+        print(("there exists already a directory %s" % dbTmpDir))
+        print ("are you sure there is not already a process in a different terminal that indexes this genome?")
+        print(("if you are sure, remove the directory with 'sudo rm -rf %s' and retry" % dbTmpDir))
+        sys.exit(1)
+
+    os.makedirs(dbTmpDir)
     finalDbDir = join(crisprGenomeDir, db)
     sizesTmp = join(dbTmpDir, db+".sizes")
     faTmp = join(dbTmpDir, db+".fa")
@@ -966,19 +971,68 @@ def getGenbankGenome(genomeInfo):
     gffTmp = None
     outFnames = []
 
-    if not isfile(sizesTmp):
-        printMsg("Downloading genome and uncompressing (for bwa)")
-        url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=%s&rettype=fasta&retmode=text" % acc
-        cmd = "wget '%s' -O  %s" % (url, faTmp)
-        runCmd(cmd)
-        indexFasta(faTmp, db, twoBitTmp, sizesTmp)
-        outFnames.extend([sizesTmp, twoBitTmp])
+    #if not isfile(sizesTmp):
+    printMsg("Downloading genome and uncompressing (for bwa)")
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=%s&rettype=fasta&retmode=text" % acc
+    cmd = "wget '%s' -O  %s" % (url, faTmp)
+    runCmd(cmd)
+    indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)
+    outFnames.extend([sizesTmp, twoBitTmp])
 
     # no GFF ?
 
     moveToDest(outFnames, finalDbDir)
     writeGenomeInfo(genomeInfo)
 
+
+def copyCheckFa(inUrlOrFname, faFname):
+    """ validate fasta file:
+    - make sure that seqIds contains only alnum characters
+    - exit with err code one if not.
+    """
+    print("Copying fasta file %s to %s" % (inUrlOrFname, faFname))
+    if inUrlOrFname.startswith("http") or inUrlOrFname.startswith("ftp"):
+        ifh = urlopen(inUrlOrFname)
+        if inUrlOrFname.endswith(".gz"):
+            #ifh = StringIO.StringIO(gzip.decompress(ifh.read())) # wasteful with RAM, but whatever...
+            ifh = gzip.GzipFile(fileobj=StringIO.StringIO(ifh.read()))
+    elif inUrlOrFname.endswith(".gz"):
+        ifh = gzip.open(inUrlOrFname)
+    else:
+        ifh = open(inUrlOrFname)
+
+    ofh = open(faFname, "w")
+
+    seqCount = 0
+    for line in ifh:
+        line = line.rstrip("\n\r")
+        if line.startswith(">"):
+            seqCount +=1
+            seqId = line.lstrip(">")
+            seqId = seqId.split()[0]
+            if "|" in seqId:
+                logging.error("seqId %s in fasta file contains the | character. This is not allowed for crispor." % seqId)
+                sys.exit(1)
+            if not re.match("[a-zA-Z0-9._-]*", seqId):
+                logging.error("seqId %s in fasta file contains unusual characters. Please fix or contact us." % seqId)
+                sys.exit(1)
+            if len(seqId) > 50:
+                logging.error("seqId %s in fasta file is longer than 50 chars. That seems very long." % seqId)
+                sys.exit(1)
+            ofh.write(">%s\n" % seqId)
+        else:
+            ofh.write("%s\n" % line)
+
+    ofh.close()
+
+    if seqCount > 100000:
+        logging.error("This file contains more than 100000 sequences (contigs?). This is not allowed in crispor. Please fix the count or contact us.")
+        os.remove(ofh.name)
+        sys.exit(1)
+    #seqLine = open(faTmp).readline()
+    #if "|" in seqLine:
+        #print("ERROR: the character | is not allowed in the fa file sequence identifiers.")
+    #assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
 
 def getNcbiGenome(ftpUrl, genomeInfo, options):
     " download refseq genome and index it "
@@ -997,8 +1051,9 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
 
     if not isfile(sizesTmp):
         printMsg("Downloading genome and uncompressing (for bwa)")
-        cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
-        runCmd(cmd)
+        #cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
+        #runCmd(cmd)
+        copyCheckFa(faFtpUrl, faTmp)
 
     gffTmp = None
 
@@ -1015,16 +1070,11 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
             cmd = "gunzip -f %s.gz" % (gffTmp)
             runCmd(cmd)
 
-    seqLine = open(faTmp).readline()
-    if "|" in seqLine:
-        print("ERROR: the character | is not allowed in the fa file sequence identifiers.")
-    #assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
-
-    twoBitTmp = join(dbTmpDir, db+".2bit")
 
     outFnames = []
 
-    indexFasta(faTmp, db, twoBitTmp, sizesTmp)
+    twoBitTmp = join(dbTmpDir, db+".2bit")
+    indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)
     outFnames.extend([sizesTmp, twoBitTmp])
 
     #printMsg("Making chrom sizes")
@@ -1047,7 +1097,6 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     else:
         logging.info("Assembly has no gene annotation, skipping genePred step")
 
-    outFnames.extend(glob.glob(join(dbTmpDir, "*.fa.*"))) # bwa output files
     moveToDest(outFnames, finalDbDir)
 
     writeGenomeInfo(genomeInfo)
@@ -1102,7 +1151,7 @@ elif site=="genbank":
         getGenbankGenome(genomeInfo)
 
 else:
-    raise Exception("site has to be ucsc or ens")
+    raise Exception("site has to be ucsc, ucscLocal, ens, ncbi or genbank")
 
 cmd = "cd /data/www/crispor && ./makeGenomeInfo"
 runCmd(cmd)

@@ -129,7 +129,7 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore = sys.argv[1:]
-    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA"])
+    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN"])
 
     altScore = float(altScore)
 
@@ -152,6 +152,7 @@ def main():
             # we pass through alignments flagged as too repetitive, no matter what the PAM is
             # and we pass through this flag for crispor that this was a too repetitive sequence
             doesPass = True
+            #print "isRep"
         else:
             if isCpf1:
                 pamGenomeSeq = seq[:pamLen]

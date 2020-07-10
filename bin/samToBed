@@ -12,7 +12,8 @@
 import sys, logging
 pam = sys.argv[1]
 guideLen = int(sys.argv[2])
-isCpf1 = (pam in ["TTTN", "TTN", "TTTV", "ATTN"])
+# DO NOT FORGET TO EDIT bin/filterFaToBed and crispor.py if you change this!!
+isCpf1 = (pam in ["TTTN", "TTN", "TTTV", "ATTN", "NGTN"])
 pamLen = len(pam)
 
 exprMatchStr = str(guideLen)+"M"
