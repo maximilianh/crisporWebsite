@@ -790,16 +790,10 @@ explicit two-guide nickase designs. If you think that this is a mistake, let us
 know, but for now, we do not recommend the double-guide nickase strategy
 anymore. We rather recommend eSpCas9 1.1 or SpCas9-HF1 and single guides.
 
-* How many copies of the gene should I knock-out in cell lines?
+* How can I take my cell line-specific gene copy number into account when designing my guides?
 
 Soren Hough (Univ Cambridge) shares: 
-Try cansar, e.g. for the gene KIF1A: https://cansarblack.icr.ac.uk/target/Q12756/copy-number
-The default is to assume we're working with diploid cells. Alas, frequently
-we're not. Let's say my Sanger sequencing/TIDE results show that each of my
-clones contain 75%, 50% or 100% frameshift. If I'm assuming 2 copies of the
-gene, this is a bit confusing - how can I have 75% editing? There are a few
-biological explanations (e.g. continued editing in a daughter cell), but the
-easiest explanation comes when I look at the Cansar database. 4 copies of my
-target gene? That makes sense! I must have edited 3/4 for the 75% clones, 2/4
-for the 50% clones, and so on.
+We often assume we're working with diploid cells. Unfortunately, that's often not the case (particularly in cancer research). To help plan our knockout experiments, we sometimes turn to canSAR, a useful database for finding the copy number for a given gene. Here's an example:
+
+If we were planning to knock out the kinesin gene KIF1A, we'd head to the Copy Number section on the canSAR website: https://cansarblack.icr.ac.uk/target/Q12756/copy-number. At the bottom of that page is a table with each cell line and its reported KIF1A copy number. If I'm working in 786-0 human kidney cells, I can see that there are 4 copies of KIF1A in that cell line. This may mean the gene ends up being more difficult to knock out than if the cell were diploid. Regardless, knowing there are 4 copies will help explain Sanger/TIDE results that show alleles accounting for just 25%, 50% or 75% of a selected monoclonal population. That may mean that only 1, 2 or 3 copies of KIF1A were edited, respectively.
 
