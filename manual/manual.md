@@ -789,3 +789,17 @@ less specific than the new high-specificity Cas9 enzymes. We have no plans anymo
 explicit two-guide nickase designs. If you think that this is a mistake, let us
 know, but for now, we do not recommend the double-guide nickase strategy
 anymore. We rather recommend eSpCas9 1.1 or SpCas9-HF1 and single guides.
+
+* How many copies of the gene should I knock-out in cell lines?
+
+Soren Hough (Univ Cambridge) shares: 
+Try cansar, e.g. for the gene KIF1A: https://cansarblack.icr.ac.uk/target/Q12756/copy-number
+The default is to assume we're working with diploid cells. Alas, frequently
+we're not. Let's say my Sanger sequencing/TIDE results show that each of my
+clones contain 75%, 50% or 100% frameshift. If I'm assuming 2 copies of the
+gene, this is a bit confusing - how can I have 75% editing? There are a few
+biological explanations (e.g. continued editing in a daughter cell), but the
+easiest explanation comes when I look at the Cansar database. 4 copies of my
+target gene? That makes sense! I must have edited 3/4 for the 75% clones, 2/4
+for the 50% clones, and so on.
+
