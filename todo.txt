@@ -1,4 +1,14 @@
+Crispor Edit:
+- (C>A)
+- (CCA>TGA)
+- (CCA>del)
+- (ins>CCA)
+
+
 Indel predictions:
+- Kim 2020: https://www.nature.com/articles/s41551-019-0505-1#code-availability https://github.com/CRISPRJWCHOI/IndelSearcher
+- Wang 2019 https://www.nature.com/articles/s41467-019-12281-8 www.deephf.com
+
 - Chakrabarti et al Mol Cell 2018 https://www.sciencedirect.com/science/article/pii/S1097276518310013?via%3Dihub
 - Wei of Jay Shendure's group 
 Add more deletion predictors:

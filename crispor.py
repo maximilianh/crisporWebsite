@@ -2320,7 +2320,8 @@ def printDownloadTableLinks(batchId, addTsv=False):
     print '<div id="downloads" style="text-align:left">'
     print "Download as Excel tables: ",
     print '<a href="crispor.py?batchId=%s&download=guides&format=xls">Guides</a>&nbsp;/&nbsp;' % batchId,
-    print '<a href="crispor.py?batchId=%s&showAllScores=1&download=guides&format=xls">Guides, all scores</a>&nbsp;/&nbsp;' % batchId,
+    if not cpf1Mode and not saCas9Mode:
+        print '<a href="crispor.py?batchId=%s&showAllScores=1&download=guides&format=xls">Guides, all scores</a>&nbsp;/&nbsp;' % batchId,
     print '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>&nbsp;/&nbsp;' % batchId,
     print('<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis assistant</a><br>' % batchId)
     #print "<small>Plasmid Editor: ",
@@ -7288,7 +7289,7 @@ def makeHelperPrimers(guideName, guideSeq, plasmid, pam):
             addGPrefix = "<u>G</u>"
             addCSuffix = "<u>C</u>"
             primers["mammCellsNote"] = True
-            guideSeqTrunc = guideSeq[1:]
+        guideSeqTrunc = guideSeq[1:]
 
 
         u6FwPrefix, u6RwPrefix, u6Suffix = addGenePlasmidInfo[plasmid][:3]
@@ -7298,9 +7299,8 @@ def makeHelperPrimers(guideName, guideSeq, plasmid, pam):
         primers["mammCells"].append((fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeq, u6Suffix)))
         primers["mammCells"].append((revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeq), addCSuffix, u6Suffix)))
 
-        if not guideSeq.lower().startswith("g"):
-            primers["mammCells19"].append(("19bp-"+fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeqTrunc, u6Suffix)))
-            primers["mammCells19"].append(("19bp-"+revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeqTrunc), addCSuffix, u6Suffix)))
+        primers["mammCells19"].append(("19bp-"+fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeqTrunc, u6Suffix)))
+        primers["mammCells19"].append(("19bp-"+revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeqTrunc), addCSuffix, u6Suffix)))
 
 
         #if guideSeq.lower().startswith("g"):
@@ -7833,7 +7833,7 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params, pam):
 
     if not cpf1Mode:
         print "<h3 id='ciona'>Direct PCR for <i>C. intestinalis</i></h3>"
-        print ("""Only usable at the moment in <i>Ciona intestinalis</i> (alias <i>Ciona robusta</i>). DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated into Ciona eggs.<br>""")
+        print ("""A method only used at the moment by <i>Ciona intestinalis</i> (alias <i>Ciona robusta</i>) labs. The DNA construct is assembled during the PCR reaction; expression cassettes are generated with One-Step Overlap PCR (OSO-PCR) <a href="http://www.sciencedirect.com/science/article/pii/S0012160616306455">Gandhi et al., Dev Bio 2016</a> (<a href="http://biorxiv.org/content/early/2017/01/01/041632">preprint</a>) following <a href="downloads/prot/cionaProtocol.pdf">this protocol</a>. The resulting unpurified PCR product can be directly electroporated or injected into Ciona eggs.<br>""")
         if batchName!="":
             primerStart = batchName
         else:
