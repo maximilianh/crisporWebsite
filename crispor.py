@@ -4147,7 +4147,7 @@ def printForm(params):
 <form id="main-form" method="post" action="%s">
 
  <div style="text-align:left; margin-left: 10px">
- CRISPOR (<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">paper</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
+ CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
 <br><i>June 2020: saCas9 primer fixes, Snapgene/Geneious improvements, better export for Cpf1<a href="doc/changes.html">Full list of changes</a></i><br>
 
@@ -5242,7 +5242,7 @@ def printTeforBodyStart():
 def printTeforBodyEnd():
     print '<div style="clear:both; text-align:center">Version %s - ' % versionStr
     print '<a target=_blank href="/manual/">Documentation</a>&nbsp; - '
-    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a> - <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2">Paper</a> - <a href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a></div>""" % (contactEmail)
+    print """<a href='mailto:%s'>Contact us</a> - <a href="downloads/">Downloads/local installation</a> - <a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">Citation</a> - <a href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a></div>""" % (contactEmail)
 
     print '</div>'
     print ("""
