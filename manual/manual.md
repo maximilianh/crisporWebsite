@@ -9,7 +9,8 @@ Download this page as a [PDF](manual.pdf) or [Epub](manual.epub).
 What is CRISPOR?
 ================
 
-[CRISPOR](http://crispor.org) is a website that helps select and express CRISPR guide sequences.  In
+[CRISPOR](http://crispor.org) is a website that helps select and express CRISPR guide sequences, described
+in two papers ([Gen Biol 2016](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2) and [NAR 2018](https://academic.oup.com/nar/article/46/W1/W242/4995687)). In
 its default mode, the user pastes an input DNA sequence and chooses the genome.
 CRISPOR then lists the guides in the input sequence, adding information about
 them found in databases and algorithms, including genome variants, predicted
