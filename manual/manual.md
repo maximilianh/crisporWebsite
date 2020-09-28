@@ -706,6 +706,10 @@ users by email until now, mostly using NCBI RefSeq genome accessions.
 Frequently Asked Questions {#faq}
 ==========================
 
+* Which paper should I cite for CRISPOR? What is the CRISPOR citation?
+
+Please cite: Concordet et al, NAR 2018, https://doi.org/10.1093/nar/gky354
+
 * Why is the MIT score (aka Hsu score) displayed by CRISPOR different from the
     ones displayed by the MIT website, Desktop Genetics or Benchling?
 

@@ -184,6 +184,8 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('TCCA','TCCA-23bp - TCCA LbCpf1'),
          ('CCCA','CCCA-23bp - CCCA LbCpf1'),
          ('GGTT','GGTT-23bp - CCCA LbCpf1'),
+         ('YTTV','20bp-YTTV - MAD7 Nuclease, Lui, Schiel, Maksimova et al, CRISPR J 2020'),
+         ('NNN','pseudo-PAM for CasRx'),
        ]
 
 DEFAULTPAM = 'NGG'
