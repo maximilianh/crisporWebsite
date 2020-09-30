@@ -230,6 +230,9 @@ is sufficient for most large-library-design applications.
 * Mark Diekhans for patching twoBitToFa and making it 100 times faster
 * See the file changes.html for the full list of acknowledgements for every feature
 
+#Resource
+1:https://www.youtube.com/watch?v=6mbwJ2xhgzM&list=PLu0W_9lII9agiCUZYRsvtGTXdxkzPyItg
+2:https://www.youtube.com/watch?v=U-JhRjRaD4A
 # Licenses
 
 Included software:
