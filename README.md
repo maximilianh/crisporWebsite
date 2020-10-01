@@ -150,7 +150,7 @@ Also make sure you have the CGI module enabled:
 
 If using SElinux, especially on Fedora/CentOS/RedHat, please switch it off or set it to permissive mode.
 
-Clone the repo into such a directory:
+Clone the repository into such a directory:
 
     cd /var/www/html/
     git clone https://github.com/maximilianh/crisporWebsite
