@@ -203,7 +203,7 @@ The four |-split values for the --desc option are: internalDatabaseName, scienti
 
 Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used for the directory name.
 
-# "I am running many thousands of guides and it is very slow"
+# "I am running thousands of guides and it is very slow"
 
 The .bed input is always fastest, as it saves the initial BWASW step where crispor maps to the target genome.
 
@@ -224,13 +224,13 @@ Alternatively, you may want to give flashfry by Aaron McKenna a try. It is
 optimized for large libraries, it uses much more RAM and has fewer scores but
 is sufficient for most large-library-design applications.
 
-# Thanks!
+#  Special Thanks To
 * Jean-Paul Concordet for numerous ideas on the user interface
 * Alberto Stolfi for finding the N-SNP-bug
 * Mark Diekhans for patching twoBitToFa and making it 100 times faster
 * See the file changes.html for the full list of acknowledgements for every feature
 
-# Licenses
+# License
 
 Included software:
 
