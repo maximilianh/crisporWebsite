@@ -244,3 +244,5 @@ Included software:
 CRISPOR itself:
 
 * the two files crispor.py and crisporEffScores.py are released under a special license, see LICENSE.txt in this directory
+
+We really appreciate any contribution.
