@@ -189,6 +189,14 @@ Now try to access the script from a webbrowser, http://localhost/crispor.py and 
 
 # Adding a genome
 
+All genomes available on crispor.org (except a few pre-publication ones) are provided for download at http://crispor.tefor.net/genomes/. To get one of these into the current directory, use a command like this (replace hg38 with your genome code):
+
+    mkdir genomes
+    cd genomes
+    mkdir hg38
+    cd hg38
+    wget -r -l1 --no-parent -nd  --reject 'index*' --reject 'robots*' http://crispor.tefor.net/genomes/hg38/
+    
 Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome. You may need to download `twoBitToFa` from http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/ and install the tool `gffread` by installing cufflinks on your machine (e.g. with `apt-get install cufflinks`). 
 
 The subdirectory usrLocalBin contains other required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
