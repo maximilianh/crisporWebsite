@@ -134,6 +134,8 @@ and testOutHg19Offtargets.tab
 
     ../crispor.py hg19 testInHg19.fa testOutHg19.mine.tab -o testOutHg19Offtargets.mine.tab
 
+To add more genomes than yeast, skip the next section. If you want to run your script now as a web service, continue reading with the next section. 
+
 # Running the script as a CGI under Apache with the job queue
 
 Make sure you can execute CGI scripts somewhere. Your Apache config (e.g. /etc/apache2/sites-enabled/000-default) should contain a section like this:
@@ -189,7 +191,7 @@ Now try to access the script from a webbrowser, http://localhost/crispor.py and 
 
 # Adding a genome
 
-All genomes available on crispor.org (except a few pre-publication ones) are provided for download at http://crispor.tefor.net/genomes/. To get one of these into the current directory, use a command like this (replace hg38 with your genome code):
+All genomes available on crispor.org (except a few pre-publication ones) are provided as pre-indexed and correctly formattef files for download at http://crispor.tefor.net/genomes/. To get one of these into the current directory, use a command like this (replace hg38 with your genome code):
 
     mkdir genomes
     cd genomes
@@ -197,7 +199,7 @@ All genomes available on crispor.org (except a few pre-publication ones) are pro
     cd hg38
     wget -r -l1 --no-parent -nd  --reject 'index*' --reject 'robots*' http://crispor.tefor.net/genomes/hg38/
     
-Look into the "tools" directory [https://github.com/maximilianh/crisporWebsite/tree/master/tools], try the script crisprAddGenome. You may need to download `twoBitToFa` from http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/ and install the tool `gffread` by installing cufflinks on your machine (e.g. with `apt-get install cufflinks`). 
+If you need to add a new genomes, this is quite a bit more involved. Ideally you want gene models in the right format (GFF), a fastsa file and various tools to convert and index these. In most cases, it's much easier to email crispor@tefor.net and ask me to add the genome, then you can download it as above. If this is not what you want, you can add a genome yourself, there even is a script for it. Look into the "tools" directory https://github.com/maximilianh/crisporWebsite/tree/master/tools, try the script crisprAddGenome. You will need to download the UCSC tools `twoBitToFa` and `bedToBigBed` from http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/ and install the tool `gffread` by installing cufflinks on your machine (e.g. with `apt-get install cufflinks`). 
 
 The subdirectory usrLocalBin contains other required tools for this script, you can copy them into /usr/local/bin of your machine, they are 64bit static linux binaries and should work on most current machines.
 
@@ -209,7 +211,7 @@ E.g. to add the X. laevis genome:
 
 The four |-split values for the --desc option are: internalDatabaseName, scientificName, commonOrDisplayName, VersionNameOfAssembly
 
-Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used for the directory name.
+Make sure that internalDatabaseName does not include special characters, spaces etc. as it is used as a directory name.
 
 # "I am running many thousands of guides and it is very slow"
 
