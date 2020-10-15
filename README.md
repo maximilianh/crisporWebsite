@@ -191,7 +191,7 @@ Now try to access the script from a webbrowser, http://localhost/crispor.py and 
 
 # Adding a genome
 
-All genomes available on crispor.org (except a few pre-publication ones) are provided as pre-indexed and correctly formattef files for download at http://crispor.tefor.net/genomes/. To get one of these into the current directory, use a command like this (replace hg38 with your genome code):
+If you want to add to your own crispor.py installation a genome that is already on crispor.org, that's very easy. All genomes available on crispor.org (except a few pre-publication ones) are provided as pre-indexed and correctly formattef files for download at http://crispor.tefor.net/genomes/. To get one of these into the current directory, use a command like this (replace hg38 with your genome code):
 
     mkdir genomes
     cd genomes
