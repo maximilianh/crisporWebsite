@@ -184,6 +184,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('TCCA','TCCA-23bp - TCCA LbCpf1'),
          ('CCCA','CCCA-23bp - CCCA LbCpf1'),
          ('GGTT','GGTT-23bp - CCCA LbCpf1'),
+         ('YTTV','YTTV-20bp - MAD7 Nuclease, Lui, Schiel, Maksimova et al, CRISPR J 2020'),
        ]
 
 DEFAULTPAM = 'NGG'
@@ -813,7 +814,7 @@ def makeTempFile(prefix, suffix):
 
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed! "
-    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA"])
+    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV"])
 
 def pamIsSaCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
@@ -4327,8 +4328,15 @@ def saveOutcomeData(batchId, data):
     """ save outcome data of batch. data is a dictionary with key = score name """
     batchBase = join(batchDir, batchId)
     dbFname = batchBase
-    import dbm
-    db = dbm.open(dbFname, "c")
+    # some distributions don't include the dbm module anymore
+    try:
+        import dbm
+        dbMod = dbm
+    except:
+        import gdbm
+        dbMod = gdbm
+
+    db = dbMod.open(dbFname, "c")
 
     #conn = sqlite3.connect(dbFname, "w")
     #c = conn.cursor()
