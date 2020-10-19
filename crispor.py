@@ -7282,8 +7282,11 @@ def makeHelperPrimers(guideName, guideSeq, plasmid, pam):
     primers["geneArt"].append(("guideRNA%sGeneArtRev" % guideName, "TTCTAGCTCTAAAAC<b>"+revComp(guideSeq)+"</b>"))
 
     # U6 - mammalian cells
-    fwName = "guideRNA%sU6sense" % guideName
-    revName = "guideRNA%sU6antisense" % guideName
+    u6Prefix = ""
+    if not guideSeq.lower().startswith("g"):
+        u6Prefix = "gN20-"
+    fwName = "%sguideRNA%sU6sense" % (u6Prefix, guideName)
+    revName = "%sguideRNA%sU6antisense" % (u6Prefix, guideName)
 
     if cpf1Mode:
         primers["mammCells"].append((fwName, "AGAT<b>%s</b>" % guideSeq))
@@ -7307,8 +7310,9 @@ def makeHelperPrimers(guideName, guideSeq, plasmid, pam):
         primers["mammCells"].append((fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeq, u6Suffix)))
         primers["mammCells"].append((revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeq), addCSuffix, u6Suffix)))
 
-        primers["mammCells19"].append(("19bp-"+fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeqTrunc, u6Suffix)))
-        primers["mammCells19"].append(("19bp-"+revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeqTrunc), addCSuffix, u6Suffix)))
+        if not guideSeq.lower().startswith("g"):
+            primers["mammCells19"].append(("gN19-"+fwName+plasmidLabel, "%s%s<b>%s</b>%s" % (u6FwPrefix, addGPrefix, guideSeqTrunc, u6Suffix)))
+            primers["mammCells19"].append(("gN19-"+revName+plasmidLabel, "%s<b>%s</b>%s%s" % (u6RwPrefix, revComp(guideSeqTrunc), addCSuffix, u6Suffix)))
 
 
         #if guideSeq.lower().startswith("g"):
@@ -7825,15 +7829,19 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params, pam):
 
         print "<br>"
         if "mammCellsNote" in primers:
-            print("<strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This is not the case for this guide, so a 5' G has been added in the sequences below where it is underlined. For a full discussion about G- prefixing, see the discussion of G-prefixing under <a href='#t7oligo'>overlapping oligonucleotides</a>. (For users of HF1 and eSpCas9: G- prefixing with the high-fidelity variants may reduce efficiency, as it introduces a mismatch.)<br>")
+            print("<p><strong>Note:</strong> Efficient transcription from the U6 promoter requires a 5' G. This is not the case for this guide. Several options are possible, you can either add an additional G- prefix to the N20 guide sequence, called  gN20 guides here, or replace the first with a G and create a gN19 guide. For users of HF1 and eSpCas9: G- prefixing with the high-fidelity variants may reduce efficiency, as it introduces a mismatch.</p>")
 
-        printPrimerTable(primers["mammCells"])
+            print("<strong>Primers for gN20 guides:</strong>")
+            printPrimerTable(primers["mammCells"])
 
-        print("<p>For best results, the guide should be truncated to 19bp, so we recommend "
-            "to use primers below, where the guide is shortened to 19bp by removing the 5'-most nucleotide, see "
-            "<a href='https://www.nature.com/articles/s41551-019-0505-1'>Kim et al 2020</a>.")
+            print("<p><strong>Primers for gN19 guides:</strong><br>")
+            print("<a href='https://www.nature.com/articles/s41551-019-0505-1'>Kim et al 2020</a>. showed that changing "
+            "the first nucleotide to 'G' is slightly more efficient.</p>")
 
-        printPrimerTable(primers["mammCells19"])
+            printPrimerTable(primers["mammCells19"])
+        else:
+            printPrimerTable(primers["mammCells"])
+
 
         _, _, _, enzyme, protoUrl = addGenePlasmidInfo[plasmid]
         print("<p>The plasmid has to be digested with: <i>%s</i><br>" % enzyme)
