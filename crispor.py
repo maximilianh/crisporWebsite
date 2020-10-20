@@ -4357,8 +4357,8 @@ def readOutcomeData(batchId, scoreName):
     #conn = sqlite3.connect(dbFname, "r")
     #c = conn.cursor()
     #binData = c.execute("SELECT data FROM outcomes where id=?", scoreName)
-    import dbm
     try:
+        import dbm
         db = dbm.open(batchBase, "r") # dbm always adds .db to the file name
     except:
         # old batches on crispor.org are still using gdbm
