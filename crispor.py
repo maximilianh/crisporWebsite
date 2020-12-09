@@ -1441,7 +1441,7 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
         print("<small style=''><a href='mailto:%s'>Suggest a genome variants database to show on this page</a></small>" % contactEmail)
 
     print "</div>"
-    print '''<div style="text-align: left; overflow-x:scroll; width:98vw; background:#DDDDDD; border-style: solid; border-width: 1px">'''
+    print '''<div class="blueHighlight" style="text-align: left; overflow-x:scroll; width:98vw; background:#DDDDDD; border-style: solid; border-width: 1px">'''
 
     print '<pre style="font-size: 80%; display:inline; line-height: 0.95em; text-align:left">'
     print ('{:'+str(labelLen)+'s} ').format(posLabel),
@@ -8195,6 +8195,10 @@ def runQueueWorker():
             #q.dump()
             time.sleep(1+random.random()/10)
             continue
+
+        if isfile("/tmp/stopCrispor"):
+            logging.info("Stop signal received")
+            sys.exit(0)
 
         jobType, batchId, paramStr = q.popJob()
         if jobType=="search":
