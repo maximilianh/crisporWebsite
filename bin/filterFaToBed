@@ -129,7 +129,10 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore = sys.argv[1:]
-    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN"])
+    # XX SHOULD BE PUT INTO A LIB
+    # DO NOT FORGET TO EDIT bin/filterFaToBed, bin/samToBed and crispor.py if you change this!!
+    # NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
+    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV"])
 
     altScore = float(altScore)
 

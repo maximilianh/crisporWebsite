@@ -819,8 +819,11 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
         faTmp = join(dbTmpDir, db+".fa")
 
         # download file
+        outFnames = []
         if not options.onlyGenes:
-            copyCheckFa(row.url, faTmp)
+            liftFname = copyCheckFa(row.url, faTmp)
+            if liftFname:
+                outFnames.append(liftFname)
             #if row.url.startswith("http://") or row.url.startswith("ftp://"):
                 #if row.url.endswith(".gz"):
                     #cmd = "wget %s -O - | zcat > %s" % (row.url, faTmp)
@@ -834,7 +837,6 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
                 #print("Copy %s to %s" % (row.url, faTmp))
                 #shutil.copy(row.url, faTmp)
 
-        outFnames = []
 
         twoBitTmp = join(dbTmpDir, db+".2bit")
         sizesTmp = join(dbTmpDir, db+".sizes")
@@ -985,9 +987,32 @@ def getGenbankGenome(genomeInfo):
     writeGenomeInfo(genomeInfo)
 
 
+def makeChrUn(fname):
+    " create a chrUn and a lift file for it "
+    cutoff = 2500
+    cmd = "faFilter -maxSize=%d %s /tmp/smallSeqs.fa" % (cutoff, fname)
+    runCmd(cmd)
+    cmd = "faFilter -v -maxSize=%d %s /tmp/bigSeqs.fa" % (cutoff, fname)
+    runCmd(cmd)
+    cmd = "faCat /tmp/smallSeqs.fa /tmp/chrUn /tmp/chrUnLft -gapSize=100 -maxOutputSize=99999999999"
+    runCmd(cmd)
+    cmd = "sed -i s/chrUn\.1/chrUn/ /tmp/chrUn.1.fa"
+    runCmd(cmd)
+    cmd = "sed -i s/chrUn\.1/chrUn/ /tmp/chrUnLft.1.lft"
+    runCmd(cmd)
+
+    newFname = fname+".new"
+    cmd = "cat /tmp/bigSeqs.fa /tmp/chrUn.1.fa > %s" % newFname
+    runCmd(cmd)
+    cmd = "mv %s %s" % (newFname, fname)
+    runCmd(cmd)
+    cmd = "mv /tmp/chrUnLft.1.lft /tmp/chrUn.lft"
+    runCmd(cmd)
+    return '/tmp/chrUn.lft'
+
 def copyCheckFa(inUrlOrFname, faFname):
     """ validate fasta file:
-    - make sure that seqIds contains only alnum characters
+    - make sure that seqIds contains only alnum characters, merge contigs into chrUn if needed
     - exit with err code one if not.
     """
     print("Copying fasta file %s to %s" % (inUrlOrFname, faFname))
@@ -1025,10 +1050,15 @@ def copyCheckFa(inUrlOrFname, faFname):
 
     ofh.close()
 
-    if seqCount > 100000:
-        logging.error("This file contains more than 100000 sequences (contigs?). This is not allowed in crispor. Please fix the count or contact us.")
-        os.remove(ofh.name)
-        sys.exit(1)
+    maxCount = 130000
+    if seqCount > maxCount:
+        logging.error("This file contains %d, which is more than %d sequences (contigs?). This is not allowed in crispor. Please fix the count or contact us." % (seqCount, maxCount))
+        liftFname = makeChrUn(ofh.name)
+        return liftFname
+    else:
+        return None
+        #os.remove(ofh.name)
+        #sys.exit(1)
     #seqLine = open(faTmp).readline()
     #if "|" in seqLine:
         #print("ERROR: the character | is not allowed in the fa file sequence identifiers.")
@@ -1049,18 +1079,25 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     baseFtp = baseFtp.replace(" ", "_") # some ncbiAsmDescs include spaces
     faFtpUrl = baseFtp + ".fna.gz"
 
-    if not isfile(sizesTmp):
+    outFnames = []
+
+    hasChrUn = False
+
+    if not isfile(sizesTmp) or FORCE:
         printMsg("Downloading genome and uncompressing (for bwa)")
         #cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
         #runCmd(cmd)
-        copyCheckFa(faFtpUrl, faTmp)
+        liftFname = copyCheckFa(faFtpUrl, faTmp)
+        if liftFname:
+            hasChrUn = True
+            outFnames.append(liftFname)
 
     gffTmp = None
 
     if options.gffFname:
         gffTmp = options.gffFname
     else:
-        if not "GCA_" in faFtpUrl:
+        if not "GCA_" in faFtpUrl and not hasChrUn:
             gffTmp = join(dbTmpDir, db+".gff")
             gffFtpUrl = baseFtp + ".gff.gz"
             printMsg("Downloading gff")
@@ -1071,7 +1108,6 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
             runCmd(cmd)
 
 
-    outFnames = []
 
     twoBitTmp = join(dbTmpDir, db+".2bit")
     indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)

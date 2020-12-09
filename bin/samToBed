@@ -13,7 +13,9 @@ import sys, logging
 pam = sys.argv[1]
 guideLen = int(sys.argv[2])
 # DO NOT FORGET TO EDIT bin/filterFaToBed and crispor.py if you change this!!
-isCpf1 = (pam in ["TTTN", "TTN", "TTTV", "ATTN", "NGTN"])
+# NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
+# XX SHOULD BE PUT INTO A LIB
+isCpf1 = (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV"])
 pamLen = len(pam)
 
 exprMatchStr = str(guideLen)+"M"
