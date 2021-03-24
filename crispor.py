@@ -185,6 +185,9 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('CCCA','CCCA-23bp - CCCA LbCpf1'),
          ('GGTT','GGTT-23bp - CCCA LbCpf1'),
          ('YTTV','YTTV-20bp - MAD7 Nuclease, Lui, Schiel, Maksimova et al, CRISPR J 2020'),
+         ('TTYN','TTYN- or VTTV- or TRTV-23bp - enCas12a E174R/S542R/K548R - Kleinstiver et al Nat Biot 2019'),
+         #('VTTV','(A/C)TT(A/C)-23bp - enCas12a S542R - Kleinstiver et al Nat Biot 2019'),
+         #('TRTV','T(A/G)T(A/C)-23bp - enCas12a K548R - Kleinstiver et al Nat Biot 2019'),
        ]
 
 DEFAULTPAM = 'NGG'
@@ -194,7 +197,8 @@ DEFAULTBEWIN = "1-7"
 
 # for some PAMs, there are alternative main PAMs. These are also shown on the main sequence panel
 multiPams = {
-    "NGN" : ["GAW"]
+    "NGN" : ["GAW"],
+    "TTYN" : ["VTTV", "TRTV"]
 }
 
 # for some PAMs, we allow other alternative motifs when searching for offtargets
@@ -210,7 +214,8 @@ offtargetPams = {
     "NGA" : ["NGG"],
     "NNGRRT" : ["NNGRRN"],
     "TTTV" : ["TTTN"],
-    'ATTN' : ["TTTN", "GTTN"]
+    'ATTN' : ["TTTN", "GTTN"],
+    "TTYN" : ["VTTV", "TRTV"]
 }
 
 # maximum size of an input sequence
@@ -814,11 +819,18 @@ def makeTempFile(prefix, suffix):
 
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed! "
-    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV"])
+    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV", "TTYN"])
 
 def pamIsSaCas9(pam):
     " only used for notes and efficiency scores, unlike its Cpf1 cousin function "
     return (pam.split("-")[0] in ["NNGRRT", "NNNRRT"])
+
+def isSlowPam(pam):
+    " do not allow input sequences > 500 bp "
+    if pamIsXCas9(pam) or pam=="TTYN" or pam=="NNG":
+        return True
+    else:
+        return False
 
 def pamIsXCas9(pam):
     " "
@@ -1668,7 +1680,7 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
                 if chromDist > 20000000:
                     htmlText2 += "<br><small>&gt;20Mbp = unlikely to be in linkage with target</small>"
                 else:
-                    htmlText2 += "<br><small>&lt;20Mbp= likely to be in linkage with target!</small>"
+                    htmlText2 += "<br><small>&lt;20Mbp= likely to be in linkage with target! Even without linkage: beware of chromosomal rearrangements with this guide!</small>"
 
     hasLast12Mm = last12MmCount>0
     return htmlText1+htmlText2, hasLast12Mm
@@ -2141,7 +2153,7 @@ def htmlWarn(text):
     " show help text with tooltip "
     print '''<img style="height:0.9em; width:0.8em; padding-bottom: 2px" src="%simage/warning-32.png" class="help tooltipster" title="%s" />''' % (HTMLPREFIX, text)
 
-def readEnzymes():
+def readRestrEnzymes():
     """ parse restrSites.txt and
     return as dict length -> list of (name, suppliers, seq) """
     fname = "restrSites.txt"
@@ -2261,7 +2273,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
     for each pam in startDict, retrieve the guide sequence next to it and score it
     sortBy can be "effScore", "mhScore", "oofScore" or "pos"
     """
-    allEnzymes = readEnzymes()
+    allEnzymes = readRestrEnzymes()
 
     guideData = []
     guideScores = {}
@@ -5056,8 +5068,8 @@ def crisprSearch(params):
 
         seq, warnMsg = cleanSeq(seq, org)
 
-        if len(seq) > MAXSEQLEN2 and (pamIsXCas9(pamDesc) or pamDesc=="NNG"):
-            errAbort("Sorry, but xCas9 and SCanis have so many PAM sites that we are restricting "
+        if len(seq) > MAXSEQLEN2 and (isSlowPam(pamDesc)):
+            errAbort("Sorry, but xCas9, SCanis and enCas12a have so many PAM sites that we are restricting "
                 " the input sequence length to %d bp at the moment to keep the "
                 "web site fast enough. We will revisit this in a few months. Let us know if "
                 "you think this is too short." % MAXSEQLEN2, isWarn=True)
@@ -6215,7 +6227,11 @@ def otPrimerPage(params):
     # primers -> table rows
     primerTable = []
     for otScore, seqName, primerInfo in sorted(scoredPrimers, reverse=True):
-        otScore = "%.3f" % otScore
+        if otScore is None:
+            otScore = "noOfftargetScore"
+        else:
+            otScore = "%.3f" % otScore
+            otScore = otScore[:4]
         lSeq, lTm, lPos, rSeq, rTm, rPos = primerInfo
         if batchName!="":
             baseName = batchName+"_"+seqName
@@ -6226,7 +6242,6 @@ def otPrimerPage(params):
         prefixForw="<b>TCGTCGGCAGCGTC</b>"
         prefixRev="<b>GTCTCGTGGGCTCGG</b>"
 
-        otScore = otScore[:4]
         if lSeq is None:
             primerTable.append( (baseName+"_F", "Primer3: not found at this Tm", "N.d.", otScore) )
         else:
@@ -7893,7 +7908,7 @@ def primerDetailsPage(params):
         = findGuideSeq(inSeq, pam, pamId)
 
     # search for restriction enzymes that overlap the mutation site
-    allEnzymes = readEnzymes()
+    allEnzymes = readRestrEnzymes()
     mutEnzymes = matchRestrEnz(allEnzymes, guideSeq.upper(), pamSeq.upper(), pamPlusSeq)
 
     # create a more human readable name of this guide
