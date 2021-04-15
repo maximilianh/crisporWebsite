@@ -38,6 +38,8 @@ FORCE = False
 
 ENSGRELEASE = "42"
 
+smallCutoff = 2500
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|ncbi <taxId1> <taxId2> ... - add genome to crispr site
 
@@ -989,10 +991,9 @@ def getGenbankGenome(genomeInfo):
 
 def makeChrUn(fname):
     " create a chrUn and a lift file for it "
-    cutoff = 2500
-    cmd = "faFilter -maxSize=%d %s /tmp/smallSeqs.fa" % (cutoff, fname)
+    cmd = "faFilter -maxSize=%d %s /tmp/smallSeqs.fa" % (smallCutoff, fname)
     runCmd(cmd)
-    cmd = "faFilter -v -maxSize=%d %s /tmp/bigSeqs.fa" % (cutoff, fname)
+    cmd = "faFilter -v -maxSize=%d %s /tmp/bigSeqs.fa" % (smallCutoff, fname)
     runCmd(cmd)
     cmd = "faCat /tmp/smallSeqs.fa /tmp/chrUn /tmp/chrUnLft -gapSize=100 -maxOutputSize=99999999999"
     runCmd(cmd)
@@ -1052,17 +1053,11 @@ def copyCheckFa(inUrlOrFname, faFname):
 
     maxCount = 130000
     if seqCount > maxCount:
-        logging.error("This file contains %d, which is more than %d sequences (contigs?). This is not allowed in crispor. Please fix the count or contact us." % (seqCount, maxCount))
+        logging.error("This file contains %d, which is more than our limit of %d sequences (contigs?). This means a very poor quality assembly. I will try to work around it by creating an artifical chrUn chromosome with all sequences < %d bp. Gene annotations will not be available for this artificial chromosome." % (seqCount, maxCount, smallCutoff))
         liftFname = makeChrUn(ofh.name)
         return liftFname
     else:
         return None
-        #os.remove(ofh.name)
-        #sys.exit(1)
-    #seqLine = open(faTmp).readline()
-    #if "|" in seqLine:
-        #print("ERROR: the character | is not allowed in the fa file sequence identifiers.")
-    #assert("|" not in seqLine) # | is not allowed in the fa file. We need it as a separator in the bed file.
 
 def getNcbiGenome(ftpUrl, genomeInfo, options):
     " download refseq genome and index it "

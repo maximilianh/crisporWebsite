@@ -1624,9 +1624,16 @@ def highlightMismatches(guide, offTarget, pamLen):
     return "".join(s)
 
 def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
-    " given two strings of equal length, return a html-formatted string that highlights the differences "
+    """ given two strings of equal length, return a html-formatted string of several lines
+    that show the two sequences and a line that highlights where they differ
+    """
     lines = [ [], [], [] ]
     last12MmCount = 0
+    inLinkage = False
+    hlSeed = False
+
+    if pamIsSpCas9(pam):
+        hlSeed = True
 
     if cpf1Mode:
         lines[0].append("<i>"+seq1[:len(pam)]+"</i> ")
@@ -1641,16 +1648,24 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
         guideEnd = len(seq1)-len(pam)
 
     for i in range(guideStart, guideEnd):
+        if hlSeed and i==10:
+            lines[1].append("<u>")
+
         if seq1[i]==seq2[i]:
             lines[0].append(seq1[i])
             lines[1].append(seq2[i])
             lines[2].append(" ")
         else:
-            lines[0].append("<b>%s</b>"%seq1[i])
-            lines[1].append("<b>%s</b>"%seq2[i])
+            lines[0].append("<b>%s</b>" % seq1[i])
+
+            lines[1].append("<b>%s</b>" % seq2[i])
+
             lines[2].append("*")
             if i>7:
                 last12MmCount += 1
+
+        if hlSeed and i==guideEnd-1:
+            lines[1].append("</u>")
 
     if not cpf1Mode:
         lines[0].append(" <i>"+seq1[-len(pam):]+"</i>")
@@ -1680,10 +1695,13 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
                 if chromDist > 20000000:
                     htmlText2 += "<br><small>&gt;20Mbp = unlikely to be in linkage with target</small>"
                 else:
-                    htmlText2 += "<br><small>&lt;20Mbp= likely to be in linkage with target! Even without linkage: beware of chromosomal rearrangements with this guide!</small>"
+                    htmlText2 += "<br><small>&lt;20Mbp= likely to be in linkage with "
+                    "target! Even if no linkage: beware of chromosomal rearrangements "
+                    "when using this guide!</small>"
+                    inLinkage = True
 
     hasLast12Mm = last12MmCount>0
-    return htmlText1+htmlText2, hasLast12Mm
+    return htmlText1+htmlText2, hasLast12Mm, inLinkage
 
 def parsePos(text):
     """ parse a string of format chr:start-end:strand and return a 4-tuple
@@ -1813,10 +1831,12 @@ def makePosList(org, countDict, guideSeq, pam, inputPos):
             if parNum is not None:
                 posStr += " PAR%s" % parNum
 
-            alnHtml, hasLast12Mm = makeAlnStr(org, guideSeq, otSeq, pam, mitScore, cfdScore, posStr, dist)
+            alnHtml, hasLast12Mm, inLinkage = makeAlnStr(org, guideSeq, otSeq,
+                pam, mitScore, cfdScore, posStr, dist)
             if not hasLast12Mm:
                 last12MmOtCount+=1
-            posList.append( (otSeq, mitScore, cfdScore, editDist, posStr, geneDesc, alnHtml) )
+            posList.append( (otSeq, mitScore, cfdScore, editDist, posStr, geneDesc,
+                alnHtml, inLinkage) )
 
         last12MmCounts.append(str(last12MmOtCount))
         # create a list of number of offtargets for this edit dist
@@ -2632,7 +2652,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
 
     print "</th>"
     print '<th style="width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
-    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.")
+    htmlHelp("For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.<br>On most organisms, you can click the links below to open a window with a genome browser at this position.")
 
     print '<br><small>'
     print '<input type="hidden" name="batchId" value="%s">' % batchId
@@ -2709,12 +2729,14 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
     links = []
 
     i = 0
-    for otSeq, score, cfdScore, editDist, pos, gene, alnHtml in otData:
+    for otSeq, score, cfdScore, editDist, pos, gene, alnHtml, inLinkage in otData:
         cssClasses = ["tooltipster"]
         if not gene.startswith("exon:"):
             cssClasses.append("notExon")
         if pos.split(":")[0]!=chrom:
             cssClasses.append("diffChrom")
+        if inLinkage:
+            cssClasses.append("inLinkage")
 
         classStr =  ""
         if len(cssClasses)!=0:
@@ -2724,12 +2746,6 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
         editDist = str(editDist)
         links.append( '''<div%(classStr)s>%(editDist)s:%(link)s</div>''' % locals() )
 
-        #i+=1
-        #if i>=3:
-            #break
-
-    #if not showAll and len(otData)>3:
-         #print '''... <br>&nbsp;&nbsp;&nbsp;<a href="crispor.py?batchId=%s&showAll=1">- show all offtargets</a>''' % batchId
     return links
 
 def filterOts(otDatas, minScore):
