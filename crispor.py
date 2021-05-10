@@ -76,7 +76,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.98"
+versionStr = "4.99"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -152,13 +152,14 @@ ALTSEQ = 'ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAAC
 
 pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NNG','20bp-NNG - Cas9 S. canis'),
+         ('NGN','20bp-NGN - SpG'),
          ('NNGT','20bp-NNGT - Cas9 S. canis - high efficiency PAM, recommended'),
          ('NAA','20bp-NAA - iSpyMacCas9'),
          #('TTN','TTN-23bp - Cpf1 F. Novicida'), # Jean-Paul: various people have shown that it's not usable yet
          ('NNGRRT','21bp-NNG(A/G)(A/G)T - Cas9 S. Aureus'),
          ('NNGRRT-20','20bp-NNG(A/G)(A/G)T - Cas9 S. Aureus with 20bp-guides'),
-         ('NGK','20bp-NG(G/T) - xCas9, high efficiency PAM, recommended'),
-         ('NGN','20bp-NGN or GA(A/T) - xCas9, low efficiency PAM'),
+         ('NGK','20bp-NG(G/T) - xCas9, recommended PAM, see notes'),
+         #('NGN','20bp-NGN or GA(A/T) - xCas9 (low efficiency, not recommended)'),
          #('NGG-BE1','20bp-NGG - BaseEditor1, modifies C->T'),
          ('NNNRRT','21bp-NNN(A/G)(A/G)T - KKH SaCas9'),
          ('NNNRRT-20','20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides'),
@@ -186,6 +187,10 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('GGTT','GGTT-23bp - CCCA LbCpf1'),
          ('YTTV','YTTV-20bp - MAD7 Nuclease, Lui, Schiel, Maksimova et al, CRISPR J 2020'),
          ('TTYN','TTYN- or VTTV- or TRTV-23bp - enCas12a E174R/S542R/K548R - Kleinstiver et al Nat Biot 2019'),
+         ('NNNNCNAA','20bp-NNNNCNAA - Thermo Cas9 - Walker et al, Metab Eng Comm 2020'),
+         ('NNN','20bp-NNN - SpRY, Walton et al Science 2020'), # https://science.sciencemag.org/content/368/6488/290.abstract
+         ('NRN','20bp-NRN - SpRY (high efficiency PAM)'),
+         ('NYN','20bp-NYN - SpRY (low efficiency PAM)'),
          #('VTTV','(A/C)TT(A/C)-23bp - enCas12a S542R - Kleinstiver et al Nat Biot 2019'),
          #('TRTV','T(A/G)T(A/C)-23bp - enCas12a K548R - Kleinstiver et al Nat Biot 2019'),
        ]
@@ -197,9 +202,15 @@ DEFAULTBEWIN = "1-7"
 
 # for some PAMs, there are alternative main PAMs. These are also shown on the main sequence panel
 multiPams = {
-    "NGN" : ["GAW"],
+    #"NGN" : ["GAW"],
     "TTYN" : ["VTTV", "TRTV"]
 }
+
+# these PAMs are not specific. Allow only short sequences for them.
+slowPams = ["TTYN", "NNG"]
+
+# allow only very short sequences for these
+verySlowPams = ["NNN", "NRN", "NYN"]
 
 # for some PAMs, we allow other alternative motifs when searching for offtargets
 # MIT and eCrisp do that, they use the motif NGG + NAG, we add one more, based on the
@@ -209,7 +220,7 @@ multiPams = {
 # ! the length of the alternate PAM has to be the same as the original PAM!
 offtargetPams = {
     "NGG" : ["NAG","NGA"],
-    "NGN" : ["GAW"],
+    #"NGN" : ["GAW"],
     "NGK" : ["GAW"],
     "NGA" : ["NGG"],
     "NNGRRT" : ["NNGRRN"],
@@ -219,11 +230,13 @@ offtargetPams = {
 }
 
 # maximum size of an input sequence
-MAXSEQLEN = 2000
+MAXSEQLEN = 2300
 # maximum input size when specifying "no genome"
 MAXSEQLEN_NOGENOME = 25000
 # maximum input size when using xCas9 or sCanis
 MAXSEQLEN2 = 600
+# maximum input size for NNN SpRY or similar PAMs
+MAXSEQLEN3 = 150
 
 # BWA: allow up to X mismatches
 maxMMs=4
@@ -258,8 +271,7 @@ batchName = ""
 # has to be set on program start, as soon as we know
 # the PAM we're running on
 cpf1Mode=None
-saCas9Mode=None
-
+saCas9Mode=False
 
 # Highly-sensitive mode (not for CLI mode):
 # MAXOCC is increased in processSubmission() and in the html UI if only one
@@ -425,12 +437,15 @@ def setupPamInfo(pam):
     global baseEditor
     global saCas9Mode
     global mutScoreNames
+    global isSpg
 
     pamOpt = None
     if "-" in pam:
         pam, pamOpt = pam.split("-")
         if pamOpt=="BE1":
             baseEditor = "BE1"
+        elif pamOpt=="spg":
+            isSpg = True
 
     PAMLEN = len(pam)
 
@@ -468,6 +483,8 @@ def setupPamInfo(pam):
     else:
         mutScoreNames = otherMutScoreNames
 
+    logging.debug("Enzyme info: pam=%s, guideLen=%d, cpf1Mode=%s, saCas9Mode=%s" %
+        (pam, GUIDELEN, cpf1Mode, saCas9Mode))
 
     return pam
 
@@ -1729,7 +1746,7 @@ def parsePos(text):
         chrom, start, end, strand = "", 0, 0, "+"
     return chrom, start, end, strand
 
-def makePosList(org, countDict, guideSeq, pam, inputPos):
+def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
     """ for a given guide sequence, return a list of tuples that
     describes the offtargets sorted by score and a string to describe the offtargets in the
     format x/y/z/w of mismatch counts
@@ -1907,6 +1924,8 @@ def calcHitScore(string1,string2):
     matrixStart = 0
     maxDist = 19
 
+    assert(string1[0].isupper())
+    assert(len(string1)==len(string2))
     #for nmCas9 and a few others with longer guides, we limit ourselves to 20bp
     if len(string1)>20:
         string1 = string1[-20:]
@@ -2288,7 +2307,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq):
 def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None, org=None):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
-    creates rows with too many fields. Probably needs refactoring.
+    creates rows with too many fields. needs refactoring.
 
     for each pam in startDict, retrieve the guide sequence next to it and score it
     sortBy can be "effScore", "mhScore", "oofScore" or "pos"
@@ -2311,7 +2330,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq)
             posList, otDesc, guideScore, guideCfdScore, last12Desc, ontargetDesc, \
                repCount = \
-                   makePosList(org, pamMatches, guideSeqFull, pamPat, inputPos)
+                   annotateOfftargets(org, pamMatches, guideSeqFull, pamPat, inputPos)
             if repCount!=0:
                 guideScore = 0
                 guideCfdScore = 0
@@ -4178,7 +4197,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>June 2020: saCas9 primer fixes, Snapgene/Geneious improvements, better export for Cpf1<a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>April 2021: MAD7, Thermocas9, SpRY, exons <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -4232,8 +4251,11 @@ def printForm(params):
     """ % HTMLPREFIX
 
     printPamDropDown(lastpam)
+
+    print("""<br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>""")
+
     print """
-    <div style="width:40%; margin-top: 50px; margin-left:50px; text-align:center; display:block">
+    <div style="width:40%; margin-top: 10px; margin-left:50px; text-align:center; display:block">
     <input type="submit" name="submit" value="SUBMIT" tabindex="4"/>
     </div>
     </div>
@@ -5090,6 +5112,12 @@ def crisprSearch(params):
                 "web site fast enough. We will revisit this in a few months. Let us know if "
                 "you think this is too short." % MAXSEQLEN2, isWarn=True)
 
+        if len(seq) > MAXSEQLEN3 and (pamDesc in verySlowPams):
+            errAbort("Sorry, but SpRY has so many PAM sites that we are restricting "
+                " the input sequence length to %d bp at the moment to keep the "
+                "web site usable. We will revisit this in a few months. Please let us know if "
+                "you think this is too short or have other ideas how to handle the issue." % MAXSEQLEN3, isWarn=True)
+
         batchId = newBatch(newBatchName, seq, org, pamDesc)
         print ("<script>")
         print ('''history.replaceState('crispor.py', document.title, '?batchId=%s');''' % (batchId))
@@ -5461,7 +5489,7 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
                 skipCount += otCount
                 continue
 
-            for otSeq, mitScore, cfdScore, editDist, pos, gene, alnHtml in otData:
+            for otSeq, mitScore, cfdScore, editDist, pos, gene, alnHtml, inLinkage in otData:
                 gene = gene.replace(",", "_").replace(";","-")
                 chrom, start, end, strand = parsePos(pos)
                 guideDesc = intToExtPamId(pamId)
@@ -7982,6 +8010,7 @@ def primerDetailsPage(params):
     if len(mutEnzymes)!=0:
         print("<li><a href='#restrSites'>Restriction sites for PCR validation</a></li>")
     print("<li><a href='#offtargetPcr'>PCR to amplify off-target sites</a></li>")
+    print("<li><a href='#donorGuide'>Guide mutations that minimize on-target activity</a></li>")
     print("<li><a href='#satMut'>Saturating mutagenesis using all guides</a></li>")
     print("</ul>")
     print("<hr>")
@@ -8000,6 +8029,38 @@ def primerDetailsPage(params):
     print("<h2 id='offtargetPcr'>PCR to amplify off-target sites</h2>")
     offtUrl = cgiGetSelfUrl({"otPrimers":"1"}, onlyParams=["batchId", "pamId"])
     print("<p>Primers for all off-targets can be downloaded from the <a href='%s'>Off-target PCR</a> page.</p>" % offtUrl)
+
+    print("<h2 id='donorGuide'>BETA: Guide mutations to minimize on-target activity</h2>")
+    doDonorGuide = cgiGetStr(params, "donorGuide", "off")
+    if doDonorGuide=="on":
+        #print("Guide sequence without PAM is: <tt>%s</tt><p>" % guideSeq)
+        #inSeq, genome, pamSeq, position, extSeq = readBatchParams(batchId)
+        seq, org, pam, position, guideData = readBatchAndGuides(batchId)
+        for guideRow in guideData:
+            guideScore, guideCfdScore, effScores, startPos, guideStart, \
+            strand, rowPamId, guideSeq, pamSeq, otData, otDesc, \
+            last12Desc, mutEnzymes, ontargetDesc, repCount = guideRow
+            if rowPamId != pamId:
+                continue
+
+            cfdSums = defaultdict(float)
+            for otSeq, score, cfdScore, editDist, pos, gene, \
+                alnHtml, inLinkage in otData:
+                #print("offtarget=%s, cfd=%f, " % (otSeq, cfdScore))
+                lastThree = otSeq[:-len(pamSeq)][-3:]
+                #print("last 3 bp=%s<br>" % lastThree)
+                cfdSums[lastThree]+=cfdScore
+
+            sumList = [(y,x) for (x,y) in cfdSums.items()]
+            sumList.sort()
+            print("Sums of CFD scores for all possible mutations of the last three nucleotides of the guide:<br>")
+            for cfdSum, seq in sumList:
+                print("<li>%s: %f" % (seq, cfdSum))
+
+    else:
+        url = cgiGetSelfUrl({"donorGuide":"on"})
+        print("<a href='%s#donorGuide'>Click here to list mutated guides " \
+            "sorted by off-targetactivity</a>" % url)
 
     print("<h2 id='satMut'>Saturating mutagenesis using all guides</h2>")
     satMutUrl = cgiGetSelfUrl({"satMut":"1"}, onlyParams=["batchId"])
@@ -8080,14 +8141,10 @@ def runTests():
        "GTGTGGGAGGAGAAGAAGAA": 0.8,
        "GGGTAAGAGTAGAAGAAGAA": 0.8
     }
-    #for seq, expScore in testRes.iteritems():
-        #score = calcHitScore(guideSeq, seq)
-        #print score, "%0.1f" % score, expScore
 
     guideSeq = "GAGTCCGAGCAGAAGAAGAA"
     for seq, expScore in testRes2.iteritems():
         score = calcHitScore(guideSeq, seq)
-        #print score, "%0.1f" % score, expScore
 
 def parseArgs():
     " parse command line options into args and options "
@@ -8581,6 +8638,14 @@ def printAssistant(params):
 
 def mainCgi():
     " main entry if called from apache "
+    # XX I need a throttling system
+    ip = os.environ.get("REMOTE_ADDR", "noIp")
+    if ip=="18.141.51.207" or ip=="80.11.166.200":
+        print "Content-type: text/html\n"
+        print "Your IP address is hammering crispor and has brought down the server for dozens of other users."
+        print "Please contact me at maxh@ucsc.edu."
+        sys.exit(0)
+
     # XX IS THE SCRIPT SYMLINKED ? XX
     if os.getcwd()!="/var/www/crispor":
         # only activate stackdumps if running on a development machine
