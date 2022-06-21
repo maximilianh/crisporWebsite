@@ -1,7 +1,7 @@
 biopython==1.68
 cycler==0.10.0
 matplotlib==1.5.3
-numpy==1.11.2
+numpy==1.22.0
 pandas==0.19.1
 py==1.4.31
 pyparsing==2.1.10
