@@ -76,7 +76,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "4.99"
+versionStr = "5.01"
 
 # contact email
 contactEmail='crispor@tefor.net'
@@ -1313,6 +1313,7 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores):
     return ret, jsonData
 
 def makePamLines(lines, maxY, pamIdToSeq, guideScores):
+    """" return a few ASCII strings that are hold annotations under the sequence. Must be printed as <PRE>-blocks """
     for y in range(0, maxY+1):
         texts = []
         lastEnd = 0
@@ -1328,9 +1329,9 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores):
             texts.append(spacer)
 
             score = guideScores[pamId]
-            # XX How can this happen for non-Cpf1 enzymes? Can this ever happen?
-            if score is None and not pamIsFirst:
-                continue
+            # there used to be a special case here, but it caused trouble with the drawing. So not doing anymore.
+            #if score is None and not pamIsFirst:
+                #continue
             color = scoreToColor(score)[0]
 
             texts.append('''<a class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (classStr, color, pamId,pamId))
@@ -1360,7 +1361,7 @@ def printLines(lines, labelLen):
             labelStr = ('{:'+str(labelLen)+'s} ').format(label)
 
         print (labelStr),
-        print(line)
+        print (line)
 
 def getMaxLen(lines):
     " given a list of tuples where first element is the label, return the longest label len "
@@ -2741,7 +2742,7 @@ def scoreToColor(guideScore):
         color = ("#32cd32", "green")
     elif guideScore > 20:
         color = ("#ffff00", "yellow")
-    elif guideScore==-1:
+    elif guideScore==-1 or guideScore is None:
         color = ("#000000", "black")
     else:
         color = ("#aa0114", "red")
@@ -4206,7 +4207,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>April 2021: MAD7, Thermocas9, SpRY, exons <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>August 2022: Small bugfix, PAMs were sometimes offset in the sequence plot<a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
