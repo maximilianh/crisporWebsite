@@ -13,6 +13,7 @@ Learning to Rank for Information Retrieval (Tie-Yan Liu)
 import numpy as np
 import scipy as sp
 import scipy.stats
+#from . import util as ut
 import util as ut
 import time
 
@@ -499,10 +500,10 @@ def ndcg_at_k_swap_perm_test(preds1, preds2, true_labels, nperm, method, k, norm
         return pval, real_ndcg_diff, perm_ndcg_diff, ndcg1, ndcg2
 
 if __name__ == "__main__":
-    import cPickle as pickle
+    import pickle as pickle
     import matplotlib.pyplot as plt
     import elevation.metrics
-    import corrstats
+    from . import corrstats
 
     simulated_data = True
     permute_real_data = True
@@ -530,9 +531,9 @@ if __name__ == "__main__":
     allp = np.nan*np.zeros((len(theta_range) + 1, T))
 
     if not simulated_data:
-        print "loading up saved data..." # two-fold CV data from CRISPR off-target GUIDE-SEQ
+        print("loading up saved data...") # two-fold CV data from CRISPR off-target GUIDE-SEQ
         with open(r'\\nerds5\kevin\from_nicolo\gs.pickle','rb') as f:  predictions, truth_all = pickle.load(f)
-        print "done."
+        print("done.")
         N = len(truth_all[0])
             
     for t in range(T):
@@ -626,16 +627,16 @@ if __name__ == "__main__":
     k = len(pred3)
 
     pval, real_ndcg_diff,  perm_ndcg_diff, ndcg1, ndcg2 = ndcg_at_k_swap_perm_test(pred1, pred2, truth, nperm, method, k, normalize_from_below_too, theta=theta)
-    print "ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval)
+    print("ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval))
     
     pval, real_ndcg_diff,  perm_ndcg_diff, ndcg1, ndcg2 = ndcg_at_k_swap_perm_test(pred1, pred1, truth, nperm, method, k, normalize_from_below_too, theta=theta)    
-    print "ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval)
+    print("ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval))
 
     pval, real_ndcg_diff,  perm_ndcg_diff, ndcg1, ndcg2 = ndcg_at_k_swap_perm_test(pred1, pred4, truth, nperm, method, k, normalize_from_below_too, theta=theta)    
-    print "ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval)
+    print("ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval))
 
     pval, real_ndcg_diff,  perm_ndcg_diff, ndcg1, ndcg2 = ndcg_at_k_swap_perm_test(pred1, pred5, truth, nperm, method, k, normalize_from_below_too, theta=theta)    
-    print "ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval)
+    print("ndcg1=%f, ndcg2=%f, ndcg_diff=%f, p=%f" % (ndcg1, ndcg2, real_ndcg_diff, pval))
 
     import ipdb; ipdb.set_trace()
 
@@ -644,11 +645,11 @@ if __name__ == "__main__":
     #print ndcg_at_k_ties(truth, pred2, k, method=0, normalize_from_below_too=True)
     #print ndcg_at_k_ties(truth, pred3, k, method=0, normalize_from_below_too=True)
     #print ndcg_at_k_ties(truth3, pred3, k, method=3, normalize_from_below_too=True)
-    print ndcg_at_k_ties(truth4, pred2, k, method=3, normalize_from_below_too=True)
+    print(ndcg_at_k_ties(truth4, pred2, k, method=3, normalize_from_below_too=True))
         
-    print ndcg_alt(truth[np.argsort(pred2)[::-1]], 5)
-    print ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=1)
-    print ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=0)
+    print(ndcg_alt(truth[np.argsort(pred2)[::-1]], 5))
+    print(ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=1))
+    print(ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=0))
 
-    print ndcg_at_k_ties(truth, pred2, 5, method=1)
-    print ndcg_at_k_ties(truth, pred2, 5, method=0)
+    print(ndcg_at_k_ties(truth, pred2, 5, method=1))
+    print(ndcg_at_k_ties(truth, pred2, 5, method=0))

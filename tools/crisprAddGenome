@@ -38,7 +38,7 @@ FORCE = False
 
 ENSGRELEASE = "42"
 
-smallCutoff = 2500
+smallCutoff = 500000
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|ncbi <taxId1> <taxId2> ... - add genome to crispr site
@@ -105,7 +105,12 @@ def runCmd(cmd, mustRun=True, useSys=False):
         ret = subprocess.call(args)
     if ret!=0 and mustRun:
         print(("Could not run command %s" % cmd))
-        sys.exit(0)
+        if mustRun:
+            #sys.exit(0)
+            assert(False)
+        else:
+            return -1
+
     return ret
     
 def lineFileNext(fh, skipLines=0):
@@ -561,7 +566,7 @@ def selectEnsGenomes(genomeIds):
             no["server"] = od["division"]
             scName = od["name"].replace("_", " ").capitalize()
             parts = scName.split()
-            shortName = "".join(parts[0][:3]).title()+"".join(parts[1][:3]).title()
+            shortName = "".join(parts[0][:3]).title()+"".join(parts[1][:3]).title()+od["assembly"]
 
             no["name"] = "ens"+str(od["release"])+shortName
             if od["accession"]:
@@ -587,6 +592,7 @@ def selectEnsGenomes(genomeIds):
             row = Rec(*row)
             rows.append(row)
 
+    assert(len(rows)!=0) # no genome found?
     return rows
 
 def getEnsDownloadUrls(division, org, assembly, release, dataType):
@@ -1069,7 +1075,8 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     sizesTmp = join(dbTmpDir, db+".sizes")
     faTmp = join(dbTmpDir, db+".fa")
 
-    ncbiAsmDesc = genomeInfo.description.split("(")[-1].rstrip(")")
+    ncbiAsmDesc = genomeInfo.description.split("(")[-1].rstrip(")").replace(",", "").replace("+", "_")
+    # some names includes commas, see https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/721/785/GCF_000721785.1_Aureobasidium_pullulans_var._pullulans_EXF-150_assembly_version_1.0/
     baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+ncbiAsmDesc+"_genomic"
     baseFtp = baseFtp.replace(" ", "_") # some ncbiAsmDescs include spaces
     faFtpUrl = baseFtp + ".fna.gz"
@@ -1092,17 +1099,18 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     if options.gffFname:
         gffTmp = options.gffFname
     else:
-        if not "GCA_" in faFtpUrl and not hasChrUn:
-            gffTmp = join(dbTmpDir, db+".gff")
-            gffFtpUrl = baseFtp + ".gff.gz"
-            printMsg("Downloading gff")
-            cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
-            runCmd(cmd)
-
+        #if not "GCA_" in faFtpUrl and not hasChrUn:
+        gffTmp = join(dbTmpDir, db+".gff")
+        gffFtpUrl = baseFtp + ".gff.gz"
+        printMsg("Downloading gff")
+        cmd = "wget %s -O %s.gz" % (gffFtpUrl, gffTmp)
+        ret = runCmd(cmd, mustRun=False)
+        if ret!=0:
+            gffTmp = None
+            logging.warn("Genome has no GFF file. This is pretty common for GCA_ assemblies.")
+        else:
             cmd = "gunzip -f %s.gz" % (gffTmp)
             runCmd(cmd)
-
-
 
     twoBitTmp = join(dbTmpDir, db+".2bit")
     indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)

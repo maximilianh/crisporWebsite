@@ -368,9 +368,9 @@ if __name__ == "__main__":
     pred1 = np.array([3, 4, 2, 1, 0, 0, 0])
     pred2 = np.array([2, 1, 3, 4, 5, 6, 7])
 
-    print ndcg_alt(truth[np.argsort(pred2)[::-1]], 5)
-    print ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=1)
-    print ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=0)
+    print((ndcg_alt(truth[np.argsort(pred2)[::-1]], 5)))
+    print((ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=1)))
+    print((ndcg_at_k(truth[np.argsort(pred2)[::-1]], 5, method=0)))
 
-    print ndcg_at_k_ties(truth, pred2, 5, method=1)
-    print ndcg_at_k_ties(truth, pred2, 5, method=0)
+    print((ndcg_at_k_ties(truth, pred2, 5, method=1)))
+    print((ndcg_at_k_ties(truth, pred2, 5, method=0)))

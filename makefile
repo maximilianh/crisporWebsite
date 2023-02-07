@@ -28,8 +28,16 @@ pushOne:
 	sudo cp crispor.py /data/www/crispor/
 	sudo cp doc/changes.html /data/www/crispor/doc/
 
-pushTwo:
+miniPush:
 	cd /data/www/crispor && ./stopWorkers.sh && true
 	cp /data/www/crisporBeta/crispor.py  ./crispor.py 
 	cp /data/www/crisporBeta/doc/changes.html  ./doc/changes.html 
 	cd /data/www/crispor && ./startWorkers.sh
+
+bigPush:
+	cd /data/www/crispor && ./stopWorkers.sh && true
+	cp crispor.py /data/www/crispor/
+	cp bin/filterFaToBed /data/www/crispor/bin/
+	cp bin/samToBed /data/www/crispor/bin/
+	cd /data/www/crispor && ./startWorkers.sh
+	

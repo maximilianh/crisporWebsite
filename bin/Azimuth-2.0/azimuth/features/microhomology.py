@@ -78,8 +78,8 @@ def compute_score(seq, tmpfile1="1.before removing duplication.txt", tmpfile2="2
             mh_score = sum_score_3+sum_score_not_3
             oof_score = (sum_score_not_3)*100/(sum_score_3+sum_score_not_3)
             if verbose:
-                print 'Microhomology score = ' + str(mh_score) 
-                print 'Out-of-frame score = ' + str(oof_score) 
+                print('Microhomology score = ' + str(mh_score)) 
+                print('Out-of-frame score = ' + str(oof_score)) 
     f1.close() 
     f2.close()
     return mh_score, oof_score
@@ -99,4 +99,4 @@ if __name__ == '__main__':
     #Out-of-frame score = 50.7473889639
     #GGAGGAAGGGCCTGAGTCCGAGCAGAAGAAGAAGGGCTCCCATCACATCAACCGGTGGCG    
     
-    print seq  
+    print(seq)  

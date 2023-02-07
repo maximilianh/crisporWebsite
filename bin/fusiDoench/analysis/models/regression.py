@@ -79,13 +79,13 @@ def logreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
 
     best_alpha = learn_options["alpha"][max_score_ind[0]]
 
-    print "\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]])
+    print(("\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]])))
     max_perf = np.nanmax(performance)
 
     if max_perf < 0.0:
         raise Exception("performance is negative")
 
-    print "\t\tbest performance is %f" % np.nanmax(performance)
+    print(("\t\tbest performance is %f" % np.nanmax(performance)))
 
     clf = sklearn.linear_model.LogisticRegression(penalty=learn_options['penalty'],
                                                   dual=False, fit_intercept=True, class_weight='auto',
@@ -169,15 +169,15 @@ def linreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
 
     best_alpha, best_l1r = learn_options["alpha"][max_score_ind[0]], l1_ratio[max_score_ind[1]]
 
-    print "\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]])
+    print(("\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]])))
     if learn_options['penalty'] == "EN":
-        print "\t\tbest l1_ratio is %f from range=%s" % (best_l1r, l1_ratio[[0, -1]])
+        print(("\t\tbest l1_ratio is %f from range=%s" % (best_l1r, l1_ratio[[0, -1]])))
     max_perf = np.nanmax(performance)
 
     if max_perf < 0.0:
         raise Exception("performance is negative")
 
-    print "\t\tbest performance is %f" % max_perf
+    print(("\t\tbest performance is %f" % max_perf))
 
     clf = train_linreg_model(best_alpha, l1r, learn_options, train, X, y, y_all)
     if learn_options["feature_select"]:

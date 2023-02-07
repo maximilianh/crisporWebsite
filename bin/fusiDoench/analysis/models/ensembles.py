@@ -1,15 +1,15 @@
 import numpy as np
 import sklearn.linear_model
 import sklearn.ensemble as en
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 import sklearn
 from sklearn.linear_model import LinearRegression
 import scipy as sp
-from regression import linreg_on_fold
+from .regression import linreg_on_fold
 import sklearn
 import sklearn.tree as tree
 from sklearn import svm
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 
 
 def spearman_scoring(clf, X, y):
@@ -34,7 +34,7 @@ def adaboost_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_
             clf.fit(X[train], y[train].flatten())
             y_pred = clf.predict(X[test])[:, None]
         else:
-            print "Adaboost with GridSearch"
+            print("Adaboost with GridSearch")
             from sklearn.grid_search import GridSearchCV
             param_grid = {'learning_rate': [0.1, 0.05, 0.01],
                           'max_depth': [4, 5, 6, 7],
@@ -50,7 +50,7 @@ def adaboost_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_
 
             est = en.GradientBoostingRegressor(loss=learn_options['adaboost_loss'], n_estimators=learn_options['adaboost_n_estimators'])
             clf = GridSearchCV(est, param_grid, n_jobs=20, verbose=1, cv=cv, scoring=spearman_scoring, iid=False).fit(X[train], y[train].flatten())
-            print clf.best_params_
+            print((clf.best_params_))
             y_pred = clf.predict(X[test])[:, None]
     else:
         raise NotImplementedError
@@ -69,8 +69,8 @@ def LASSOs_ensemble_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum,
     train_sub[train_indices] = True
     valid_sub[valid_indices] = True
 
-    validations = np.zeros((len(valid_indices), len(feature_sets.keys())))
-    predictions = np.zeros((test.sum(), len(feature_sets.keys())))
+    validations = np.zeros((len(valid_indices), len(list(feature_sets.keys()))))
+    predictions = np.zeros((test.sum(), len(list(feature_sets.keys()))))
 
     for i, feature_name in enumerate(feature_sets.keys()):
         X_feature = feature_sets[feature_name].values
