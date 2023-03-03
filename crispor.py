@@ -5276,7 +5276,7 @@ def crisprSearch(params):
 
         print("<div class='title'><em>")
         if batchName!="":
-            print(batchName.encode("utf8")+":")
+            print(batchName+":")
 
         ctUrl = None
         #if org in ["hg19", "mm10"]:
