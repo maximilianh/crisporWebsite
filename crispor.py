@@ -1625,7 +1625,7 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None):
         org = dbInfo.scientificName.replace(" ", "_")
         pos = pos.replace(":+","").replace(":-","") # remove the strand
         url = "http://%s/%s/Location/View?r=%s" % (baseUrl, org, pos)
-    elif dbInfo.server=="ucsc":
+    elif dbInfo.server=="ucsc" or dbInfo.name.startswith("GCA_") or dbInfo.name.startswith("GCF_"):
         urlLabel = "UCSC"
         if len(pos)>0 and pos[0].isdigit():
             pos = "chr"+pos
@@ -1681,6 +1681,52 @@ def highlightMismatches(guide, offTarget, pamLen):
             s.append("*")
     return "".join(s)
 
+def parseNewAlias(ifh):
+    " part of parseAlias(): IGV-compatible format: first is UCSC, all other columns are aliases "
+    toUcsc = {}
+    for line in ifh:
+        if line.startswith("#"):
+            continue
+        row = line.rstrip("\n").split("\t")
+        for i in range(1, len(row)):
+            toUcsc[row[i]] = row[0]
+    return toUcsc
+
+def parseAlias(fname):
+    " parse tsv file with at least two columns, orig chrom name and new chrom name. copied from chromToUcsc script from the UCSC tools. "
+    logging.debug("alias file is in IGV-format")
+    toUcsc = {}
+    if fname.startswith("http://") or fname.startswith("https://"):
+        ifh = urlopen(fname)
+        if fname.endswith(".gz"):
+            data = gzip.GzipFile(fileobj=ifh).read().decode()
+            ifh = data.splitlines()
+    elif fname.endswith(".gz"):
+        ifh = gzip.open(fname, "rt")
+    else:
+        ifh = open(fname)
+
+    firstLine = True
+    for line in ifh:
+        if line.startswith("#") and firstLine:
+            return parseNewAlias(ifh)
+        if line.startswith("alias"):
+            continue
+        row = line.rstrip("\n").split("\t")
+        toUcsc[row[0]] = row[1]
+        firstLine = False
+    return toUcsc
+
+def applyChromAlias(db, chrom):
+    " if chrom is in chromAlias, return it here "
+    chromAliasFname = join("genomes", db, db+".chromAlias.txt")
+    if not isfile(chromAliasFname):
+        return chrom
+
+    chromToUcsc = parseAlias(chromAliasFname)
+
+    return chromToUcsc.get(chrom, chrom)
+
 def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
     """ given two strings of equal length, return a html-formatted string of several lines
     that show the two sequences and a line that highlights where they differ
@@ -1729,6 +1775,10 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
         lines[0].append(" <i>"+seq1[-len(pam):]+"</i>")
         lines[1].append(" <i>"+seq2[-len(pam):]+"</i>")
     lines = ["".join(l) for l in lines]
+
+    chrom, chromPos, strand = posStr.split(":")
+    chrom = applyChromAlias(org, chrom)
+    posStr = ":".join((chrom, chromPos, strand))
 
     if len(posStr)>1 and posStr[0].isdigit():
         posStr = "chr"+posStr
@@ -1860,7 +1910,7 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
                 cfdScore=0.0
             elif isSaCas9:
                 mitScore = calcSaHitScore(guideNoPam, otSeqNoPam)
-                cfdScore = None
+                cfdScore = -1
 
             else:
                 # MIT score must not include the PAM
@@ -1876,7 +1926,7 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
                 cfdScore = calcCfdScore(guideSeq, otSeq)
 
             mitOtScores.append(mitScore)
-            if cfdScore != None:
+            if cfdScore != -1:
                 cfdScores.append(cfdScore)
 
             posStr = "%s:%d-%s:%s" % (chrom, start+1,end, strand)
@@ -2100,7 +2150,7 @@ def calcCfdScore(guideSeq, otSeq):
             cfd_score = cfd_score*100.0
         return cfd_score
 
-    return None
+    return -1
 # ==== END CFD score source provided by John Doench
 
 # --- END OF SCORING ROUTINES
@@ -3562,7 +3612,7 @@ def annotateBedWithPos(inBed, outBed):
     given an input bed4 and an output bed filename, add an additional column 5 to the bed file
     that is a descriptive text of the chromosome pos (e.g. chr1:1.23 Mbp).
     """
-    ofh = gzip.open(outBed, "w")
+    ofh = gzip.open(outBed, "wt")
     for line in open(inBed):
         chrom, start = line.split("\t")[:2]
         start = int(start)
@@ -4258,7 +4308,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>Jan 2023: Internals - new server at UCSC, upgrade to Python3 <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>Feb 2023: Expect bugs! Do not hesitate to email me. New server at UCSC, all in Python3. Added Doench RS3 scores <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -6757,8 +6807,11 @@ def getLibGuides(org, libName, geneIdStr):
 def createGuideTable(lentiTemp, geneIdStr, guideCount, org, libName, barcodeId, controlCount, custPrefix, custSuffix):
     " write a table with lenti lib guides and oligos to temp/lenti/ and return its filename"
 
-    hasher = hashlib.sha1(geneIdStr+str(guideCount)+org+libName+str(barcodeId)+str(controlCount)+custPrefix+custSuffix)
-    lentiJobId = base64.urlsafe_b64encode(hasher.digest()[0:20]).translate(transTab)[:20]
+    keyStr = geneIdStr+str(guideCount)+org+libName+str(barcodeId)+str(controlCount)+custPrefix+custSuffix
+    hasher = hashlib.sha1(keyStr.encode("latin1"))
+    digest = hasher.digest()[0:20]
+    lentiJobId = base64.urlsafe_b64encode(digest)
+    lentiJobId = lentiJobId.decode("latin1").translate(transTab)
 
     outFname = join(lentiTemp, lentiJobId+".tsv")
 

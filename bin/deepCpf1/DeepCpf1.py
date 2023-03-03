@@ -12,7 +12,8 @@ os.environ['THEANO_FLAGS']="base_compiledir=temp/"
 
 from keras.models import Model
 from keras.layers import Input
-from keras.layers.merge import Multiply
+#from keras.layers.merge import Multiply # changed by Max Mar 2 2023 for keras 2
+from keras.layers import Multiply
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution1D, AveragePooling1D
 
@@ -136,4 +137,4 @@ def PREPROCESS(seqs):
 
 if __name__ == '__main__':
         #main()
-        print scoreSeqs(["GTTATTTGAGCAATGCCACTTAATAAACATGTAA"])
+        print(scoreSeqs(["GTTATTTGAGCAATGCCACTTAATAAACATGTAA"]))
