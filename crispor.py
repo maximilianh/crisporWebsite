@@ -2,8 +2,9 @@
 # if you do not want the hardcoded PATH above, delete this line and the one above to use the default Python3 interpreter
 #!/usr/bin/env python3
 # I know that this line looks unprofessional to you, but modifying the PATH on a shared Apache webserver is not obvious.
+print("Content-type: text/html\n\n")
 
-# the tefor crispr tool
+# The crispr tool for tefor: crispor
 # can be run as a CGI or from the command line
 
 # python std library
@@ -54,7 +55,7 @@ if len(needModules)!=0:
     print("Content-type: text/html\n")
     print(("Python interpreter path: %s<p>" % sys.executable))
     print(("These python modules were not found: %s<p>" % ",".join(needModules)))
-    print("To install all requirements in one line, run: sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader<p>")
+    print("To install all requirements in one line, run: sudo pip install biopython numpy scikit-learn pandas twobitreader xlwt<p>")
     sys.exit(0)
 
 # our own eff scoring library
@@ -72,13 +73,6 @@ except:
     sys.stderr.write("crispor.py - warning - the python xlwt module is not available\n")
     xlwtLoaded = False
 
-# optional module for mysql support
-#try:
-    #import MySQLdb
-    #mysqldbLoaded = True
-#except:
-    #mysqldbLoaded = False
-
 # version of crispor
 versionStr = "5.2"
 
@@ -86,7 +80,7 @@ versionStr = "5.2"
 contactEmail='crispor@tefor.net'
 
 # url to this server
-ctBaseUrl = "http://crispor-max.tefor.net/temp/customTracks"
+ctBaseUrl = "http://crispor.gi.ucsc.edu/temp/customTracks"
 
 # write debug output to stdout
 DEBUG = False
@@ -5709,7 +5703,14 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         for colId, colWidth in enumerate(colWidths):
             ws.col(colId).width = charSize*colWidth
 
-        wb.save(outFile)
+        #with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as stdout:
+        try:
+            #outFile.buffer.write(b"nono")
+            #with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as binOfh:
+            with open("/tmp/temp.bin", "wb") as binOfh:
+                wb.save(binOfh)
+        except:
+            print("error")
 
     elif fileFormat=="html":
         writeHtmlTable(rows, outFile)
@@ -6142,7 +6143,7 @@ def downloadFile(params):
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
-        queryDesc = batchName.encode("ascii", "ignore")+"_"
+        queryDesc = batchName+"_"
     else:
         queryDesc = ""
 
@@ -6662,7 +6663,7 @@ def printLibForm(params):
     #print("<br>")
 
     url = "crispor.py"
-    print(("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url))
+    #print(("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url))
 
     print("<h2>CRISPOR Batch Gene Targeting Assistant: Paste a list of genes to download a list of guides</h2>")
 
