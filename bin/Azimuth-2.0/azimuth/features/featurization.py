@@ -323,7 +323,6 @@ def gene_feature(Y, X, learn_options):
         seq = util.get_gene_sequence(gene)
         gene_length[gene_names.values==gene] = len(seq)
         gc_content[gene_names.values==gene] = SeqUtil.GC(seq)
-        #temperature[gene_names.values==gene] = Tm.Tm_staluc(seq, rna=False)
         temperature[gene_names.values==gene] = Tm.Tm_NN(seq, rna=False)
         molecular_weight[gene_names.values==gene] = SeqUtil.molecular_weight(seq, 'DNA')
 
@@ -379,10 +378,10 @@ def Tm_feature(data, pam_audit=True, learn_options=None):
         if pam_audit and seq[25:27]!="GG":
             raise Exception("expected GG but found %s" % seq[25:27])
         rna = False
-        featarray[i,0] = Tm.Tm_staluc(seq, rna=rna)        #30mer Tm
-        featarray[i,1] = Tm.Tm_staluc(seq[segments[0][0]:segments[0][1]], rna=rna) #5nts immediately proximal of the NGG PAM
-        featarray[i,2] = Tm.Tm_staluc(seq[segments[1][0]:segments[1][1]], rna=rna)   #8-mer
-        featarray[i,3] = Tm.Tm_staluc(seq[segments[2][0]:segments[2][1]], rna=rna)      #5-mer
+        featarray[i,0] = Tm.Tm_NN(seq, rna=rna)        #30mer Tm
+        featarray[i,1] = Tm.Tm_NN(seq[segments[0][0]:segments[0][1]], rna=rna) #5nts immediately proximal of the NGG PAM
+        featarray[i,2] = Tm.Tm_NN(seq[segments[1][0]:segments[1][1]], rna=rna)   #8-mer
+        featarray[i,3] = Tm.Tm_NN(seq[segments[2][0]:segments[2][1]], rna=rna)      #5-mer
 
         #print "CRISPR"
         #for d in range(4):
