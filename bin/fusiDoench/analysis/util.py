@@ -649,11 +649,11 @@ def ensemble_cluster_results(directory=r'\\fusi1\crispr2\analysis\cluster\result
                 cv_predictions = np.append(cv_predictions, cv_predictions_gene_j[:,None],
                                                     axis=1)
 
-        if ensemble_type is 'majority':
+        if ensemble_type == 'majority':
             y_pred = ensembles.pairwise_majority_voting(test_predictions)
-        if ensemble_type is 'median':
+        if ensemble_type == 'median':
             y_pred = ensembles.median(test_predictions)
-        if ensemble_type is 'stacking':
+        if ensemble_type == 'stacking':
             y_pred = ensembles.linear_stacking(cv_truth, cv_predictions, test_predictions)
 
         ens_predictions[gene] = y_pred
