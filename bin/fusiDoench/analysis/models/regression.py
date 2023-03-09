@@ -194,7 +194,7 @@ def linreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
 
 def feature_select(clf, learn_options, test_inner, train_inner, X, y):
     assert not learn_options["weighted"] is not None, "cannot currently do feature selection with weighted regression"
-    assert learn_options["loss"] is not "huber", "won't use huber loss function with feature selection"
+    assert learn_options["loss"] != "huber", "won't use huber loss function with feature selection"
     non_zero_coeff = (clf.coef_ != 0.0)
     if non_zero_coeff.sum() > 0:
         clf = LinearRegression()
