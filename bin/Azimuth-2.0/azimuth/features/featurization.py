@@ -378,10 +378,10 @@ def Tm_feature(data, pam_audit=True, learn_options=None):
         if pam_audit and seq[25:27]!="GG":
             raise Exception("expected GG but found %s" % seq[25:27])
         rna = False
-        featarray[i,0] = Tm.Tm_NN(seq, rna=rna)        #30mer Tm
-        featarray[i,1] = Tm.Tm_NN(seq[segments[0][0]:segments[0][1]], rna=rna) #5nts immediately proximal of the NGG PAM
-        featarray[i,2] = Tm.Tm_NN(seq[segments[1][0]:segments[1][1]], rna=rna)   #8-mer
-        featarray[i,3] = Tm.Tm_NN(seq[segments[2][0]:segments[2][1]], rna=rna)      #5-mer
+        featarray[i,0] = Tm.Tm_NN(seq)        #30mer Tm
+        featarray[i,1] = Tm.Tm_NN(seq[segments[0][0]:segments[0][1]]) #5nts immediately proximal of the NGG PAM
+        featarray[i,2] = Tm.Tm_NN(seq[segments[1][0]:segments[1][1]])   #8-mer
+        featarray[i,3] = Tm.Tm_NN(seq[segments[2][0]:segments[2][1]])      #5-mer
 
         #print "CRISPR"
         #for d in range(4):
