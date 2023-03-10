@@ -12,9 +12,14 @@
 import sys, logging
 pam = sys.argv[1]
 guideLen = int(sys.argv[2])
-# DO NOT FORGET TO EDIT bin/filterFaToBed and crispor.py if you change this!!
-isCpf1 = (pam in ["TTTN", "TTN", "TTTV", "ATTN", "NGTN"])
+# DO NOT FORGET TO EDIT bin/filterFaToBed, bin/samToBed and crispor.py if you change this!!
+# NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
+# XX SHOULD BE PUT INTO A LIB
+isCpf1 = (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN"])
 pamLen = len(pam)
+
+# Apr 2021: add one flanking nucleotide, next to the PAM - would be good to show for efficiency 
+# pamLen = len(pam)+1
 
 exprMatchStr = str(guideLen)+"M"
 
@@ -99,4 +104,4 @@ for line in sys.stdin:
     name = "|".join(nameInfo)
 
     row = [rName, str(startPos), str(endPos), name, mmCount, strand]
-    print "\t".join(row)
+    print("\t".join(row))

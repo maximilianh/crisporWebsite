@@ -28,28 +28,29 @@ import platform, math, tempfile, bisect, sys, os, logging, types, optparse, shut
 from os.path import dirname, join, basename, isfile, expanduser, isdir, abspath
 from math import log10
 
-import urllib2, pickle
+import urllib.request, urllib.error, urllib.parse, pickle
 import json
 
-fusiDir = join(dirname(__file__), "bin/fusiDoench")
+myDir = dirname(__file__)
+
+fusiDir = join(myDir, "bin/fusiDoench")
 sys.path.append(join(fusiDir, "analysis"))
 
-deepCpf1Dir = join(dirname(__file__), "bin/deepCpf1")
+deepCpf1Dir = join(myDir, "bin/deepCpf1")
 sys.path.append(deepCpf1Dir)
 
-aziDir = join(dirname(__file__), "bin/Azimuth-2.0/")
+aziDir = join(myDir, "bin/Azimuth-2.0/")
 sys.path.append(aziDir)
 
-najm2018Dir = join(dirname(__file__), "bin/najm2018/")
+najm2018Dir = join(myDir, "bin/najm2018/")
 sys.path.append(najm2018Dir)
 
-cctopDir = join(dirname(__file__), "bin/src/cctop_standalone")
+cctopDir = join(myDir, "bin/src/cctop_standalone")
 sys.path.append(cctopDir)
 
-lindelDir = join(dirname(__file__), "bin/src/lindel")
+lindelDir = join(myDir, "bin/src/lindel")
 sys.path.append(lindelDir)
 
-# import numpy as np
 
 # global that points to the crispor 'bin' directory with the external executables
 # like libsvm and svmlight
@@ -79,7 +80,6 @@ def getBinPath(name, isDir=False):
     get the full pathname of a platform-specific binary, in the bin/ directory relative to this directory
     """
     currPlatform = platform.system()
-    #myDir = dirname(join(__file__))
     binPath = join(binDir, currPlatform, name)
     if isDir and not isdir(binPath):
         raise Exception("Could not find directory %s" % binPath)
@@ -112,7 +112,7 @@ def vecToSeqDicts(coefs):
     freqs = []
     for i in range(0,20):
         charFreqs = {}
-        for nucl, x in zip("ACGT", range(0,4)):
+        for nucl, x in zip("ACGT", list(range(0,4))):
             freq = coefs[i*4+x]
             if freq==0.0:
                 continue
@@ -220,7 +220,7 @@ def calcWangSvmScores(seqs):
     binPath = getBinPath("svm-predict")
     modelFname = join(binDir, "src", "wangSabatiniSvm", "wang.model")
     cmd = [binPath, "-b", "1", "/dev/stdin", modelFname, "/dev/stdout"]
-    proc = Popen(cmd,stdout=PIPE, stdin=PIPE, stderr=None, bufsize=BUFSIZE)
+    proc = Popen(cmd,stdout=PIPE, stdin=PIPE, stderr=None, bufsize=BUFSIZE, encoding="utf8", text=True)
     dataOut = proc.communicate(input=dataIn)[0]
 
     lines = dataOut.splitlines()
@@ -308,7 +308,7 @@ def calcSscScores(seqs):
     matPath = join(binDir, "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
     cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
     try:
-        stdout, stderr = Popen(cmd, stdin=PIPE, stdout=PIPE, bufsize=BUFSIZE).communicate(sscIn)
+        stdout, stderr = Popen(cmd, stdin=PIPE, stdout=PIPE, bufsize=BUFSIZE, encoding="utf8", text=True).communicate(sscIn)
     except OSError:
         raise Exception("Cannot run command %s" % " ".join(cmd))
     scores = {}
@@ -432,8 +432,8 @@ def writeDict(d, fname):
         return
 
     ofh = open(fname, "w")
-    for k, v in d.iteritems():
-        if type(v)==types.TupleType:
+    for k, v in d.items():
+        if type(v)==tuple:
             ofh.write("%s\t%s\n" % (k, "\t".join([str(x) for x in v])))
         else:
             ofh.write("%s\t%s\n" % (k, str(v)))
@@ -493,7 +493,7 @@ class ScoreCache:
         # create final result merging cache and newly obtained scores
         scoreList = []
         assert(len(newScores)==len(self.newSeqs))
-        newScoreDict = dict(zip(self.newSeqs, newScores))
+        newScoreDict = dict(list(zip(self.newSeqs, newScores)))
 
         for s in self.allSeqs:
             if s in newScoreDict:
@@ -541,10 +541,10 @@ def sendFusiRequest(seqs):
     url = 'https://ussouthcentral.services.azureml.net/workspaces/ee5485c1d9814b8d8c647a89db12d4df/services/c24d128abfaf4832abf1e7ef45db4b54/execute?api-version=2.0&details=true'
     headers = {'Content-Type':'application/json', 'Authorization':('Bearer '+ api_key)}
 
-    req = urllib2.Request(url, body, headers)
+    req = urllib.request.Request(url, body, headers)
 
     try:
-        response = urllib2.urlopen(req)
+        response = urllib.request.urlopen(req)
 
         # If you are using Python 3+, replace urllib2 with urllib.request in the above code:
         # req = urllib.request.Request(url, body, headers) 
@@ -554,12 +554,12 @@ def sendFusiRequest(seqs):
         scores = [int(round(100*float(x[0]))) for x in dataList]
         return scores
 
-    except urllib2.HTTPError, error:
-        print("The request failed with status code: " + str(error.code))
+    except urllib.error.HTTPError as error:
+        print(("The request failed with status code: " + str(error.code)))
 
-        print(error.info())
+        print((error.info()))
 
-        print(json.loads(error.read())) 
+        print((json.loads(error.read()))) 
         sys.exit(1)
 
 def trimSeqs(seqs, fiveFlank, threeFlank):
@@ -576,7 +576,7 @@ def trimSeqs(seqs, fiveFlank, threeFlank):
 def trimSeqsForGuides(seqs, fiveFlank, threeFlank):
     " like trimSeqs, but yield  (guide, trimmedSeq) "
     trimmedSeqs = trimSeq(seqs, fiveFlank, threeFlank)
-    return zip(seqs, trimmedSeqs)
+    return list(zip(seqs, trimmedSeqs))
 
 def iterSvmRows(seqs):
     """ translate sequences to wang/sabatini/lander paper representation
@@ -634,7 +634,7 @@ def calcWangSvmScoresUsingR(seqs):
     writeSvmRows(seqs, "/tmp/temp.txt")
     wangSabDir = join(binDir, "src", "wangSabatiniSvm")
     cmd = "cd %s; R --slave --no-save -f scorer.R --args /tmp/temp.txt /tmp/temp.out" % wangSabDir
-    print "running", cmd
+    print("running", cmd)
     assert(os.system(cmd)==0)
     scoreDict = parseSvmOut("/tmp/temp.out")
     scoreList = []
@@ -660,7 +660,7 @@ def cacheScores(scoreName, scoreFunc, seqs):
 
 def getGrafType(seq):
     """ check if a guide fulfills the criteria described in Graf et al, Cell Reports 2019
-    returns "tt" or "ggc" depending on the motif found or None if none of them were found.
+    returns "tt" or "gcc" depending on the motif found or None if none of them were found.
     """
     # guide ends with TTC or TTT
     #seq = seq.upper()
@@ -683,11 +683,11 @@ def getGrafType(seq):
 
     # the guide ends with [AGT]GCC
     if seq.endswith("GCC") and suffix[-4] in ["A", "G", "T"]:
-        return "ggc"
+        return "gcc"
 
     # the guide ends with GCCT
     if seq.endswith("GCCT"):
-        return "ggc"
+        return "gcc"
 
     return None
 
@@ -695,7 +695,6 @@ def runLindel(seqIds, seqs):
     """ based on Lindel_prediction.py sent by Wei Chen
     runtime 1-2 seconds.
     Return: a dict with seqId -> list of (fs-score, list of (seq-illustration, score, indel-desc))
-    NGG must be at seq[33:36]
     >>> ret = runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
     >>> ret["test"][0]
     70.36
@@ -715,29 +714,24 @@ def runLindel(seqIds, seqs):
         if "N" in seq:
             logging.warn("guide %s contains at least one N" % seq)
             if seq.count("N")>3:
-                logging.debug("Refusing to run Lindel on input seqs with more than three Ns")
-                ret[seqId] = ( None, [] ) # do not return a score if too many Ns
+                ret[seqId] = ( None, [] )
                 continue
 
-            logging.debug("Replacing all Ns with A")
-            seq = seq.replace("N", "A") # Chen confirmed that Ns are not in the model. But Ns are rare in the genome
+        seq = seq.replace("N", "A") # hack. Chen confirmed that Ns are not in the mode. But Ns are rare in the genome
 
-        guide = seq[13:33]
-        logging.debug("Lindel: %s - %s - %s" % (seqId, seq, guide))
+        logging.debug("Lindel: %s - %s" % (seqId, seq))
         try:
             y_hat, fs = Lindel.Predictor.gen_prediction(seq,weights,prerequesites)
-        except ValueError, Exception:
+        except ValueError:
             print('Error: No PAM sequence found. Please check your sequence and try again')
             raise
-
-        ret[seqId] = ( None, [] ) # do not return a score if too many Ns
 
         rev_index = prerequesites[1]
         pred_freq = {}
         for i in range(len(y_hat)):
             if y_hat[i]!=0:
                 pred_freq[rev_index[i]] = y_hat[i]
-        pred_sorted = sorted(pred_freq.items(), key=lambda kv: kv[1],reverse=True)
+        pred_sorted = sorted(list(pred_freq.items()), key=lambda kv: kv[1],reverse=True)
 
         indelData = Lindel.Predictor.iter_results(seq, pred_sorted, pred_freq)
         ret[seqId] = ( int(round(100*fs)), list(indelData) )
@@ -789,11 +783,12 @@ def calcMicroHomolScore(seq, left):
     """
     seq = seq.upper()
     length_weight=20.0
-    right=len(seq)-int(left)
+    left = int(left)
+    right=len(seq)-left
 
     duplRows = []
     seqs = []
-    for k in reversed(range(2,left)):
+    for k in reversed(list(range(2,left))):
         for j in range(left,left+right-k+1): 
             for i in range(0,left-k+1):
                 if seq[i:i+k]==seq[j:j+k]:
@@ -872,7 +867,7 @@ def inList(l, name):
 
 # list of possible score names, by enzyme
 possibleScores = {
-    "spcas9" : ["fusi", "fusiOld", "housden", "wang", "doench", "ssc",
+    "spcas9" : ["fusi", "fusiOld", "rs3", "housden", "wang", "doench", "ssc",
         "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
     "cpf1" : ["seqDeepCpf1", "oof"],
     "sacas9" : ["najm", "oof"]
@@ -885,7 +880,7 @@ possibleMutScores = {
     "sacas9" : ["oof"],
 }
 
-def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scoreNames=None):
+def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
@@ -926,11 +921,15 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
             logging.debug("Azimuth score")
             scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
 
-        if inList(scoreNames, "fusiOld"):
+        if inList(scoreNames, "rs3"):
+            logging.debug("Doench RS3 score")
+            scores["rs3"] = calcRs3Scores(trimSeqs(seqs, -24, 6))
+
+        #if inList(scoreNames, "fusiOld"):
             # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
             # scores are the not exactly the same, they differ by 2-3%, but somtimes more!
-            logging.debug("Fusi score")
-            scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+            #logging.debug("Fusi score")
+            #scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
         # the fusi score calculated by the Microsoft Research Server is not run by
         # default, requires an apiKey
@@ -979,9 +978,9 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
             scores["chariRaw"] = chariScores[0]
             scores["chariRank"] = chariScores[1]
 
-        if inList(scoreNames, "aziInVitro"):
-            logging.debug("Azimuth in-vitro")
-            scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
+        #if inList(scoreNames, "aziInVitro"):
+            #logging.debug("Azimuth in-vitro")
+            #scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
 
         if inList(scoreNames, "ccTop"):
             scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
@@ -1018,14 +1017,14 @@ def calcAllScores(seqs, addOpt=[], doAll=False, skipScores=[], enzyme=None, scor
 
     return scores
 
-def printScoreTabSep(seqs, doAll=False, enzyme=None):
+def printScoreTabSep(seqs, enzyme=None):
     " print tab-sep rows with all seqs "
-    scoreDict = calcAllScores(seqs, doAll=doAll, enzyme=enzyme)
-    scoreNames = scoreDict.keys()
+    scoreDict = calcAllScores(seqs, enzyme=enzyme)
+    scoreNames = list(scoreDict.keys())
     headers = ["fullSeq", "guideSeqWithPam"]
     headers.extend(scoreNames)
 
-    print "\t".join(headers)
+    print("\t".join(headers))
     for i, seq in enumerate(seqs):
         if isCas9(enzyme):
             row = [seq, seq[30:53]] # 20bp guide + 3bp PAM 3' of guide
@@ -1033,7 +1032,7 @@ def printScoreTabSep(seqs, doAll=False, enzyme=None):
             row = [seq, seq[(50-(4+23)):50]] # 4bp PAM 5' of guide + 23bp guide
         for scoreName in scoreNames:
             row.append(str(scoreDict[scoreName][i]))
-        print "\t".join(row)
+        print("\t".join(row))
 
 def test():
     import doctest
@@ -1109,7 +1108,7 @@ def calcAziInVitro(seqs):
     import numpy
     import azimuth.model_comparison
     model_file = join(dirname(__file__), "bin/azimuthMoreno/moreno_model.pkl")
-    model = pickle.load(open(model_file))
+    model = pickle.load(open(model_file, "rb"), encoding='bytes')
     res = []
     for seq in seqs:
         if "N" in seq:
@@ -1143,6 +1142,15 @@ def calcNajmScore(seqs):
         res.append(int(round(100*score)))
     return res
 
+def calcRs3Scores(seqs):
+    " calc Doench RS3 scores, from https://github.com/gpp-rnd/rs3 "
+    from rs3.seq import predict_seq
+    for s in seqs:
+        assert(len(s)==30)
+    scores = predict_seq(seqs, sequence_tracr='Hsu2013')
+    newScores = [int(100.0*s) for s in scores]
+    return newScores
+
 def calcAziScore(seqs):
     " the official implementation of the Doench2016 (aka Fusi) score from Microsoft "
     import numpy
@@ -1156,7 +1164,7 @@ def calcAziScore(seqs):
         pam = seq[25:27]
         # pam_audit = do not check for NGG PAM
         seq = seq.upper()
-        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False)
+        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False)[0]
         res.append(int(round(100*score)))
     return res
 
@@ -1170,8 +1178,8 @@ def calcFusiDoench(seqs):
     """
     aa_cut = 0
     per_peptide=0
-    f = open(join(fusiDir, 'saved_models/V3_model_nopos.pickle'))
-    model= pickle.load(f) # if this fails, install sklearn like this: pip install scikit-learn==0.16.1
+    f = open(join(fusiDir, 'saved_models/V3_model_nopos.pickle'), "rb")
+    model= pickle.load(f, encoding='bytes') # if this fails, install sklearn like this: pip install scikit-learn==0.16.1
     res = []
     for seq in seqs:
         if "N" in seq:
@@ -1204,7 +1212,7 @@ def calcWuCrisprScore(seqs):
         assert(len(s)==24)
 
     #tempFh = open("/tmp/temp.fa", "w")
-    tempFh = tempfile.NamedTemporaryFile()
+    tempFh = tempfile.NamedTemporaryFile("wt")
 
     for s in seqs:
         tempFh.write(">%s\n%s\n" %(s, s))
@@ -1235,7 +1243,7 @@ def calcWuCrisprScore(seqs):
         logging.warn("Careful, don't multithread!")
 
     scoreDict = {}
-    for line in open(outFname):
+    for line in open(outFname, encoding="utf8"):
         if line.startswith("seqId"):
             continue
         seqId, score, seq, orient, pos = line.split("\t")
@@ -1321,12 +1329,12 @@ def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
 if __name__=="__main__":
     import cProfile
     #cProfile.runctx('print runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])', globals(), locals())
-    pr = cProfile.Profile()
-    pr.enable()
-    runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
-    pr.disable()
-    pr.print_stats(sort='tottime')
-    sys.exit(0)
+    #pr = cProfile.Profile()
+    #pr.enable()
+    #runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
+    #pr.disable()
+    #pr.print_stats(sort='tottime')
+    #sys.exit(0)
 
 
     args, options = parseArgs()

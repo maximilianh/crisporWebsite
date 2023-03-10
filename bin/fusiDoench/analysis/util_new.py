@@ -15,7 +15,7 @@ def spearmanr_nonan(x,y):
     r, p = st.spearmanr(x, y)
     if np.isnan(p):
         if len(np.unique(x))==1 or len(np.unique(y))==1:
-            print "WARNING: spearmanr is nan due to unique values, setting to 0"
+            print("WARNING: spearmanr is nan due to unique values, setting to 0")
             p = 0.0
             r = 0.0
         else:
@@ -31,17 +31,17 @@ def concatenate_feature_sets(feature_sets):
     Returns: inputs, dim
     '''
     assert feature_sets != {}, "no feature sets present"
-    F = feature_sets[feature_sets.keys()[0]].shape[0]
-    for set in feature_sets.keys():
+    F = feature_sets[list(feature_sets.keys())[0]].shape[0]
+    for set in list(feature_sets.keys()):
         F2 = feature_sets[set].shape[0]
-        assert F == F2, "not same # individuals for features %s and %s" % (feature_sets.keys()[0], set)
+        assert F == F2, "not same # individuals for features %s and %s" % (list(feature_sets.keys())[0], set)
 
-    N = feature_sets[feature_sets.keys()[0]].shape[0]
+    N = feature_sets[list(feature_sets.keys())[0]].shape[0]
     inputs = np.zeros((N, 0))
     feature_names = []
     dim = {}
     dimsum = 0
-    for set in feature_sets.keys():
+    for set in list(feature_sets.keys()):
         inputs_set = feature_sets[set].values
         dim[set] = inputs_set.shape[1]
         dimsum += dim[set]

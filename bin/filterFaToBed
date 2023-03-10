@@ -19,14 +19,15 @@
 # 5 = BWA editDist
 # 6 = BWA totalAlnCount  (=X0+X1)
 # 7 = position of gap, -1 if not used. Usually not used.
+# 8 = flanking nucleotides, beyond the PAM
 
 # example input ( with field numbers above the ID line):
-# 0     1      2       3       4 5  6    8
-#>seq1|chrII|16108096|16108116|+|0|12345|-1
-#TCGAAAGTGGTAAGAATTTA
+# 0     1      2       3       4 5  6    8  9
+#>seq1|chrII|16108096|16108116|+|0|12345|-1|A
+#TCGAAAGTGGTAAGAATTTAAGG
 
 # example output:
-# format: (seqId, strand, mismatchCount, seq, totalAlnCount, hitScore (or 0, if it was a pamPat match or passHitCount) 
+# format: (seqId, strand, mismatchCount, seq, totalAlnCount, hitScore (or 0, if it was a pamPat match or passHitCount, flankSeq) 
 
 # pamPat: 
 # pam IUPAC pattern, all sequences that end with this pattern get through
@@ -129,7 +130,10 @@ def parseFasta(ifh):
 
 def main():
     guideSeqFnames, pamPat, altPats, altScore = sys.argv[1:]
-    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN"])
+    # XX SHOULD BE PUT INTO A LIB
+    # DO NOT FORGET TO EDIT bin/filterFaToBed, bin/samToBed and crispor.py if you change this!!
+    # NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
+    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN"])
 
     altScore = float(altScore)
 
@@ -145,7 +149,13 @@ def main():
 
     for seqIdLine, seq in parseFasta(sys.stdin):
         #print seqIdLine, seq
-        seqId, chrom, start, end, strand, editDist, alnCount, isRep = seqIdLine.split("|")
+        fields = seqIdLine.split("|")
+        seqId, chrom, start, end, strand, editDist, alnCount, isRep = fields[:8]
+
+        flankSeq = ""
+        if len(fields)>8:
+            flankSeq = fields[8]
+
         doesPass = False
         hitScore = 0
         if bool(int(isRep)):
@@ -176,8 +186,9 @@ def main():
                                 break
 
         if doesPass:
-            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+alnCount+"|"+str(hitScore)+"|"+isRep
+            nameFields = [seqId, strand, editDist, seq, alnCount, str(hitScore), isRep, flankSeq]
+            name = "|".join(nameFields)
             row = [chrom, start, end, name]
-            print "\t".join(row)
+            print("\t".join(row))
 
 main()

@@ -10,7 +10,7 @@ import sys
 import sklearn
 from sklearn.metrics import roc_curve, auc
 import sklearn.metrics
-import sklearn.cross_validation
+import sklearn.model_selection
 
 
 def fill_in_truth_and_predictions(truth, predictions, fold, y_all, y_pred, learn_options, test):
@@ -20,7 +20,7 @@ def fill_in_truth_and_predictions(truth, predictions, fold, y_all, y_pred, learn
     truth[fold]['thrs'] = np.hstack((truth[fold]['thrs'],
                                      y_all[learn_options['binary target name']].values[test].flatten()))
 
-    if 'raw_target_name' in learn_options.keys():
+    if 'raw_target_name' in list(learn_options.keys()):
         truth[fold]['raw'] = np.hstack((truth[fold]['raw'],
                                         y_all[learn_options['raw target name']].values[test].flatten()))
 
@@ -61,26 +61,26 @@ def construct_filename(learn_options, TEST):
     elif learn_options["training_metric"] == 'spearmanr':
         filename += ".spearman"
 
-    print "filename = %s" % filename
+    print(("filename = %s" % filename))
     return filename
 
 def print_summary(global_metric, results, learn_options, feature_sets, flags):
-    print "\nSummary:"
-    print learn_options
-    print "\t\tglobal %s=%.2f" % (learn_options['metric'], global_metric)
-    print "\t\tmedian %s across folds=%.2f" % (learn_options['metric'], np.median(results[0]))
-    print "\t\torder=%d" % learn_options["order"]
-    if learn_options.has_key('kerntype'): "\t\tkern type = %s" % learn_options['kerntype']
-    if learn_options.has_key('degree'): print "\t\tdegree=%d" % learn_options['degree']
-    print "\t\ttarget_name=%s" % learn_options["target_name"]
+    print("\nSummary:")
+    print(learn_options)
+    print(("\t\tglobal %s=%.2f" % (learn_options['metric'], global_metric)))
+    print(("\t\tmedian %s across folds=%.2f" % (learn_options['metric'], np.median(results[0]))))
+    print(("\t\torder=%d" % learn_options["order"]))
+    if 'kerntype' in learn_options: "\t\tkern type = %s" % learn_options['kerntype']
+    if 'degree' in learn_options: print(("\t\tdegree=%d" % learn_options['degree']))
+    print(("\t\ttarget_name=%s" % learn_options["target_name"]))
 
-    for k in flags.keys():
-        print '\t\t' + k + '=' + str(learn_options[k])
+    for k in list(flags.keys()):
+        print(('\t\t' + k + '=' + str(learn_options[k])))
 
-    print "\t\tfeature set:"
-    for set in feature_sets.keys():
-        print "\t\t\t%s" % set
-    print "\t\ttotal # features=%d" % results[4]
+    print("\t\tfeature set:")
+    for set in list(feature_sets.keys()):
+        print(("\t\t\t%s" % set))
+    print(("\t\ttotal # features=%d" % results[4]))
 
 def extract_fpr_tpr_for_fold(aucs, fold, i, predictions, truth, y_binary, test, y_pred):
     assert len(np.unique(y_binary))<=2, "if using AUC need binary targets"
@@ -134,7 +134,7 @@ def cross_validate(y_all, feature_sets, learn_options=None, TEST=False, train_ge
     # construct filename from options
     filename = construct_filename(learn_options, TEST)
 
-    print "Cross-validating genes..."
+    print("Cross-validating genes...")
     t2 = time.time()
 
     y = np.array(y_all[learn_options["target_name"]].values[:,None],dtype=np.float64)
@@ -201,8 +201,8 @@ def cross_validate(y_all, feature_sets, learn_options=None, TEST=False, train_ge
                 if learn_options['num_genes_remove_train']==0:
                     assert np.all(cv_i_orig[0]==cv[i][0])
                     assert np.all(cv_i_orig[1]==cv[i][1])
-                print "# train/train after/before is %s, %s" % (len(cv[i][0]), len(cv_i_orig[0]))
-                print "# test/test after/before is %s, %s" % (len(cv[i][1]), len(cv_i_orig[1]))
+                print(("# train/train after/before is %s, %s" % (len(cv[i][0]), len(cv_i_orig[0]))))
+                print(("# test/test after/before is %s, %s" % (len(cv[i][1]), len(cv_i_orig[1]))))
     else:
         raise Exception("invalid cv options given: %s" % learn_options["cv"])
 
@@ -222,12 +222,12 @@ def cross_validate(y_all, feature_sets, learn_options=None, TEST=False, train_ge
     num_proc = learn_options["num_proc"]
     if num_proc>1:
         num_proc = np.min([num_proc,len(cv)])
-        print "using multiprocessing with %d procs--one for each fold" % num_proc
+        print(("using multiprocessing with %d procs--one for each fold" % num_proc))
         jobs = []
         pool = multiprocessing.Pool(processes=num_proc)
         for i,fold in enumerate(cv):
             train,test = fold
-            print "working on fold %d of %d, with %d train and %d test" % (i, len(cv), len(train), len(test))
+            print(("working on fold %d of %d, with %d train and %d test" % (i, len(cv), len(train), len(test))))
             if learn_options["method"]=="GPy":
                 job = pool.apply_async(models.GP.gp_on_fold, args=(feature_sets, train, test, y, y_all, inputs, dim, dimsum, learn_options))
             elif learn_options["method"]=="linreg":
@@ -322,16 +322,16 @@ def cross_validate(y_all, feature_sets, learn_options=None, TEST=False, train_ge
 
             truth, predictions = fill_in_truth_and_predictions(truth, predictions, fold_labels[i], y_all, y_pred, learn_options, test)
 
-            print "\t\tRMSE: ", np.sqrt(((y_pred - y[test])**2).mean())
-            print "\t\tSpearman correlation: ", util.spearmanr_nonan(y[test], y_pred)[0]
-            print "\t\tfinished fold/gene %i of %i" % (i, len(fold_labels))
+            print(("\t\tRMSE: ", np.sqrt(((y_pred - y[test])**2).mean())))
+            print(("\t\tSpearman correlation: ", util.spearmanr_nonan(y[test], y_pred)[0]))
+            print(("\t\tfinished fold/gene %i of %i" % (i, len(fold_labels))))
 
 
     cv_median_metric =[np.median(metrics)]
     gene_pred = [(truth, predictions)]
-    print "\t\tmedian %s across gene folds: %.3f" % (learn_options["training_metric"], cv_median_metric[-1])
+    print(("\t\tmedian %s across gene folds: %.3f" % (learn_options["training_metric"], cv_median_metric[-1])))
 
     t3 = time.time()
-    print "\t\tElapsed time for cv is %.2f seconds" % (t3-t2)
+    print(("\t\tElapsed time for cv is %.2f seconds" % (t3-t2)))
     return metrics, gene_pred, fold_labels, m, dimsum, filename, feature_names
 

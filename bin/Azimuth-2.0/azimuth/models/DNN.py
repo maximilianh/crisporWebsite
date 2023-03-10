@@ -64,9 +64,9 @@ def DNN_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_optio
             if best_score is None or accuracies[i, j] > best_score:
                 best_score = accuracies[i, j]
                 best_model = copy.deepcopy(e)
-                print "DNN with %d hidden layers and %d units, accuracy: %.4f   *" % (hl, nu, accuracies[i,j])
+                print("DNN with %d hidden layers and %d units, accuracy: %.4f   *" % (hl, nu, accuracies[i,j]))
             else:
-                print "DNN with %d hidden layers and %d units, accuracy: %.4f" % (hl, nu, accuracies[i,j])
+                print("DNN with %d hidden layers and %d units, accuracy: %.4f" % (hl, nu, accuracies[i,j]))
 
     best_model.run((X_train, y_train), (X_test, y_test))
     y_pred = best_model.network.predict(X[test])

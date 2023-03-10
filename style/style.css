@@ -178,6 +178,12 @@ table.footertable td
      display:none;
  }
 
+ .inLinkage
+ {
+     text-color:red;
+     font-weight:bold;
+ }
+
 lc { /*light color */
    color: #BBB;
 }

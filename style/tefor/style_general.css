@@ -24,8 +24,8 @@ body
 }
 
 /* text selection background color */
-::selection {background:#DDD;padding:5px;}
-::-moz-selection {background:#DDD;padding:5px;}
+::selection {background:yellow;padding:5px;}
+::-moz-selection {background:yellow;padding:5px;}
 
 *{ cursor: inherit;}
 body.wait { cursor: wait;}

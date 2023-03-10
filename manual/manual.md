@@ -304,6 +304,15 @@ determination) and MIT.
   for NGA PAMs, and NNGRRN for NNGRRT PAMs. The tool-tip in the off-target
   column always shows the currently allowed non-canonical PAMs tolerated in the
   off-target search phase.
+- For spCas9 and non-NGG (non-canonical) off-targets, the 
+  off-target score is divided by 5 to factor in the low cleavage efficiency of these sites and
+  if the total, adapted off-target score of a site if lower than 1.0, the
+  site is not shown at all. This treatment is based on the guideSeq results
+  and should be very conservative. No known off-target out of more than 700
+  have ever been shown to be cleaved at such a low score.  The filter reduces a
+  lot the list of off-targets that are shown though. If you have an application where
+  you really absolutely need all possible sites, please contact us.
+
 
 Output 3: Primers
 =================
@@ -685,10 +694,56 @@ Just make sure that you look at the right score for your expression system.
 Notes on enzymes {#enzymes}
 ================
 
-Cpf1/Cas12a: the original paper described 23bp guides. For higher efficiency, 21bp guides are
+SpCas9: the CRISPR workhorse and best-described enzyme. A good choice for NGG sites.
+In CRISPOR, only NGG PAMs are shown on your input sequence but for off-targets,
+the rest of the genome is searched not only for NGG but also for the additional
+"non-canonical" PAMs NAG and NGA. Based on the results of off-target screens, 
+the scores of a non-canonical off-target site is
+divided by 5 to make up for the lower efficiency of these PAMs and the total
+MIT and CFD specificity score is calculated from the sum of all off-target
+scores. If the total, adapted off-target score of a non-canonical site if lower
+than 1.0, the off-target is not shown at all. This treatment is based on the
+guideSeq results and very conservative. No known off-target out of
+more than 700 have ever been shown to be cleaved at such a low score.  The
+filter reduces a lot the list of off-targets that are shown though. If you have
+an application where you really absolutely need all possible sites, please
+contact us.
+
+Cpf1/Cas12a: an ideal choice for AT-rich sequences. The main PAM is TTTV, but
+CRISPOR allows TTTN for non-canonical off-targets. The score of non-canonical
+off-targets is not corrected, as there is little off-target data. The
+original paper described 23bp guides. For higher efficiency, 21bp guides are
 recommended by IDT [on the Cpf1 product
 page](http://www.idtdna.com/pages/products/crispr-genome-editing/alt-r-crispr-cpf1-genome-editing), Figure 3, 
 in the "performance" section.
+
+xCas9: While this enzyme recognizes the NGN PAM, many of these target sites are
+not very efficiently cleaved. The most efficient sites include
+the PAM NGK. Therefore, CRISPOR offers both options, NGN and NGK. Note that
+when you choose the NGN PAM,  CRISPOR also shows GAW sites, because the original paper
+described this as being almost as efficiently cleaved as NGN by this enzyme.
+
+enCas12 E174R/S542R/K548R (Kleinstiver et al Nat Biot 2019): a derivative of
+Cas12a with the PAM TTYN, but recognizes a set of other motifs: TTYN-, VTTV-
+and TRTV. CRISPOR shows all three sites on the input sequence and for
+off-targets. Because little is known about the off-targets of this enzyme for
+now, CRISPOR does not correct the off-target score depending on the motif,
+which differs from the treatment of non-canonical motifs NAG/NGA for spCas9. 
+
+SpG: An engineered variant of SpCas9 that recognizes NGN PAMs. It is
+reported to have higher activities across most NGN sites compared to SpCas9-NG
+and xCas9. When targeting sites with NGG PAMs, wild-type SpCas9 is still
+recommended. For more details, see [Walton et al. Science 2020](https://science.sciencemag.org/content/368/6488/290.abstract).
+
+BhCas12b V4: The PAM is ATTN, but for off-targets CRISPOR allows TTTN and GTTN.
+
+SpRY: SpCas9 variant with highly relaxed PAM requirement. SpRY is reported to
+efficiently target sites with NRN PAMs (where R is A or G) and less efficiently
+target sites with NYN PAMs (where Y is C or T). When targeting sites with NGG
+PAMs, wild-type SpCas9 remains the most optimal choice. Similarly, SpG remains
+a preferred option for most NGN PAMs. Otherwise, SpRY should offer the greatest
+probability of targeting other PAMs. For more details, see 
+[Walton et al. Science 2020](https://science.sciencemag.org/content/368/6488/290.abstract).
 
 Adding a genome {#addgenome}
 ===============
