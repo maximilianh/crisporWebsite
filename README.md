@@ -49,3 +49,5 @@ For the third-party software that you installed above, some of it is included fo
 CRISPOR itself:
 
 * The CRISPOR software, so the two Python files crispor.py and crisporEffScores.py, are released under a special license, see LICENSE.txt in this directory
+
+I apprecate code contributions as pull requests.
