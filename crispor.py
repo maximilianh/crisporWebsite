@@ -2462,7 +2462,8 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         sortFunc = operator.itemgetter(1)
         reverse = True
     elif sortBy == "spec" or sortBy is None:
-        sortFunc = operator.itemgetter(0)
+        #sortFunc = operator.itemgetter(0)
+        sortFunc = (lambda row: row[3])
         reverse = True
     elif sortBy is not None and not sortBy.endswith("pec"):
         sortFunc = (lambda row: row[2].get(sortBy, 0))
@@ -2833,7 +2834,9 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     print('</thead>')
 
 def scoreToColor(guideScore):
-    if guideScore > 50:
+    if guideScore is None:
+        color = ("#000000", "black")
+    elif guideScore > 50:
         color = ("#32cd32", "green")
     elif guideScore > 20:
         color = ("#ffff00", "yellow")
