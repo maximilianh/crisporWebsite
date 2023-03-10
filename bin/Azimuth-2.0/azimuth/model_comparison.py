@@ -1,3 +1,6 @@
+import sys
+sys.path.append(".")
+
 import azimuth.predict as pd
 import copy
 import os

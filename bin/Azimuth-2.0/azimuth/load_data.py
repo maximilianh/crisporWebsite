@@ -129,8 +129,8 @@ def combine_organisms(human_data, mouse_data):
 def read_V1_data(data_file, learn_options, AML_file=cur_dir + "/data/V1_suppl_data.txt"):
     if data_file is None:
         data_file = cur_dir + "/data/V1_data.xlsx"
-    human_data = pandas.read_excel(data_file, sheet_name=0, index_col=[0, 1])
-    mouse_data = pandas.read_excel(data_file, sheet_name=1, index_col=[0, 1])
+    human_data = pandas.read_excel(data_file, sheet_name=0, index_col=[0, 1], engine='openpyxl')
+    mouse_data = pandas.read_excel(data_file, sheet_name=1, index_col=[0, 1], engine='openpyxl')
     Xdf, Y = combine_organisms(human_data, mouse_data)
 
     # get position within each gene, then join and re-order
@@ -231,7 +231,7 @@ def read_V2_data(data_file, learn_options=None, verbose=True):
     # import predict as pr; a1, g1, t1, X1, Y1 = pr.data_setup()
     # a1.index.names
 
-    data = pandas.read_excel(data_file, sheet_name="ResultsFiltered", skiprows=list(range(0, 6+1)), index_col=[0, 4])
+    data = pandas.read_excel(data_file, sheet_name="ResultsFiltered", skiprows=list(range(0, 6+1)), index_col=[0, 4], engine='openpyxl')
     # grab data relevant to each of three drugs, which exludes some genes
     # note gene MED12 has two drugs, all others have at most one
     Xdf = pandas.DataFrame()

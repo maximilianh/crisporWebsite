@@ -24,7 +24,8 @@ import scipy.stats as st
 import util
 import sys
 import pandas as pd
-from . import corrstats
+#from . import corrstats
+from azimuth import corrstats
 
 def qqplot(pvals, fileout = None, alphalevel = 0.05,legend=None,xlim=None,ylim=None,fixaxes=True,addlambda=True,minpval=1e-20,title=None,h1=None,figsize=[5,5],grid=True, markersize=2):
     '''
