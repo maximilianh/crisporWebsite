@@ -2833,7 +2833,9 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     print('</thead>')
 
 def scoreToColor(guideScore):
-    if guideScore > 50:
+    if guideScore is None:
+        color = ("#000000", "black")
+    elif guideScore > 50:
         color = ("#32cd32", "green")
     elif guideScore > 20:
         color = ("#ffff00", "yellow")
