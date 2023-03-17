@@ -135,18 +135,27 @@ To add more genomes than yeast, skip the next section. If you want to run your s
 
 If you use a different Python version than what I use, then you will get an error message like this:
 
+   Python 3.6:
+
    ValueError: unsupported pickle protocol: (some number)
 
 Or:
 
+   Python 3.9 (bugfix releases)
+
    /data/www/venv/lib/python3.9/site-packages/sklearn/base.py:318: UserWarning: Trying to unpickle estimator DecisionTreeRegressor from version 1.1.1 when using version 1.2.2. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
    https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
 
+Or:
+
+   Python 3.10:
+
+   AttributeError: GradientBoostingRegressor has no attribute 'loss'
 
 This is because these modern machine learning package authors seem to believe
 that they do not need to come up with data files. They always serialize their
-internal structures, instead of saving a normal file. So you have to re-train
-the model and save it again:
+internal structures, instead of saving to a normal file. So you have to re-train
+the Azimuth model and save it again:
 
    pip install openpyx # who would ever package a software with essential data stored in Excel files? You can guess who...
    cd bin/Azimuth-2.0/
