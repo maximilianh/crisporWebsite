@@ -4,6 +4,9 @@
 # output as a bed file
 # CAREFUL: input sequences have to be on a single line. This is different from normal fasta files.
 
+# output is:
+# nameFields = [seqId, strand, editDist, seq, alnCount, str(hitScore), isRep, flankSeq]
+
 # arguments: guideSeqFaFname pamPat altPats altMinScore
 
 # passHitCount is the maximum number of guide hits in the genome, as returned by the aligner, irrespective 
@@ -19,14 +22,15 @@
 # 5 = BWA editDist
 # 6 = BWA totalAlnCount  (=X0+X1)
 # 7 = position of gap, -1 if not used. Usually not used.
+# 8 = flanking nucleotides, beyond the PAM
 
 # example input ( with field numbers above the ID line):
-# 0     1      2       3       4 5  6    8
-#>seq1|chrII|16108096|16108116|+|0|12345|-1
-#TCGAAAGTGGTAAGAATTTA
+# 0     1      2       3       4 5  6    8  9
+#>seq1|chrII|16108096|16108116|+|0|12345|-1|A
+#TCGAAAGTGGTAAGAATTTAAGG
 
 # example output:
-# format: (seqId, strand, mismatchCount, seq, totalAlnCount, hitScore (or 0, if it was a pamPat match or passHitCount) 
+# format: (seqId, strand, mismatchCount, seq, totalAlnCount, hitScore (or 0, if it was a pamPat match or passHitCount, flankSeq) 
 
 # pamPat: 
 # pam IUPAC pattern, all sequences that end with this pattern get through
@@ -132,7 +136,7 @@ def main():
     # XX SHOULD BE PUT INTO A LIB
     # DO NOT FORGET TO EDIT bin/filterFaToBed, bin/samToBed and crispor.py if you change this!!
     # NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
-    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV"])
+    pamIsFirst = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN", "TTCN"])
 
     altScore = float(altScore)
 
@@ -148,7 +152,13 @@ def main():
 
     for seqIdLine, seq in parseFasta(sys.stdin):
         #print seqIdLine, seq
-        seqId, chrom, start, end, strand, editDist, alnCount, isRep = seqIdLine.split("|")
+        fields = seqIdLine.split("|")
+        seqId, chrom, start, end, strand, editDist, alnCount, isRep = fields[:8]
+
+        flankSeq = ""
+        if len(fields)>8:
+            flankSeq = fields[8]
+
         doesPass = False
         hitScore = 0
         if bool(int(isRep)):
@@ -157,7 +167,7 @@ def main():
             doesPass = True
             #print "isRep"
         else:
-            if isCpf1:
+            if pamIsFirst:
                 pamGenomeSeq = seq[:pamLen]
             else:
                 pamGenomeSeq = seq[-pamLen:]
@@ -169,7 +179,7 @@ def main():
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(pamGenomeSeq, altPat):
-                            if isCpf1:
+                            if pamIsFirst:
                                 otSeq = seq[pamLen:]
                             else:
                                 otSeq = seq[:-pamLen]
@@ -179,7 +189,8 @@ def main():
                                 break
 
         if doesPass:
-            name = seqId+"|"+strand+"|"+editDist+"|"+seq+"|"+alnCount+"|"+str(hitScore)+"|"+isRep
+            nameFields = [seqId, strand, editDist, seq, alnCount, str(hitScore), isRep, flankSeq]
+            name = "|".join(nameFields)
             row = [chrom, start, end, name]
             print "\t".join(row)
 
