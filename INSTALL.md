@@ -1,5 +1,15 @@
 # Installation of a CRISPOR website mirror or as a command line tool on your own server
 
+# Notes on Python
+
+Python versions are a nightmare. You probably know this. Crispor pretty much
+requires Python 3.9 now since V5.2, because of the rs3 scores. That being said, everything
+else works with Python 3.6. Up to until 5.2, Python 2.7 was fine. You will probably want a virtual
+environment. If you are on RedHat/CentOS/Rocky, you can get Python 3.9 from your favorite rpm
+server, and for Ubuntu it's the same. Compiling Python yourself is also not a big problem.
+
+The file requirements.txt has all version numbers of all packages on crispor.org, but it should not be needed.
+
 # Install the command line tool
 
 In this section, I assume that you are root and you want to setup a local CRISPOR website. If you only want
@@ -13,33 +23,35 @@ not install it or modify your server setup, you may want to try the virtual
 machine, which is a complete installation of CRISPOR with everything included:
 http://crispor.org/downloads/
 
-CRISPOR uses python3 since version 5.2. Change `pip` to `pip3` in the commands below if your default python is not python3.
+CRISPOR uses python3.9 since version 5.2. Change `pip` to `pip3` in the commands below if your default python is not python3.
 Let me know if you cannot upgrade to Python3.
 
 First, install BWA and a few required basic python modules using your linux package manager:
     
     # Debian/Ubuntu
+    add-apt-repository ppa:deadsnakes/ppa
+    apt install python3.9
     apt-get install bwa python-pip python-matplotlib
 or 
    
     # Fedora/Centos/Redhat/Scientific Linux
+    # find a python3.9 rpm package -> email me if in trouble
     yum install bwa python-pip python-devel tkinter
     
 Then:
 
     cd /data/www/crispor
-    python -m venv venv
+    python3.9 -m venv venv
     . venv/bin/activate
 
-For Excel output:
+Get the Python packages:
 
-    pip install xlwt
+    pip install biopython numpy scikit-learn pandas twobitreader xlwt keras tensorflow h5py rs3 pytabix matplotlib lmdbm
 
-For the Cpf1 scoring model:
+(I want to remove the lmdbm dependency, wastes too many inodes.)
 
-    pip install keras tensorflow h5py
-
-I am using keras 2.9.0 and tensorflow 2.9.1. I hope that the exact version is not important.
+Keras/tensorflow is for the Cpf1 scoring model.
+I am using keras/tensorflow 2.1.1. I hope that the exact version is not important.
 
 Install required R libraries if you want to use the WangSVM efficiency score (unlikely, see below):
    
@@ -125,13 +137,22 @@ If you use a different Python version than what I use, then you will get an erro
 
    ValueError: unsupported pickle protocol: (some number)
 
+Or:
+
+   /data/www/venv/lib/python3.9/site-packages/sklearn/base.py:318: UserWarning: Trying to unpickle estimator DecisionTreeRegressor from version 1.1.1 when using version 1.2.2. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+   https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+
+
 This is because these modern machine learning package authors seem to believe
 that they do not need to come up with data files. They always serialize their
 internal structures, instead of saving a normal file. So you have to re-train
 the model and save it again:
 
+   pip install openpyx # who would ever package a software with essential data stored in Excel files? You can guess who...
    cd bin/Azimuth-2.0/
    python model_comparison.py
+
+I kept an old version of the pickle files for python3.6 in bin/Azimuth-2.0/azimuth/saved_models/*.python3.6
 
 # Running the script as a CGI under Apache with the job queue
 

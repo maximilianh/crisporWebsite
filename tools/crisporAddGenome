@@ -557,11 +557,10 @@ def selectEnsGenomes(genomeIds):
         newOrgs = []
         for od in orgDicts["species"]:
             taxId = str(od["taxon_id"])
-            print((taxId, genomeIds))
-            if taxId not in genomeIds:
-                name = od["name"]
-                if name not in genomeIds:
-                    continue
+            acc = od["accession"]
+            name = od["name"]
+            if taxId not in genomeIds and acc not in genomeIds and name not in genomeIds:
+                continue
 
             no = {}
             no["server"] = od["division"]
