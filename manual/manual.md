@@ -807,8 +807,9 @@ private and shall not be downloadable.
 * How do I choose the right exon and transcript?
 
     * In a short gene, most exons will be essential. In a long gene, use expression databases
-      like GTEX to get an idea what the best transcript for your tissue is. Possibly verify with RT-PCR or
-      your own RNA-seq.
+      like GTEX (see the gtexportal's exon expression viewer) to get an idea
+      what the best transcript for your tissue is. Possibly verify with RT-PCR
+      or your own RNA-seq.
     * Most users target an exon towards the 5' end, others target essential protein domains.
       Doench 2016 found that protein domains are as good as a 5' exon. 
     * There is more and more evidence that having a deletion close to a 
@@ -853,3 +854,24 @@ We often assume we're working with diploid cells. Unfortunately, that's often no
 
 If we were planning to knock out the kinesin gene KIF1A, we'd head to the Copy Number section on the canSAR website: https://cansarblack.icr.ac.uk/target/Q12756/copy-number. At the bottom of that page is a table with each cell line and its reported KIF1A copy number. If I'm working in 786-0 human kidney cells, I can see that there are 4 copies of KIF1A in that cell line. This may mean the gene ends up being more difficult to knock out than if the cell were diploid. Regardless, knowing there are 4 copies will help explain Sanger/TIDE results that show alleles accounting for just 25%, 50% or 75% of a selected monoclonal population. That may mean that only 1, 2 or 3 copies of KIF1A were edited, respectively.
 
+* Tool X found this off-target, why does CRISPOR not find it?
+
+Each time when I looked into these reports, they were due to one of three reasons:
+
+1. The off-target is an alternate PAM and has a high MIT score and as such it's not considered relevant
+   by CRISPOR.
+2. The off-target has a PAM that is not the main PAM nor one of the alternate
+   PAMs (NAG and NAG, for NGG).
+3. The off-target overlaps another off-target, Crispor considers these for all practical purposes as identical.
+
+You can see the raw alignments when running Crispor with the --debug options
+and can lower the alternate minimum score for the off-targets with the
+--minAltPamScore option. Changing the alternate PAMs requires changing the
+global variable "offtargetPams"
+
+* You use BWA as the search engine, but BWA is known not to find all off-targets
+
+This is an urban legend perpetuated in the literature. BWA finds all matches to
+a sequence in the genome (unless the match is too repetitive in which case it's
+not a good guide anyways). But the search must be conducted with the sequence
+without the PAM, as the PAM will push the mismatch count beyond the cutoff.
