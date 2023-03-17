@@ -23,6 +23,9 @@ try:
 except ImportError:
     from ordereddict import OrderedDict # python2.6 users: run 'sudo pip install ordereddict'
 
+# for matplotlib, improves "import" performance
+os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib-cache"
+
 # try to load external dependencies
 # we're going into great lengths to create a readable error message
 needModules = set(["pytabix", "twobitreader", "pandas", "matplotlib", "scipy"])
@@ -5696,12 +5699,9 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         for colId, colWidth in enumerate(colWidths):
             ws.col(colId).width = charSize*colWidth
 
-        #with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as stdout:
         try:
-            #outFile.buffer.write(b"nono")
-            #with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as binOfh:
-            with open("/tmp/temp.bin", "wb") as binOfh:
-                wb.save(binOfh)
+            outFile.flush() # flush out the Content-type header
+            wb.save(outFile.buffer)
         except:
             print("error")
 
@@ -5715,6 +5715,7 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         for row in rows:
             outFile.write(sep.join(row))
             outFile.write("\n")
+
     outFile.flush()
 
 def seqToGenbankLines(seq):
