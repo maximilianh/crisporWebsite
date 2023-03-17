@@ -4209,7 +4209,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>August 2022: Small bugfix, PAMs were sometimes offset in the sequence plot<a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>Mar 17 2023: A new server is coming soon <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -4527,8 +4527,8 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
             # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
             q = JobQueue()
             ip = os.environ.get("REMOTE_ADDR", "noIp")
-            if ip=="195.176.112.240":
-                errAbort("IP address blocked.")
+            if ip=="195.176.112.240" or ip=="13.213.254.202" or ip=="54.179.114.225":
+                errAbort("IP address blocked, too many jobs submitted. please contact me at crispor@tefor.net to resolve this.")
             wasOk = q.addJob("search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc))
             if not wasOk:
                 #print "CRISPOR job is running..." % batchId
