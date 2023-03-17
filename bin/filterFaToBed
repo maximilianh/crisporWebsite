@@ -4,6 +4,9 @@
 # output as a bed file
 # CAREFUL: input sequences have to be on a single line. This is different from normal fasta files.
 
+# output is:
+# nameFields = [seqId, strand, editDist, seq, alnCount, str(hitScore), isRep, flankSeq]
+
 # arguments: guideSeqFaFname pamPat altPats altMinScore
 
 # passHitCount is the maximum number of guide hits in the genome, as returned by the aligner, irrespective 
@@ -133,7 +136,7 @@ def main():
     # XX SHOULD BE PUT INTO A LIB
     # DO NOT FORGET TO EDIT bin/filterFaToBed, bin/samToBed and crispor.py if you change this!!
     # NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
-    isCpf1 = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN"])
+    pamIsFirst = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN", "TTCN"])
 
     altScore = float(altScore)
 
@@ -164,7 +167,7 @@ def main():
             doesPass = True
             #print "isRep"
         else:
-            if isCpf1:
+            if pamIsFirst:
                 pamGenomeSeq = seq[:pamLen]
             else:
                 pamGenomeSeq = seq[-pamLen:]
@@ -176,7 +179,7 @@ def main():
                     if altPat!="na":
                         guideSeq = guideSeqs[seqId]
                         if patMatch(pamGenomeSeq, altPat):
-                            if isCpf1:
+                            if pamIsFirst:
                                 otSeq = seq[pamLen:]
                             else:
                                 otSeq = seq[:-pamLen]

@@ -172,6 +172,7 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1)  - recommended, 23bp guides'),
          ('TTTV-21','TTT(A/C/G)-21bp - Cas12a (Cpf1) - 21bp guides recommended by IDT'),
          ('TTTN','TTTN-23bp - Cas12a (Cpf1) - low efficiency'),
+         ('TTTR','TTTR-23bp - Un1Cas12f1, Kim et al, Nat Biot 2022'),
          ('ATTN','ATTN-23bp - BhCas12b v4'),
          ('NGTN','NGTN-23bp - ShCAST/AcCAST, Strecker et al, Science 2019'),
          ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
@@ -863,7 +864,8 @@ def makeTempFile(prefix, suffix):
 
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed and bin/samToBed!!! "
-    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV", "TTYN"])
+    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV", "TTYN"])
+
 def pamIsCasX(pam):
     " if you change this, also change bin/filterFaToBed and bin/samToBed!!! "
     return (pam in ["TTCN"])
