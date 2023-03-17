@@ -1,8 +1,7 @@
-#!/data/www/crispor/venv/bin/python3
+#!/data/www/venv/bin/python3
 # if you do not want the hardcoded PATH above, delete this line and the one above to use the default Python3 interpreter
 #!/usr/bin/env python3
 # I know that this line looks unprofessional to you, but modifying the PATH on a shared Apache webserver is not obvious.
-print("Content-type: text/html\n\n")
 
 # The crispr tool for tefor: crispor
 # can be run as a CGI or from the command line
@@ -1675,51 +1674,37 @@ def highlightMismatches(guide, offTarget, pamLen):
             s.append("*")
     return "".join(s)
 
-def parseNewAlias(ifh):
-    " part of parseAlias(): IGV-compatible format: first is UCSC, all other columns are aliases "
+def parseAlias(fname):
+    """ parse tsv file with at least two columns, orig chrom name and new chrom
+    name. copied from the chromToUcsc script from the UCSC tools. """
+    ifh = open(fname)
+
     toUcsc = {}
     for line in ifh:
         if line.startswith("#"):
             continue
         row = line.rstrip("\n").split("\t")
         for i in range(1, len(row)):
-            toUcsc[row[i]] = row[0]
+            toUcsc[row[0]] = row[-1]
+
     return toUcsc
 
-def parseAlias(fname):
-    " parse tsv file with at least two columns, orig chrom name and new chrom name. copied from chromToUcsc script from the UCSC tools. "
-    logging.debug("alias file is in IGV-format")
-    toUcsc = {}
-    if fname.startswith("http://") or fname.startswith("https://"):
-        ifh = urlopen(fname)
-        if fname.endswith(".gz"):
-            data = gzip.GzipFile(fileobj=ifh).read().decode()
-            ifh = data.splitlines()
-    elif fname.endswith(".gz"):
-        ifh = gzip.open(fname, "rt")
-    else:
-        ifh = open(fname)
-
-    firstLine = True
-    for line in ifh:
-        if line.startswith("#") and firstLine:
-            return parseNewAlias(ifh)
-        if line.startswith("alias"):
-            continue
-        row = line.rstrip("\n").split("\t")
-        toUcsc[row[0]] = row[1]
-        firstLine = False
-    return toUcsc
+chromAlias = None
 
 def applyChromAlias(db, chrom):
-    " if chrom is in chromAlias, return it here "
-    chromAliasFname = join("genomes", db, db+".chromAlias.txt")
-    if not isfile(chromAliasFname):
+    " if chrom is in chromAlias, return the human-readable name "
+    global chromAlias
+    if chromAlias==-1: # == chromAlias file not present
         return chrom
+    elif chromAlias is None:
+        chromAliasFname = join("genomes", db, db+".chromAlias.txt")
+        if not isfile(chromAliasFname):
+            chromAlias = -1
+            return chrom
+        else:
+            chromAlias = parseAlias(chromAliasFname)
 
-    chromToUcsc = parseAlias(chromAliasFname)
-
-    return chromToUcsc.get(chrom, chrom)
+    return chromAlias.get(chrom, chrom)
 
 def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
     """ given two strings of equal length, return a html-formatted string of several lines
@@ -3604,7 +3589,7 @@ class ConsQueue:
     def startStep(self, batchId, desc, label):
         logging.info("Progress %s - %s - %s" % (batchId, desc, label))
 
-def annotateBedWithPos(inBed, outBed):
+def annotateBedWithPos(inBed, outBed, genome):
     """
     given an input bed4 and an output bed filename, add an additional column 5 to the bed file
     that is a descriptive text of the chromosome pos (e.g. chr1:1.23 Mbp).
@@ -3612,6 +3597,7 @@ def annotateBedWithPos(inBed, outBed):
     ofh = gzip.open(outBed, "wt")
     for line in open(inBed):
         chrom, start = line.split("\t")[:2]
+        chrom = applyChromAlias(genome, chrom)
         start = int(start)
 
         if start>1000000:
@@ -3836,7 +3822,7 @@ def findOfftargetsBwa(queue, batchId, batchBase, faFname, genome, pamDesc, bedFn
         runCmd(cmd)
     else:
         queue.startStep(batchId, "chromPos", "Annotating matches with chromosome position")
-        annotateBedWithPos(filtMatchesBedFname, bedFnameTmp)
+        annotateBedWithPos(filtMatchesBedFname, bedFnameTmp, genome)
 
     # make sure the final bed file is never in a half-written state,
     # as it is our signal that the job is complete
@@ -4609,7 +4595,8 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
            "and try again, e.g. by reloading this page. If you see this message for "
            "more than 2-3 minutes, please send an email to %s. Thanks!" % contactEmail)
 
-    if not isfile(otBedFname) or commandLineMode or not "posStr" in batchInfo or (batchInfo["posStr"]=="" and not batchInfo["org"]=="noGenome"): # pre-4.8 batches don't have a posStr at all
+    if not isfile(otBedFname) or commandLineMode or not "posStr" in batchInfo or \
+            (batchInfo["posStr"]=="" and not batchInfo["org"]=="noGenome"): # pre-4.8 batches don't have a posStr at all
         # write potential PAM sites to file
         faFname = batchBase+".fa"
         writePamFlank(seq, startDict, pam, faFname)
@@ -5269,6 +5256,7 @@ def crisprSearch(params):
         genomePosStr = ":".join(position.split(":")[:2])
         chrom, start, end, strand = parsePos(position)
         start = str(int(start)+1)
+        chrom = applyChromAlias(org, chrom)
         oneBasedPosition = "%s:%s-%s" % (chrom, start, end)
 
         print("<div class='title'><em>")
