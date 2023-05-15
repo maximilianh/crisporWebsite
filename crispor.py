@@ -560,7 +560,7 @@ class JobQueue:
 
     def openSqlite(self, dbName=JOBQUEUEDB):
         self.dbName = dbName
-        self.conn = sqlite3.connect(dbName)
+        self.conn = sqlite3.connect(dbName, timeout=10)
         #self.conn.set_trace_callback(print) # for debugging: print all sql statements
 
         try:
@@ -591,7 +591,7 @@ class JobQueue:
         try:
             cur = self.conn.cursor()
             cur.execute(sql, values)
-            self.conn.commit()
+            self.commitRetry()
             return True
         except sqlite3.IntegrityError as ev:
             # if the job is already in the queue, on Python3 (not Python2!) an integrity error will be thrown.
@@ -610,7 +610,7 @@ class JobQueue:
         except StopIteration:
             logging.debug("getStatus got StopIteration")
             status = None
-        self.conn.commit()
+        self.commitRetry()
         return status
 
     def dump(self):
@@ -632,12 +632,28 @@ class JobQueue:
             return []
         return row
 
+    def commitRetry(self):
+        " try to commit 10 times "
+        tryCount = 0
+        while tryCount < 10:
+            try:
+                self.conn.commit()
+                break
+            except sqlite3.OperationalError:
+                time.sleep(3)
+                tryCount += 1
+
+        if tryCount >= 10:
+            raise Exception("Database locked for a long time")
+
     def startStep(self, jobId, newName, newLabel):
         " start a new step. Update lastUpdate, status and stepTime "
         self.startTransaction()
         sql = 'SELECT lastUpdate, stepTimes, stepName FROM queue WHERE jobId=?'
         logging.debug(sql)
-        lastTime, timeStr, lastStep = self.conn.execute(sql, (jobId,)).fetchmany(1)[0]
+        result = self.conn.execute(sql, (jobId,)).fetchmany(1)[0]
+        logging.debug(result)
+        lastTime, timeStr, lastStep = result
         logging.debug("end")
         lastTime = float(lastTime)
 
@@ -648,19 +664,8 @@ class JobQueue:
 
         sql = 'UPDATE queue SET lastUpdate=?, stepName=?, stepLabel=?, stepTimes=?, isRunning=? WHERE jobId=?'
         self.conn.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
-        self.conn.commit()
 
-        tryCount = 0
-        while tryCount < 10:
-            #try:
-                self.conn.commit()
-                break
-            #except sqlite3.OperationalError:
-                #time.sleep(3)
-                #tryCount += 1
-
-        if tryCount >= 10:
-            raise Exception("Database locked for a long time")
+        self.commitRetry()
 
     def startTransaction(self):
         logging.debug("Starting transaction")
@@ -687,12 +692,12 @@ class JobQueue:
         except StopIteration:
             # return if the job has already been removed
             logging.warn("jobDone - jobs %s has been removed already" % jobId)
-            self.conn.commit() # release lock
+            self.commitRetry() # release lock
             return
 
         sql = 'DELETE FROM queue WHERE jobId=?'
         self.conn.execute(sql, (jobId,))
-        self.conn.commit() # release lock
+        self.commitRetry() # release lock
 
         # good to have a log file of the old jobs
         with open("doneJobs.tsv", "a") as ofh: # if this triggers an error: run 'touch doneJobs.tsv && chmod a+rw doneJobs.tsv' in the crispor dir.
@@ -722,19 +727,18 @@ class JobQueue:
             jobType, jobId, paramStr = next(self.conn.execute(sql))
         except StopIteration:
             logging.debug("No data for '%s'" % sql)
-            self.conn.commit() # unlock db
+            self.commitRetry() # unlock db
             return None, None, None
 
         sql = 'UPDATE queue SET isRunning=1 where jobId=?'
         self.conn.execute(sql, (jobId,))
-        self.conn.commit() # unlock db
+        self.commitRetry() # unlock db
         return jobType, jobId, paramStr
 
     def clearJobs(self):
         " clear the job table, removing running jobs, too "
         self.conn.execute("DELETE from queue")
-        #self.conn.execute("DROP TABLE queue")
-        self.conn.commit()
+        self.commitRetry()
 
     def close(self):
         " "
@@ -2428,8 +2432,8 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
 
         # no off-targets found?
         else:
-            posList, otDesc, guideScore = None, "Not found", None
-            guideCfdScore = None
+            posList, otDesc, guideScore = None, "Not found", -1
+            guideCfdScore = -1
             last12Desc = ""
             hasNotFound = True
             mutEnzymes = []
@@ -2452,7 +2456,6 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         sortFunc = operator.itemgetter(1)
         reverse = True
     elif sortBy == "spec" or sortBy is None:
-        #sortFunc = operator.itemgetter(0)
         sortFunc = (lambda row: row[3])
         reverse = True
     elif sortBy is not None and not sortBy.endswith("pec"):
@@ -3195,8 +3198,8 @@ def printHeader(batchId, title):
 <meta property='fb:admins' content='692090743' />
 <meta name="google-site-verification" content="OV5GRHyp-xVaCc76rbCuFj-CIizy2Es0K3nN9FbIBig" />
 <meta property='og:type' content='website' />
-<meta property='og:url' content='http://crispor.org/' />
-<meta property='og:image' content='http://crispor.tefor.net/image/CRISPOR.png' />
+<meta property='og:url' content='http://crispor.gi.ucsc.edu/' />
+<meta property='og:image' content='http://crispor.gi.ucsc.edu/image/CRISPOR.png' />
 <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
 
 """)
@@ -4296,7 +4299,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>Feb 2023: Expect bugs! Do not hesitate to email me. New server at UCSC, all in Python3. Added Doench RS3 scores <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>Feb 2023: Expect bugs! Do not hesitate to email me. This is the new server at UCSC, all in Python3. Added Doench RS3 scores <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -5656,7 +5659,7 @@ def xlsWrite(rows, title, outFile, colWidths, fileFormat, seq, org, pam, positio
         ws.write(5, 1, "CRISPOR %s, %s" % (versionStr, dateStr))
 
         ws.write(6, 0, "# Results")
-        url = "http://crispor.org/crispor.py?batchId=%s" % batchId
+        url = "http://crispor.gi.ucsc.edu/crispor.py?batchId=%s" % batchId
         #ws.write(6, 1, xlwt.Formula('HYPERLINK("%s";"Link")' % (url)))
         ws.write(6, 1, url)
 
@@ -5758,7 +5761,7 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
     else:
         writeLn(ofh, """LOCUS       %s    %d bp      DNA     linear   1/1/17""" % (desc, len(seq)))
 
-    batchUrl = "http://crispor.org/crispor.py?batchId=%s" % batchId
+    batchUrl = "http://crispor.gi.ucsc.edu/crispor.py?batchId=%s" % batchId
     seqDesc1 = """Sequence exported from CRISPOR.org V%s""" % versionStr
     seqDesc2 = "Genome %s, position %s. View full CRISPOR results at %s""" % (org, position, batchUrl)
 
@@ -5943,6 +5946,7 @@ def writeHttpAttachmentHeader(fname, doDownload=True):
     else:
         print('Content-type: text/html')
     print("") # = end of http headers
+    sys.stdout.flush()
 
 def buildPoolOptions(barcodeId, custPrefix="", custSuffix=""):
     " return a list of pool settings and a dictionary with pool options "
@@ -6137,7 +6141,7 @@ def downloadFile(params):
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
-        queryDesc = batchName+"_"
+        queryDesc = batchName.encode("ascii", "ignore")+"_"
     else:
         queryDesc = ""
 
@@ -6737,7 +6741,7 @@ def isInPar(db, chrom, start, end):
 def getControls(org):
     " return controls as a list "
     dbFname = "screenData/%s_controls.sqlite" % (org)
-    conn = sqlite3.Connection(dbFname)
+    conn = sqlite3.Connection(dbFname, timeout=10)
     cur = conn.cursor()
     sql = "SELECT guideSeq from guides"
     try:
@@ -6754,7 +6758,7 @@ def getControls(org):
 def getLibGuides(org, libName, geneIdStr):
     " return a dict with geneId -> list of guide sequences "
     dbFname = "screenData/%s.sqlite" % (libName)
-    conn = sqlite3.Connection(dbFname)
+    conn = sqlite3.Connection(dbFname, timeout=10)
     cur = conn.cursor()
 
     guideData = defaultdict(list) # geneId -> guideRows
