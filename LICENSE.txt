@@ -1,7 +1,11 @@
 The source code in crispor.py and crisporEffScores.py ("the code") is under
-copyright by Maximilian Haeussler maximilianh@gmail.com ("the author").
+copyright by Maximilian Haeussler mhaeussl@ucsc.edu ("the author").
 
 Anyone can use the website for free. There are no restrictions on web usage.
+
+All code can be downloaded and executed by academic and non-profit researchers for free, without restrictions. Modifications made to the software by these researchers should be shared with the author.
+
+Commercial institutions need to obtain a license from UCSC to download and execute the code, for more details please see below.
 
 Website
 
@@ -24,10 +28,11 @@ Since version 4, commercial and non-profit organisations need to contact the
 author to obtain a license to run the file crispor.py or crisporEffScores.py on
 their own computer. Most non-profit organisations will be able to obtain a
 license at no cost. A license for commercial users includes support from the
-author and regular updates.
+author and regular updates. Please contact innovation@ucsc.edu to obtain a license
+and CC mhaeussl@ucsc.edu.
 
 If you think these license terms make distribution of the code difficult,
-please do not hesitate to contact the author.
+with software packagers or place a burdon on research use, please do not hesitate to contact the author.
 
 -- 
 
