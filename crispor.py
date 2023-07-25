@@ -1,9 +1,9 @@
-#!/data/www/venv/bin/python3
+#!/data/www/crispor/venv/bin/python3
 # if you do not want the hardcoded PATH above, delete this line and the one above to use the default Python3 interpreter
 #!/usr/bin/env python3
 # I know that this line looks unprofessional to you, but modifying the PATH on a shared Apache webserver is not obvious.
 
-# The crispr tool for tefor: crispor
+# the tefor crispr tool
 # can be run as a CGI or from the command line
 
 # python std library
@@ -57,7 +57,7 @@ if len(needModules)!=0:
     print("Content-type: text/html\n")
     print(("Python interpreter path: %s<p>" % sys.executable))
     print(("These python modules were not found: %s<p>" % ",".join(needModules)))
-    print("To install all requirements in one line, run: sudo pip install biopython numpy scikit-learn pandas twobitreader xlwt<p>")
+    print("To install all requirements in one line, run: sudo pip install biopython numpy scikit-learn==0.16.1 pandas twobitreader<p>")
     sys.exit(0)
 
 # our own eff scoring library
@@ -75,6 +75,13 @@ except:
     sys.stderr.write("crispor.py - warning - the python xlwt module is not available\n")
     xlwtLoaded = False
 
+# optional module for mysql support
+#try:
+    #import MySQLdb
+    #mysqldbLoaded = True
+#except:
+    #mysqldbLoaded = False
+
 # version of crispor
 versionStr = "5.2"
 
@@ -82,7 +89,7 @@ versionStr = "5.2"
 contactEmail='crispor@tefor.net'
 
 # url to this server
-ctBaseUrl = "http://crispor.gi.ucsc.edu/temp/customTracks"
+ctBaseUrl = "http://crispor-max.tefor.net/temp/customTracks"
 
 # write debug output to stdout
 DEBUG = False
@@ -175,7 +182,6 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('TTTV','TTT(A/C/G)-23bp - Cas12a (Cpf1)  - recommended, 23bp guides'),
          ('TTTV-21','TTT(A/C/G)-21bp - Cas12a (Cpf1) - 21bp guides recommended by IDT'),
          ('TTTN','TTTN-23bp - Cas12a (Cpf1) - low efficiency'),
-         ('TTTR','TTTR-23bp - Un1Cas12f1, Kim et al, Nat Biot 2022'),
          ('ATTN','ATTN-23bp - BhCas12b v4'),
          ('NGTN','NGTN-23bp - ShCAST/AcCAST, Strecker et al, Science 2019'),
          ('TYCV','T(C/T)C(A/C/G)-23bp - TYCV As-Cpf1 K607R'),
@@ -733,6 +739,7 @@ class JobQueue:
         sql = 'UPDATE queue SET isRunning=1 where jobId=?'
         self.conn.execute(sql, (jobId,))
         self.commitRetry() # unlock db
+
         return jobType, jobId, paramStr
 
     def clearJobs(self):
@@ -1683,19 +1690,40 @@ def highlightMismatches(guide, offTarget, pamLen):
             s.append("*")
     return "".join(s)
 
-def parseAlias(fname):
-    """ parse tsv file with at least two columns, orig chrom name and new chrom
-    name. copied from the chromToUcsc script from the UCSC tools. """
-    ifh = open(fname)
-
+def parseNewAlias(ifh):
+    " part of parseAlias(): IGV-compatible format: first is UCSC, all other columns are aliases "
     toUcsc = {}
     for line in ifh:
         if line.startswith("#"):
             continue
         row = line.rstrip("\n").split("\t")
         for i in range(1, len(row)):
-            toUcsc[row[0]] = row[-1]
+            toUcsc[row[i]] = row[0]
+    return toUcsc
 
+def parseAlias(fname):
+    " parse tsv file with at least two columns, orig chrom name and new chrom name. copied from chromToUcsc script from the UCSC tools. "
+    logging.debug("alias file is in IGV-format")
+    toUcsc = {}
+    if fname.startswith("http://") or fname.startswith("https://"):
+        ifh = urlopen(fname)
+        if fname.endswith(".gz"):
+            data = gzip.GzipFile(fileobj=ifh).read().decode()
+            ifh = data.splitlines()
+    elif fname.endswith(".gz"):
+        ifh = gzip.open(fname, "rt")
+    else:
+        ifh = open(fname)
+
+    firstLine = True
+    for line in ifh:
+        if line.startswith("#") and firstLine:
+            return parseNewAlias(ifh)
+        if line.startswith("alias"):
+            continue
+        row = line.rstrip("\n").split("\t")
+        toUcsc[row[0]] = row[1]
+        firstLine = False
     return toUcsc
 
 chromAlias = None
@@ -4293,13 +4321,16 @@ def printForm(params):
         seqName = params["seqName"]
 
     printTeforBodyStart()
+    #print('''March 6 2023: Sorry, no CRISPOR on the new UCSC-based-server (with RS3 scores) today. Too many performance problems on the new server. We were able to renew the old server. Please use the <a href="http://37.187.154.234">old server</a> temporarily.''')
+    #sys.exit(0)
+
     print("""
 <form id="main-form" method="post" action="%s">
 
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>Feb 2023: Expect bugs! Do not hesitate to email me. This is the new server at UCSC, all in Python3. Added Doench RS3 scores <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>May 12, 2023: You landed on the new CRISPOR server. There has been very limited testing on this site, it may have a lot of bugs still. For now, I recommend using the <a href='http://crispor.tefor.net'>old server</a>. New: Doench RS3 scores <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -6141,7 +6172,7 @@ def downloadFile(params):
     seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
-        queryDesc = batchName.encode("ascii", "ignore")+"_"
+        queryDesc = batchName+"_"
     else:
         queryDesc = ""
 
@@ -6661,7 +6692,7 @@ def printLibForm(params):
     #print("<br>")
 
     url = "crispor.py"
-    #print(("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url))
+    print(("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url))
 
     print("<h2>CRISPOR Batch Gene Targeting Assistant: Paste a list of genes to download a list of guides</h2>")
 
