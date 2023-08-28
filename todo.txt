@@ -1,3 +1,6 @@
+- add eff score from https://github.com/zhangchonglab/sgRNA-cleavage-activity-prediction
+  was made for bacteria.
+
 Crispor Edit:
 - (C>A)
 - (CCA>TGA)
