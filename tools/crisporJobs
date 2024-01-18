@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+
+import logging, sys, optparse, os
+from collections import defaultdict
+from os.path import join, basename, dirname, isfile, isdir, getmtime
+import datetime, shutil
+import sqlite3
+import gzip
+
+# === command line interface, options and help ===
+parser = optparse.OptionParser("""usage: %prog [options] cmd [jobId] - write or read .json files as gzipped blobs to sqlite db.
+        cmd can be 'save' or 'dump'
+        """)
+
+parser.add_option("-t", "--tempDir", dest="tempDir", action="store_true", help="directory with temporary files, default %default", default="/data/www/crispor/temp")
+parser.add_option("-o", "--outDb", dest="outDb", action="store", help="sqlite3 db file, default %default", default="/data/crisporJobArchive.db")
+parser.add_option("-d", "--debug", dest="debug", action="store", help="show debug messages")
+parser.add_option("", "--delete", dest="delete", action="store_true", help="delete all source files when content is stored - careful!")
+parser.add_option("", "--minDays", dest="minDays", action="store", type="int", help="only save if json file is older than x days, default %default", default=10)
+#parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+#parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== functions =====
+
+
+# ----------- main --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+cmd = args[0]
+
+onlyJobId = None
+if len(args)>1:
+    onlyJobId = args[1]
+
+dbFile = options.outDb
+logging.info("Using sqlite3 db %s" % dbFile)
+inDir = options.tempDir
+
+conn = sqlite3.connect(dbFile)
+c = conn.cursor()
+c.execute('''CREATE TABLE  IF NOT EXISTS jobArchive (id text PRIMARY KEY, data blob)''')
+conn.commit()
+
+if cmd =="dump":
+    #fname = join(inDir, jobId+".json")
+    c = conn.cursor()
+    if onlyJobId:
+        data = c.execute("select data from jobArchive where id=?", (jobId,))
+    else:
+        data = c.execute("select data from jobArchive")
+    #conn.commit()
+    for row in c.fetchall():
+        data = row[0]
+        print(gzip.decompress(data).decode("utf8"))
+
+else:
+    jobFiles = defaultdict(list)
+    fileCount = 0
+    jsonFiles = []
+    for fname in os.listdir(inDir):
+        jobId = basename(fname).split(".")[0]
+        jobFiles[jobId].append(fname)
+        fileCount += 1
+        if fname.endswith(".json"):
+            jsonFiles.append(fname)
+
+    logging.info("Found %d files, %d jobIds, %d jsonFiles" % (fileCount, len(jobFiles), len(jsonFiles)))
+
+    doneJobIds = []
+    today = datetime.date.today()
+
+    for fname in jsonFiles:
+        fileJobId = basename(fname).split(".")[0]
+        if onlyJobId is not None and fileJobId!=onlyJobId:
+            continue
+
+        inPath = join(inDir, fname)
+
+        if options.minDays:
+            fileDate = datetime.date.fromtimestamp(getmtime(inPath))
+            dateDiff = today-fileDate
+            if dateDiff.days < options.minDays:
+                logging.info("%s is only %d days old" % (fname, dateDiff.days))
+                continue
+
+        data = open(inPath, mode='rb').read()
+        cData = gzip.compress(data)
+        print("Read %s, %d bytes, compressed %d bytes" % (fileJobId, len(data), len(cData)))
+        c = conn.cursor()
+        #try:
+        c.execute("insert or replace into jobArchive values (?, ?)", (fileJobId, cData))
+        #except sqlite3.IntegrityError:
+            #logging.error("%s is already loaded" % 
+
+        conn.commit()
+
+        if options.delete:
+            for fname in jobFiles[fileJobId]:
+                fPath = join(inDir, fname)
+                if isdir(fPath):
+                    shutil.rmtree(fPath)
+                else:
+                    os.remove(fPath)
+                logging.info("Deleted %s" % fname)
+
+        doneJobIds.append(fileJobId)
+
+    logging.info("Loaded %d jobIds" % len(doneJobIds))
+
+conn.close()
