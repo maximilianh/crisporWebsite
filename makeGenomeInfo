@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from collections import namedtuple
 import os, logging, string
 from os.path import join, isfile, dirname
@@ -27,16 +27,16 @@ def readVarDbs(db):
         for line in open(labelFname):
             if line.startswith("#"):
                 continue
-            fields = string.split(line.rstrip("\n"), "\t")
+            fields = line.rstrip("\n").split("\t")
             if len(fields)==4:
                 shortLabel, fname, desc, hasAF = fields
             else:
-                print labelFname, line
+                print(labelFname, line)
                 assert(False)
 
             fpath = join(genomesDir, db, fname)
             if not isfile(fpath):
-                print "Error: Cannot find VCF file %s" % fpath
+                print("Error: Cannot find VCF file %s" % fpath)
                 continue
             hasAF = (hasAF=="1")
             ret.append( (shortLabel, fname, desc, hasAF) )
@@ -59,7 +59,7 @@ def lineFileNext(fh):
         fields = line.split("\t")
         try:
             rec = Record(*fields)
-        except Exception, msg:
+        except Exception as msg:
             logging.error("Exception occured while parsing line, %s" % msg)
             logging.error("Filename %s" % fh.name)
             logging.error("Line was: %s" % repr(line))

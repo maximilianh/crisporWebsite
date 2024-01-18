@@ -85,13 +85,13 @@ def logreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
     if not isinstance(best_alpha, numbers.Number):
         raise Exception("best_alpha must be a number but is %s" % type(best_alpha))
 
-    print "\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]])
+    print("\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]]))
     max_perf = np.nanmax(performance)
 
     if max_perf < 0.0:
         raise Exception("performance is negative")
 
-    print "\t\tbest performance is %f" % np.nanmax(performance)
+    print("\t\tbest performance is %f" % np.nanmax(performance))
 
     clf = sklearn.linear_model.LogisticRegression(penalty=learn_options['penalty'],
                                                   dual=False, fit_intercept=learn_options["fit_intercept"],             class_weight=learn_options["class_weight"], tol=tol, C=1.0/best_alpha)
@@ -102,9 +102,9 @@ def logreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
     if False:        
         # grab only feature "GA3"        
         keep_ind = np.where(feature_sets['mutletpos'].columns=="GA3")[0]
-        print "%s, %s" % (str(clf.intercept_ ), str(clf.coef_[0, keep_ind]))
+        print("%s, %s" % (str(clf.intercept_ ), str(clf.coef_[0, keep_ind])))
         clf.fit(X[train][:,keep_ind], y[train].flatten())
-        print "%s, %s" % (str(clf.intercept_ ), str(clf.coef_))
+        print("%s, %s" % (str(clf.intercept_ ), str(clf.coef_)))
         import ipdb; ipdb.set_trace()               
 
     
@@ -125,9 +125,9 @@ def linreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
     if learn_options["weighted"] is not None and (learn_options["penalty"] != "L2" or learn_options["method"] != "linreg"):
         raise NotImplementedError("weighted prediction not implemented for any methods by L2 at the moment")
         
-    if not learn_options.has_key("fit_intercept"):
+    if "fit_intercept" not in learn_options:
         learn_options["fit_intercept"] = True
-    if not learn_options.has_key('normalize_features'):
+    if 'normalize_features' not in learn_options:
         learn_options['normalize_features'] = True
 
     cv, n_folds = set_up_inner_folds(learn_options, y_all.iloc[train])
@@ -194,16 +194,16 @@ def linreg_on_fold(feature_sets, train, test, y, y_all, X, dim, dimsum, learn_op
 
     best_alpha, best_l1r = learn_options["alpha"][max_score_ind[0]], l1_ratio[max_score_ind[1]]
 
-    print "\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]])
+    print("\t\tbest alpha is %f from range=%s" % (best_alpha, learn_options["alpha"][[0, -1]]))
     
     if learn_options['penalty'] == "EN":
-        print "\t\tbest l1_ratio is %f from range=%s" % (best_l1r, l1_ratio[[0, -1]])
+        print("\t\tbest l1_ratio is %f from range=%s" % (best_l1r, l1_ratio[[0, -1]]))
     max_perf = np.nanmax(performance)
 
     if max_perf < 0.0:
         raise Exception("performance is negative")
 
-    print "\t\tbest performance is %f" % max_perf
+    print("\t\tbest performance is %f" % max_perf)
 
     clf = train_linreg_model(best_alpha, l1r, learn_options, train, X, y, y_all)
     if learn_options["feature_select"]:
@@ -273,7 +273,7 @@ def set_up_inner_folds(learn_options, y):
     gene_classes = label_encoder.transform(y['Target gene'].values)
     n_genes = len(np.unique(gene_classes))    
     if learn_options['ignore_gene_level_for_inner_loop'] or learn_options["cv"] == "stratified" or n_genes==1:
-        if 'n_folds' not in learn_options.keys():
+        if 'n_folds' not in list(learn_options.keys()):
             n_folds = len(np.unique(gene_classes))
         else:
             n_folds = learn_options['n_folds']        
