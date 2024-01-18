@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import logging, sys, optparse, os
 from collections import defaultdict
@@ -45,20 +45,29 @@ inDir = options.tempDir
 
 conn = sqlite3.connect(dbFile)
 c = conn.cursor()
-c.execute('''CREATE TABLE  IF NOT EXISTS jobArchive (id text PRIMARY KEY, data blob)''')
+c.execute('''CREATE TABLE  IF NOT EXISTS jobArchive (id text PRIMARY KEY, time text, data blob)''')
 conn.commit()
 
 if cmd =="dump":
     #fname = join(inDir, jobId+".json")
     c = conn.cursor()
     if onlyJobId:
-        data = c.execute("select data from jobArchive where id=?", (jobId,))
+        c.execute("select data from jobArchive where id=?", (jobId,))
     else:
-        data = c.execute("select data from jobArchive")
+        c.execute("select data from jobArchive")
     #conn.commit()
     for row in c.fetchall():
         data = row[0]
         print(gzip.decompress(data).decode("utf8"))
+
+elif cmd == "ls":
+    c = conn.cursor()
+    c.execute("select id, time from jobArchive")
+    for row in c.fetchall():
+        jobId = row[0]
+        time = row[1]
+        row = [jobId, time]
+        print("\t".join(row))
 
 else:
     jobFiles = defaultdict(list)
@@ -74,7 +83,7 @@ else:
     logging.info("Found %d files, %d jobIds, %d jsonFiles" % (fileCount, len(jobFiles), len(jsonFiles)))
 
     doneJobIds = []
-    today = datetime.date.today()
+    today = datetime.datetime.today()
 
     for fname in jsonFiles:
         fileJobId = basename(fname).split(".")[0]
@@ -84,7 +93,7 @@ else:
         inPath = join(inDir, fname)
 
         if options.minDays:
-            fileDate = datetime.date.fromtimestamp(getmtime(inPath))
+            fileDate = datetime.datetime.fromtimestamp(getmtime(inPath))
             dateDiff = today-fileDate
             if dateDiff.days < options.minDays:
                 logging.info("%s is only %d days old" % (fname, dateDiff.days))
@@ -95,7 +104,7 @@ else:
         print("Read %s, %d bytes, compressed %d bytes" % (fileJobId, len(data), len(cData)))
         c = conn.cursor()
         #try:
-        c.execute("insert or replace into jobArchive values (?, ?)", (fileJobId, cData))
+        c.execute("insert or replace into jobArchive values (?, ?, ?)", (fileJobId, fileDate.isoformat(), cData))
         #except sqlite3.IntegrityError:
             #logging.error("%s is already loaded" % 
 
