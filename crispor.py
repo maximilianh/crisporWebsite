@@ -9,7 +9,7 @@
 # python std library
 import subprocess, tempfile, optparse, logging, atexit, glob, shutil
 import http.cookies, time, sys, cgi, re, random, platform, os, pipes
-import hashlib, base64, string, logging, operator, urllib.request, urllib.parse, urllib.error, sqlite3, time
+import hashlib, base64, string, logging, operator, urllib.request, urllib.parse, urllib.error, time
 import traceback, json, pwd, gzip, zlib
 
 from io import StringIO
@@ -18,6 +18,11 @@ from datetime import datetime
 from itertools import product
 from os.path import abspath, basename, dirname, isdir, isfile, join, relpath
 
+try:
+    # prefer the pip package, it's more up-to-date than the native package
+    import pysqlite3 as sqlite3
+except:
+    import sqlite3
 try:
     from collections import OrderedDict
 except ImportError:
@@ -567,6 +572,9 @@ class JobQueue:
     def openSqlite(self, dbName=JOBQUEUEDB):
         self.dbName = dbName
         self.conn = sqlite3.connect(dbName, timeout=10)
+        # trying to increase stability and locks?
+        if sqlite3.version_info[0] >= 3:
+            self.conn.execute("PRAGMA journal_mode=WAL;")
         #self.conn.set_trace_callback(print) # for debugging: print all sql statements
 
         try:
@@ -649,8 +657,22 @@ class JobQueue:
                 time.sleep(3)
                 tryCount += 1
 
-        if tryCount >= 10:
+        if tryCount >= 30:
             raise Exception("Database locked for a long time")
+
+    def execute(self, cmd, *args):
+        " try to execute command 10 times "
+        tryCount = 0
+        while tryCount < 10:
+            try:
+                res = self.conn.execute(cmd, *args)
+                return res
+            except sqlite3.OperationalError:
+                time.sleep(3)
+                tryCount += 1
+
+        if tryCount >= 10:
+            raise Exception("Cannot execute %s, Database locked for a long time" % cmd)
 
     def startStep(self, jobId, newName, newLabel):
         " start a new step. Update lastUpdate, status and stepTime "
@@ -730,14 +752,14 @@ class JobQueue:
         self.startTransaction()
         sql = 'SELECT jobType, jobId, paramStr FROM queue WHERE isRunning=0 ORDER BY lastUpdate LIMIT 1'
         try:
-            jobType, jobId, paramStr = next(self.conn.execute(sql))
+            jobType, jobId, paramStr = next(self.execute(sql))
         except StopIteration:
             logging.debug("No data for '%s'" % sql)
             self.commitRetry() # unlock db
             return None, None, None
 
         sql = 'UPDATE queue SET isRunning=1 where jobId=?'
-        self.conn.execute(sql, (jobId,))
+        self.execute(sql, (jobId,))
         self.commitRetry() # unlock db
 
         return jobType, jobId, paramStr
