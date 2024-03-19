@@ -1125,7 +1125,7 @@ def calcNajmScore(seqs):
     import numpy
     import azimuth.model_comparison
     model_file = join(dirname(__file__), "bin", "najm2018", "Saureus_model.pickle")
-    model = pickle.load(open(model_file))
+    model = pickle.load(open(model_file, "rb"))
     #n = pickle.load(open(model_file))
     #print len(n)
     #print n[0]
@@ -1145,9 +1145,14 @@ def calcNajmScore(seqs):
 def calcRs3Scores(seqs):
     " calc Doench RS3 scores, from https://github.com/gpp-rnd/rs3 "
     from rs3.seq import predict_seq
+    newSeqs = []
     for s in seqs:
         assert(len(s)==30)
-    scores = predict_seq(seqs, sequence_tracr='Hsu2013')
+        if "N" in s or "n" in s:
+            # this is a bad hack, but there are really very few Ns in genomes these days
+            s = s.replace("N", "A")
+        newSeqs.append(s)
+    scores = predict_seq(newSeqs, sequence_tracr='Hsu2013')
     newScores = [int(100.0*s) for s in scores]
     return newScores
 
