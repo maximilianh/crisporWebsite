@@ -4358,7 +4358,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>May 12, 2023: You landed on the new CRISPOR server. There has been very limited testing on this site, it may have a lot of bugs still. For now, I recommend using the <a href='http://crispor.tefor.net'>old server</a>. New: Doench RS3 scores <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>July 18, 2024: The old server has been retired. The new Python3 server is still lacking the Najm 2018 saCas9 score. See <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -4466,10 +4466,14 @@ def readBatchAsDict(batchId):
         db = sqlite3.connect(batchArchive)
         c = db.cursor()
         c.execute("select data from jobArchive where id=?", (batchId,))
+        data = None
         for row in c.fetchall():
             data = row[0]
         db.close()
-        # return None
+
+        if data is None:
+            return None
+
         jsonStr = gzip.decompress(data).decode("utf8")
         params = json.loads(jsonStr)
 
@@ -4670,7 +4674,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
            "and try again, e.g. by reloading this page. If you see this message for "
            "more than 2-3 minutes, please send an email to %s. Thanks!" % contactEmail)
 
-    if not isfile(otBedFname) or commandLineMode or not "posStr" in batchInfo or \
+    if not batchInfo or not isfile(otBedFname) or commandLineMode or not "posStr" in batchInfo or \
             (batchInfo["posStr"]=="" and not batchInfo["org"]=="noGenome"): # pre-4.8 batches don't have a posStr at all
         # write potential PAM sites to file
         faFname = batchBase+".fa"
