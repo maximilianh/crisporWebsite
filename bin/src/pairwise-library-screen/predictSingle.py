@@ -65,13 +65,10 @@ if __name__=="__main__":
     assert(scorer.calcScore("GCAACCACAAACCCACGAGGG", "GCAACCACAAACCCACGAGGG")==1.0)
     got = scorer.calcScore("GCAACCACAAACCCACGAGGG", "ACAAACACATACCCACAAGGA")
     exp = 0.041293256
-    print got, exp
 
     got = scorer.calcScore("GGGTGAGTGAGTGTGTGCGTG", "GAGCGAGTGGGTGTGTGCGTG")
     exp = 0.134419832
-    print got, exp
 
     scorer = SaCas9Scorer(20)
     got = scorer.calcScore("TGTGGGTGAGTGTGTGCGTG", "TGTGAGTGAGTGTGTGCGTG")
     exp = 0.314432049304524
-    print got, exp

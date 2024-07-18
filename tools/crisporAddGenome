@@ -12,6 +12,12 @@ from collections import namedtuple
 from os.path import *
 
 #import MySQLdb # install with "sudo apt-get install python-mysqldb"
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+    import MySQLdb
+except ImportError:
+    pass
 
 # Todo to make this CGIable:
 # - run mac2unix and dos2unix onto the input file, remove newlines, refuse files that still contain a newline
@@ -330,7 +336,7 @@ def indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames):
 
     if not isfile(twoBitTmp):
         printMsg("Converting fasta to 2bit")
-        cmd = "faToTwoBit %s %s" % (faTmp, twoBitTmp)
+        cmd = "faToTwoBit -long %s %s" % (faTmp, twoBitTmp)
         runCmd(cmd)
 
     sizesTmp2 = sizesTmp+".tmp"

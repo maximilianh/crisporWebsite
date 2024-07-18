@@ -994,9 +994,10 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
             scores["deepCpf1Dnase"] = cpfScores[2]
 
     elif enzyme=="sacas9":
-        if inList(scoreNames, "najm"):
-            logging.debug("Najm 2018 score")
-            scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
+        pass
+        #if inList(scoreNames, "najm"):
+            #logging.debug("Najm 2018 score")
+            #scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
 
     # not used anymore:
     # the fusi score calculated by the Microsoft Research Server is not run by

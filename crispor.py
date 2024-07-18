@@ -138,6 +138,9 @@ segTypeConv = {"ex":"exon", "in":"intron", "ig":"intergenic"}
 # directory for processed batches of offtargets ("cache" of bwa results)
 batchDir = join(baseDir,"temp")
 
+# sqlite3 db with gzipped old json batch files, to avoid hitting the ext4 inode limits
+batchArchive = "/data/crisporJobArchive.db"
+
 # the file where the sqlite job queue is stored
 #JOBQUEUEDB = join(TEMPDIR, "crisporJobs.db") # TEMPDIR is mapped away for security reasons under Redhat/Centos for CGIs
 JOBQUEUEDB = "/data/www/temp/crisporJobs.db"
@@ -2506,7 +2509,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         sortFunc = operator.itemgetter(1)
         reverse = True
     elif sortBy == "spec" or sortBy is None:
-        sortFunc = (lambda row: row[3])
+        sortFunc = (lambda row: row[0])
         reverse = True
     elif sortBy is not None and not sortBy.endswith("pec"):
         sortFunc = (lambda row: row[2].get(sortBy, 0))
@@ -2951,7 +2954,7 @@ def printWarning(s):
 
 def printNoEffScoreFoundWarn(effScoresCount, pam):
     if effScoresCount==0 and not pamIsCpf1(pam):
-        note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it. Please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence."
+        note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it or if there is simply not guide socring method. In the first case, please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence. For the second case, you can contact me and suggest an efficiency scoring method, send me the published paper in this case."
         printNote(note)
 
 def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls):
@@ -3288,7 +3291,7 @@ select { font-size: 80%; }
 
 body {
    text-align: left;
-   float: left;
+   /* float: left; */
 }
 p {
 }
@@ -3524,12 +3527,15 @@ def runCmd(cmd, ignoreExitCode=False, useShell=True):
     debug("Running %s" % cmd)
     ret = subprocess.call(cmd, shell=useShell, executable=executable)
     if ret!=0 and not ignoreExitCode:
+        if not useShell:
+            cmd = " ".join(cmd)
         if commandLineMode:
             logging.error("Error: could not run command %s." % cmd)
             sys.exit(1)
         else:
             print("Server error: could not run command %s, error %d.<p>" % (cmd, ret))
             print("please send us an email, we will fix this error as quickly as possible. %s " % contactEmail)
+            raise
             sys.exit(0)
 
 def isAltChrom(chrom):
@@ -4454,10 +4460,18 @@ def readBatchAsDict(batchId):
     " return contents of batch as a dictionary or None "
     batchBase = join(batchDir, batchId)
     jsonFname = batchBase+".json"
-    if not isfile(jsonFname):
-        return None
-
-    params = json.load(open(jsonFname))
+    if isfile(jsonFname):
+        params = json.load(open(jsonFname))
+    else:
+        db = sqlite3.connect(batchArchive)
+        c = db.cursor()
+        c.execute("select data from jobArchive where id=?", (batchId,))
+        for row in c.fetchall():
+            data = row[0]
+        db.close()
+        # return None
+        jsonStr = gzip.decompress(data).decode("utf8")
+        params = json.loads(jsonStr)
 
     if "batchName" in params:
         global batchName
@@ -6354,7 +6368,7 @@ def designOfftargetPrimers(inSeq, db, pam, position, extSeq, pamId, ampLen, tm, 
                 nameToOtScoreSeq[name] = (otScore, otSeq)
 
     # coords -> sequences
-    flankSeqs = getGenomeSeqs(db, coords, doRepeatMask=True)
+    flankSeqs = getGenomeSeqsBin(db, coords, doRepeatMask=True)
     targetSeqs = [(x[3], x[6]) for x in flankSeqs] # strip coords, keep name+seq
     nameToSeq = dict(targetSeqs)
 
@@ -7274,8 +7288,60 @@ def maskLowercase(seq):
             newSeq.append(c)
     return "".join(newSeq)
 
+def getGenomeSeqsBin(genome, coordList, doRepeatMask=False):
+    """ use the binary twoBitToFa to get seqs:
+    coordList has format (chrom, start, end, name, score, strand)
+    returns list (chrom, start, end, name, seq)
+    """
+    twoBitPath = join(genomesDir, "%(genome)s/%(genome)s.2bit" % locals())
+    twoBitPath = abspath(twoBitPath)
+
+    #bedFh = makeTempFile("getGenomeSeqs", ".bed")
+    bedFh = open("/var/tmp/primer3In8w4woj1a.txt", "w")
+    faFh = makeTempFile("getGenomeSeqs", ".fa")
+
+    for row in coordList:
+        line = "\t".join([str(x) for x in row])
+        bedFh.write(line)
+        bedFh.write("\n")
+
+    bedFh.flush()
+    bedFh.close()
+
+    #print("output")
+    #for line in open(bedFh.name):
+        #print line
+    #print("output2")
+
+    cmd = ["$BIN/twoBitToFa","-bed="+bedFh.name, twoBitPath, faFh.name]
+    runCmd(cmd, useShell=False)
+
+    faSeqs = parseFastaAsList(open(faFh.name))
+
+    assert(len(faSeqs)==len(coordList))
+
+    seqs = []
+    for coordTuple, seqTuple in zip(coordList, faSeqs):
+        seqId, seq = seqTuple
+        if len(coordTuple)==4:
+            chrom, start, end, name = coordTuple
+            strand = "+"
+            score = "0"
+        else:
+            chrom, start, end, name, score, strand = coordTuple
+
+        #seq = tbf[chrom][start:end]
+        if strand=="-":
+            seq = revComp(seq)
+        if doRepeatMask:
+            seq = maskLowercase(seq)
+        seqs.append( (chrom, start, end, name, score, strand, seq) )
+    return seqs
+
 def getGenomeSeqs(genome, coordList, doRepeatMask=False):
-    """ return dict of genome sequences,
+    """ DOES NOT WORK ON PYTHON3 ANYMORE - NOT USED ANYMORE, as long twobitreader has not been updated
+
+    return dict of genome sequences,
     coordList has format (chrom, start, end, name, score, strand)
     returns list (chrom, start, end, name, seq)
     """
@@ -7345,7 +7411,7 @@ def getFlankSeq(genome, chrom, start, end, doRepeatMask=True):
         errAbort("Not enough space on genome sequence to design primer. Need at least 1kbp on each side of the input sequence to design primers. Please design primers manually, choose a more recent genome assembly with longer contig sequences or paste a shorter input sequence (e.g. just the guide sequence alone with the PAM). Still questions? Email %s" % contactEmail)
 
     # get 1kbp of flanking sequence
-    flankSeq = getGenomeSeqs(
+    flankSeq = getGenomeSeqsBin(
         genome,
         [(chrom, flankStart, flankEnd, "seq")],
         doRepeatMask=doRepeatMask
@@ -8593,7 +8659,7 @@ def mainCommandLine():
     # get sequence
     if inSeqFname.endswith(".bed"):
         regions = parseBed(inSeqFname)
-        seqList = getGenomeSeqs(org, regions)
+        seqList = getGenomeSeqsBin(org, regions)
         seqs = {}
         for chrom, start, end, name, score, strand, seq in seqList:
             seqId = "%s:%d-%d:%s" % (chrom, start, end, strand)
