@@ -4768,7 +4768,7 @@ def getSeq(db, posStr):
         errAbort("Error on sequence retrieval. This looks like a bug. Please contact us and tell us the input and genome, we will fix this error.")
 
     # remove fasta header line
-    lines = seqStr.splitlines()
+    lines = seqStr.decode("utf8").splitlines()
     if len(lines)>0:
         lines.pop(0)
     seq = "".join(lines)
