@@ -783,7 +783,7 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
     if useAltProg:
         # UCSC's program is optimized for NCBI RefSeq GFFs
         # cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -geneNameAttr=gene -rnaNameAttr=transcript_id" % \
-        cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -refseqHacks " % \
+        cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -refseqHacks -maxConvertErrors=10000000" % \
             locals()
     else:
         cmd = "%(catCmd)s %(gff3Fname)s | gffread /dev/stdin -T -o /dev/stdout | gtfToGenePred -allErrors stdin %(gpFname)s" % locals()
