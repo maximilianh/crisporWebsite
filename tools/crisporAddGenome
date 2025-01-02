@@ -1081,8 +1081,9 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     sizesTmp = join(dbTmpDir, db+".sizes")
     faTmp = join(dbTmpDir, db+".fa")
 
-    ncbiAsmDesc = genomeInfo.description.split("(")[-1].rstrip(")").replace(",", "").replace("+", "_")
-    # some names includes commas, see https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/721/785/GCF_000721785.1_Aureobasidium_pullulans_var._pullulans_EXF-150_assembly_version_1.0/
+    ncbiAsmDesc = genomeInfo.description.split("(", maxsplit=1)[-1].replace(",", "").replace("+", "_").replace("(", "").replace(")", "").replace(" ", "_")
+    # some names includes commas, 
+    # see https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/721/785/GCF_000721785.1_Aureobasidium_pullulans_var._pullulans_EXF-150_assembly_version_1.0/
     baseFtp = ftpUrl+"/"+genomeInfo.name+"_"+ncbiAsmDesc+"_genomic"
     baseFtp = baseFtp.replace(" ", "_") # some ncbiAsmDescs include spaces
     faFtpUrl = baseFtp + ".fna.gz"
