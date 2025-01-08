@@ -7,7 +7,7 @@
 # can be run as a CGI or from the command line
 
 # python std library
-import subprocess, tempfile, optparse, logging, atexit, glob, shutil
+import subprocess, tempfile, optparse, logging, atexit, glob, shutil, signal, pdb
 import http.cookies, time, sys, cgi, re, random, platform, os, pipes
 import hashlib, base64, string, logging, operator, urllib.request, urllib.parse, urllib.error, time
 import traceback, json, pwd, gzip, zlib
@@ -21,8 +21,11 @@ from os.path import abspath, basename, dirname, isdir, isfile, join, relpath
 try:
     # prefer the pip package, it's more up-to-date than the native package
     import pysqlite3 as sqlite3
+    SQLITEERROR=pysqlite3.dbapi2.OperationalError
 except:
     import sqlite3
+    SQLITEERROR=sqlite3.OperationalError
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -572,20 +575,23 @@ class JobQueue:
         #" no inheritance needed here "
         #self.openSqlite(JOBQUEUEDB)
 
-    def openSqlite(self, dbName=JOBQUEUEDB):
+    def openSqlite(self, dbName=JOBQUEUEDB, doWal=False):
         self.dbName = dbName
-        self.conn = sqlite3.connect(dbName, timeout=10)
+        self.conn = sqlite3.connect(dbName, timeout=1)
         # trying to increase stability and locks?
-        if sqlite3.version_info[0] >= 3:
+        if sqlite3.version_info[0] >= 3 and doWal:
+            logging.info("Setting WAL mode for sqlite")
             self.conn.execute("PRAGMA journal_mode=WAL;")
+            self.conn.commit()
         #self.conn.set_trace_callback(print) # for debugging: print all sql statements
+        self._chmodJobDb()
 
         try:
             self.conn.execute(self._queueDef % ("queue", "PRIMARY KEY"))
-        except sqlite3.OperationalError:
-            errAbort("cannot open the file %s" % JOBQUEUEDB)
-        self.conn.commit()
-        self._chmodJobDb()
+            self.conn.commit()
+        except SQLITEERROR as ex:
+            errAbort("cannot open the sqlite jobs file %s: %s" % (JOBQUEUEDB, ex))
+        #self.commitRetry()
 
     def _chmodJobDb(self):
         # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
@@ -606,8 +612,7 @@ class JobQueue:
         values = {'jobType' : jobType, 'jobId' : jobId, 'isRunning' : 0, 'lastUpdate' : now, 'stepTimes':"", 'paramStr':paramStr, 'stepName':"wait",
                 "stepLabel":"Waiting", "startTime":now}
         try:
-            cur = self.conn.cursor()
-            cur.execute(sql, values)
+            self.execute(sql, values)
             self.commitRetry()
             return True
         except sqlite3.IntegrityError as ev:
@@ -616,7 +621,7 @@ class JobQueue:
             # instead of checking if the job exists and then add it, we just add it and tolerate the error, saves one query.
             # (if the pipeline crashed or server was restarted, jobs may be on disk but not in the queue)
             return True
-        except sqlite3.OperationalError:
+        except SQLITEERROR:
             errAbort("Cannot open DB file %s. Please contact %s" % (self.dbName, contactEmail))
 
     def getStatus(self, jobId):
@@ -627,7 +632,8 @@ class JobQueue:
         except StopIteration:
             logging.debug("getStatus got StopIteration")
             status = None
-        self.commitRetry()
+        #self.commitRetry()
+        #self.conn.commit()
         return status
 
     def dump(self):
@@ -651,38 +657,48 @@ class JobQueue:
 
     def commitRetry(self):
         " try to commit 10 times "
+        logging.debug("JobQueue: committing transaction")
         tryCount = 0
         while tryCount < 10:
             try:
-                self.conn.commit()
+                self.conn.execute("COMMIT")
                 break
-            except sqlite3.OperationalError:
-                time.sleep(3)
-                tryCount += 1
-
-        if tryCount >= 30:
-            raise Exception("Database locked for a long time")
-
-    def execute(self, cmd, *args):
-        " try to execute command 10 times "
-        tryCount = 0
-        while tryCount < 10:
-            try:
-                res = self.conn.execute(cmd, *args)
-                return res
-            except sqlite3.OperationalError:
+            except SQLITEERROR:
                 time.sleep(3)
                 tryCount += 1
 
         if tryCount >= 10:
-            raise Exception("Cannot execute %s, Database locked for a long time" % cmd)
+            raise Exception("COMMIT: Database locked for a long time")
+
+    def execute(self, cmd, *args):
+        " try to execute command 10 times "
+        maxTries = 20
+        tryCount = 0
+        while True:
+            try:
+                res = self.conn.execute(cmd, *args)
+                #self.commitRetry()
+                return res
+            except SQLITEERROR:
+                time.sleep(3+random.random()/10)
+                tryCount += 1
+
+            if tryCount >= maxTries:
+                raise Exception("Cannot execute %s, Database locked for a long time" % cmd)
 
     def startStep(self, jobId, newName, newLabel):
         " start a new step. Update lastUpdate, status and stepTime "
-        self.startTransaction()
+        #self.startTransaction()
         sql = 'SELECT lastUpdate, stepTimes, stepName FROM queue WHERE jobId=?'
         logging.debug(sql)
-        result = self.conn.execute(sql, (jobId,)).fetchmany(1)[0]
+        rows = self.execute(sql, (jobId,)).fetchmany(1)
+        if len(rows)>0:
+            result = rows[0]
+        else:
+            logging.error("Got %s results for query %s. What is going on?" % (rows, sql))
+            exit(1)
+        #self.commitRetry()
+
         logging.debug(result)
         lastTime, timeStr, lastStep = result
         logging.debug("end")
@@ -694,7 +710,7 @@ class JobQueue:
         newTimeStr = timeStr+"%s=%s" % (lastStep, timeDiff)+","
 
         sql = 'UPDATE queue SET lastUpdate=?, stepName=?, stepLabel=?, stepTimes=?, isRunning=? WHERE jobId=?'
-        self.conn.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
+        self.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
 
         self.commitRetry()
 
@@ -705,13 +721,13 @@ class JobQueue:
             try:
                 self.conn.execute('BEGIN') # indicate that transaction should start now
                 break
-            except sqlite3.OperationalError:
+            except SQLITEERROR:
                 logging.debug("Waiting since transaction start failed")
-                time.sleep(3)
+                time.sleep(3+random.random()/10)
                 tryCount += 1
 
         if tryCount >= 10:
-            raise Exception("Database locked for a long time")
+            raise Exception("BEGIN: Database locked for a long time")
 
     def jobDone(self, jobId):
         " remove the job from the queue and add it to the queue log"
@@ -719,7 +735,7 @@ class JobQueue:
         self.startTransaction()
         sql = 'SELECT * FROM queue WHERE jobId=?'
         try:
-            row = next(self.conn.execute(sql, (jobId,)))
+            row = next(self.execute(sql, (jobId,)))
         except StopIteration:
             # return if the job has already been removed
             logging.warn("jobDone - jobs %s has been removed already" % jobId)
@@ -743,8 +759,8 @@ class JobQueue:
         count = None
         while count is None:
             try:
-                count = self.conn.execute(sql).fetchall()[0][0]
-            except sqlite3.OperationalError:
+                count = self.execute(sql).fetchall()[0][0]
+            except SQLITEERROR:
                 logging.debug("OperationalError on waitCount()")
                 time.sleep(1+random.random()/10)
         return count
@@ -4358,7 +4374,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>July 18, 2024: The old server has been retired. The new Python3 server is still lacking the Najm 2018 saCas9 score. See <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>Jan 2025: The server went down a few times over the holidays, sorry. It is catching up today on submitted jobs. See <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -4557,8 +4573,14 @@ def openDbm(dbFname, mode):
     # lmdbm is faster than everything else: https://pypi.org/project/lmdbm/
     # though semidbm is not bad either
     # Also see leveldb Wiki page
+    #import lmdb
+    #import dbm.dumb
     from lmdbm import Lmdb
     db = Lmdb.open(dbFname+".lmdb", mode)
+    if mode=="c":
+        # hack, I don't know how to set the permissions on the open call
+        cmd = ["chmod", "-R", "a+rw",dbFname+".lmdb"]
+        runCmd(cmd, useShell=False)
     return db
 
 def saveOutcomeData(batchId, data):
@@ -4591,10 +4613,12 @@ def readOutcomeData(batchId, scoreName):
     #    db = dbm.ndbm.open(batchBase, "r") # dbm always adds .db to the file name
     #except:
     #    # old batches on crispor.org are still using gdbm
-    #    dbFname = batchBase+".gdbm"
+    #dbFname = batchBase+".dbm"
     #    import dbm.gnu
     #    db = dbm.gnu.open(dbFname, "r")
-    db = openDbm(dbFname, "r")
+    #import dbm.dumb
+    #db = dbm.dumb.open(dbFname, "r") # dbm always adds .db to the file name
+    db = openDbm(batchBase, "r")
     dbObj = db[scoreName]
     jsonStr = zlib.decompress(dbObj)
     data = json.loads(jsonStr)
@@ -4693,7 +4717,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
             if not wasOk:
                 print("CRISPOR job %s failed-running..." % batchId)
                 pass
-            q.close()
+            #q.close()
             return None
 
     return otBedFname
@@ -6817,7 +6841,7 @@ def getControls(org):
     sql = "SELECT guideSeq from guides"
     try:
         cur.execute(sql)
-    except sqlite3.OperationalError:
+    except SQLITEERROR:
         errAbort("Cannot open the file %s" % dbFname)
 
     rows = cur.fetchall()
@@ -6842,7 +6866,7 @@ def getLibGuides(org, libName, geneIdStr):
             sql = "SELECT geneSym, entrezId, refseqId, guideSeq, pam from guides"
             try:
                 cur.execute(sql)
-            except sqlite3.OperationalError:
+            except SQLITEERROR:
                 errAbort("Cannot open the file %s" % dbFname)
         else:
             if inId.isdigit():
@@ -6855,7 +6879,7 @@ def getLibGuides(org, libName, geneIdStr):
             sql = "SELECT geneSym, entrezId, refseqId, guideSeq, pam from guides WHERE %s = ? COLLATE NOCASE" % searchField
             try:
                 cur.execute(sql, (inId,))
-            except sqlite3.OperationalError:
+            except SQLITEERROR:
                 errAbort("Cannot open the file %s" % dbFname)
 
         rows = cur.fetchall()
@@ -8535,7 +8559,7 @@ def runQueueWorker():
                 q.jobDone(batchId)
         elif jobType is None:
             logging.debug("No job")
-            time.sleep(1)
+            time.sleep(1+random.random()/10)
         else:
             #raise Exception()
             logging.error("Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId))
@@ -8901,9 +8925,14 @@ def mainCgi():
     </div>""")
     print("</body></html>")
 
+def handle_pdb(sig, frame):
+    import pdb
+    pdb.Pdb().set_trace(frame)
+
 def main():
-    # detect if running under apache or not
-    #print ("Content-type: text/html\n")
+    # send SIGUSR1 to the process to get a pdb console. Handy for live debugging.
+    signal.signal(signal.SIGUSR1, handle_pdb)
+
     if 'REQUEST_METHOD' in os.environ and sys.argv[-1] != "--worker":
         mainCgi()
     else:
