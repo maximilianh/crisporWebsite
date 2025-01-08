@@ -7300,22 +7300,18 @@ def getGenomeSeqsBin(genome, coordList, doRepeatMask=False):
     twoBitPath = join(genomesDir, "%(genome)s/%(genome)s.2bit" % locals())
     twoBitPath = abspath(twoBitPath)
 
-    #bedFh = makeTempFile("getGenomeSeqs", ".bed")
-    bedFh = open("/var/tmp/primer3In8w4woj1a.txt", "w")
+    bedFh = makeTempFile("getGenomeSeqs", ".bed")
     faFh = makeTempFile("getGenomeSeqs", ".fa")
 
     for row in coordList:
+        row = list(row)
+        row[3] = row[3].replace(" ", "_") # some weird NCBI assemblies have spaces in the chrom names, just hack around it
         line = "\t".join([str(x) for x in row])
         bedFh.write(line)
         bedFh.write("\n")
 
     bedFh.flush()
     bedFh.close()
-
-    #print("output")
-    #for line in open(bedFh.name):
-        #print line
-    #print("output2")
 
     cmd = ["$BIN/twoBitToFa","-bed="+bedFh.name, twoBitPath, faFh.name]
     runCmd(cmd, useShell=False)
@@ -8509,6 +8505,7 @@ def runQueueWorker():
         if q.waitCount()==0:
             #q.dump()
             time.sleep(1+random.random()/10)
+            logging.debug("No job")
             continue
 
         if isfile("/tmp/stopCrispor"):
