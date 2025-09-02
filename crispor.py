@@ -172,7 +172,9 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
          ('NGN','20bp-NGN - SpG'),
          ('NNGT','20bp-NNGT - Cas9 S. canis - high efficiency PAM, recommended'),
          ('NAA','20bp-NAA - iSpyMacCas9'),
-         #('TTN','TTN-23bp - Cpf1 F. Novicida'), # Jean-Paul: various people have shown that it's not usable yet
+         ('TTN', 'TTN-23bp - hfCas12Max - as recommended by Synthego'), # Casey Jowdy by email
+         ('TNN','TNN-23bp - hfCas12Max, broader PAM, as recommended by Synthego'), #
+         ('NGG-22', 'NGG-22bp - eSpOT-ON (ePsCas9), as recommended by Synthego'),
          ('NNGRRT','21bp-NNG(A/G)(A/G)T - Cas9 S. Aureus'),
          ('NNGRRT-20','20bp-NNG(A/G)(A/G)T - Cas9 S. Aureus with 20bp-guides'),
          ('NGK','20bp-NG(G/T) - xCas9, recommended PAM, see notes'),
@@ -462,6 +464,11 @@ def setupPamInfo(pam):
     global mutScoreNames
     global isSpg
 
+    PAMLEN = len(pam)
+
+    pamIsFirst = False
+    scoreNames = cas9ScoreNames
+
     pamOpt = None
     if "-" in pam:
         pam, pamOpt = pam.split("-")
@@ -469,11 +476,6 @@ def setupPamInfo(pam):
             baseEditor = "BE1"
         elif pamOpt=="spg":
             isSpg = True
-
-    PAMLEN = len(pam)
-
-    pamIsFirst = False
-    scoreNames = cas9ScoreNames
 
     if pamIsCasX(pam):
         logging.debug("switching on CasX mode, guide length is 20bp")
@@ -485,8 +487,8 @@ def setupPamInfo(pam):
         GUIDELEN = 23
         pamIsFirst = True
         scoreNames = cpf1ScoreNames
-        if pamOpt:
-            GUIDELEN=int(pamOpt)
+        #if pamOpt:
+            #GUIDELEN=int(pamOpt)
     elif pam=="NGTN":
         logging.debug("switching on Cpf1 mode for ShCAST, guide length is 23bp")
         GUIDELEN = 23
@@ -497,8 +499,8 @@ def setupPamInfo(pam):
         logging.debug("switching on S. aureus mode, guide length is 21bp")
         addGenePlasmids = addGenePlasmidsAureus
         GUIDELEN = 21
-        if pamOpt=="20":
-            GUIDELEN=20
+        #if pamOpt=="20":
+            #GUIDELEN=20
         saCas9Mode = True
         scoreNames = saCas9ScoreNames
     elif pam=="NNNNCC":
@@ -506,7 +508,10 @@ def setupPamInfo(pam):
     else:
         GUIDELEN = 20
 
-    if GUIDELEN==20 and pam=="NGG":
+    if pamOpt and pamOpt.isnumeric():
+        GUIDELEN = int(pamOpt)
+
+    if (GUIDELEN==20 or GUIDELEN==22) and pam=="NGG":
         mutScoreNames = spCas9MutScoreNames
     else:
         mutScoreNames = otherMutScoreNames
@@ -919,7 +924,7 @@ def makeTempFile(prefix, suffix):
 
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed and bin/samToBed!!! "
-    return (pam in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV", "TTYN"])
+    return (pam in ["TNN", "TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV", "TTYN"])
 
 def pamIsCasX(pam):
     " if you change this, also change bin/filterFaToBed and bin/samToBed!!! "
@@ -931,7 +936,7 @@ def pamIsSaCas9(pam):
 
 def isSlowPam(pam):
     " do not allow input sequences > 500 bp "
-    if pamIsXCas9(pam) or pam=="TTYN" or pam=="NNG":
+    if pamIsXCas9(pam) or pam=="TTYN" or pam=="NNG" or pam=="TNN":
         return True
     else:
         return False
@@ -3591,10 +3596,25 @@ def parseOfftargets(db, batchId, onTargetChrom=""):
     pamData = {}
 
     #ifh = open(bedFname) # switched to gzip compression in Dec 2018, converted old files with bash script
-    ifh = gzip.open(bedFname, "rt")
+    try:
+        ifh = gzip.open(bedFname, "rt")
+    except FileNotFoundError:
+        print("Off-target results from this link were temporarily removed to save space. ")
+        linkUrl = "crispor.py?batchId="+batchId
+        print("Please go back to <a href='%s'>your job page</a>, which will rerun the job, then try the link again." % linkUrl)
+        exit(0)
 
+    maxOtLines = 500000
+    count = 0
     for line in ifh:
         fields = line.rstrip("\n").split("\t")
+        count +=1
+        if count > maxOtLines:
+            print("Error: More than %d off-targets. CRISPR has trouble with handling extremely unspecific inputs. Please email us at "
+                    "%s and discuss. Your input sequence most likely includes a recent L1HS, SVA or similar repetitive elements. "
+                    "It is hard to design guides for these, you can try to re-run your input sequence, but without the repetitive element. "% 
+                    (maxOtLines, contactEmail))
+            sys.exit(1)
         chrom, start, end, name, segment = fields
         logging.debug("off-target: %s" % name)
         # hg38: ignore alternate chromosomes otherwise the
@@ -4374,7 +4394,7 @@ def printForm(params):
  <div style="text-align:left; margin-left: 10px">
  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
 
-<br><i>Jan 2025: The server went down a few times over the holidays, sorry. It is catching up today on submitted jobs. See <a href="doc/changes.html">Full list of changes</a></i><br>
+<br><i>July 2025: Added hasCas12Max and e-SpotOn. Also allowing old primer links to Crispor to work again. See <a href="doc/changes.html">Full list of changes</a></i><br>
 
  </div>
 
@@ -7325,20 +7345,22 @@ def getGenomeSeqsBin(genome, coordList, doRepeatMask=False):
     twoBitPath = abspath(twoBitPath)
 
     bedFh = makeTempFile("getGenomeSeqs", ".bed")
+    #bedFh = open("/tmp/test.bed", "w")
     faFh = makeTempFile("getGenomeSeqs", ".fa")
 
     for row in coordList:
         row = list(row)
         row[3] = row[3].replace(" ", "_") # some weird NCBI assemblies have spaces in the chrom names, just hack around it
+        row = [str(x) for x in row]
         line = "\t".join([str(x) for x in row])
         bedFh.write(line)
         bedFh.write("\n")
 
     bedFh.flush()
-    bedFh.close()
 
     cmd = ["$BIN/twoBitToFa","-bed="+bedFh.name, twoBitPath, faFh.name]
     runCmd(cmd, useShell=False)
+    bedFh.close() # delete temp file
 
     faSeqs = parseFastaAsList(open(faFh.name))
 

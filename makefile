@@ -39,5 +39,6 @@ bigPush:
 	cp crispor.py /data/www/crispor/
 	cp bin/filterFaToBed /data/www/crispor/bin/
 	cp bin/samToBed /data/www/crispor/bin/
+	cp manual/* /data/www/crispor/manual/
 	cd /data/www/crispor && ./startWorkers.sh
 	

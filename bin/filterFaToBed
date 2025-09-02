@@ -136,7 +136,7 @@ def main():
     # XX SHOULD BE PUT INTO A LIB
     # DO NOT FORGET TO EDIT bin/filterFaToBed, bin/samToBed and crispor.py if you change this!!
     # NGTN is a special case in Crispor, but here in this part, it is just treated like another Cpf1
-    pamIsFirst = (pamPat in ["TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN", "TTCN"])
+    pamIsFirst = (pamPat in ["TNN", "TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "NGTN", "YTTV", "TTYN", "TTCN", "TN", "TTR"])
 
     altScore = float(altScore)
 

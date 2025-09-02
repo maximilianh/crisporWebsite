@@ -723,6 +723,16 @@ the PAM NGK. Therefore, CRISPOR offers both options, NGN and NGK. Note that
 when you choose the NGN PAM,  CRISPOR also shows GAW sites, because the original paper
 described this as being almost as efficiently cleaved as NGN by this enzyme.
 
+hfCas12Max: High fidelity engineered variant of Cas12i
+hfCas12Max, an engineered variant of Cas12i, is a high-fidelity (hf) CRISPR
+nuclease used for research and therapeutic applications. Synthego claims that
+while maintaining high specificity, its broad PAM sequence (TTN to TN) enables
+it to be a more versatile gene editor than other Cas12 systems. For more
+details, see [Zhang
+et al. Protein & Cell 2023](https://academic.oup.com/proteincell/article/14/7/540/6827586). 
+Synthego recommends 23bp target sequence for the gRNA for optimal performance.
+Further performance details can be found on the [Synthego hfCas12Max product page]
+(https://www.synthego.com/products/nuclease/hfcas12max-hifi).
 enCas12 E174R/S542R/K548R (Kleinstiver et al Nat Biot 2019): a derivative of
 Cas12a with the PAM TTYN, but recognizes a set of other motifs: TTYN-, VTTV-
 and TRTV. CRISPOR shows all three sites on the input sequence and for

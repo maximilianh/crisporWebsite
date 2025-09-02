@@ -1035,7 +1035,7 @@ def copyCheckFa(inUrlOrFname, faFname):
             ifh = gzip.GzipFile(fileobj=ifh)
             ifh = TextIOWrapper(ifh, "latin1")
     elif inUrlOrFname.endswith(".gz"):
-        ifh = gzip.open(inUrlOrFname)
+        ifh = gzip.open(inUrlOrFname, mode="rt")
     else:
         ifh = open(inUrlOrFname)
 
