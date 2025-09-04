@@ -755,6 +755,20 @@ a preferred option for most NGN PAMs. Otherwise, SpRY should offer the greatest
 probability of targeting other PAMs. For more details, see 
 [Walton et al. Science 2020](https://science.sciencemag.org/content/368/6488/290.abstract).
 
+eSpOT-ON (ePsCas9): Referred to ePsCas9 in literature, eSpOT-ON was engineered
+for CRISPR-based therapy applications, see [Degtev et al. Nat Comm
+2024](https://www.nature.com/articles/s41467-024-53418-8). Synthego claims
+that eSpOT-ON offers superior fidelity with a 5'-NGG-3' PAM and staggered DNA 
+cut outcomes. Synthego recommends a 22 bp target sequence for the gRNA
+for optimal performance. Further details can be found on the [Synthego eSpOT-ON
+product page]
+(https://www.synthego.com/products/nuclease/espot-on-high-fidelity-cas9-protein)
+
+CRISPOR is not affiliated with commercial company and receives no payments from
+them. Commercial enzymes are added only for convenience. If you have
+suggestions on papers or enzymes to add to this page or experience with them, 
+please email us at crispor@tefor.net.
+
 Adding a genome {#addgenome}
 ===============
 
