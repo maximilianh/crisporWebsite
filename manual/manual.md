@@ -763,8 +763,8 @@ cut outcomes. Synthego recommends a 22 bp target sequence for the gRNA
 for optimal performance. Further details can be found on the [Synthego eSpOT-ON
 product page](https://www.synthego.com/products/nuclease/espot-on-high-fidelity-cas9-protein).
 
-CRISPOR is not affiliated with commercial company and receives no payments from
-them. Commercial enzymes are added only for convenience. If you have
+CRISPOR is not affiliated with a commercial company and receives no payments from
+one. Commercial enzymes are added only for convenience. If you have
 suggestions on papers or enzymes to add to this page or experience with them, 
 please email us at crispor@tefor.net.
 
