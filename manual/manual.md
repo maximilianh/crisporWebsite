@@ -761,8 +761,7 @@ for CRISPR-based therapy applications, see [Degtev et al. Nat Comm
 that eSpOT-ON offers superior fidelity with a 5'-NGG-3' PAM and staggered DNA 
 cut outcomes. Synthego recommends a 22 bp target sequence for the gRNA
 for optimal performance. Further details can be found on the [Synthego eSpOT-ON
-product page]
-(https://www.synthego.com/products/nuclease/espot-on-high-fidelity-cas9-protein)
+product page](https://www.synthego.com/products/nuclease/espot-on-high-fidelity-cas9-protein).
 
 CRISPOR is not affiliated with commercial company and receives no payments from
 them. Commercial enzymes are added only for convenience. If you have
