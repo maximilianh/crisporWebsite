@@ -79,8 +79,7 @@ def getBinPath(name, isDir=False):
     """
     get the full pathname of a platform-specific binary, in the bin/ directory relative to this directory
     """
-    currPlatform = platform.system()
-    binPath = join(binDir, currPlatform, name)
+    binPath = join(binDir, platform.system()+"-"+platform.machine(), name)
     if isDir and not isdir(binPath):
         raise Exception("Could not find directory %s" % binPath)
     if not isDir and not isfile(binPath):
@@ -712,7 +711,7 @@ def runLindel(seqIds, seqs):
     assert(len(seqIds)==len(seqs))
     for seqId, seq in zip(seqIds, seqs):
         if "N" in seq:
-            logging.warn("guide %s contains at least one N" % seq)
+            logging.warning("guide %s contains at least one N" % seq)
             if seq.count("N")>3:
                 ret[seqId] = ( None, [] )
                 continue
@@ -866,9 +865,10 @@ def inList(l, name):
     return (name in l)
 
 # list of possible score names, by enzyme
+# 2025: had to remove aziInVitro - not supported anymore, Jennifer Listgarden does not reply to emails about this anymore
 possibleScores = {
-    "spcas9" : ["fusi", "fusiOld", "rs3", "housden", "wang", "doench", "ssc",
-        "wuCrispr", "chariRank", "crisprScan", "aziInVitro", "ccTop", "oof"],
+    "spcas9" : ["fusi", "rs3", "housden", "wang", "doench", "ssc",
+        "wuCrispr", "chariRank", "crisprScan", "ccTop", "oof"],
     "cpf1" : ["seqDeepCpf1", "oof"],
     "sacas9" : ["najm", "oof"]
 }
@@ -884,10 +884,14 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
+    Had to remove [('aziInVitro', [39]) from below, as the score doesn't work anymore
+    Had to remove ('fusiOld', [56])
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTATCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('aziInVitro', [39]), ('ccTop', [64.53235600000001]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('fusi', [55]), ('fusiOld', [56]), ('housden', [6.3]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    Calculating sequence-based features
+    [('ccTop', [65]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [39]), ('doench', [10]), ('fusi', [55]), ('housden', [6.3]), ('rs3', [39]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     >>> sorted(calcAllScores(["CCACGTCTCCACACATCAGCACAACTACGCAGCGCCTCCCTCCACTCGGAAGGACTANCCTGCTGCCAAGAGGGTCAAGTTGGACAGTGTCAGAGTCCTG"]).items())
-    [('aziInVitro', [39]), ('ccTop', [64.53235600000001]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [40]), ('doench', [10]), ('fusi', [55]), ('fusiOld', [56]), ('housden', [6.3]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
+    Calculating sequence-based features
+    [('ccTop', [65]), ('chariRank', [54]), ('chariRaw', [-0.15504833]), ('crisprScan', [40]), ('doench', [10]), ('fusi', [55]), ('housden', [6.3]), ('rs3', [39]), ('ssc', [-0.035894]), ('wang', [66]), ('wuCrispr', [0])]
     """
     scores = {}
 
@@ -1245,8 +1249,8 @@ def calcWuCrisprScore(seqs):
     # but stay compatible with the original perl script
     if not isdir(tempFh.name+".outDir"):
         outFname = join(wuCrispDir, "WU-CRISPR_V0.9_prediction_result.xls")
-        logging.warn("The original version of the wu-crispr perl script is used.")
-        logging.warn("Careful, don't multithread!")
+        logging.warning("The original version of the wu-crispr perl script is used.")
+        logging.warning("Careful, don't multithread!")
 
     scoreDict = {}
     for line in open(outFname, encoding="utf8"):
@@ -1267,8 +1271,6 @@ def calcWuCrisprScore(seqs):
     logging.debug("got back %d scores, putting in 0 for all others" % len(scoreDict))
     scores = []
     guideSeqs = [s[:20].lower() for s in seqs]
-    #print "guideseqs", guideSeqs
-    #print 'scoreDict', scoreDict
     for seq in guideSeqs:
         if seq not in scoreDict:
             scores.append(0)
@@ -1288,7 +1290,7 @@ def calcCctopScore(seqs):
     scores = []
     for seq in seqs:
         score = CCTop.getScore(seq)
-        scores.append(100*score)
+        scores.append(round(100*score))
     return scores
 
 def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
@@ -1341,7 +1343,6 @@ if __name__=="__main__":
     #pr.disable()
     #pr.print_stats(sort='tottime')
     #sys.exit(0)
-
 
     args, options = parseArgs()
     if options.test:

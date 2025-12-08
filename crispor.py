@@ -152,10 +152,13 @@ JOBQUEUEDB = "/data/www/temp/crisporJobs.db"
 jobQueueMysqlConn = {"socket":None, "host":None, "user": None, "password" : None}
 
 # directory for platform-independent scripts (e.g. Heng Li's perl SAM parser)
-scriptDir = join(baseDir, "bin")
+scriptDir = join(baseDir, "scripts")
 
 # directory for helper binaries (e.g. BWA)
-binDir = abspath(join(baseDir, "bin", platform.system()))
+# system() is one of 'Linux', 'Darwin', 'Windows', machine() is one of 'x86_64', 'arm64', 'aarch64'
+os_name = platform.system()        # 'Linux', 'Darwin', 'Windows'
+arch = platform.machine()          # 'x86_64', 'arm64', 'aarch64'
+binDir = abspath(join(baseDir, "bin", platform.system()+"-"+platform.machine()))
 
 # directory for genomes
 genomesDir = join(baseDir, "genomes")
@@ -322,7 +325,7 @@ commandLineMode = False
 
 # names/order of efficiency scores to show in UI
 cas9ScoreNames = ["fusi", "crisprScan", "rs3"]
-allScoreNames = ["fusi", "fusiOld", "chariRank", "ssc", "wuCrispr", "doench", "wang", "crisprScan", "aziInVitro", "ccTop", "rs3"]
+allScoreNames = ["fusi", "chariRank", "ssc", "wuCrispr", "doench", "wang", "crisprScan", "ccTop", "rs3"]
 
 mutScoreNames = []
 spCas9MutScoreNames = ["oof", 'lindel'] # lindel is only added for spCas9
@@ -8462,8 +8465,8 @@ Command line interface for the Crispor tool.
         default=ALTPAMMINSCORE)
     parser.add_option("", "--worker", dest="worker", \
         action="store_true", help="Run as worker process for web server: watches job queue and runs jobs")
-    #parser.add_option("", "--user", dest="user", \
-        #action="store", help="for the --worker option: switch to this user at program start")
+    parser.add_option("", "--noFork", dest="noFork", \
+        action="store_true", help="for the --worker option: do not fork off a daemon")
     parser.add_option("", "--clear", dest="clear", \
         action="store_true", help="clear the worker job table and exit")
     parser.add_option("-g", "--genomeDir", dest="genomeDir", \
@@ -8519,23 +8522,24 @@ def delTmpDirs():
             shutil.rmtree(tmpDir)
     tmpDirsDelExit = []
 
-def runQueueWorker():
+def runQueueWorker(noFork):
     " in an infinite loop, take jobs from the job queue in jobs.db and finish them "
     #if userName!=None:
         #uid =  pwd.getpwnam(userName)[2]
         #os.setuid(uid)
 
-    try:
-       # Store the Fork PID
-       pid = os.fork()
+    if not noFork:
+        try:
+           # Store the Fork PID
+           pid = os.fork()
+    
+           if pid > 0:
+             print('PID: %d' % pid)
+             os._exit(0)
 
-       if pid > 0:
-         print('PID: %d' % pid)
-         os._exit(0)
-
-    except OSError as error:
-      print('Unable to fork. Error: %d (%s)' % (error.errno, error.strerror))
-      os._exit(1)
+        except OSError as error:
+          print('Unable to fork. Error: %d (%s)' % (error.errno, error.strerror))
+          os._exit(1)
 
     print(("%s: Worker daemon started. Waiting for jobs." % datetime.ctime(datetime.now())))
     sys.stdout.flush()
@@ -8685,7 +8689,7 @@ def mainCommandLine():
     args, options = parseArgs()
 
     if options.worker:
-        runQueueWorker()
+        runQueueWorker(options.noFork)
         sys.exit(0)
 
     handleOptions(options)
