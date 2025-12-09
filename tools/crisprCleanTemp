@@ -1,2 +1,5 @@
 #!/bin/bash
-rm -f -- /var/www/crispor/temp/*
+# remove temp files older than one week, but do not remove the input jobs
+find /data/temp/ -maxdepth 2 -type f -mtime +7 -not -name '*.json' -not -name '*.fa' -not -name '*.bed.gz' -print | xargs rm -f 
+# lmdb leaves behind empty dirs
+find /data/temp/ -type d -empty -delete
