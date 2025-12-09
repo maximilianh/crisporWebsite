@@ -482,7 +482,12 @@ def setupPamInfo(pam):
         GUIDELEN = 20
         pamIsFirst = True
         scoreNames = cpf1ScoreNames
-    if pamIsCpf1(pam):
+    if pamIsCas12max(pam):
+        logging.debug("switching on hfCas12max mode, guide length is 20bp")
+        GUIDELEN = 20
+        pamIsFirst = True
+        scoreNames = cpf1ScoreNames
+    elif pamIsCpf1(pam):
         logging.debug("switching on Cpf1 mode, guide length is 23bp")
         GUIDELEN = 23
         pamIsFirst = True
@@ -925,6 +930,10 @@ def makeTempFile(prefix, suffix):
 def pamIsCpf1(pam):
     " if you change this, also change bin/filterFaToBed and bin/samToBed!!! "
     return (pam in ["TNN", "TTN", "TTTN", "TYCV", "TATV", "TTTV", "TTTR", "ATTN", "TTTA", "TCTA", "TCCA", "CCCA", "YTTV", "TTYN"])
+
+# test : modify cleavage sites for hfCas12max according to Synthego specifications
+def pamIsCas12max(pam):
+    return (pam in ["TNN", "TTN"])
 
 def pamIsCasX(pam):
     " if you change this, also change bin/filterFaToBed and bin/samToBed!!! "
@@ -3477,7 +3486,10 @@ def distrOnLines(seq, startDict, featLen):
         ftSeq = seq[start:end]
         if strand=="+":
             if pamIsFirst:
-                label = '%s'%(ftSeq)+'.................%s....%s' % (arrNE, arrSE)
+                if pamIsCas12max(pam): #modify cleavage sites to 14-16 (target strand) and 24nt (non-target strand) / hfCas12Max
+                    label = '%s'%(ftSeq)+'.............%s%s%s.......%s' % (arrNE, arrNE, arrNE, arrSE)
+                else:
+                    label = '%s'%(ftSeq)+'.................%s....%s' % (arrNE, arrSE)
                 startFt = start
                 endFt = start+len(label)
             else:
@@ -3489,10 +3501,16 @@ def distrOnLines(seq, startDict, featLen):
                 endFt = end
         else:
             if pamIsFirst:
-                spc1 = "...."
-                spc2 = "................."
-                labelPrefix = '%s%s%s%s' % (arrSE, spc1, arrNE, spc2)
-                label = labelPrefix + ftSeq
+                if pamIsCas12max(pam): #modify cleavage sites to 14-16 (target strand) and 24nt (non-target strand) / hfCas12Max
+                    spc1 = "......."
+                    spc2 = "............."
+                    labelPrefix = '%s%s%s%s%s%s' % (arrSE, spc1, arrNE, arrNE, arrNE, spc2)
+                    label = labelPrefix + ftSeq
+                else:
+                    spc1 = "...."
+                    spc2 = "................."
+                    labelPrefix = '%s%s%s%s' % (arrSE, spc1, arrNE, spc2)
+                    label = labelPrefix + ftSeq
                 startFt = start - len(labelPrefix)
                 endFt = startFt+len(label)
             else:
@@ -7212,7 +7230,7 @@ def parseFastaAsList(fileObj):
 def parseFasta(fileObj):
     " parse a fasta file, where each seq is on a single line, return dict id -> seq "
     seqs = {}
-    parts = []
+    parts = []  
     seqId = None
     for line in fileObj:
         line = line.rstrip("\n").rstrip("\r")
