@@ -7,7 +7,6 @@ Crispor Edit:
 - (CCA>del)
 - (ins>CCA)
 
-
 Indel predictions:
 - Kim 2020: https://www.nature.com/articles/s41551-019-0505-1#code-availability https://github.com/CRISPRJWCHOI/IndelSearcher
 - Wang 2019 https://www.nature.com/articles/s41467-019-12281-8 www.deephf.com
@@ -52,7 +51,7 @@ Add these new criteria:
   see https://www.ncbi.nlm.nih.gov/pubmed/27282953
 - Jensen et al: Chromatin and secondary structure 
    http://onlinelibrary.wiley.com/doi/10.1002/1873-3468.12707/full
-- Jennifer's zebrafish model
+- Jennifer's zebrafish model -> impossible to update
 - CRISPROff and CRISPRSpec? http://rth.dk/resources/crispr/
 
 Show a histogram of the mismatches instead of 0-0-10-15-40

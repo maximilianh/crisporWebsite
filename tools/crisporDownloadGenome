@@ -5,14 +5,19 @@ outdir=$2
 
 if [ "$db" == "" ] && [ "$outDir" == "" ]; then
     echo usage: downloadGenome genomeCode outputFolder
-    echo Downloads pre-indexed and annotated genome from crispor.tefor.org
+    echo Downloads pre-indexed and annotated genome from crispor.gi.ucsc.edu
     echo Example genome codes are: hg19, mm10, sacCer3 etc.
     echo For full list of codes, see: http://crispor.tefor.net/genomes/genomeInfo.all.tab
     exit
 else
    if [ "$outDir" == "" ]; then
-       outDir=/var/www/html/genomes
+       outDir=/data/genomes
        mkdir -p $outDir
    fi
-    wget -r -nH --cut-dirs=2 --no-parent --reject="robots.txt" --reject="index.html*"  crispor.tefor.net/genomes/$db/ -P $outDir/$db
+
+#wget --progress=bar:force:noscroll -P /data/genomes/$db/ "https://crispor.gi.ucsc.edu/genomes/$db/$f"
+curl -s https://crispor.gi.ucsc.edu/genomes/$db/ | grep -oP 'href="\K[^"]+' | grep -v '^\?' | grep -v '/$' | while read f; do
+echo Downloading $f
+curl --progress-bar --output-dir $outDir/$db -O "https://crispor.gi.ucsc.edu/genomes/sacCer3/$f"
+done
 fi
