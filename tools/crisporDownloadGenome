@@ -12,10 +12,9 @@ if [ "$db" == "" ] && [ "$outDir" == "" ]; then
 else
    if [ "$outDir" == "" ]; then
        outDir=/data/genomes
-       mkdir -p $outDir
+       mkdir -p $outDir/$db
    fi
 
-#wget --progress=bar:force:noscroll -P /data/genomes/$db/ "https://crispor.gi.ucsc.edu/genomes/$db/$f"
 curl -s https://crispor.gi.ucsc.edu/genomes/$db/ | grep -oP 'href="\K[^"]+' | grep -v '^\?' | grep -v '/$' | while read f; do
 echo Downloading $f
 curl --progress-bar --output-dir $outDir/$db -O "https://crispor.gi.ucsc.edu/genomes/sacCer3/$f"
