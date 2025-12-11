@@ -12,10 +12,22 @@ To download and start the container and map the port 8080 on your machine to the
 
 You should then be able to access the container via http://localhost from the machine. There is no genome yet.
 
-To add a genome to the container:
+To download a genome from crispor.gi.ucsc.edu into the container:
 
    docker exec -it crispor-container /data/www/crispor/tools/crisporDownloadGenome hg38
 
-You can also build the container yourself, by downloading this directory from github, going into this "docker" directory and running:
+To add a new genome to the container:
 
-docker build -t crispor .
+   docker exec -it crispor-container /data/www/crispor/tools/crisporDownloadGenome hg38
+
+To inspect the docker container:
+
+   docker exec -it crispor-container333 /bin/bash
+
+I run this command to build the container and push it as a multi-architecture build:
+
+   docker buildx build . --platform linux/amd64,linux/arm64 -t maximilianh/crispor:latest --push
+
+Then I tag the container with the version, since it's a multi-arch container, I cannot use the tag comment, but need to use buildx:
+
+   docker buildx imagetools create --tag maximilianh/crispor:v5.2 maximilianh/crispor:latest
