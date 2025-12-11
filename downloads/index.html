@@ -8,7 +8,7 @@ Files available:
 <li>A docker container image for Windows/OSX/Linux that includes CRISPOR and all dependencies. You can use this to run CRISPOR on your own computer, on Windows, OSX or Linux</li>
   <ul>
   <li>Install <a href="http://docker.com">Docker</a> for your operating system first, Windows, OSX or Linux</li>
-  <li><a href="https://github.com/maximilianh/crisporWebsite/tree/master/docker">Follow the instructions</a>, which boil down to running this command "docker run -d -p 8080:80 --name crispor-container maximilianh/crispor /sbin/my_ini"
+  <li><a href="https://github.com/maximilianh/crisporWebsite/blob/master/docker/README.md">Follow the instructions</a>, which boil down to running this command "docker run -d -p 8080:80 --name crispor-container maximilianh/crispor /sbin/my_ini" then going to http://localhost:8080
   <li>If you need a VM image, e.g. for <a href="https://vmware.com">Vmware</a>, please let me know. Usually the docker container can be run there.</li>
   <li>To run the command line version, get a shell into the container (see documention linked above) /var/www/crispor/ and run crispor.py in the terminal</li>
   <li>To add your own genome which is not yet on Crispor.org, the easiest way forward may be to email us and ask us to add it to our site, then run /data/www/crispor/tools/crisporDownloadGenome (see docs page above).</li>
