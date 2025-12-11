@@ -20,3 +20,4 @@ echo Downloading $f
 curl --progress-bar --output-dir $outDir/$db -O "https://crispor.gi.ucsc.edu/genomes/sacCer3/$f"
 done
 fi
+/data/www/crispor/makeGenomeInfo
