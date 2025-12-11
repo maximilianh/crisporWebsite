@@ -2,11 +2,21 @@
 
 import logging, sys, optparse, os, shutil, glob, json, subprocess, gzip, re, io
 from io import TextIOWrapper
+from os.path import abspath, basename, dirname, isdir, isfile, join, relpath
+import platform
 
 try:
     from urllib.request import urlopen
 except:
     from urllib.request import urlopen
+
+# copied from crispor.py:
+# directory for helper binaries (e.g. BWA)
+# system() is one of 'Linux', 'Darwin', 'Windows', machine() is one of 'x86_64', 'arm64', 'aarch64'
+baseDir = dirname(__file__)
+os_name = platform.system()        # 'Linux', 'Darwin', 'Windows'
+arch = platform.machine()          # 'x86_64', 'arm64', 'aarch64'
+binDir = abspath(join(baseDir, "..", "bin", platform.system()+"-"+platform.machine()))
 
 from collections import namedtuple
 from os.path import *
@@ -336,13 +346,13 @@ def indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames):
 
     if not isfile(twoBitTmp):
         printMsg("Converting fasta to 2bit")
-        cmd = "faToTwoBit -long %s %s" % (faTmp, twoBitTmp)
+        cmd = binDir+"/faToTwoBit -long %s %s" % (faTmp, twoBitTmp)
         runCmd(cmd)
 
     sizesTmp2 = sizesTmp+".tmp"
 
     printMsg("Making chrom sizes")
-    cmd = "twoBitInfo %s %s" % (twoBitTmp, sizesTmp2)
+    cmd = binDir+"/twoBitInfo %s %s" % (twoBitTmp, sizesTmp2)
     runCmd(cmd)
 
     chromCount = len(open(sizesTmp2).read().splitlines())
@@ -350,7 +360,7 @@ def indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames):
         errAbort("ERROR: genome has %d chromosomes - too many. This will be very slow to process with crispor." % chromCount)
 
     printMsg("Indexing fasta with BWA")
-    cmd = "bwa index %s" % faTmp
+    cmd = binDir+"/bwa index %s" % faTmp
     runCmd(cmd)
 
     printMsg("Deleting fasta")
@@ -436,7 +446,7 @@ def indexLocalGenome(dbInfo, geneTable):
 
         printMsg("Converting to fasta")
         faTmp = join(dbTmpDir, db+".fa")
-        cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
+        cmd = binDir+"/twoBitToFa %s %s" % (twoBitTmp, faTmp)
         runCmd(cmd)
 
         indexFasta(faTmp, db, twoBitTmp, sizesTmp, [])
@@ -499,7 +509,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
 
             printMsg("Converting to fasta")
             faTmp = join(dbTmpDir, db+".fa")
-            cmd = "twoBitToFa %s %s" % (twoBitTmp, faTmp)
+            cmd = binDir+"/twoBitToFa %s %s" % (twoBitTmp, faTmp)
             runCmd(cmd)
 
             indexFasta(faTmp, db, twoBitTmp, sizesTmp, [])
