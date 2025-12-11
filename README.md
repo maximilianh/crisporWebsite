@@ -2,7 +2,7 @@
 
 CRISPOR predicts off-targets in the genome, ranks guides, highlights
 problematic guides, designs primers and helps with cloning.  Try it on
-http://crispor.org
+[http://crispor.org](http://cripor.gi.ucsc.edu) or via the [docker container](docker/).
 
 CRISPOR uses BWA, a few tools from the UCSC Genome Browser (twoBitToFa, bedClip),
 various R packages and a huge collection of external packages and source code files
@@ -22,7 +22,7 @@ for the Doench score and the MIT score that you can use for your projects, they
 don't have dependencies.
 
 You can run crispor on the command line, or install it under an Apache webserver locally.
-We also provide a virtual machine so you don't have to install anything yourself.
+We provide a docker image, so you don't have to install anything, see [the 'docker' subdirectory](docker/)
 
 Note that usage is free only for academic or non-profit organisations, for commercial use
 see license.txt. Licensing is managed by UCSC IP licensing, they have free demo licenses, 
