@@ -12,22 +12,27 @@ To download and start the container and map the port 8080 on your machine to the
 
 You should then be able to access the container via http://localhost from the machine. There is no genome yet.
 
-To download a genome from crispor.gi.ucsc.edu into the container:
+To download an existing genome from crispor.gi.ucsc.edu into the container:
 
      docker exec -it crispor-container /data/www/crispor/tools/crisporDownloadGenome hg38
 
-To add a new genome to the container:
+To add a new genome to the container, either via NCBI accession or from a FASTA/GFF file:
 
-     docker exec -it crispor-container /data/www/crispor/tools/crisporDownloadGenome hg38
+     docker exec -it crispor-container /data/www/crispor/tools/crisporAddGenome ncbi GCA_052724335.1
+     docker exec -it crispor-container /data/www/crispor/tools/crisporAddGenome fasta GWHBOWM00000000.genome.fasta.gz --gff GWHBOWM00000000.gff.gz --desc 'faAtrBel|Atropa belladonna|Belladonna deadly nightshade|CNCB GWHBOWM00000000'
 
-To inspect the docker container:
+The syntax for the --desc option is: "internalName|latinName|commonName|assembly version or description'
+
+To get a linux shell in the running docker container:
 
      docker exec -it crispor-container333 /bin/bash
 
-I run this command to build the container and push it as a multi-architecture build:
+From outside the container, from a clone of the Github repo, I run this command to build the container and push it as a multi-architecture build, you do not have to do this, but it may be interesting:
 
      docker buildx build . --platform linux/amd64,linux/arm64 -t maximilianh/crispor:latest --push
 
-Then I tag the container with the version, since it's a multi-arch container, I cannot use the tag comment, but need to use buildx:
+Then I tag the container with the version. Since it's a multi-arch container, I cannot use the tag comment, but need to use buildx:
 
      docker buildx imagetools create --tag maximilianh/crispor:v5.2 maximilianh/crispor:latest
+
+The last command automatically pushes the new tag to Docker hub.          
