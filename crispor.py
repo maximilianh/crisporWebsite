@@ -1479,7 +1479,7 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
     " show the sequence and the PAM sites underneath in a sequence viewer "
     pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True))
 
-    lines, maxY = distrOnLines(seq.upper(), startDict, len(pam))
+    lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam)
 
     posLabel = "Position"
     varLabel = "Variants"
@@ -1603,8 +1603,10 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
 
     #printSeqForCopy(seq)
 
-    if pamIsCpf1(pam):
-        print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">Cpf1 has a staggered site: cleavage occurs usually - but not always - after the 18th base on the non-targeted strand which has the TTTV PAM motif (indicate by "\\" in the schema above). Cleavage mostly occurs after the 23rd base on the targeted strand which has the AAAN motif (indicated by "/" in the schema above). See <a target=_blank href="http://www.sciencedirect.com/science/article/pii/S0092867415012003">Zetsche et al 2015</a>, in particular <a target=_blank href="http://www.sciencedirect.com/science?_ob=MiamiCaptionURL&_method=retrieve&_eid=1-s2.0-S0092867415012003&_image=1-s2.0-S0092867415012003-gr3.jpg&_cid=272196&_explode=defaultEXP_LIST&_idxType=defaultREF_WORK_INDEX_TYPE&_alpha=defaultALPHA&_ba=&_rdoc=1&_fmt=FULL&_issn=00928674&_pii=S0092867415012003&md5=11771263f3e390e444320cacbcfae323">Fig 3</a>.</div>')
+    if pamIsCas12max(pam):
+        print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">Cpf1 has a staggered site: cleavage occurs between the 14th and 16th base on the non-targeted strand (indicated by "\\" in the schema above). Cleavage mostly occurs after the 24rd base on the targeted strand (indicated by "/" in the schema above). See on <a target=_blank href="https://www.synthego.com/products/nuclease/hfcas12max-hifi">Synthego</a></div>')
+    elif pamIsCpf1(pam):
+        print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">Cpf1 has a staggered site: cleavage occurs usually - but not always - after the 18th base on the non-targeted strand which has the TTTV PAM motif (indicated by "\\" in the schema above). Cleavage mostly occurs after the 23rd base on the targeted strand which has the AAAN motif (indicated by "/" in the schema above). See <a target=_blank href="http://www.sciencedirect.com/science/article/pii/S0092867415012003">Zetsche et al 2015</a>, in particular <a target=_blank href="http://www.sciencedirect.com/science?_ob=MiamiCaptionURL&_method=retrieve&_eid=1-s2.0-S0092867415012003&_image=1-s2.0-S0092867415012003-gr3.jpg&_cid=272196&_explode=defaultEXP_LIST&_idxType=defaultREF_WORK_INDEX_TYPE&_alpha=defaultALPHA&_ba=&_rdoc=1&_fmt=FULL&_issn=00928674&_pii=S0092867415012003&md5=11771263f3e390e444320cacbcfae323">Fig 3</a>.</div>')
     elif pamIsCasX(pam):
         print('<div style="line-height: 1.0; padding-top: 5px; font-size: 15px">We have no description yet on how exactly the CasX cleavage looks like. Please contact crispor@tefor.net if you have an idea how to describe the cleavage site.</div>')
 
@@ -3456,7 +3458,7 @@ def firstFreeLine(lineMasks, y, start, end):
     return y
     #return None
 
-def distrOnLines(seq, startDict, featLen):
+def distrOnLines(seq, startDict, featLen, pam):
     """ given a dict with start -> (start,end,name,strand) and a motif len, create lines of annotations such that
         the motifs don't overlap on the lines
     """
