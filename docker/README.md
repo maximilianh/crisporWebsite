@@ -9,7 +9,7 @@ initd.
 To download and start the container and map the port 8080 on your machine to the container:
 
      docker run -d -p 8080:80 --name crispor-container maximilianh/crispor
-You should then be able to access the container via http://localhost from the machine. There is no genome yet.
+You should then be able to access the container via http://localhost:8080 from the machine. There is no genome yet.
 
 To download an existing genome from crispor.gi.ucsc.edu into the container:
 
@@ -19,6 +19,15 @@ To add a new genome to the container, either via NCBI accession or from a FASTA/
 
      docker exec -it crispor-container /data/www/crispor/tools/crisporAddGenome ncbi GCA_052724335.1
      docker exec -it crispor-container /data/www/crispor/tools/crisporAddGenome fasta GWHBOWM00000000.genome.fasta.gz --gff GWHBOWM00000000.gff.gz --desc 'faAtrBel|Atropa belladonna|Belladonna deadly nightshade|CNCB GWHBOWM00000000'
+
+You can make fasta files from the host available for adding by including a bind mount when you execute docker run.
+For example, you can run
+
+     docker exec -d -p 8080:80 -v /path/to/genome.fa:/tmp/genome.fa --name crispor-container maximilianh/crispor
+
+When you run `crisporAddGenome` via `docker exec`, the genome will be available at `/tmp/genome.fa`. If you wish to include
+multiple genomes at the same time, you can use a directory with multiple fasta files instead:
+`/path/to/genomes_dir:/tmp/genomes_dir`. Then every file in `genomes_dir` will be available at `/tmp/genomes_dir/genome_name.fa`
 
 The syntax for the --desc option is: "internalName|latinName|commonName|assembly version or description'
 
