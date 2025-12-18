@@ -8,8 +8,7 @@ initd.
 
 To download and start the container and map the port 8080 on your machine to the container:
 
-     docker run -d -p 8080:80 --name crispor-container maximilianh/crispor /sbin/my_ini
-
+     docker run -d -p 8080:80 --name crispor-container maximilianh/crispor
 You should then be able to access the container via http://localhost from the machine. There is no genome yet.
 
 To download an existing genome from crispor.gi.ucsc.edu into the container:
@@ -25,7 +24,7 @@ The syntax for the --desc option is: "internalName|latinName|commonName|assembly
 
 To get a linux shell in the running docker container:
 
-     docker exec -it crispor-container333 /bin/bash
+     docker exec -it crispor-container /bin/bash
 
 From outside the container, from a clone of the Github repo, I run this command to build the container and push it as a multi-architecture build, you do not have to do this, but it may be interesting:
 
