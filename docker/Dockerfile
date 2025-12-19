@@ -29,6 +29,7 @@ RUN mkdir -p /data/www \
     && echo 'JOBQUEUEDB = "/data/temp/crisporJobs.db"' > /data/www/crispor/crispor.conf \
     && mkdir -p /data/genomes/ \
     && ln -s /data/genomes /data/www/crispor/genomes \
+    && ln -s /data/genomes /data/www/genomes \
     && mkdir -p /data/temp/ \
     && chmod a+rw /data/temp \
     && ln -s /data/temp /data/www/crispor/temp \
