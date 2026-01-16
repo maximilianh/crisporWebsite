@@ -23,12 +23,13 @@
 # this module uses pipes to feed data into some programs
 # If you run too many sequences at once, it may hang. Increase the BUFSIZE variable in this case.
 
-from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError, call
+import subprocess
+from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError, call, run
 import platform, math, tempfile, bisect, sys, os, logging, types, optparse, shutil
 from os.path import dirname, join, basename, isfile, expanduser, isdir, abspath
 from math import log10
 
-import urllib.request, urllib.error, urllib.parse, pickle
+import urllib.request, urllib.error, urllib.parse, pickle, re
 import json
 
 myDir = dirname(__file__)
@@ -64,6 +65,8 @@ cacheDir = None
 # by default bindir is relative to the location of this library
 if binDir is None:
     binDir = join(dirname(__file__), "bin")
+
+TEMPDIR = "/var/tmp"
 
 BUFSIZE = 10000000
 
@@ -853,12 +856,101 @@ def forceWrapper(func, seqs):
     except:
         return [-1]*len(seqs)
 
-def calcFreeEnergy(seqs):
-    """ runs a list of 20bp guide sequences through mfold and returns their gibbs free energy
-    >>> calcFreeEnergy(["GGGTGGGGGGAGTTTGCTCCTGG"])
-    0
+def calcFreeEnergyViennaRNA(seq, temperature = 37):
+    " With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float"
+    # temporary solution, should it use the viennarna python package instead ?
+
+    binPath = getBinPath("RNAfold")
+    cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), binPath, temperature)
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding='utf8')
+    vienna = proc.stdout.read()
+    proc.wait() 
+    viennaouts = [out for out in vienna.split(' ')]
+    deltaG = viennaouts.pop()
+    #structure (unused for now, needs to be displayed with a monospaced font)
+    #seqStructure = ''.join(viennaouts)
+    if proc.returncode == 0:
+        return float(deltaG.strip().replace(')', ''))
+
+def calcFreeEnergyRNAStructure(seqs, temperatureC = 37):
     """
-    return 0
+    With RNAstructure, returns a dict of seq / free energy from a list of seqs
+    {seq : (DGbimolecular, DGunimolecular, DGduplex)}
+
+    DGbimolecular : "free energy change for two identical oligonucleotides interacting"
+    DGunimolecular : "folding free energy change for unimolecular self-structure"
+    DGduplex : "folding free energy change for duplex formation with the complementary sequence"
+
+    """
+    
+    # NOT INSTALLED CURRENTLY
+    # need to handle writing / reading of temp files
+
+    tempSeqList = "tempSeqList.LIS"
+    tempOut = "TempRNAstructureOut.tsv"
+    temperatureK = temperatureC + 273.15
+    
+    with open(tempSeqList, "a") as f:
+        for seq in seqs:
+            f.write(seq + '\n')
+    
+    cmd = "./oligoscreen %s %s -t %s" % (tempSeqList, tempOut, temperatureK)
+    subprocess.run(cmd, encoding = 'utf8')
+
+    with open(tempOut, 'r') as f:
+        freeEnergyDict = {}
+        for i, row in enumerate(rows):
+            if i != 0:
+                rowInfo = [col for col in row.strip().split('\t')]
+                seq = rowInfo[0]
+                DGbimolecular = rowInfo[1]
+                DGunimolecular = rowInfo[2]
+                DGduplex = rowInfo[3]
+                freeEnergyDict["seq"] = (DGbimolecular, DGunimolecular, DGduplex)
+    
+    return freeEnergyDict 
+
+def calcEvaLikeScore(seq, MITscore, freeEnergy):
+    """ 
+    Returns the EVA score without the MIT weigth.
+    from Riesenberg et al. 2025.
+    Predicts the activity of synthetic guides 
+
+    /!\ will need to update the free energy calculation to RNAstructure (https://rna.urmc.rochester.edu/RNAstructure.html)
+    as in the paper /!\. 
+
+    EVA score model:
+        Pearson's r:            0.8308		
+        Adjusted R-squared:     0.6703		
+        AIC:                    583.6613		
+		
+    Coefficients:		
+        (Intercept)	            83.5821
+        20mer_free energy	    6.5242
+        MIT_specificity_score	0.1784
+        number_of_GA	        2.9282
+        C20	                   -5.0730
+        G17	                   -8.5009
+    """
+
+    if freeEnergy >= -3:
+        freeEnergy = -3
+
+    nGA = seq.upper().count('GA')
+
+    if len(seq) > 17 and seq[16] == 'G':
+        G17 = 1
+    else:
+        G17 = 0
+
+    if len(seq) > 20 and seq[19] == 'C':
+        C20 = 1
+    else:
+        C20 = 0
+
+    score = 83.5821 + 6.5242*freeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
+
+    return score    
 
 def inList(l, name):
     " return true if name is in list l  "
@@ -880,7 +972,7 @@ possibleMutScores = {
     "sacas9" : ["oof"],
 }
 
-def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
+def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None): # add MIT score in parameters
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
@@ -915,6 +1007,16 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
 
     if inList(scoreNames, "finalGg"):
         scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
+
+    if inList(scoreNames, "freeEnergy"):
+        pass
+        #logging.debug("freeEnergy")
+        #score["freeEnergy"] = calcFreeEnergy(trimSeqs(seqs, -24, 6))
+
+    if inList(scoreNames, "EVA"):
+        pass
+        #logging.debug("EVA score")
+        #score["EVA"] = calcEvaScore(trimSeqs(seqs, -24, 6), MITscore, scores["freeEnergy"])
 
     unknownScores = set(scoreNames) - set(possibleScores[enzyme])
     if len(unknownScores)!=0:

@@ -1,0 +1,275 @@
+
+# changes in CRISPOR - assistant mode
+
+## 17/12/25 ;
+
+ajout du mode "assistant"
+
+## 22/12/25 :
+
+### corrections dans getGeneSeq():
+ 
+cette fonction retourne deux listes contenant la séquence des exons de tous les transcrits d'un gène, dans les fichiers .gp disponibles.
+- une liste ('all.exons')
+- une liste ('first.exons') correspondant aux exons du premiers tiers du CDS
+
+#### changements depuis le 17/12/25 :
+ 
+- retourne la liste des exons dans le bon ordre pour les gènes du brin "-".
+- les exons de plus de 2300bp (MAXSEQLEN) sont scidés en plusieurs séquences.
+- retrait des 5' et 3'UTRs.
+- Un exon trop long pour entrer dans le premier tiers du CDS mais pouvant être tronqué l'est désormais.
+- si le CDS est de < 100bp, tous les exons sont considérés (seuil à augmenter ?)
+
+#### problèmes / à faire :
+
+- pas d'annotation des transcripts ID dans le fichier .gp -> les trancrits sont pour l'instant numérotés selon leur ordre d'appariation.
+- prise en compte des autres fichier d'annotation ? (genes.tsv, .bb, segments.bed) ? 
+
+### Ajout du menu déroulant de la liste des gènes disponible en fonction de l'organisme sélectionné
+
+via AJAX avec select2
+chargement un peu lent (~2s), à voir avec d'autres génomes.
+
+## 23/12/25
+
+## ajouts divers 
+
+- ajout du logo Celphedia
+- possibilité de sélectionner un gene ID depuis le menu principal.
+- possibilité de sélectionner le n°de l'exon à cibler.
+- possibilité de choisir un PAM / type d'enzyme / longueur de guide personnalisé.
+- utilisation de select2 sur tous les menus déroulants.
+
+## à faire
+
+- ajouter la possibilité de relancer la recherche sur l'exon suivant si sélection depuis geneID
+- choix du transcrit consensus -> utiliser l'intersection de tous les transcrits dispo (cf. CHOPCHOP). Attention à ce qu'un transcrit "rare" ne dicte pas le consensus
+- vérifier que les custom PAMs ne provoquent pas de bugs. +- FAIT
+- définir les longeurs de guides possibles (pour l'instant : 10-30bp)
+- définir d'autres types d'enzymes ?
+
+# 26/12/25
+
+## classement des guides selon un score global
+
+- calcul de l'énergie libre minimum des structures secondaires du sgRNA avec RNAfold (avertissment si celle-ci est < à 3 kcal/mol)
+- transfert du calcul du GC content dans mergeGuideInfo()
+- calcul du score global : normalisation min-max des CFD specificity et rs3 efficiency scores, puis somme de ces scores avec application d'un coef (arbitraire pour l'instant). (0.60*CFD + 0.40*rs3)
+- le score global est mis à une échelle de 0 à 100.
+- une pénalité de 20 points est appliquée si l'énergie libre minimum est inférieure à 3kcal/mol (cf. Riesenberg et al 2025, attention unités à vérifier).
+- une pénalité de 40 points est appliquée si le %GC inférieur à 25% ou supérieur à 75%. Dans CHOPCHOP, ces limites sont de 40-70%.
+- ajout de la colonne "Global Score" dans le tableau des guides. Classement des guides avec ce score par défaut.
+
+## à faire
+
+- implémenter le EVA score de Riesenberg et al 2025, pour guides synthétiques ? 
+- Vérifier / ajuster les paramètres de calcul de Global Score.
+- ajouter des pénalités ?
+- adapter le calcul du global score au mode cpf1 / saCas9.
+- ajouter binary RNAfold dans /data/www/crispor/bin/Linux-aarch64 FAIT
+- utiliser package python viennarna au lieu de RNAfold ? la performance ne semble pas être un problème 
+
+# 29/12/25
+
+## 1ère tentative d'implémentation du mode knock-in
+
+- installation de protoSpaceJam dans /bin (doc https://czbiohub-sf.github.io/protoSpaceJAM/)
+- mais multiples problèmes : protoSpaceJam fonctionne avec des PAMs pré-calculés sur un nombre restreint de génomes (Homme, souris, rat, zebrafish)
+- de nombreuses fonctions sont redondantes avec CRISPOR (notamment pour le calcul des scores)
+- solutions : soit réutiliser des fonctions (obtention et recodage de la séquence de l'ADN donneur, calcul des pénalités (séquences répétées, %GC, homogénéité...))
+ mais ces fonction requièrent souvent beaucoup de paramètres obtenus ailleurs dans la programme.. pas sûr que ce soit possible à implémenter simplement.
+- soit partir de 0 et implémenter les mêmes concepts (plus simple, mais le résultat sera probablement moins complet).
+
+## implémentation "manuelle" du mode knock-in
+- ajout du formulaire : l'utilisateur entre un gene ID et choisit la position (Nter ou Cter), ou alors entre une séquence avec '//' au niveau du site d'insertion.
+- choix de la séquence d'insert : soit sélection parmi une liste de tags / linkers (+ choix de l'ordre), soit séquence custom.
+- si geneID, la séquence du premier / dernier exon est extraite avec getGeneSeq() puis scindée au niveau du codon START / STOP
+- si séquence, celle-ci est scindée aux '//' (un seul '//' autorisé)
+
+## à faire
+
+- étendre la séquence de 800bp (+ définir input pour la longueur des bras d'homologie) en 5' et 3' (geneID) FAIT
+- séquence : mapper sur le génome puis étendre de 800bp FAIT
+- merger la séquence d'insert, puis calculer %GC et segments répétés sur des bins de (50bp ?) 
+
+#30/12/25
+
+- design de l'ADN donneur avec la fonction getDonorSeq()
+- réinstallation complète de crispor à cause d'un bug causé par l'installation de protoSpaceJam (mauvaise version de numpy)
+- calcul du %GC sur des bins de 50bp
+- 
+
+## à faire :
+
+- commit depuis branche anton
+- (pré)calcul nb match dans genome de taille donnée
+- adapter nb mismatch à longueur spacer (=< 3)
+- déplacer calcul énergie libre dans effScores
+- modifier contraintes PAM custom (3-8 nt, 2 non Ns) FAIT
+- créer nouveau jobType pour recherche batch : multiseq / multiPAMs. (modifier JobType, readBatchParams(), runQueueWorker(), getOddTargets() (ou nouvelle fonction getOffTargets() ) (mysql au lieu de sqlite pour gérer plusieurs recherches en mm temps)
+- knock-in :
+    - vérifier que le gène code pour une protéine si insertion Nter / Cter.
+    - recherche des guides 60 bp de part et 'autre du site d'insertion.
+    - affichage résultats : toutes enzymes dispo (+ checkbox enzymes)
+    - prise en compte de la distance au site d'insertion dans le classement des guides
+    - guides chevauchant le site d'insertion en priorité
+    - donneur sb ( + court, + simple à mettre en oeuvre, non adapté aux longs inserts ) + guides db.
+    - design primers de part et d'autre des bras d'homologie ( attention à la longueur de l'amplicon)
+    - retirer le calcul des scores d'efficacité et réduire de nb de mismatch pour rechercher plusieurs PAMs en mm temps.
+    - si site clivage éloigné su site d'insertion -> recodage.
+    - vérifier le cadre de lecture des bras d'homologie ?
+    - indiquer le brin (codant / non codant) correspondant au donneur
+
+# 07/01/26
+
+## Ajouts divers
+
+- ajout d'une pénalité pour les guides décrits par Graf et al, 2019.
+- déplacement du de calcFreeEnergy() dans crisporEffScores.py 
+- calcul du EVA score (pour guides synthétiques avec la fonction calcEvaScore() 
+- calcul de l'énergie libre avec RNAstructure (lib à installer, utilisé par EVAscore)
+
+## Mode Knock-in 
+
+- extension des séquences (donneur / target) dans la limite des coordonnées chromosomiques
+- definition chevauchement : <16nt
+
+## à faire
+
+- réfléchir à l'interface formulaire / résultats Knock-in (+ "général" que ProtoSpaceJam 
+- installer RNAstructure / finir la fonction associée
+- importer EVA score
+
+# 08/01/26
+
+## Ajouts divers 
+- ajout de fonctions permettant d'obtenir une liste des transcrits et des exons (par n°) du geneID sélectionné, via AJAX
+- (ne fonctionne pas encore parfaitement)
+
+## Modification de getGeneSeq
+
+- fonction trop longue et pas assez généraliste
+- replacée par getGenePos : à partir d'un geneID, renvoie un dict des modèles de gènes correspondant à l'ID :
+- contient : un dict par fichier .gp contenant un dict pour chaque colonne correspondnat à l'ID d'input
+
+	- coordonnées des 5' et 3' UTRs (si le gène code pour une protéine)
+	- coordonnées des exons (5' et 3' UTRs tronqués)
+	- coordonnées des introns
+
+## à faire :
+
+- faire une nouvelle fonction getGeneSeq() prenant comme input l'outupt de getGenePos()
+- optionellement, renvoie le premier tiers de la séquence codante.
+
+## 09/01/26
+
+## Modification de GetGeneSeq()
+- Correction de getGenePos()
+- ajout de getGeneSeq() : à partir des coordonnées issues de getGenePos(), retourne la liste des séquences correspondantes.
+	- possibilité de sélectionner exons, intron, UTRs.
+- ajout de getFirstThird(): retourne le premiers tiers de la séquence d'une lsite d'exons.
+- ajout de seqSplit(): découpe une séquence en fragments de taille donnée
+
+## à faire :
+- faire un système d'envoi des résultats par mail en différé
+- modifier le système de batch pour gérer plusieurs séquences / PAMs
+- créer une fonction pour éxécuter getGenePos(), getGeneSeq().. et l'appeller dans assistantDispatcher()
+
+## 12/01/26
+
+## Modification de GetGeneSeq()
+
+- ajout de fetchSeqsFromID() : à partir d'un geneID, retourne les séquences correspondant à la feature d'input 
+(en éxécutant les fonctions ajoutées le 09/01)
+	- ignore les séquences < 23 bp
+	- fragmente les séquences > MAXSEQLEN
+	- assigne un index correspondant au n°de la séquence avant traitement (ex, n° d'exon)
+- retourne une liste de tuples [(id, seq)]
+ 
+## gestion de multiples séquences / PAMs en batch 
+
+- pramètre CGI : multiseq = liste de tuples (out fetchSeqsFromID() )
+
+- newBatch() accepte le paramètre optionnel multiseq, qui est ensuite stocké dans le json
+- dans crisprSearch() : ajout d'un batch avec paramètre "multiseq" -> ajout d'un job "multisearch" 
+- dans runQueueWorker : si le jobType == "multisearch"
+	- lance un sub-batch par séquence -> getOffTargets() puis parseOffTargets par seq # supprimé le 13/01/26
+
+# 13/01/26
+
+## gestion multi seq / PAM 
+
+- fonction submitMultiSearch() : ajoute un job "multisearch" dans la queue
+- dans runQueueWorker() : 
+	- ajout de writeMultiFasta : écrit un fichier fasta correspondant aux quides de toutes les séquences en input
+	- fasta header : >seqId.exonId.pamId (où seqId est l'ID correspondant à la séquence d'input et exonID correspond au n° de l'exon)
+	- recherche des off-targets / calcul des scores dans processMultiSubmission()
+	- pour l'instant : recherche des offtargets OK
+
+## à faire
+
+- adapter createBatchEffScoreTable() (simplification, retrait de scores)
+- implémenter l'affichage des résultats
+- faire la recherche pour plusieurs PAMs (et plusieurs geneIDs ?)
+
+## à faire (divers)
+
+- installer RNAstructure, ajouter MIT score à EVA score dans crispor.py
+- optimiser getGenePos(), utiliser des coordonnées plutôt que des séquences
+- ajouter le paramètre maxLen à getFirstThird()
+
+
+# 14/01/26
+
+# gestion multi seq / PAM
+
+- recherche pour plusieurs pams : modification de processMultiSubmission()
+	- écriture d'un fichier bed vide
+	- dans une boucle : 
+		- call de setupPamInfo()
+		- writeMultiFasta() (recherche des guides pour chaque séquence en input)
+		- findOffTargetsBwa() >> ajout des résultats dans le fichier bed
+ 	- index des guides / offtargets: PAM.seqId.exonId.pamId
+- réduction du maximum de mismatchs à 3 lors de la recherche des offtargets (~5-10x plus rapide)
+
+- call des effscores dans la boucle avec createMultiBatchEffScoreTable()
+
+# bugs / à faire
+- certains geneIDs retournent une liste vide
+- Pour certains geneIDs, le job "multisearch" n'est jamais lancé.
+	- (huître) NM_001308865.1 -> fonctionne
+- finaliser le calcul des effscores
+
+# 15/01/26
+
+## gestion multiseq / PAM
+
+- correction de processMultiSubmission et de calcMultiSaveEffScores
+- le job "multisearch" fontionne pour tous les geneIDs (besoin d'effacer la base de données avec ./crispor.py --clear)
+- homogéinisation du tableau des effscores (1 score / PAM + oof) ~ non terminé
+
+## divers
+
+- mise a jour de la branche anton ~ non terminé
+
+# à faire
+
+- headers dupliqués dans tableau effscores + 3 scores pour pam NGG
+- keras ne peut pas importer le backend theano ?! -> impossible d'utiliser cpf1
+
+# 16/21/26
+
+## gestion multiseq / PAM
+
+- mise au propre du tableau effscores
+
+## divers 
+
+- réinstallation du docker container + image (à jour avec master)
+- réinitialisation de la branche anton
+
+## 
+
+- malgrès réinstallation comlpète, pb de version de keras toujours présent ??
+
