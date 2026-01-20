@@ -797,7 +797,7 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
         cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -refseqHacks -maxConvertErrors=10000000" % \
             locals()
     else:
-        cmd = f"{catCmd} {gff3Fname} | {binDir}/gffread /dev/stdin -T -o /dev/stdout | {binDir}s/gtfToGenePred -allErrors stdin {gpFname}" % locals()
+        cmd = f"{catCmd} {gff3Fname} | {binDir}/gffread /dev/stdin -T -o /dev/stdout | {binDir}/gtfToGenePred -allErrors stdin {gpFname}" % locals()
 
     logging.info("converting gff3 to genePred: %s" % cmd)
     runCmd(cmd, mustRun=False)
