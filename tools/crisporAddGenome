@@ -785,6 +785,7 @@ def selectManualGenome(taxIds, options):
 
 def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
     " convert gff3 to genePred and segments "
+    global binDir
     if gff3Fname.endswith(".gz"):
         catCmd = "zcat"
     else:
@@ -796,7 +797,7 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
         cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -refseqHacks -maxConvertErrors=10000000" % \
             locals()
     else:
-        cmd = "%(catCmd)s %(gff3Fname)s | gffread /dev/stdin -T -o /dev/stdout | gtfToGenePred -allErrors stdin %(gpFname)s" % locals()
+        cmd = f"{catCmd} {gff3Fname} | {binDir}/gffread /dev/stdin -T -o /dev/stdout | {binDir}s/gtfToGenePred -allErrors stdin {gpFname}" % locals()
 
     logging.info("converting gff3 to genePred: %s" % cmd)
     runCmd(cmd, mustRun=False)
