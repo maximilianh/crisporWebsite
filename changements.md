@@ -263,13 +263,81 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 ## gestion multiseq / PAM
 
 - mise au propre du tableau effscores
+- dans crisprSearch -> parseMultisearchInfo
+
+## réécriture de getGenePos()
+
+- stocke uniquement les donneés relaives au geneID d'input
+- sotckage des coordonnées plutôt que des séquences
+- en 4 fonctions : 
+	- getGenePos() retourne chrom, start, (exonStarts, exonEnds)
+	- getFirstThird() : filtre les exons correspondant au premiers tiers de la seq. codante
+	- formatExonPos() : conversion des coordonnées en posStr(chrom:start-end:strand), retrait des exons < PAMLEN et assignation du n° de l'exon)
+        - getExonsFromId() : définit maxLen, PAMLEN -> call des trois fonctions précédentes. retourne [(exonIDs, exonPosStr)]
 
 ## divers 
 
 - réinstallation du docker container + image (à jour avec master)
-- réinitialisation de la branche anton
+- réinitialisation de la branche anton -> push de la nouvelle branche sur le repo
 
-## 
+## à faire 
 
 - malgrès réinstallation comlpète, pb de version de keras toujours présent ??
+- séparer multiseq / multiPAM OK ~~
+
+- corriger l'écriture des effScores dans processMultiSeqSubmission()
+- corrigder : CFD toujours entre 97 et 100
+
+#19/01/25
+
+## Gestion multiseq / multiPAM 
+
+- séparation des jobs multiseq / multipam (multipam nécéssaire uniquement pour knock-in)
+- jobType : "multiseq" : 
+        - call de processMultiSeqSubmission() : 
+                - par exon : obtention et extension de la séquence et calcul des effscores (dans un seul fichier) 
+                - écriture d'un fichier fasta contenant tous les guides (pour tous les exons)
+                - recherche des offtargets 
+- lorsque le job est terminé :
+        - call de parseMultiSearchInfo():
+                - lecture des fichiers offtargets et effscores
+                - par exon : call de mergeGuideInfo() et aggrégation des données dans allGuideData (liste) allGuideScores (dict) et allPamIdToSeq (dict) 
+		- ajout de showExonAndPams (affichage de la séquence de / n° / longueur de chaque exon)
+		- ou alternativement, affichage de la séquence des exons mis bout à bout et séparés par '//' (supprimé, à refaire demain)
+ 	
+- dans colonne "position / strand" du tableau des guides : ajout de "in exon n"
+
+## divers : 
+
+- si sélection d'un geneID depuis le menu principal, affichage / sélection du nombre d'exons correspondant (via ajax)
+
+## à faire / bugs
+
+- corriger la position des pams (startDict) lorsque les exons sont affichés bout à bout
+- pour certains gènes, le calcul des effscores retourne un dict vide
+- si beaucoup de guides (> 25 ?) filtre des 25 meilleurs guides
+- makePamLines retournes moins de PAMs que le nombre de guides possible.
+
+# 20/01/26
+
+## divers
+
+- correction de getFirstThird (retournait la séquence complète si > maxlen)
+- installation de RNAstructue : 
+	- installation de make / g++
+	- compilation des programmes puis de l'interface python
+	- note : besoin de compiler l'interface python avec PYTHON=/data/www/crispor/venv/bin/python3
+
+- ajout du EVA score (calcul EVA score sans MIT dans crisporEffScores.py
+ puis ajout du MIT dans crispor.py avec calcEVAscore() / mergeGuideInfo
+
+# multiseq mode : 
+- modification de microhompage() ->  recherche du pamId en fonction de l'exon dans lequel se trouve le pam.
+- modification de saveOutcomeData() (pour scores oof / lindel), n'efface plus les données précédentes si la fonction est exécutée dans une boucle
+- interface KO : OK. (reste à afficher les exons bout à bout ?)
+
+# à faire / bugs
+- finaliser l'affichage du mode KO
+- ajouter description pour EVA score et vérifier le calcul
+- lorsque un batch multiseq est relancé, perte du paramètre "exonSeqs".
 

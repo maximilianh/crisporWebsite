@@ -25,8 +25,9 @@
 
 import subprocess
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError, call, run
-import platform, math, tempfile, bisect, sys, os, logging, types, optparse, shutil
+import platform, math, tempfile, bisect, sys, os, logging, types, optparse, shutil, hashlib
 from os.path import dirname, join, basename, isfile, expanduser, isdir, abspath
+from os import environ
 from math import log10
 
 import urllib.request, urllib.error, urllib.parse, pickle, re
@@ -52,6 +53,11 @@ sys.path.append(cctopDir)
 lindelDir = join(myDir, "bin/src/lindel")
 sys.path.append(lindelDir)
 
+RNAstructureDir = join(myDir, "bin/src/RNAstructure/")
+RNAstructureExeDir = join(RNAstructureDir, "exe")
+RNAstructureDataPath = join(RNAstructureDir, "data_tables")
+sys.path.append(RNAstructureExeDir)
+os.environ["DATAPATH"] = RNAstructureDataPath
 
 # global that points to the crispor 'bin' directory with the external executables
 # like libsvm and svmlight
@@ -871,53 +877,25 @@ def calcFreeEnergyViennaRNA(seq, temperature = 37):
     #seqStructure = ''.join(viennaouts)
     if proc.returncode == 0:
         return float(deltaG.strip().replace(')', ''))
-
-def calcFreeEnergyRNAStructure(seqs, temperatureC = 37):
-    """
-    With RNAstructure, returns a dict of seq / free energy from a list of seqs
-    {seq : (DGbimolecular, DGunimolecular, DGduplex)}
-
-    DGbimolecular : "free energy change for two identical oligonucleotides interacting"
-    DGunimolecular : "folding free energy change for unimolecular self-structure"
-    DGduplex : "folding free energy change for duplex formation with the complementary sequence"
-
-    """
     
-    # NOT INSTALLED CURRENTLY
-    # need to handle writing / reading of temp files
+def calcFreeEnergyRNAStructure(seq):
+    """ Using RNAstructure (https://rna.urmc.rochester.edu/Releases/6.0.1/manual/RNA_class/html/index.html)
+    returns the minimum free energy (in kcal/mol) of a sequence """
 
-    tempSeqList = "tempSeqList.LIS"
-    tempOut = "TempRNAstructureOut.tsv"
-    temperatureK = temperatureC + 273.15
-    
-    with open(tempSeqList, "a") as f:
-        for seq in seqs:
-            f.write(seq + '\n')
-    
-    cmd = "./oligoscreen %s %s -t %s" % (tempSeqList, tempOut, temperatureK)
-    subprocess.run(cmd, encoding = 'utf8')
+    import RNAstructure
 
-    with open(tempOut, 'r') as f:
-        freeEnergyDict = {}
-        for i, row in enumerate(rows):
-            if i != 0:
-                rowInfo = [col for col in row.strip().split('\t')]
-                seq = rowInfo[0]
-                DGbimolecular = rowInfo[1]
-                DGunimolecular = rowInfo[2]
-                DGduplex = rowInfo[3]
-                freeEnergyDict["seq"] = (DGbimolecular, DGunimolecular, DGduplex)
-    
-    return freeEnergyDict 
+    guideStructure = RNAstructure.RNA.fromString(seq)
+    guideStructure.FoldSingleStrand()
+    freeEnergy = guideStructure.GetFreeEnergy(structurenumber=1)
 
-def calcEvaLikeScore(seq, MITscore, freeEnergy):
+    return freeEnergy
+
+
+def calcEvaLikeScore(seqs):
     """ 
     Returns the EVA score without the MIT weigth.
     from Riesenberg et al. 2025.
     Predicts the activity of synthetic guides 
-
-    /!\ will need to update the free energy calculation to RNAstructure (https://rna.urmc.rochester.edu/RNAstructure.html)
-    as in the paper /!\. 
 
     EVA score model:
         Pearson's r:            0.8308		
@@ -932,25 +910,23 @@ def calcEvaLikeScore(seq, MITscore, freeEnergy):
         C20	                   -5.0730
         G17	                   -8.5009
     """
-
-    if freeEnergy >= -3:
-        freeEnergy = -3
-
-    nGA = seq.upper().count('GA')
-
-    if len(seq) > 17 and seq[16] == 'G':
-        G17 = 1
-    else:
-        G17 = 0
-
-    if len(seq) > 20 and seq[19] == 'C':
-        C20 = 1
-    else:
-        C20 = 0
-
-    score = 83.5821 + 6.5242*freeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
-
-    return score    
+    scores = []
+    for seq in seqs:
+        freeEnergy = calcFreeEnergyRNAStructure(seq)
+        if freeEnergy >= -3:
+            freeEnergy = -3
+        nGA = seq.upper().count('GA')
+        if len(seq) > 17 and seq[16] == 'G':
+            G17 = 1
+        else:
+            G17 = 0
+        if len(seq) > 20 and seq[19] == 'C':
+            C20 = 1
+        else:
+            C20 = 0
+        score = 83.5821 + 6.5242*freeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
+        scores.append(score)
+    return scores
 
 def inList(l, name):
     " return true if name is in list l  "
@@ -960,7 +936,7 @@ def inList(l, name):
 # 2025: had to remove aziInVitro - not supported anymore, Jennifer Listgarden does not reply to emails about this anymore
 possibleScores = {
     "spcas9" : ["fusi", "rs3", "housden", "wang", "doench", "ssc",
-        "wuCrispr", "chariRank", "crisprScan", "ccTop", "oof"],
+        "wuCrispr", "chariRank", "crisprScan", "ccTop", "oof", "EVA"],
     "cpf1" : ["seqDeepCpf1", "oof"],
     "sacas9" : ["najm", "oof"]
 }
@@ -1083,6 +1059,11 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
             chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
             scores["chariRaw"] = chariScores[0]
             scores["chariRank"] = chariScores[1]
+        
+        if inList(scoreNames, "EVA"):
+            logging.debug("EVA score (without MIT weight)")
+            evaScores = calcEvaLikeScore(trimSeqs(seqs, -20, 0))
+            scores["EVA"] = evaScores
 
         #if inList(scoreNames, "aziInVitro"):
             #logging.debug("Azimuth in-vitro")
@@ -1432,7 +1413,7 @@ def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
         logging.debug("lindel scores")
         mutSeqDict = calcLindelScore(seqIds, seqs)
         scores["lindel"] = mutSeqDict
-
+    logging.debug(f"lindel : {mutSeqDict} <br>")
     return scores
 
 # ----------- MAIN --------------
