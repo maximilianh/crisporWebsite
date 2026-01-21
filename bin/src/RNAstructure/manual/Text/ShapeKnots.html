@@ -1,0 +1,236 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: Fold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					ShapeKnots</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>ShapeKnots is used to predict a set of structures that can contain pseudoknots, modeled after HotKnots (see references below). It can take SHAPE mapping data as a restraint to increase structure prediction accuracy. It can also use user-specified restraints or DMS mapping data.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: ShapeKnots &lt;seq file&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;seq file&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data.
+									<br>
+									Note that lowercase nucleotides are forced single-stranded in structure prediction.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+							  <td class="cell">-h, -H, --help</td>
+							  <td>Display the usage details message.</td>
+						  </tr>
+							<tr>
+								<td class="cell">-v, -V, --version</td>
+								<td>Display  version and copyright information for this interface.</td>
+							</tr>
+						</table>
+
+	          <h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+							  <td class="cell">-c, -C, --constraint</td>
+							  <td> Specify a constraints file to be applied. The constraint file format is defined <a href="File_Formats.html">here</a>.<br>
+Default is to have no constraints applied.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-dms, -DMS, --DMS</td>
+							  <td> Specify a DMS restraints file to be applied. These restraints are pseudo free energy restraints.<br>
+Default is to have no restraints applied.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-dsh, -DSH, --DSHAPE</td>
+							  <td>Specify a differential <a href="File_Formats.html#SHAPE">SHAPE data file</a> to be used to generate restraints in addition to SHAPE restraints specified by --SHAPE. These restraints specifically use SHAPE pseudoenergy restraints where the offset is zero.  Also, the function for calculating the pseudo free energy for nucleotide i is = (differential slope) * (differential SHAPE for nucleotide i). These pseudoenergies are added to those generated with the --SHAPE option.<br>
+							    Default is no differential SHAPE data file specified. </td>
+						  </tr>
+							<tr>
+							  <td class="cell">-dsm, -DSM, --DSHAPEslope</td>
+							  <td>Specify a slope used with differential SHAPE restraints. <br>
+							    Default is 2.11 kcal/mol. </td>
+						  </tr>
+							<tr>
+								<td class="cell">-dso, -DSO, --doubleOffset</td>
+								<td>
+									Specify a double-stranded <a href="File_Formats.html#Offset">offset file</a>, which adds energy bonuses to particular double-stranded nucleotides.
+									<br>
+									Default is to have no double-stranded offset specified.
+								</td>
+							</tr>
+							<tr>
+							  <td class="cell">-im,  -IM, --IMaximum </td>
+							  <td><p>Specify  a maximum number of internally generated structures for each call of the  dynamic programming algorithm. Note that suboptimal structures are generated  until either the maximum number of structures is reached or the maximum percent  difference is reached (below).  This is  not the maximum number of structures provided to the user, which is controlled  by –m, -M, --maximum.</p>
+						      <p>Default is 100 structures.</p></td>
+						  </tr>
+							<tr>
+							  <td class="cell">-ip,  -IP, --IPercent </td>
+							  <td><p>Specify a maximum percent difference in folding free energy  change for internally generated suboptimal structures for each call of the  dynamic programming algorithm. For example, 20 would indicate 20%. This is not  the maximum percent difference in energy for structures provided to the user,  which is controlled by –p, -P, --percent.</p>
+Default  is 20%.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-iw,  -IW, --IWindow </td>
+							  <td><p>Specify a window size for the internally generated suboptimal  structures for each call of the dynamic programming algorithm.  This is not the window for structures  provided to the user, which is controlled by –w, -W, --window.<br>
+						      Default is determined by the length of the sequence.</p></td>
+						  </tr>
+							<tr>
+								<td class="cell">-m, -M, --maximum</td>
+								<td>
+									Specify a maximum number of structures. Note that suboptimal structures are generated until either the maximum number of structures are reached or the maximum percent difference is reached (below).
+									<br>
+									Default is 20 structures.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-p, -P, --percent</td>
+								<td>
+									Specify a maximum percent difference in folding free energy change for generating suboptimal structures. For example, 20 would indicate 20%.
+									<br>
+									Default is determined by the length of the sequence.
+								</td>
+							</tr>
+							<tr>
+							  <td class="cell">-p1,  -P1, --Penalty1 </td>
+							  <td><p>Specify a pseudoknot penalty 1.<br>
+						      Default is 0.35 kcal/mol.</p></td>
+						  </tr>
+							<tr>
+							  <td class="cell">-p2,  -P2, --Penalty2 </td>
+							  <td><p>Specify a pseudoknot penalty 2.<br>
+						      Default is 0.65 kcal/mol.</p></td>
+						  </tr>
+							<tr>
+							  <td class="cell">-ph,  -PH, --PseudoknottedHelices</td>
+							  <td><p>Specify maximum number of helices to be processed. <br>
+						      Default is 100 helices.</p></td>
+						  </tr>
+							<tr>
+								<td class="cell">-sh, -SH, --SHAPE</td>
+								<td>
+									Specify a <a href="File_Formats.html#SHAPE">SHAPE data file</a> to be used to generate restraints. These restraints specificially use SHAPE pseudoenergy restraints.
+									<br>
+									Default is no SHAPE data file specified.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-si, -SI, --SHAPEintercept</td>
+								<td>
+									Specify an intercept used with SHAPE restraints.
+									<br>
+									Default is -0.6 kcal/mol.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-sm, -SM, --SHAPEslope</td>
+								<td>
+									Specify a slope used with SHAPE restraints.
+									<br>
+									Default is 1.8 kcal/mol.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-sso, -SSO, --singleOffset</td>
+								<td>
+									Specify a single-stranded <a href="File_Formats.html#Offset">offset file</a>, which adds energy bonuses to particular single-stranded nucleotides.
+									<br>
+									Default is to have no single-stranded offset specified.
+								</td>
+							</tr>
+							<tr>
+							  <td class="cell">-w, -W, --window</td>
+							  <td>Specify a window size. <br>
+Default is determined by the length of the sequence.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">--warnings, --warn</td>
+							  <td>Set the behavior for non-critical warnings (e.g. related to invalid<br>
+nucleotide positions or duplicate data points in SHAPE data). Valid values<br>
+are:<br>
+* on  -- Warnings are written to standard output. (default)<br>
+* err -- Warnings are sent to STDERR. This can be used in automated scripts<br>
+etc to detect problems.<br>
+* off -- Do not display warnings at all (not recommended).</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-x, -X, --experimentalPairBonus</td>
+							  <td> Input text file with bonuses (in kcal) as a matrix. As with SHAPE, bonuses will be applied twice to internal base pairs, once to edge base pairs, and not at all to single stranded regions.<br>
+Default is no experimental pair bonus file specified.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-xo</td>
+							  <td>Specify an intercept (overall offset) to use with the 2D experimental pair bonus file.<br>
+Default is 0.0 (no change to input bonuses).</td>
+						  </tr>
+							<tr>
+								<td class="cell">-xs</td>
+								<td>Specify a number to multiply the experimental pair bonus matrix by.<br>
+Default is 1.0 (no change to input bonuses).</td>
+							</tr>
+						</table>
+
+<h3 class="leftHeader">Notes about Constraints:</h3>
+<p>ShapeKnots is capable of predicting pseudoknots, but user-specified constraints (using -c parameter) are not able to contain pseudoknots. The constraints are used directly by the underlying dynamic programming algorithm (shared with the <a href="Fold.html">Fold</a> program). If a pseudoknot needs to be included in the base pairs, the nucleotides in &quot;pseudoknotting pairs&quot; should be specified as single-stranded and then the base pairs subsequently added manually to <a href="File_Formats.html">ct file</a> that is output. Other pairs can be constrained to occur. The &quot;pseudoknotting pairs&quot; can be the considered as the minimum number of pairs that need to be removed to have no pseudoknot, and <a href="RemovePseudoknots.html">RemovePsuedoknots</a> can help with this determination.</p>
+<h3 class="leftHeader"><a name="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">Hajdin, C.E., Bellaousov, S., Higgins, W., Leonard, C.W.,  Mathews, D.H. and Weeks, K.M.<br>
+						      “Accurate  SHAPE-directed RNA secondary structure modeling, including pseudoknots.” <br>                             <em>Proc.  Natl. Acad. Sci. U.S.A.</em>, In Press. (2013).
+                              <div>
+  <div> </div>
+</div>
+							</li>
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Deigan, K.E., Li, T.W., Mathews, D.H. and Weeks, K.M.
+								<br>
+								&quot;Accurate SHAPE-directed RNA structure determination.&quot;
+								<br>
+								<i>Proc. Natl. Acad. Sci. U.S.A.</i>, 106:97-102. (2009).
+							</li>
+							<li class="gapListItem">Ren, J., Rastegari, B., Condon, A, and Hoos, H. H.<br>
+							  &quot;HotKnots: Heuristic prediction of RNA secondary structures including pseudoknots.&quot;<br>
+							  RNA.  
+                            11: 1494-1504. (2005).</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

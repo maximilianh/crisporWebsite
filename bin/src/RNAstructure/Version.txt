@@ -1,0 +1,5 @@
+# This file is auto-generated during the RNAstructure Release-building Process.
+# You may edit this file, but it will be overwritten when a release is built.
+# To make permanent changes, edit RNAstructure/RELEASE/resources/Version.txt.tpl
+
+This is version 6.5 of RNAstructure, released on June 14, 2024.

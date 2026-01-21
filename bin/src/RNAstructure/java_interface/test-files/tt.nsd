@@ -1,0 +1,39 @@
+[
+  { Version:"1.0" Title:null }
+  {
+    Title:null
+    Strands:[
+      {
+        Title:null
+        Bases:[
+          { Base:"1" Style:-1 X:6.0 Y:182.0 }
+          { Base:"2" Style:-1 X:6.0 Y:159.0 }
+          { Base:"3" Style:-1 X:6.0 Y:137.0 }
+          { Base:"4" Style:-1 X:6.0 Y:115.0 }
+          { Base:"5" Style:-1 X:6.0 Y:92.0 }
+          { Base:"6" Style:-1 X:6.0 Y:70.0 }
+          { Base:"7" Style:-1 X:-6.0 Y:47.0 }
+          { Base:"8" Style:-1 X:-20.0 Y:31.0 }
+          { Base:"9" Style:-1 X:-23.0 Y:10.0 }
+          { Base:"10" Style:-1 X:-14.0 Y:-10.0 }
+          { Base:"11" Style:-1 X:5.0 Y:-22.0 }
+          { Base:"12" Style:-1 X:25.0 Y:-22.0 }
+          { Base:"13" Style:-1 X:44.0 Y:-10.0 }
+          { Base:"14" Style:-1 X:53.0 Y:10.0 }
+          { Base:"15" Style:-1 X:50.0 Y:31.0 }
+          { Base:"16" Style:-1 X:36.0 Y:47.0 }
+          { Base:"17" Style:-1 X:27.0 Y:70.0 }
+          { Base:"18" Style:-1 X:27.0 Y:92.0 }
+          { Base:"19" Style:-1 X:27.0 Y:115.0 }
+          { Base:"20" Style:-1 X:27.0 Y:137.0 }
+          { Base:"21" Style:-1 X:27.0 Y:159.0 }
+          { Base:"22" Style:-1 X:27.0 Y:182.0 }
+        ]
+      }
+    ]
+    Bonds:[
+      { Link:"5:16" Type:P }
+    ]
+    Styles:[ ]
+  }
+]

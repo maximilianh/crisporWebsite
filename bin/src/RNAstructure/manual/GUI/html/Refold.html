@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Refold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Refold</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<p><b><a name="Structure" id="Structure">Refolding Previously Folded Structures</a></b></p>
+							<p>The refold module, available from the menu option &quot;File -&gt; Refold From Save File,&quot; generates a new set of suboptimal secondary structures from a folding save file. This is much faster than predicting the first set of suboptimal secondary structures. The refold module works for both RNA or DNA sequences because the energy parameters are stored in the SAVE file.</p>
+							<p>The same three parameters that apply to folding (Maximum Percent Energy Difference, Maximum Number of Structures, Window Size) also apply to refolding. See &quot;<a href="Fold.html">Fold</a>.&quot;</p>
+							<p>During refolding, the temperature of folding cannot be changed, and new constraints cannot be imposed on refolding. The constraints previously applied can be displayed by choosing &quot;Force -&gt; Show Current Constraints.&quot;</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Dynalign" id="Dynalign">Refolding Dynalign Calculations</a></b></p>
+							<ol>
+								<li>Choose &quot;File -&gt; Refold From Dynalign Save File&quot; to open the module.</li>
+								<li>Choose the Dynalign save file by clicking the &quot;Save File&quot; button.</li>
+								<li>Choose an output file for the structures in the first sequence by clicking the &quot;CT File 1&quot; button.</li>
+								<li>Choose an output file for the structures in the second sequence by clicking the &quot;CT File 2&quot; button.</li>
+								<li>Choose an output file for the alignment by clicking the &quot;Alignment File&quot; button.</li>
+								<li>The default values for generation of suboptimal structures can be changed, if desired.</li>
+								<li>Folding constraints are set during the original calculation, but these settings can be reviewed by choosing &quot;Force -&gt; Show Current Constraints.&quot;</li>
+								<li>Click &quot;Start.&quot; When the calculation is complete, the option to display the structures will be offered. Click &quot;OK&quot; to view the structures or &quot;Cancel&quot; to close the module.</li>
+							</ol>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

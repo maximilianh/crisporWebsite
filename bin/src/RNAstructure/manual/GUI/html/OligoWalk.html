@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- OligoWalk</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>OligoWalk</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>This module provides a rapid search interface for picking out an oligonucleotide that binds strongly to its target, according to thermodynamic data. It not only calculates energy required to break target structure, but also structure due to oligonucleotide folding, if any.</p>
+						<hr>
+
+						<p><b><a name="Using" id="Using">Using OligoWalk</a></b></p>
+						<ol>
+							<li>Select &quot;OligoWalk.&quot;</li>
+							<li>Choose the CT file for the desired target by clicking the &quot;CT File&quot; button.</li>
+							<li>A report File with a REP extension is automatically chosen. This can be changed by clicking the &quot;Report File&quot; button.</li>
+							<li>Choose the mode from the three possibilities. Most publications have used &quot;Break Local Structure.&quot;</li>
+							<li>Choose the desired length of a binding oligonucleotide, and choose the oligonucleotide concentration.</li>
+							<li>Change the temperature of calculation, if desired. (See &quot;<a href="Tips_and_Techniques.html">Tips and Techniques</a>&quot; for details.)</li>
+							<li>Click the &quot;Start&quot; button to start the calculation. The progress of the calculation will be shown with a progress bar.</li>
+							<li>When calculation is finished, the OligoWalk results screen will open automatically.</li>
+						</ol>
+						<hr>
+
+						<div>
+							<p><b><a name="Modes" id="Modes">Modes</a></b></p>
+							<p>Three modes are available; these affect the speed and calculation type of free energy.</p>
+
+							<ol>
+								<li>The default (and suggested mode for most use) is &quot;Break Local Structure.&quot; In this mode, the target sequence is considered to lose base pairs wherever the oligo invades. The oligos may lose pairs in self structure, and gain pairs in oligo-target binding. All the oligos are folded to identify possible self structure.</li>
+								<li>For a lengthier calculation, select &quot;Refold For Each Oligo.&quot; In this mode, the target is refolded for each possible oligo (hence it could take a while) in case the target may fold into new structure due to oligo binding.</li>
+								<li>The fastest mode (but only slightly faster than &quot;Break Local Structure&quot; is &quot;Don't Use Structural Information.&quot; In this mode, the breaking of target structure is not considered. This may be useful if you have little confidence in the lowest free energy target structure. This mode can also be used with a sequence that has not been folded by selecting a sequence instead of a CT file. In most cases, it is preferable to include the free energy cost of the target structure.</li>
+							</ol>
+
+							<p>While not explicitly a mode, the option &quot;Include Target Suboptimal Structures&quot; functions as a sort of fourth mode. This option uses all suboptimal structures in the target CT file to determine the free energy lost in the target. Each structure's free energy loss is weighted according to the free energy of the structure.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Results" id="Results">Results Screen</a></b></p>
+							<p>The OligoWalk results screen contains three main parts. At the top, the current oligo number appears with the thermodynamics (&Delta;G) for this oligo, in kcal/mol. The oligo number also indicates the 5'-most base in the target that the oligo is designed to bind. The given &Delta;G's are as follows:</p>
+
+							<ol>
+								<li>Overall &Delta;G: This is the net &Delta;G in kcal/mol of oligo-target binding, when all contributions are considered, including breaking target structure and oligo self-structure, if any. A more negative value indicates tighter binding.</li>
+								<li>Duplex &Delta;G (Binding &Delta;G): This is the &Delta;G of the oligo-target binding from unstructured states.</li>
+								<li>Break target &Delta;G: This number provides the energy penalty (hence it's usually positive) due to breaking of intramolecular target base pairs when oligo is bound. This free energy is always zero in &quot;Don't Use Structural Information&quot; mode.</li>
+								<li>Oligo-self &Delta;G: This provides the &Delta;G of intramolecular oligo structure. If it is zero, there is no stable intramolecular structure. A negative number indicates this self structure is stable, making for unfavorable oligo-target binding.</li>
+								<li>Oligo-oligo &Delta;G: This is the &Delta;G of intermolecular oligo structure. It is non-zero if one oligomer molecule can bind to another. A negative number indicates a stable oligo-oligo duplex, making for unfavorable oligo-target binding.</li>
+							</ol>
+
+							<p>T<sub>m</sub>: This is a melt temperature in degrees C for the duplex formation, i.e. the temperature at which half the target strands are bound with oligomer. It neglects structure in the oligo and target and assumes that oligomer concentration is in excess. An overview of this calculation is given below.</p>
+							<p>Below the thermodynamic data are five buttons. These are used to navigate through the rna sequence. Click &quot;&lt;&quot; or &quot;&gt;&quot; to move to the previous or next oligo. Click &quot;&lt;&lt;&quot; or &quot;&gt;&gt;&quot; to move back or forward by ten. Click &quot;Goto...&quot; to enter an oligo number to move to directly. Note that in the &quot;Goto...&quot; dialog box, you can click on &quot;Most Stable&quot; to select the highest affinity oligo and go there directly.</p>
+							<p>The middle part of the screen shows the current oligo (3'-&gt;5') bound to the target (5'-&gt;3'). Target bases appear red if they are paired in the folded target structure and are black otherwise. Target base numbers are given.</p>
+							<p>At the bottom, some &Delta;G values are displayed graphically. The default is to show binding &Delta;G in green and overall &Delta;G in blue (red for the currently shown oligo). Due to breaking of target and oligo structure, the blue bars are generally smaller than the green bars. Downward bars indicate negative &Delta;G and upward bars indicate positive &Delta;G. All bars start at zero energy.</p>
+
+							<ul>
+								<li>The currently graphed free energies can be changed by selecting the &quot;Graph -&gt; Free Energy&quot; menu option.</li>
+								<li>Click on any bar in the graph to see the corresponding oligo. This bar will move to the center and be highlighted (red).</li>
+								<li>Click on any base in the target sequence to get information on the base, including its pair, if any, in the target structure before addition of the oligonucleotide.</li>
+								<li>Double click on the oligonucleotide to view oligonucleotide self-structure, if any.</li>
+							</ul>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Calculations" id="Calculations">Equilibria and Calculations</a></b></p>
+							<p><i>OligoWalk Equilibrium</i></p>
+							<p>When designing an antisense oligonucleotide (oligomers) that will bind with high affinity, it is desirable to consider the structure of the target RNA strand and the antisense oligomer. Specifically, for an oligomer to bind tightly, it should be complementary to a stretch of target RNA that has little self-structure. Also, the oligomer should have little self-structure, either intramolecular or bimolecular. Breaking up any self-structure amounts to a binding penalty.</p>
+
+							<p>OligoWalk considers the following equilibrium:</p>
+							<img src="../images/equilibrium.bmp" alt="Equilibrium">
+							<p>In this reaction, O is the oligomer, T is the target, O-T is the oligomer-target complex. O<sub>F</sub> is self-structured oligomer either unimolecular (U) or bimolecular (B) and T<sub>F</sub> is self-structured target (unimolecular). Bimolecular target-target interactions are neglected because the concentration of target is low. O<sub>U</sub> is unfolded oligomer and T<sub>U</sub> is unfolded target in the region of oligomer complementarity. These structures are in equilibrium with each other, with equilibrium constants K<sub>1U</sub>, K<sub>1B</sub>, K<sub>2</sub>, and K<sub>3</sub>.</p>
+
+							<p><b>The T<sub>m</sub> Calculation in OligoWalk</b></p>
+							<p>OligoWalk calculates a melt temperature for the duplex formation of antisense-target binding. This calculation neglects target structure and antisense oligonucleotide structure. Consider the equilibrium of:</p>
+							<img src="../images/equilibrium2.bmp" alt="Equilibrium">
+							<p>where the random coil oligomer binds to random coil target with an equilibrium constant K. If we assume that:</p>
+							<p><b>[O<sub>R.C.</sub>] &gt;&gt; [T<sub>R.C.</sub>]</b></p>
+							<p>then the T<sub>m</sub> will be the temperature at which half the target is bound or:</p>
+							<p><b>[T<sub>R.C.</sub>] = [O-T] = [Target]Total/2</b></p>
+							<p>Knowing that:</p>
+							<p><b>&Delta;G = &Delta;H - T&Delta;S and &Delta;G = -RT ln(K)</b></p>
+							<p>Then:</p>
+							<img src="../images/formula.bmp" alt="Formula">
+							<p>where R is the gas constant and T<sub>m</sub> is in K. OligoWalk converts T<sub>m</sub> to degrees C.</p>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

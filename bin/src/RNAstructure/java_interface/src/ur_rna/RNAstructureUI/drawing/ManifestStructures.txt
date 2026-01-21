@@ -1,0 +1,4 @@
+Manifest-Version: 2.0
+Created-By: University of Rochester Medical Center, Mathews Lab
+Main-Class: ur_rna.RNAstructureUI.drawing.runners.StructureRunner
+

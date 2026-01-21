@@ -1,0 +1,24 @@
+RNAstructure OligoWalk calculation:
+--------------------------------------------------------------------------------
+Target sequence: RA7680
+Total size of the target: 76 nucleotides
+Scanned position on target: 1 to 59 (nt)
+
+Oligonucleotides:
+    Type:  RNA
+    Length: 18
+    Concentration: 1e-05 M
+
+Method options:
+    Mode: Refold target structure after oligo binding.
+    Folding region size: (Global Target Region)
+    Suboptimal: None -- Only one (optimal) structure was considered.
+Prefilter was used.
+--------------------------------------------------------------------------------
+
+Energy table:
+
+Pos.	Oligo(5'->3')	Overall (kcal/mol)	Duplex (kcal/mol)	Tm-Dup (degC)	Break-Target (kcal/mol)	Intra-oligo (kcal/mol)	Inter-oligo (kcal/mol)	End Diff (kcal/mol)	Prefilter Score	
+6	UCUACCAUCUGAGCUACG	-24.9	-32.4	87.7	-7.5	0	-4.7	0.46	6	
+7	CUCUACCAUCUGAGCUAC	-23.5	-32.6	87	-7.5	-1.5	-4.7	0.16	6	
+

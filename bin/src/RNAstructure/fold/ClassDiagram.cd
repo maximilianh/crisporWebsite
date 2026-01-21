@@ -1,0 +1,345 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="atDynProgArray" Collapsed="true">
+    <Position X="9.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAgiEAAAAAAAAAAAAAAAAAQgIAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\alltrace.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="alltracestructurestack" Collapsed="true">
+    <Position X="7.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QDIMEEABEAAAoARICQQCAAIGhgCACIQEAACLIEAAAgA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\alltrace.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NullBuffer" Collapsed="true">
+    <Position X="7.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\common_utils.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NullStream" Collapsed="true">
+    <Position X="9.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAEAAAAAAIAAAAAAAABAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\common_utils.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="DynProgArray&lt;T&gt;" Collapsed="true">
+    <Position X="13" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAiAAAAABAACAAAAAAAAAQAIAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\DynProgArray.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="DynProgArrayT&lt;T&gt;" Collapsed="true">
+    <Position X="14.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgAAAAAAAAAAiAAAAAAAAAAAAAAABAAQAIAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\DynProgArray.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="DynProgArrayU&lt;T&gt;" Collapsed="true">
+    <Position X="7.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAiAAAAAAAAAAAAAQAAgAQAIAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\DynProgArray.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="dotarray" Collapsed="true">
+    <Position X="11.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAgIAAAAAAAAAAAFAAAAQAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\dotarray.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ErrorChecker&lt;T&gt;" Collapsed="true">
+    <Position X="9.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAGAAAAAAIAAIAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\ErrorChecker.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="substructure" Collapsed="true">
+    <Position X="9.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAgCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAABAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\substructure.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Fold_Interface" Collapsed="true">
+    <Position X="13" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAawAVAAAAQAAgACoAAAgBIEAEECUOBAwAQoEQIAA=</HashCode>
+      <FileName>Fold.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="forceclass" Collapsed="true">
+    <Position X="14.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAiAAAAAAAAAAAAAAAAAAQgBAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\forceclass.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="expectMaxStack" Collapsed="true">
+    <Position X="11.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAAAIAAAAAAAAAAAIAAAAABAAAAAIAAAgCIAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\MaxExpectStack.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ParseCommandLine" Collapsed="true">
+    <Position X="11.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ADAAAFAAAEQMCABYBAVAAE0AhBAAQQABAAgggQIAEIQ=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\ParseCommandLine.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="pfdatatable" Collapsed="true">
+    <Position X="13" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EMggAABE6QBIwAKBAEQQhjQKwACGgIOAgEiDAECIUAg=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RNA">
+    <Position X="0.5" Y="4.75" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>cxHLhAFIVCFzBhAmjQ0DvKACR7wmRvLMYpxgATIgCZQ=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\RNA_class\RNA.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="data_counter_base" Collapsed="true">
+    <Position X="3.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAABAkAAAAAAAAAAgAQAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="data_counter&lt;T&gt;" Collapsed="true">
+    <Position X="3.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABAAAAAEBAAAAAAAAAAAAQAAAIAAAgAAAQAgAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="stackclass" Collapsed="true">
+    <Position X="14.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAIAAAhAAAAAAAIAAAAAAAAAAAIAAAgCIAAAAAAQ=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\stackclass.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="structure">
+    <Position X="5.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>d4VVEAOoRMdhmE10XfL9dJQQPamrfkCsf/h9NEdbTzU=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\structure.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Thermodynamics" Collapsed="true">
+    <Position X="2" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AiQDAABAAFAAAgAAAAAAAQAAIgAAABAUAgAYAAIAQAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\RNA_class\thermodynamics.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ProgressHandler" Collapsed="true">
+    <Position X="3" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABAAAAEAAAAASAAAAAAAIAgACAAAAAAAIABAAAEAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\TProgressDialog.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SimpleProgressHandler" Collapsed="true">
+    <Position X="3" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\TProgressDialog.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TProgressDialog" Collapsed="true">
+    <Position X="5.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAgAAAAIAAAAAAAAAAACAAABAAAAAAAAAAEAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\TProgressDialog.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PartialProgress" Collapsed="true">
+    <Position X="0.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AABAFAAAAIIAEAAAAAAEAIAAAAAAAAEAAAQABAAEAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\TProgressDialog.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="is_same&lt;T, U&gt;" Collapsed="true">
+    <Position X="7.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\DynProgArray.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="is_same&lt;T, T&gt;" Collapsed="true">
+    <Position X="9.5" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\DynProgArray.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="DataWriter&lt;TWriter&gt;" Collapsed="true">
+    <Position X="3.75" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQEAAAAAAgAAAAAAAAAIAAAAAAAAAAQAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="BinaryWriter" Collapsed="true">
+    <Position X="3.75" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAQAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="datfile" Collapsed="true">
+    <Position X="13" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAgAAAAQAAAAAAAAAAAAABAAAAACgA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="IntervalStack" Collapsed="true">
+    <Position X="14.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAACIAAAAAAAIAAIAEIAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\structure.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="auto_delete&lt;T, IS_ARRAY&gt;" Collapsed="true">
+    <Position X="7.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CAAAAAIAAAAAAAAAAAAAQAAAAAAAAAAAAAEhAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\common_utils.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="coordinates" Collapsed="true">
+    <Position X="9.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAAACAAAAAAAAAAAAAgAAAIAAAAAAAAAABgAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\draw.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="datatable">
+    <Position X="16.5" Y="4.5" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <NestedTypes>
+      <Typedef Name="datatable::intVector2D" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="datatable::shortVector2D" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="datatable::shortVector4D" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="datatable::shortVector6D" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="datatable::shortVector7D" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="datatable::shortVector8D" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>COCQAARFKUB4wAqEJhCJoXYCQCQkWKOAij2DIEpYVAg=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="stackstruct" Collapsed="true">
+    <Position X="13" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAgAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\stackstruct.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="singlestructure" Collapsed="true">
+    <Position X="11.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAABAAAQAAAAAAAAAAAAABAAAAAAAACAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\structure.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Typedef Name="pVector4D" Collapsed="true">
+    <Position X="7.75" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="pVector6D" Collapsed="true">
+    <Position X="9.5" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="pVector7D" Collapsed="true">
+    <Position X="11.25" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="pVector8D" Collapsed="true">
+    <Position X="13" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\pfunction.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="RNAInputType" Collapsed="true">
+    <Position X="14.75" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\RNA_class\RNA.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Enum Name="DataPathWarning" Collapsed="true">
+    <Position X="7.75" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAEAAAAAAEAAgAAAAAAAAABAAAAAAAAAAAAAAI=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\rna_library.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="RestraintType" Collapsed="true">
+    <Position X="9.5" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAABBAAAAAAAAACCAAAAIAAgAAAAQAAAA=</HashCode>
+      <FileName>C:\Users\Abhinav Mittal\Downloads\DavidMathews\RNAstructure-alifold-am-work-dir\RNAstructure\src\structure.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

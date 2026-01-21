@@ -1,0 +1,56 @@
+# This file is not used anywhere. It just lists some the command-line arguments to oligowalk for debugging purposes.
+
+"-seq" => input sequnce file
+## "-o" => reportfilename //output file stored the result in debug mode
+## "-m" =>choice of mode, see detatil at the beginning of main function
+## next-int
+
+## "-st" => start position of folding region of target
+start = next-int
+
+## "-en" end = ##next-int
+
+## "-M" => start posion of scanning on folded region of target
+M = next-int
+
+## "-N")){
+N = next-int
+
+## "-l" =>length of hybridiztion
+length = next-int
+
+## "-type" =>if it is a DNA or RNA
+if(!strcmp(argv[i+1],"d"))	isdna=true;
+
+## "-s" =>suboptimal structure choices
+suboptimal = next-int
+
+## "-co" =>concentration of oligo
+conc = next-int
+
+## "-unit" =>concentration of oligo
+unit = next-int
+
+## "-fi" =>prefilter of siRNA
+useprefilter = next-int
+
+## "-score" =>prefilter of siRNA
+scoreit = true; 
+
+## "-fold" =>fold substructure size centered on binding
+foldsize = next-int
+
+## "-dist" =>fold substructure size centered on binding
+distance = next-int
+
+## "-shape" =>fold substructure size centered on binding
+shapefile = next-arg
+
+## "-test" =>fold substructure size centered on binding
+TESTnum = next-int
+
+for (j=1;j<=TESTnum;j++)		TESTon[j]=atoi(argv[i+1+j]);
+	i=i+2+TESTnum;
+}
+## "-write" =>write sav files to save time in test mode
+WRITE= true;

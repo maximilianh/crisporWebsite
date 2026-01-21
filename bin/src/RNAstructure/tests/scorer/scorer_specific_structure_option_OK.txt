@@ -1,0 +1,6 @@
+Accepted Structure:  testFiles/testFile_CircleCompare_accepted.ct
+Predicted Structure: testFiles/testFile_CircleCompare_predicted.ct
+Score of Predicted Structure 2:
+Sensitivity: 108 / 141 = 76.60%
+PPV:         107 / 129 = 82.95%
+

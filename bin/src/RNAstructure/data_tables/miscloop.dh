@@ -1,0 +1,62 @@
+The Miscellaneous Enthalpy  rules
+-------------------------------
+
+Extrapolation for large loops based on polymer theory
+internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30)
+--> 
+0    
+
+asymmetric internal loops: the ninio equation
+the maximum correction
+--> 
+0  
+
+the f(m) array (see Ninio for details)
+-->
+3.2 3.2 3.2 3.2
+
+multibranched loops
+  offset,  per nuc penalty,  helix penalty
+--> 
+    30.0         0.0                 -2.2
+
+efn2 multibranched loops
+   offset,  per nuc penalty,  helix penalty
+-->
+     30.0        0.0              -2.2
+
+multiloop asym
+-->
+12.9
+
+multiloop strain
+--> 
+27.1
+
+terminal AU penalty
+--> 
+3.7
+
+bonus for GGG hairpin
+--> 
+-14.8
+
+c hairpin slope
+--> 
+3.4
+
+c hairpin intercept
+--> 
+7.6
+
+c hairpin of 3
+--> 
+18.6
+
+Intermolecular initiation enthalpy
+--> 
+3.6
+
+Bonus for Single C bulges adjacent to C
+-->
+0

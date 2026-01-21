@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head><title>RNAstructure Installation and Overview: Building the Repository</title><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+<body>
+		<div class="bodydiv">
+			<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+				<tbody><tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Building Instructions</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<h2 class="leftHeader">General Build Information</h2>
+
+							<h3 class="leftHeader">Do I need to build the package?</h3>
+							<p>RNAstructure
+is provided both as source code and as prebuilt executables. Prebuilt
+executables are currently available for 32-bit Linux, 64-bit Linux, Max
+OS, 32-bit Windows, and 64-bit Windows. If you
+are using one of these operating systems, then you probably do not need
+to build the package. The available executables will work fine.</p><h3>DATAPATH Variable</h3>
+						<p>In order to successfully use the
+data tables in the RNAstructure repository during calculations, an
+environment variable called DATAPATH must be set to the location of the
+data tables folder on the current machine.</p>
+						<p>
+							For example, in BASH, this is accomplished with:<br><span style="font-family: monospace; font-weight: bold;">&nbsp; $ export DATAPATH=&lt;<span style="font-style: italic;">PATH-TO-RNAstructure</span>&gt;/data_tables/</span>
+						</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="GUI"></a>
+							<h2 class="leftHeader">Building the&nbsp;RNAstructure JAVA GUI</h2><br>The
+RNAstructure Graphical User Interface (GUI)&nbsp;is composed of two
+important components: &nbsp;the graphical front-end, written in Java
+and the&nbsp;native back-end, <span style="font-weight: bold;">RNAstructure_GUI </span>libary&nbsp;written in C++. The two are linked using the Java Native Interface (<a href="http://docs.oracle.com/javase/7/docs/technotes/guides/jni/">JNI</a>). In addition, <a href="http://www.swig.org/">SWIG</a> is used to generate C++ and Java "glue code" to provide necessary bindings on each side.<br><br>Due to this architecture, there are three phases to building the GUI, of which only two are usually required:<br><ol><li>(<span style="font-style: italic;">Optional</span>) Generating the SWIG code</li><li>Compiling the C++ libarary</li><li>Compiling the Java source code into class files and/or a Java JAR file.</li></ol><br>The first step involves running <span style="font-weight: bold;">swig</span>, which reads <span style="font-weight: bold;">*.i</span> files and parses C++ header files to generate <span style="font-weight: bold;">*.cxx</span> files that are later included in the compilation of the native <span style="font-weight: bold;">RNAstructure_GUI </span>libary. However, the RNAstructure distrubution <span style="font-weight: bold;">already includes the pre-generated&nbsp;SWIG
+files</span>, so it is NOT necessary to run&nbsp;SWIG or even to have it installed&nbsp;unless you plan to
+make changes to the public interface of the <span style="font-weight: bold;">RNAstructure_GUI</span> library (i.e. to the header files inside the <span class="pathName">java_interface\SWIG</span> directory: <span class="pathName">RNAstructureBackendCalculator.h</span>, <span class="pathName">DotPlotBackend.h</span>, or <span class="pathName">StructureBackend.h</span>)<br><br>
+Compilation of&nbsp;the C++ libary and the Java interface BOTH require installation of the <a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Oracle Java SE JDK</a>.
+(The latest version is recommended for security reasons, but the
+minimum version is <strong>1.8</strong>). &nbsp;The Java JDK is required (instead of
+just the JRE) because it includes <strong>javac</strong>, the Java compiler, as well as
+several C++ JNI header files that are necessary for compiling the
+native library. &nbsp;Usually the location of javac as well as the JNI
+header files can be determined automatically (during&nbsp;the "Make"
+commands, below) however it might be necessary to modify some variables
+inside the file "compile-java.h", especially on Linux systems, where
+the installation location of Java can vary widely from one Linux
+distributionand/or package manager to another. <br><br>All steps involved in building the GUI are performed using a Makefile in the <span class="pathName">RNAstructure/java_interface</span>
+directory. &nbsp;Importantly, this Makefile is distinct from the
+Makefile in the root RNAstructure directory, however it does include
+several of the same files (e.g. compiler.h). These java-specific
+commands can be run in a terminal/shell from within the&nbsp;<span class="pathName">RNAstructure/java_interface</span> directory:<br><ul><li><span style="font-weight: bold;">make gui</span> -&nbsp;Bulilds the native C++ libary as well as the&nbsp;Java JAR file. <span style="font-weight: bold;">This is usually the only operation most users will need to perform.</span></li><li><span style="font-weight: bold;">make swig </span>- Generates the SWIG "glue code" (<span style="font-style: italic;">only necessary if changing the public interface of the native library</span>)</li><li><span style="font-weight: bold;">make tester </span>- Builds the Java GUI Regression test program &nbsp;(<span style="font-style: italic;">only necessary for perfoming automated regression tests on the GUI</span>)</li><li><span style="font-weight: bold;">make all</span> - Performs all of the above build operations.</li><li><span style="font-weight: bold;">make help</span> - Show a list of all valid Makefile goals.</li></ul><p>When the JAVA GUI is built correctly, two new files will
+exist in the <span class="pathName">RNAstructure/exe</span> directory: a single large dynamic
+RNAstructure library (whose name depends on the operating system), and
+a JAVA JAR archive, called <span class="pathName">RNAstructure.jar</span>. See <a href="Running_Java_GUI.html">Running the RNAstructure JAVA GUI</a> for details on how to use these files.</p><hr>
+						
+
+						
+							</div><div><a name="Command"></a>
+							<h2 class="leftHeader">Building the Command Line (Text) Interfaces</h2>
+
+							<h3 class="leftHeader">Configuring the Build on Unix/Linux/OS-X</h3>
+							<p>The
+command line (text) interfaces for RNAstructure are built using the
+Makefile in the main directory (<span class="pathName">RNAstructure/</span>). The definitions for
+compiler and flags are in RNAstructure/compiler.h. The Makefile will automatically detect the environment for most operating systems and set the proper build flags. Linux, Cygwin running on Windows, and Mac OS are automatically detected. The Cygwin environment is used to build the Windows distribution of RNAstructure.</p>
+							<h3 class="leftHeader">Building on Unix/Linux/Cygwin running on Windows</h3>
+						  <p>To
+build the package, use the command "make all" in RNAstructure/. The
+command line executables are built and placed in RNAstructure/exe/. Both the serial (one core) and smp (multiple core) versions of the executables will be made. You
+should probably then update your PATH variable to include this
+directory.</p>
+						  <h3>Building on Mac OS</h3>
+						  <p>On Mac OS, use the comman &quot;make serial&quot; to make the one core version of all the programs. Note that the smp (parallel) versions require OpenMP, which is not supported by the Clang compiler. The executables will be placed in RNAstructure/exe/. You should probably update your PATH variable to include this directory.</p>
+						  <p>Building on Mac OS requires XCode. Youc an download this fof free from the app store.</p>
+							<h3><a name="CUDA"></a><span class="leftHeader">Building CUDA on Unix/Linux/OS-X</span></h3>
+							<p>In
+adition, if you have a CUDA compiler, you can build partition-cuda by
+typing "make cuda" in the RNAstructure directory. This can then be run
+if you have a CUDA-capable graphics card.</p>
+		          <p>An
+optional "make install" command will copy all the executables to the
+/usr/local/RNAstructure/ directory. This is helpful in a shared
+computing environment. This command can only be executed as root.                          </p>
+		          <h3>Building <a href="../Text/Multifind.html">Multifind</a></h3>
+                            <p>Multifind is built separately from the rest of the package.  It depends on an installation of libsvm, which handles the support vector machine calculation. To build it,<a href="Building_Requirements.html"> set the INCLUDESVM variable</a> in compiler.h to point to the libsvm installation and uncomment the line &quot;#MF = Multifind~&quot; by removing the &quot;#&quot;. Multifind will then be included with the list of standard RNAstructure programs and can be built with the command make Multifind or make Multifind-smp (for the parallel version). </p>
+<h3 class="leftHeader">Building on&nbsp;Windows</h3><div style="margin-left: 40px;">There are two
+options for compiling&nbsp;RNAstructure on Windows:&nbsp;
+</div>
+<ul><li><span style="font-weight: bold;">
+Linux-style build process using <a href="https://cygwin.com/">Cygwin</a>
+and <a href="http://mingw-w64.org/">MingW-W64</a></span><br>Cygwin provides a complete POSIX environment on Windows and allows compilation
+of RNAstructure using the same framework as on Linux (i.e. gcc/g++ and
+GNU make).&nbsp;</li><ul><li><span style="font-weight: bold;">Text (Command-line) Interfaces:</span> <br>In the root RNAstructure folder run "<span class="inlineShellCmd" style="font-weight: bold; font-family: monospace;">make all</span>". The compiled executables will be placed in the <span class="pathName" style="font-weight: bold; font-family: monospace;">RNAstructure/exe</span> directory.<br></li>
+<li><span style="font-weight: bold;">RNAstructure_GUI library</span> (required for&nbsp;the Java GUI)<br>In the folder <span class="pathName" style="font-family: monospace;">RNAstructure/java_interface</span>, run "<span style="font-family: monospace; font-weight: bold;">make gui</span>"&nbsp;<br>The compiled Java JAR file (RNAstructure.jar) and native library (RNAstructure_GUI.dll) will will be placed in the&nbsp;<span class="pathName" style="font-weight: bold; font-family: monospace;">RNAstructure/exe</span> directory.</li></ul>
+<li><span style="font-weight: bold;">Microsoft
+Visual Studio&nbsp;</span><br><ul><li><span style="font-weight: bold;">Text (Command-line) Interfaces:</span><br>
+    There are Visual Studio solutions in the folder for each command line interface. These can be opened in Visual Studio and the target can be built. Additionally, in the folder <span class="pathName" style="font-family: monospace;">Windows_text_interfaces</span>, the solution&nbsp; <span style="font-family: monospace;"><span class="pathName" style="font-weight: bold;">Windows_text_interfaces.sln</span> </span>is available. This solution can be used to build all the command line interfaces.The executables will be deposited in
+    the&nbsp;<span style="font-weight: bold;">Release</span> sub-folder. </li>
+<li><span style="font-weight: bold;">RNAstructure_GUI library</span> (required for&nbsp;the Java GUI)<br>In the folder <span class="pathName" style="font-family: monospace;">Windows_gui_dll</span>, use Visual Studio 2012 to open the solution&nbsp; <span style="font-family: monospace;"><span class="pathName" style="font-weight: bold;">RNAstructure_GUI.sln</span><br></span>Then build using Visual Studio. The executables will be deposited in
+  the&nbsp;<span style="font-weight: bold;">Release</span> sub-folder.<br></li></ul></li></ul>
+<hr>
+<h2>Testing the Build</h2>
+<p>RNAstructure has a set of regression tests for the command line interfaces found in tests/. Use make serial to test all the serial programs. Use make smp to test the smp programs (openmp and pthreads) programs. Use make cuda to test the cuda programs. Use make all to run serial, smp, and cuda tests.</p>
+<hr>
+<p>&nbsp;</p>
+							</div>
+
+						<div></div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+				<tr>
+				  <td class="footer" colspan="3">&nbsp;</td>
+				  </tr>
+		      </tbody>
+			</table>
+		</div>
+	</body></html>

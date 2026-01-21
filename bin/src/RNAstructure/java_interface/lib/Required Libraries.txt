@@ -1,0 +1,10 @@
+The following 3rd libraries are reqired for automated GUI testing. 
+(They are NOT necessary to run RNAstructureUI)
+
+These can all obtained from the 'lib' folder in the Abbot 1.3.0 distribution http://abbot.sourceforge.net/doc/overview.shtml
+You can automate the process of obtaining these file by running "make abbot" from the java_interface folder, or by running "bash get-abbot"
+
+abbot.jar  (Version 1.3.0)
+gnu-regexp-1.1.4.jar
+jdom-1.1.1.jar
+junit-4.8.2.jar

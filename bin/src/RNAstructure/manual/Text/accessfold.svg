@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="859px" height="221px" viewBox="0 0 859 221" enable-background="new 0 0 859 221" xml:space="preserve">
+<text transform="matrix(1 0 0 1 25.4795 36.481)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="24">Predict the structure of two interacting strands, only allowing intermolecular pairs,</tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="24">but accounting for intramolecular competition:</tspan></text>
+<rect x="172.146" y="101.813" fill="none" stroke="#000000" width="140.854" height="84.741"/>
+<text transform="matrix(1 0 0 1 182.8145 140.146)" font-family="'MyriadPro-Regular'" font-size="24">AccessFold</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="25.479" y1="124.48" x2="164.777" y2="124.48"/>
+		<g>
+			<path d="M170.813,124.48c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755
+				C164.449,121.629,167.973,123.427,170.813,124.48z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 25.4795 109.813)" font-family="'MyriadPro-Regular'" font-size="24">.seq or .fasta</text>
+<text transform="matrix(1 0 0 1 334.8164 117.813)" font-family="'MyriadPro-Regular'" font-size="24">.ct</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="313.149" y1="132.48" x2="379.115" y2="132.48"/>
+		<g>
+			<path d="M385.15,132.48c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755
+				C378.787,129.629,382.311,131.427,385.15,132.48z"/>
+		</g>
+	</g>
+</g>
+<rect x="385.15" y="108.22" fill="none" stroke="#000000" width="111.336" height="45.78"/>
+<text transform="matrix(1 0 0 1 395.8184 137.5532)" font-family="'MyriadPro-Regular'" font-size="24">draw</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="496.486" y1="132.48" x2="581.115" y2="132.48"/>
+		<g>
+			<path d="M587.15,132.48c-2.84,1.054-6.363,2.852-8.548,4.756l1.721-4.756l-1.721-4.755
+				C580.787,129.629,584.311,131.427,587.15,132.48z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 516.4834 120.2202)" font-family="'MyriadPro-Regular'" font-size="24">.ps</text>
+<g>
+	<line fill="none" x1="328.15" y1="130.887" x2="328.15" y2="130.887"/>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="25.479" y1="167.147" x2="164.777" y2="167.147"/>
+		<g>
+			<path d="M170.813,167.147c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755
+				C164.449,164.296,167.973,166.094,170.813,167.147z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 25.4795 152.48)" font-family="'MyriadPro-Regular'" font-size="24">.seq or .fasta</text>
+<g>
+	<line fill="none" x1="328.15" y1="171.997" x2="328.15" y2="171.997"/>
+</g>
+</svg>

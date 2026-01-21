@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: Fold</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                AlignmentFold and AlignmentFold-smp</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>AlignmentFold is used to predict the lowest free energy structure and a
+                set of suboptimal structures, i.e. low free energy structures,
+                for a structure conserved in a set of aligned homologs. </p>
+              <p>AlignmentFold-smp is the parallel version for use on multi-core computers.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: AlignmentFold &lt;alignment file&gt; &lt;CT file&gt; [options]</h3>
+              <h3>OR: AlignmentFold-smp &lt;seq file&gt; &lt;ct file&gt; [options]</h3>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;alignment file&gt;</td>
+                    <td>The name of an inputfile containing <a href="File_Formats.html#AFASTA">multiple sequence alignment</a> of homologous RNA sequences in FASTA format.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;ct file&gt;</td>
+                    <td><p>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written. The CT file will show the first sequence of the input alignment.</p>
+                      <p>If the --bracket flag is present, output will be written as a dot-bracket file.<br>
+                      If the file name is a hyphen (-), the structure will be written to standard<br>
+                    output (STDOUT) instead of a file.</p></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tr>
+                  <td class="cell">--disablecoax</td>
+                  <td>Specify that coaxial stacking recusions should not be used. This option uses a less realistic energy function in exchange for a faster calculation.</td>
+                </tr>
+                <tr>
+                  <td class="cell">-h, --help</td>
+                  <td>Display the usage details message.</td>
+                </tr>
+                <tr>
+                  <td class="cell">-k, --bracket</td>
+                  <td>Write the predicted structure in dot-bracket notation (DBN) instead of CT format.</td>
+                </tr>
+                <tbody>
+                  <tr>
+                    <td class="cell">-mfe, -MFE, --MFE</td>
+                    <td>Specify that only the minimum free energy structure is needed.<br>
+No savefiles can be generated.<br>
+This saves nearly half the calculation time, but provides less information.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-q, --quiet</td>
+                    <td>Suppress unnecessary output. This option is implied when the output file is '-' (STDOUT).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v, --version</td>
+                    <td>Display version and copyright information for this interface.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-b, -B, --bpcutoff</td>
+                    <td>Specify the base pairing cutoff.<br>
+Default is 0.3</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-l, -L, --loop</td>
+                    <td>Specify a maximum internal/bulge loop size.<br>
+Default is 40 unpaired nucleotides.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes for smp:</h3>
+              <p>AlignmentFold-smp, by default, will use all available compute cores for
+                processing. The number of cores used can be controlled by
+                setting the OMP_NUM_THREADS environment variable.</p>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29306.81
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "orega", "orega.vcxproj", "{739A7F39-0C16-4B7B-8CC3-023F54C83254}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Debug|x64.ActiveCfg = Debug|x64
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Debug|x64.Build.0 = Debug|x64
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Debug|x86.ActiveCfg = Debug|Win32
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Debug|x86.Build.0 = Debug|Win32
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Release|x64.ActiveCfg = Release|x64
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Release|x64.Build.0 = Release|x64
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Release|x86.ActiveCfg = Release|Win32
+		{739A7F39-0C16-4B7B-8CC3-023F54C83254}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {000F69FF-D82B-4EC0-A285-91F48DBE37C0}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,125 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: DynalignDotPlot</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>DynalignDotPlot</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>DynalignDotPlot is used to create a pairing energy dot plot for the structures of one of the two sequences folded by a <a href="dynalign.html">Dynalign</a> calculation.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: DynalignDotPlot &lt;save file&gt; &lt;ps file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;save file&gt;</td>
+								<td>The name of a binary Dynalign save file. These binary save files usually end in &quot;.dsv&quot;, and contain probability data from a previous Dynalign calculation.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;output file&gt;</td>
+								<td>
+									The name of a file to which output will be written.
+									<br/>
+									Depending on the options selected, this may be one of the following file types.
+									<br/>
+									1) A Postscript image file.
+									<br/>
+									2) An SVG image file.
+									<br/>
+									3) A plain text file.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options which don't require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">--s2, -S2, --sequence2</td>
+								<td>Use sequence 2, rather than the default of sequence 1.</td>
+							</tr>
+							<tr>
+								<td class="cell">--svg</td>
+								<td>Specify that the output file should be an SVG image file, rather than a Postscript image file.</td>
+							</tr>
+							<tr>
+								<td class="cell">-t, -T, --text</td>
+								<td>Write dot plot as a text file, rather than a Postscript image file.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options which require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-e, -E, --entries</td>
+								<td>
+									Specify the number of categories in the plot legend.
+									<br>
+									Default is 5 entries.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-max, -MAX, --maximum</td>
+								<td>
+									Specify the maximum value in the plot in kcal/mol.
+									<br>
+									Default is the largest valid value in the plot.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-min, -MIN, --minimum</td>
+								<td>
+									Specify the minimum value in the plot in kcal/mol.
+									<br>
+									Default is the smallest valid value in the plot.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Mathews, D. H.
+								<br>
+								&quot;Predicting a set of minimal free energy RNA secondary structures common to two sequences.&quot;
+								<br>
+								<i>Bioinformatics</i>, 21:2246-2253. (2005).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

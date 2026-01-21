@@ -1,0 +1,10 @@
+Unit Testing Steps for Windows GUI:
+
+1)	Test Single Sequence Secondary Structure Prediction with Heuristic for Suboptimal
+	Structure Prediction.
+	
+	A.	Fold examples/bmorivector.seq with default parameters.  Compare to
+		bmorivector_save.ct.
+	B.	Fold examples/ec16s.seq using the SHAPE data, 16S.shape.  Compare to 
+		ec16s_save.ct   
+

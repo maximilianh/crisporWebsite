@@ -1,0 +1,48 @@
+﻿#Relative path to the design program
+DESIGN=../../exe/design
+export DATAPATH=../../data_tables
+
+#Specify input file.
+INPUT=hairpin_structure.ct # also try two_hairpin_structure.ct or  bmorivector_structure.ct (takes ~12s)
+OUTDIR=param_tests
+
+#specify the desired per-nucleotide defect (default is 0.01)
+DEFECT=0.1 
+
+#values to test for each parameter
+DEPTH=( 1 2 3 10 20 ) #list values to try for max-depth (default=5)
+REDESIGN=( 1 2 5 20 ) #list values to try for max-redesign (default=10)
+LEAF=( 1 2 4 5 6 12 ) #list values to try for max-leaf-redesign (default=3)
+MUTATE=( 1 2 3 8 16 ) #list values to try for max-mutate (default=4)
+
+
+mkdir -p $OUTDIR
+LOG=$OUTDIR/param_test.log
+rm -f $OUTDIR/*
+
+echo >> $LOG  'Testing with default values for max-depth (5), max-redesign (10), max-leaf-redesign (3), and max-mutate (4)' 
+'$DESIGN' $INPUT -o $OUTDIR/default_values.ct -s 1 -e $DEFECT
+
+for val in "${DEPTH[@]}"; do 
+	echo >> $LOG  "Testing max-depth. MD=$val" 
+	$DESIGN $INPUT -o $OUTDIR/DEPTH_$val.ct -s 1 -e $DEFECT       -md $val
+	md5sum >> $LOG $OUTDIR/DEPTH_$val.ct
+done
+
+for val in "${REDESIGN[@]}"; do 
+	echo >> $LOG  "Testing max-redesign. MR=$val" 
+	$DESIGN $INPUT -o $OUTDIR/REDESIGN_$val.ct -s 1 -e $DEFECT    -mr $val
+	md5sum >> $LOG $OUTDIR/REDESIGN_$val.ct
+done
+
+for val in "${LEAF[@]}"; do 
+	echo >> $LOG  "Testing max-leaf-redesign. ML=$val" 
+	$DESIGN $INPUT -o $OUTDIR/LEAF_$val.ct -s 1 -e $DEFECT        -ml $val
+	md5sum >> $LOG $OUTDIR/LEAF_$val.ct
+done
+
+for val in "${MUTATE[@]}"; do 
+	echo >> $LOG  "Testing max-mutate. MR=$val" 
+	$DESIGN $INPUT -o $OUTDIR/MUTATE_$val.ct -s 1 -e $DEFECT      -mm $val
+	md5sum >> $LOG $OUTDIR/MUTATE_$val.ct
+done

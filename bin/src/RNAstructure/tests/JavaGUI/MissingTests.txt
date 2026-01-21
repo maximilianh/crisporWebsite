@@ -1,0 +1,16 @@
+Tests NOT implemented for GUI:
+
+Fold:
+# Test Fold_double_stranded_offset_option.
+  testFiles/testFile_U1a.seq @OUT.ct -dso testFiles/testFile_double_offset_dummy.txt
+# Test Fold_experimental_pair_bonus_option.
+  testFiles/testFile_5SRNA_tail2.seq @OUT.ct -X testFiles/testFile_bonus_matrix.txt
+# Test Fold_experimental_pair_bonus_offset_option.
+  testFiles/testFile_5SRNA_tail2.seq @OUT.ct -X testFiles/testFile_bonus_matrix.txt -xo 10
+# Test Fold_experimental_pair_bonus_scaling_option.
+  testFiles/testFile_5SRNA_tail2.seq @OUT.ct -X testFiles/testFile_bonus_matrix.txt -xs 10
+# Test Fold_minimum_free_energy_difference_option.
+  $SINGLESEQ @OUT.ct -mfe
+# Test Fold_single_stranded_offset_option.
+ testFiles/testFile_U1a.seq @OUT.ct -sso testFiles/testFile_single_offset.txt
+  

@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: AllSub</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>AllSub</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>AllSub is used to generate all possible secondary structures within a small energy increment above the lowest free energy structure.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: AllSub &lt;seq file&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;seq file&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data.
+									<br>
+									Note that lowercase nucleotides are forced single-stranded in structure prediction.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-a, -A --absolute</td>
+								<td>
+									Specify a maximum absolute energy difference in kcal/mol. All structures between the lowest free energy and the lowest free energy plus this parameter will be generated. Note that suboptimal structures are generated until either the absolute energy difference is reached or until the maximum percent energy difference is reached (below).
+									<br>
+									Default is determined by the length of the sequence.
+								</td>
+							</tr>
+                            <tr>
+                    			<td class="cell">--alphabet</td>
+                    			<td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  			</tr>
+							<tr>
+								<td class="cell">-c, -C, --constraint</td>
+								<td>
+									Specify a <a href="File_Formats.html#Constraint">folding constraints file</a> to be applied. For AllSub, current supported constraints are force pairs, force a nucleotide to be single stranded, and force a nucleotide to be double stranded.
+									<br>
+									Default is to have no constraints applied.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-p, -P, --percent</td>
+								<td>
+									Specify a maximum percent energy difference in folding free energy change for generating suboptimal structures. All suboptimal structures are generated at two separate energy thresholds. The first is the lowest folding free energy. The second is lowest folding free energy minus a difference fraction. This difference fraction is calculated by dividing the percent difference by 100, multiplying that value by the lowest folding free energy, and subtracting the resultant value from the lowest folding free energy. Note that suboptimal structures are generated until either the maximum percent energy difference is reached or until the absolute energy difference is reached (above).
+									<br>
+									Default is determined by the length of the sequence.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-t, -T, --temperature</td>
+								<td>
+									Specify the temperature at which calculation takes place in Kelvin.
+									<br>
+									Default is 310.15 K, which is 37 degrees C.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Duan, S., Mathews, D.H. and Turner, D.H.
+								<br>
+								&quot;Interpreting oligonucleotide microarray data to determine RNA secondary structure: application to the 3' end of Bombyx mori R2 RNA.&quot;
+								<br>
+								<i>Biochemistry</i>, 45:9819-9832. (2006).
+							</li>
+							<li class="gapListItem">
+								Wuchty, S., Fontana, W., Hofacker, I.L. and Schuster, P.
+								<br>
+								&quot;Complete suboptimal folding of RNA and the stability of secondary structures.&quot;
+								<br>
+								<i>Biopolymers</i>, 49:145-165. (1999).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

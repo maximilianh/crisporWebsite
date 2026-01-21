@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Fold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Fold</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<p>The Fold module provides the basic implementation of RNA secondary structure prediction. Note that this implementation cannot predict pseudoknots.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b>How to predict secondary structure of a single strand</b></p>
+							<ol>
+								<li>Start the module by choosing &quot;Fold Single Strand.&quot; This option is supported for both RNA and DNA. Click on the button labeled &quot;Sequence File.&quot; A dialog box will open to get the name of a file containing a sequence. This sequence must be a SEQ file. Other sequences can be converted by the sequence editor.</li>
+								<li>After accepting the name of a file, default values are filled in for the remaining fields. These can be changed by clicking the button labeled &quot;CT File&quot;, or by changing the values in the &quot;Maximum % Energy Difference,&quot; &quot;Maximum # of Structures,&quot; and &quot;Window Size&quot; boxes.</li>
+								<li>A checkbox next to &quot;Generate Save File&quot; should be checked in order to save the secondary structure prediction information. This file can be used later to generate a different set of suboptimal secondary structures or to display an energy dot plot for the secondary structure. The save file is named the same as the CT file, but with a SAV extension.</li>
+								<li>Enter any constraints on the folding calculation from the Force menu, change the calculation temperature, edit the maximum internal/bulge loop size, or change the maximum pairing distance, if desired. (See &quot;<a href="Tips_and_Techniques.html">Tips and Techniques</a>&quot; for details.)</li>
+								<li>Click on the &quot;Start&quot; button. A dialog will open to indicate the progress of the fill algorithm, the most time consuming step in the process.</li>
+								<li>After the calculation is complete, a dialog box will open to present the option of drawing the calculated structures. Click &quot;OK&quot; to draw the structure, or &quot;Cancel&quot; to quit the module.</li>
+							</ol>
+
+							<p>The folding procedure for a single strand can also be accessed by a button on the Quick Access Toolbar. This button supports folding of an RNA single strand only.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b>Options</b></p>
+							<p>Three options are allowed in the &quot;Fold&quot; window. These concern the differences between, and number of, structures given in the output CT file after Efn2 rearrangement.</p>
+							<p>The algorithm outputs structures until either of the following first two criteria are reached. If only one structure meets the &quot;Maximum Percent Energy Difference&quot; criterion, then only one structure is generated, regardless of the &quot;Maximum Number of Structures&quot; setting.</p>
+
+							<dl>
+								<dt>Maximum Percent Energy Difference</dt>
+								<dd>Sets the percent difference from the lowest free energy allowed for the structures output. For example, if the lowest-free energy (&Delta;G°<sub>37</sub>) structure is -100 kcal/mol, and the Maximum Percent Energy Difference is 10, any structures with an energy of -90 kcal/mol or higher are rejected (higher means less negative).</dd>
+
+								<dt>Maximum Number of Structures</dt>
+								<dd>Sets an absolute upper limit on the number of structures that can be generated.</dd>
+
+								<dt>Window Size</dt>
+								<dd>This parameter controls how different the suboptimal structures must be from each other. A small window size allows very similar structures to be generated, while a larger window size requires them to be relatively more different.</dd>
+							</dl>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Bimolecular" id="Bimolecular">Bimolecular Folding</a></b></p>
+							<p>For both DNA and RNA, &quot;Fold Bimolecular&quot; allows for folding of two distinct strands. The folding of two strands functions in much the same way as folding of a single strand.</p>
+							<p>Double-stranded folding doesn't allow for the same wide range of constraints as single-stranded folding. The only constraint allowed for double-stranded folding is the prohibition or permission of intramolecular pairs (pairs within a distinct strand, rather than between the two separate strands).</p>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

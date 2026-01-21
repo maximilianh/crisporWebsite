@@ -1,0 +1,1141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="ur_rna.StructureEditor.windows.ColorizeDialog">
+  <grid id="27dc6" binding="pnlMain" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="20" y="20" width="684" height="518"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <tabbedpane id="a643e" binding="tabs">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <preferred-size width="200" height="200"/>
+          </grid>
+          <gridbag top="0" left="0" bottom="5" right="0" weightx="1.0" weighty="1.0"/>
+        </constraints>
+        <properties/>
+        <border type="bevel-raised"/>
+        <children>
+          <grid id="ed2b7" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Basepair Probability"/>
+            </constraints>
+            <properties>
+              <name value="prob"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="e13a4" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="3" left="3" bottom="8" right="3" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <autoscrolls value="false"/>
+                  <text value="&lt;html&gt;This tool sets the color of each base pair according the probability of it being basepaired (or the probability that unpaired nucleotides are unpaired).  &#10;Data can be loaded from a &lt;b&gt;Partition Save File (&lt;i&gt;pfs&lt;/i&gt;)&lt;/b&gt; obtained from running &lt;b&gt;&lt;tt&gt;partition&lt;/tt&gt;&lt;/b&gt; or from a text file that lists pairwise basepairing probabilities in three columns: &lt;tt&gt;BASE1  BASE2  PROB(BASE1:BASE2) &lt;/tt&gt;&lt;br&gt;&#10;Click the &lt;b&gt;Help&lt;/b&gt; button for more information."/>
+                </properties>
+              </component>
+              <splitpane id="3f220">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                    <preferred-size width="200" height="200"/>
+                  </grid>
+                  <gridbag weightx="1.0" weighty="1.0"/>
+                </constraints>
+                <properties>
+                  <continuousLayout value="true"/>
+                  <dividerLocation value="230"/>
+                  <oneTouchExpandable value="false"/>
+                  <resizeWeight value="0.5"/>
+                </properties>
+                <border type="none"/>
+                <children>
+                  <grid id="f4387" layout-manager="GridBagLayout">
+                    <constraints>
+                      <splitpane position="left"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="ff58a" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties>
+                          <font style="1"/>
+                          <name value="headerData"/>
+                          <text value="Probability Data"/>
+                        </properties>
+                      </component>
+                      <scrollpane id="e730d">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="1.0" weighty="1.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="c1b73" class="javax.swing.JTextArea" binding="txtProbData">
+                            <constraints/>
+                            <properties>
+                              <text value="1  1&#9;0.949369084&#10;1  2&#9;0.008434194&#10;1  3&#9;0.115617068&#10;1  4&#9;0.182823643&#10;2  2&#9;0.656706731&#10;2  3&#9;0.761605327&#10;2  4&#9;0.115617068&#10;..."/>
+                            </properties>
+                          </component>
+                        </children>
+                      </scrollpane>
+                      <grid id="ad78d" layout-manager="GridBagLayout">
+                        <constraints>
+                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="9acec" class="javax.swing.JButton" binding="btnLoadProbFile">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="Load File..."/>
+                            </properties>
+                          </component>
+                          <component id="25c2" class="javax.swing.JButton" binding="btnHelpProb">
+                            <constraints>
+                              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="&amp;Help"/>
+                            </properties>
+                          </component>
+                          <component id="1620b" class="javax.swing.JButton" binding="btnClearProbText">
+                            <constraints>
+                              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="clearModText"/>
+                              <text value="Clear"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </grid>
+                    </children>
+                  </grid>
+                  <grid id="53131" layout-manager="GridBagLayout">
+                    <constraints>
+                      <splitpane position="right"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <scrollpane id="e286c">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="1.0" weighty="1.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <grid id="f8faa" layout-manager="GridBagLayout">
+                            <constraints/>
+                            <properties/>
+                            <border type="none"/>
+                            <children>
+                              <grid id="189cf" binding="pnlProbColors" layout-manager="GridBagLayout">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="1.0" weighty="0.0"/>
+                                </constraints>
+                                <properties/>
+                                <border type="none"/>
+                                <children>
+                                  <component id="8c03c" class="javax.swing.JLabel">
+                                    <constraints>
+                                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <font style="1"/>
+                                      <name value="headerLimit"/>
+                                      <text value="Probability Limit"/>
+                                    </properties>
+                                  </component>
+                                  <component id="29054" class="javax.swing.JLabel" binding="lblProbColorHeader">
+                                    <constraints>
+                                      <grid row="0" column="1" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <font style="1"/>
+                                      <name value="headerColor"/>
+                                      <requestFocusEnabled value="true"/>
+                                      <text value="Color (if prob. &lt; Limit)"/>
+                                    </properties>
+                                  </component>
+                                  <component id="e9cd0" class="javax.swing.JButton">
+                                    <constraints>
+                                      <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <actionCommand value="color"/>
+                                      <text value="..."/>
+                                      <toolTipText value="Choose Color..."/>
+                                    </properties>
+                                  </component>
+                                  <component id="ab784" class="javax.swing.JLabel">
+                                    <constraints>
+                                      <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <autoscrolls value="false"/>
+                                      <background color="-16711936"/>
+                                      <opaque value="true"/>
+                                      <preferredSize width="40" height="24"/>
+                                      <text value=""/>
+                                    </properties>
+                                  </component>
+                                  <component id="4220b" class="javax.swing.JTextField">
+                                    <constraints>
+                                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                                        <preferred-size width="150" height="-1"/>
+                                      </grid>
+                                      <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <preferredSize width="100" height="24"/>
+                                      <text value="INF"/>
+                                    </properties>
+                                  </component>
+                                  <component id="e2114" class="javax.swing.JTextField">
+                                    <constraints>
+                                      <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                                        <preferred-size width="150" height="-1"/>
+                                      </grid>
+                                      <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <preferredSize width="100" height="24"/>
+                                      <text value="Lime"/>
+                                    </properties>
+                                  </component>
+                                </children>
+                              </grid>
+                              <component id="c5d74" class="javax.swing.JLabel">
+                                <constraints>
+                                  <grid row="2" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+                                  <gridbag top="4" left="2" bottom="4" right="2" weightx="1.0" weighty="1.0"/>
+                                </constraints>
+                                <properties>
+                                  <maximumSize width="200" height="300"/>
+                                  <text value="INF = infinity;  -INF = negative infinity"/>
+                                </properties>
+                              </component>
+                              <component id="e06aa" class="javax.swing.JLabel">
+                                <constraints>
+                                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="0.0" weighty="0.0"/>
+                                </constraints>
+                                <properties>
+                                  <text value="Probability must be "/>
+                                </properties>
+                              </component>
+                              <component id="75ac4" class="javax.swing.JComboBox" binding="cmbProbComparison">
+                                <constraints>
+                                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="0.0" weighty="0.0"/>
+                                </constraints>
+                                <properties>
+                                  <actionCommand value="valueComparisonChanged"/>
+                                  <model>
+                                    <item value="&lt;  less than"/>
+                                    <item value="&lt;= less than or equal to"/>
+                                    <item value="&gt;  greater than"/>
+                                    <item value="&gt;= greater than or equal to"/>
+                                  </model>
+                                </properties>
+                              </component>
+                              <component id="da21a" class="javax.swing.JLabel">
+                                <constraints>
+                                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="0.0" weighty="0.0"/>
+                                </constraints>
+                                <properties>
+                                  <text value=" each limit."/>
+                                </properties>
+                              </component>
+                            </children>
+                          </grid>
+                        </children>
+                      </scrollpane>
+                      <component id="83a29" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties>
+                          <font style="1"/>
+                          <name value="headerValues"/>
+                          <text value="Probability Ranges and Colors:"/>
+                        </properties>
+                      </component>
+                      <grid id="42858" layout-manager="GridBagLayout">
+                        <constraints>
+                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="76a7" class="javax.swing.JButton" binding="btnAddProbRule">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="addProbRule"/>
+                              <text value="&amp;Add Rule"/>
+                            </properties>
+                          </component>
+                          <component id="9dc38" class="javax.swing.JButton" binding="btnResetProbRules">
+                            <constraints>
+                              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="&amp;Reset List"/>
+                            </properties>
+                          </component>
+                          <component id="b5127" class="javax.swing.JButton" binding="btnRemProbRule">
+                            <constraints>
+                              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="remProbRule"/>
+                              <text value="Remove L&amp;ast Rule"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </grid>
+                    </children>
+                  </grid>
+                </children>
+              </splitpane>
+            </children>
+          </grid>
+          <grid id="7b883" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Chemical Modification (e.g. SHAPE)"/>
+            </constraints>
+            <properties>
+              <name value="mod"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="60255" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="3" left="3" bottom="8" right="3" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <autoscrolls value="false"/>
+                  <text value="&lt;html&gt;This tool sets the color of each base according to a data table arranged in two columns.&lt;br&gt;&#10;The data can represent chemical modification reactvities (e.g. SHAPE) or any arbitrary criteria.&lt;br&gt;&#10;It is &lt;b&gt;not&lt;/b&gt; necessary to include a line for each base (unlisted bases will not be colored).&lt;br&gt;&#10;Click the &lt;b&gt;Help&lt;/b&gt; button for more information."/>
+                </properties>
+              </component>
+              <splitpane id="26ae">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                    <preferred-size width="200" height="200"/>
+                  </grid>
+                  <gridbag weightx="1.0" weighty="1.0"/>
+                </constraints>
+                <properties>
+                  <continuousLayout value="true"/>
+                  <oneTouchExpandable value="false"/>
+                  <resizeWeight value="0.5"/>
+                </properties>
+                <border type="none"/>
+                <children>
+                  <grid id="3cf95" layout-manager="GridBagLayout">
+                    <constraints>
+                      <splitpane position="left"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="e26b3" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties>
+                          <font style="1"/>
+                          <name value="headerData"/>
+                          <text value="Numeric Data"/>
+                        </properties>
+                      </component>
+                      <scrollpane id="8e903">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="1.0" weighty="1.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="1f4ec" class="javax.swing.JTextArea" binding="txtModData">
+                            <constraints/>
+                            <properties>
+                              <text value="1&#9;0.949369084&#10;2&#9;0.008434194&#10;3&#9;0.115617068&#10;4&#9;0.182823643&#10;5&#9;0.656706731&#10;6&#9;0.761605327"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </scrollpane>
+                      <grid id="74d76" layout-manager="GridBagLayout">
+                        <constraints>
+                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="cec31" class="javax.swing.JButton" binding="btnLoadModFile">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="Load File..."/>
+                            </properties>
+                          </component>
+                          <component id="38ca4" class="javax.swing.JButton" binding="btnHelpMod">
+                            <constraints>
+                              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="&amp;Help"/>
+                            </properties>
+                          </component>
+                          <component id="67356" class="javax.swing.JButton" binding="btnClearValueText">
+                            <constraints>
+                              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="clearModText"/>
+                              <text value="Clear"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </grid>
+                    </children>
+                  </grid>
+                  <grid id="40740" layout-manager="GridBagLayout">
+                    <constraints>
+                      <splitpane position="right"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <scrollpane id="33386">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="1.0" weighty="1.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <grid id="42f07" layout-manager="GridBagLayout">
+                            <constraints/>
+                            <properties/>
+                            <border type="none"/>
+                            <children>
+                              <grid id="14bce" binding="pnlValueColors" layout-manager="GridBagLayout">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="1.0" weighty="0.0"/>
+                                </constraints>
+                                <properties/>
+                                <border type="none"/>
+                                <children>
+                                  <component id="4bc77" class="javax.swing.JLabel">
+                                    <constraints>
+                                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <font style="1"/>
+                                      <name value="headerLimit"/>
+                                      <text value="Numeric Limit"/>
+                                    </properties>
+                                  </component>
+                                  <component id="6d079" class="javax.swing.JLabel" binding="lblValueColorHeader">
+                                    <constraints>
+                                      <grid row="0" column="1" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <font style="1"/>
+                                      <name value="headerColor"/>
+                                      <requestFocusEnabled value="true"/>
+                                      <text value="Color (if value &lt; Limit)"/>
+                                    </properties>
+                                  </component>
+                                  <component id="5269b" class="javax.swing.JButton" binding="btnValueChooseColor">
+                                    <constraints>
+                                      <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <actionCommand value="color"/>
+                                      <text value="..."/>
+                                      <toolTipText value="Choose Color..."/>
+                                    </properties>
+                                  </component>
+                                  <component id="59f92" class="javax.swing.JLabel" binding="lblValueColor">
+                                    <constraints>
+                                      <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                      <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <autoscrolls value="false"/>
+                                      <background color="-16711936"/>
+                                      <opaque value="true"/>
+                                      <preferredSize width="40" height="24"/>
+                                      <text value=""/>
+                                    </properties>
+                                  </component>
+                                  <component id="2336f" class="javax.swing.JTextField" binding="txtValueLimit">
+                                    <constraints>
+                                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                                        <preferred-size width="150" height="-1"/>
+                                      </grid>
+                                      <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <preferredSize width="100" height="24"/>
+                                      <text value="INF"/>
+                                    </properties>
+                                  </component>
+                                  <component id="99c12" class="javax.swing.JTextField" binding="txtValueColor">
+                                    <constraints>
+                                      <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                                        <preferred-size width="150" height="-1"/>
+                                      </grid>
+                                      <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                                    </constraints>
+                                    <properties>
+                                      <preferredSize width="100" height="24"/>
+                                      <text value="Lime"/>
+                                    </properties>
+                                  </component>
+                                </children>
+                              </grid>
+                              <component id="807d6" class="javax.swing.JLabel">
+                                <constraints>
+                                  <grid row="2" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+                                  <gridbag top="4" left="2" bottom="4" right="2" weightx="1.0" weighty="1.0"/>
+                                </constraints>
+                                <properties>
+                                  <maximumSize width="200" height="300"/>
+                                  <text value="INF = infinity;  -INF = negative infinity"/>
+                                </properties>
+                              </component>
+                              <component id="64c8a" class="javax.swing.JLabel">
+                                <constraints>
+                                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="0.0" weighty="0.0"/>
+                                </constraints>
+                                <properties>
+                                  <text value="Value must be "/>
+                                </properties>
+                              </component>
+                              <component id="d069e" class="javax.swing.JComboBox" binding="cmbValueComparison">
+                                <constraints>
+                                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="0.0" weighty="0.0"/>
+                                </constraints>
+                                <properties>
+                                  <actionCommand value="valueComparisonChanged"/>
+                                  <model>
+                                    <item value="&lt;  less than"/>
+                                    <item value="&lt;= less than or equal to"/>
+                                    <item value="&gt;  greater than"/>
+                                    <item value="&gt;= greater than or equal to"/>
+                                  </model>
+                                </properties>
+                              </component>
+                              <component id="f1bad" class="javax.swing.JLabel">
+                                <constraints>
+                                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                  <gridbag weightx="0.0" weighty="0.0"/>
+                                </constraints>
+                                <properties>
+                                  <text value=" each limit."/>
+                                </properties>
+                              </component>
+                            </children>
+                          </grid>
+                        </children>
+                      </scrollpane>
+                      <component id="7a132" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties>
+                          <font style="1"/>
+                          <name value="headerValues"/>
+                          <text value="Value Ranges and Colors:"/>
+                        </properties>
+                      </component>
+                      <grid id="b0f13" layout-manager="GridBagLayout">
+                        <constraints>
+                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="704b8" class="javax.swing.JButton" binding="btnAddValueRule">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="addValueRule"/>
+                              <text value="&amp;Add Rule"/>
+                            </properties>
+                          </component>
+                          <component id="a1351" class="javax.swing.JButton" binding="btnResetValueRules">
+                            <constraints>
+                              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="&amp;Reset List"/>
+                            </properties>
+                          </component>
+                          <component id="fba36" class="javax.swing.JButton" binding="btnRemValueRule">
+                            <constraints>
+                              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="remValueRule"/>
+                              <text value="Remove L&amp;ast Rule"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </grid>
+                    </children>
+                  </grid>
+                </children>
+              </splitpane>
+            </children>
+          </grid>
+          <grid id="914ec" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Nucleobase Identity"/>
+            </constraints>
+            <properties>
+              <name value="base"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="f4594" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="3" left="3" bottom="3" right="3" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <autoscrolls value="false"/>
+                  <text value="&lt;html&gt;This tool sets the color of each base according to its identity (i.e. the symbol/character used to represent it).&lt;br&gt;&#10;You can enter as many or as few symbols as desired. Nucleobases that are not listed will not be affected.&lt;br&gt;&#10;You can disable a rule below by unchecking the box next to it or by deleting the symbol from the text box."/>
+                </properties>
+              </component>
+              <scrollpane id="d6b0b">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="1.0" weighty="1.0"/>
+                </constraints>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <grid id="39074" layout-manager="GridBagLayout">
+                    <constraints/>
+                    <properties>
+                      <alignmentX value="0.0"/>
+                      <alignmentY value="0.0"/>
+                    </properties>
+                    <border type="none"/>
+                    <children>
+                      <grid id="a97a7" binding="pnlSymbolColors" layout-manager="GridBagLayout">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="4" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag weightx="1.0" weighty="0.0"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="78415" class="javax.swing.JLabel">
+                            <constraints>
+                              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <font size="14" style="1"/>
+                              <name value="headerSymbol"/>
+                              <text value="Nucleobase(s)"/>
+                            </properties>
+                          </component>
+                          <component id="e6307" class="javax.swing.JTextArea" binding="txtBase">
+                            <constraints>
+                              <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                                <preferred-size width="150" height="50"/>
+                              </grid>
+                              <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value="A"/>
+                            </properties>
+                          </component>
+                          <component id="2a3a5" class="javax.swing.JCheckBox" binding="chkUse">
+                            <constraints>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <text value=""/>
+                            </properties>
+                          </component>
+                          <component id="852e0" class="javax.swing.JTextArea" binding="txtColor">
+                            <constraints>
+                              <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                                <preferred-size width="150" height="50"/>
+                              </grid>
+                              <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <preferredSize width="150" height="17"/>
+                              <text value="Red"/>
+                            </properties>
+                          </component>
+                          <component id="2d067" class="javax.swing.JLabel">
+                            <constraints>
+                              <grid row="0" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                              <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <font size="14" style="1"/>
+                              <name value="headerColor"/>
+                              <text value="Color (name or RGB code)"/>
+                            </properties>
+                          </component>
+                          <component id="9ce9a" class="javax.swing.JButton" binding="btnChooseColor">
+                            <constraints>
+                              <grid row="1" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                              <gridbag weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <actionCommand value="color"/>
+                              <text value="Choose..."/>
+                            </properties>
+                          </component>
+                          <component id="228e0" class="javax.swing.JLabel" binding="lblColor">
+                            <constraints>
+                              <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                              <gridbag top="4" left="4" bottom="4" right="4" weightx="0.0" weighty="0.0"/>
+                            </constraints>
+                            <properties>
+                              <autoscrolls value="false"/>
+                              <background color="-16711936"/>
+                              <opaque value="true"/>
+                              <text value=""/>
+                            </properties>
+                          </component>
+                        </children>
+                      </grid>
+                      <component id="b1e80" class="javax.swing.JButton" binding="btnAddSymbolRule">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="20" bottom="0" right="0" weightx="0.0" weighty="1.0"/>
+                        </constraints>
+                        <properties>
+                          <actionCommand value="addSymbolRule"/>
+                          <text value="&amp;Add Rule"/>
+                        </properties>
+                      </component>
+                      <component id="76dc1" class="javax.swing.JButton" binding="btnResetSymbolRules">
+                        <constraints>
+                          <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="1.0"/>
+                        </constraints>
+                        <properties>
+                          <actionCommand value="resetSymbolRules"/>
+                          <text value="&amp;Reset List"/>
+                        </properties>
+                      </component>
+                      <component id="aafd2" class="javax.swing.JCheckBox" binding="chkIgnoreCase">
+                        <constraints>
+                          <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="4" left="0" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties>
+                          <actionCommand value=""/>
+                          <selected value="true"/>
+                          <text value="Ignore Case (G = g etc.)"/>
+                          <toolTipText value="If selected the character case of bases will be ignored. So if &quot;G&quot; is red then &quot;g&quot; will be also.  Otherwise &quot;G&quot; and &quot;g&quot; are treated as different entities and they must each be listed separately in order to color both."/>
+                          <visible value="false"/>
+                        </properties>
+                        <clientProperties>
+                          <html.disable class="java.lang.Boolean" value="false"/>
+                        </clientProperties>
+                      </component>
+                      <component id="fb0cf" class="javax.swing.JButton" binding="btnRemSymbolRule">
+                        <constraints>
+                          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                          <gridbag top="0" left="1" bottom="0" right="1" weightx="0.0" weighty="0.0"/>
+                        </constraints>
+                        <properties>
+                          <actionCommand value="remSymbolRule"/>
+                          <text value="Remove L&amp;ast Rule"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
+                </children>
+              </scrollpane>
+            </children>
+          </grid>
+          <grid id="57826" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Single Color"/>
+            </constraints>
+            <properties>
+              <name value="single"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="c7aff" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="4" left="4" bottom="4" right="4" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="&lt;html&gt;This tool can be used to color all bases (or all &lt;i&gt;selected&lt;/i&gt; bases) the same color.&lt;br&gt;&#10;For example, you can select a domain and apply a single color to all bases in that domain."/>
+                </properties>
+              </component>
+              <grid id="d2f46" layout-manager="GridBagLayout">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="4" left="4" bottom="0" right="0" weightx="1.0" weighty="1.0"/>
+                </constraints>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <component id="8fb1" class="javax.swing.JButton" binding="btnSingleColor">
+                    <constraints>
+                      <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <actionCommand value="chooseSingleColor"/>
+                      <text value="Choose..."/>
+                    </properties>
+                  </component>
+                  <component id="d6c31" class="javax.swing.JLabel" binding="lblSingleColor">
+                    <constraints>
+                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag top="4" left="4" bottom="4" right="4" weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <autoscrolls value="false"/>
+                      <background color="-16711936"/>
+                      <opaque value="true"/>
+                      <preferredSize width="100" height="20"/>
+                      <text value=""/>
+                    </properties>
+                  </component>
+                  <component id="7a7ba" class="javax.swing.JTextField" binding="txtSingleColor">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                        <preferred-size width="150" height="-1"/>
+                      </grid>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <preferredSize width="120" height="24"/>
+                      <text value="Red"/>
+                    </properties>
+                  </component>
+                  <component id="96334" class="javax.swing.JLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <text value="Color (name or RGB code): "/>
+                    </properties>
+                  </component>
+                </children>
+              </grid>
+            </children>
+          </grid>
+        </children>
+      </tabbedpane>
+      <grid id="7e807" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <grid id="48da4" layout-manager="GridBagLayout">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="0" bottom="0" right="10" weightx="0.0" weighty="0.0" ipady="3"/>
+            </constraints>
+            <properties/>
+            <border type="etched" title="Scope of Operation"/>
+            <children>
+              <component id="c59a3" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="Structures Affected:"/>
+                </properties>
+              </component>
+              <component id="4c6f5" class="javax.swing.JRadioButton" binding="optBasesAll">
+                <constraints>
+                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="All &amp;Bases"/>
+                </properties>
+              </component>
+              <component id="483c6" class="javax.swing.JRadioButton" binding="optStructuresAll">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="All &amp;Structures"/>
+                </properties>
+              </component>
+              <component id="5e7ac" class="javax.swing.JRadioButton" binding="optStructuresCurrent">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="&amp;Current Structure"/>
+                </properties>
+              </component>
+              <component id="e0d3c" class="javax.swing.JRadioButton" binding="optBasesSelected">
+                <constraints>
+                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="4" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="&amp;Selected Bases Only"/>
+                </properties>
+              </component>
+              <component id="ddca1" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="Nucleobases Affected:"/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+          <grid id="8a325" layout-manager="GridBagLayout">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="f95a2" class="javax.swing.JButton" binding="btnClose">
+                <constraints>
+                  <grid row="0" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="close"/>
+                  <horizontalTextPosition value="0"/>
+                  <text value="&amp;Close"/>
+                </properties>
+              </component>
+              <component id="13220" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="Apply To:"/>
+                </properties>
+              </component>
+              <component id="3a97" class="javax.swing.JButton" binding="btnApplyText">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="apply-text"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="&amp;Text (symbols)"/>
+                  <toolTipText value="Apply the color operation to the Text (symbols) of bases."/>
+                </properties>
+              </component>
+              <component id="6bc3b" class="javax.swing.JButton" binding="btnApplyFill">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="apply-fill"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="&amp;Fill (background)"/>
+                  <toolTipText value="Apply the color operation to fill in the background of bases."/>
+                </properties>
+              </component>
+              <component id="69f06" class="javax.swing.JButton" binding="btnApplyOutline">
+                <constraints>
+                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="apply-line"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="&amp;Outlines"/>
+                  <toolTipText value="Apply the color operation to the circle outline around bases."/>
+                </properties>
+              </component>
+              <component id="9c967" class="javax.swing.JButton" binding="btnApplyBond">
+                <constraints>
+                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="apply-bond"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="Base-Pair &amp;Bonds"/>
+                  <toolTipText value="Apply the color operation to the bonds that connect base-pairs. (This has no effect on unpaired bases.)"/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+          <grid id="95f7c" layout-manager="GridBagLayout">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0" ipady="3"/>
+            </constraints>
+            <properties/>
+            <border type="etched" title="Reset to Defaults"/>
+            <children>
+              <component id="4c058" class="javax.swing.JButton" binding="btnResetText">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="reset-text"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="Reset Text"/>
+                  <toolTipText value="Reset the Text color of bases to the default color."/>
+                </properties>
+              </component>
+              <component id="d493f" class="javax.swing.JButton" binding="btnResetFill">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="reset-fill"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="Reset Fill"/>
+                  <toolTipText value="Reset the Fill color of bases to the default color."/>
+                </properties>
+              </component>
+              <component id="ce727" class="javax.swing.JButton" binding="btnResetAll">
+                <constraints>
+                  <grid row="0" column="2" row-span="2" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="reset-all"/>
+                  <font/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="Reset All"/>
+                  <toolTipText value="Reset/Clear all custom Color annotations."/>
+                </properties>
+              </component>
+              <component id="13d2e" class="javax.swing.JButton" binding="btnResetOutline">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="reset-line"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="Reset Outlines"/>
+                  <toolTipText value="Reset the Outline color of bases to the default color."/>
+                </properties>
+              </component>
+              <component id="ba9d4" class="javax.swing.JButton" binding="btnResetBond">
+                <constraints>
+                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="2" left="2" bottom="2" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="reset-bond"/>
+                  <horizontalAlignment value="0"/>
+                  <preferredSize width="180" height="32"/>
+                  <text value="Reset Bonds"/>
+                  <toolTipText value="Reset the Bond color of bases to the default color."/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+        </children>
+      </grid>
+    </children>
+  </grid>
+  <buttonGroups>
+    <group name="grpEffect">
+      <member id="6a2"/>
+      <member id="99b41"/>
+      <member id="c5ea7"/>
+    </group>
+    <group name="grpStructure">
+      <member id="483c6"/>
+      <member id="5e7ac"/>
+    </group>
+    <group name="grpBases">
+      <member id="4c6f5"/>
+      <member id="e0d3c"/>
+    </group>
+  </buttonGroups>
+</form>

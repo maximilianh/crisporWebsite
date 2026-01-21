@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Dot Plot</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Dot Plot</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<p><b>Dot Plot Overview</b><p>
+							<p>RNAstructure can create several types of dot plots. The Dot Plot module produces an energy dot plot for a sequence. This shows, for each possible pair, the lowest free energy for a structure that contains that pair. Energy dot plots provide a picture of all alternative secondary structures within a given free energy increment of the lowest free energy structure. A large number of dots are displayed, when a small energy increment is chosen, suggests a less well-defined predicted secondary structure. Regions with many competing base pairs may be involved in alternative secondary structures or may be regions for which secondary structure prediction is inaccurate.</p>
+							<p>Note that two other types of dot plots can be created by RNAstructure, parition function dot plots and Dynalign dot plots (both below), but neither of these are made by the Dot Plot module.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Fold" id="Fold">Folding Dot Plot</a></b></p>
+							<p>Folding dot plots illustrate base pairing energies read from a CT file. To display a folding dot plot, choose &quot;File -&gt; Dot Plot.&quot; Thse require save files from prior <a href="Fold.html">Fold</a> calculations.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Partition" id="Partition">Partition Function Dot Plot</a></b></p>
+							<p>Partition function dot plots display the probabilities of pairs, as predicted by the <a href="Partition_Function.html">partition function</a>. Dots are displayed as -log<sub>10</sub>(probability). The default view shows all possible pairs of any probability.</p>
+							<p>These dot plots are created when a partition function calculation is run.</p>
+							<p>To output base pair probabilities to a plain text file, choose &quot;<a name="Probability" id="Probability">Output Plot -&gt; Write to Dot Plot File</a>.&quot; This will open a save dialog box in which the save file name can be specified.</p>
+							<p>To output the plot as a Postscript image file, choose &quot;Output Plot -&gt; Write to Postscript Image File.&quot;</p>
+							<p>Dot plots of previously calculated partition function calculations can be displayed by choosing &quot;File -&gt; Dot Plot Partition Function.&quot; This opens a dialog box for choosing the partition function save file. After choosing the save file, the dot plot is displayed.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Dynalign" id="Dynalign">Dynalign Dot Plot</a></b></p>
+							<p>For Dynalign dot plots, a separate energy dot plot is generated for each of the two sequences involved. To display a Dynalign dot plot, choose &quot;File -&gt; Dot Plot Dynalign.&quot; This requires a save file from a prior <a href="Dynalign.html">Dynalign</a> calculation.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Appear" id="Appear">Changing the Dot Plot Appearance</a></b></p>
+							<p>The dot plot will be initially shown sized to the window in which it appears. To zoom to a specific region, the menu item &quot;Draw -&gt; Zoom&quot; can be chosen to open a dialog box from which the zoom level can be adjusted. Alternatively, pressing the up or down arrow keys on the keyboard will zoom in or out, respectively. The scroll bars or arrow keys can be used to adjust the portion of the plot chosen.</p>
+							<p>Each color dot indicates an energy increment that is indicated by a key beneath the plot. The number of colors used in the plot can be adjusted from 3 to 15 by selecting the &quot;<a name="Colors" id="Colors">Draw -&gt; Choose Colors</a>&quot; menu option.</p>
+							<p>When first drawn, the energy dot plot shows all base pairs. To restrict the display to a specific energy increment, choose &quot;<a name="Range" id="Range">Draw -&gt; Plot Range</a>&quot;. Also, note that the range of energies can be reset to show all pairs by clicking &quot;Reset Range&quot; in the dialog box. It is often helpful to limit the plot range to energies close to the lowest free energy (for example, within 10%) to focus on only the low energy competing structures.</p>
+							<p>To get the exact energy of any displayed base pair, click on the point in the plot with the left mouse button. The pair and its energy are displayed in a field above the plot.</p>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

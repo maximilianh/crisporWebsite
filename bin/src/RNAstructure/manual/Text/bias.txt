@@ -1,0 +1,11 @@
+Singles
+A .6
+C .1
+G .1
+U .2
+Pairs
+A U .2
+C G .6
+G U .2
+
+

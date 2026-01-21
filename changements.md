@@ -1,4 +1,3 @@
-
 # changes in CRISPOR - assistant mode
 
 ## 17/12/25 ;
@@ -331,13 +330,31 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - ajout du EVA score (calcul EVA score sans MIT dans crisporEffScores.py
  puis ajout du MIT dans crispor.py avec calcEVAscore() / mergeGuideInfo
 
-# multiseq mode : 
+## multiseq mode : 
 - modification de microhompage() ->  recherche du pamId en fonction de l'exon dans lequel se trouve le pam.
 - modification de saveOutcomeData() (pour scores oof / lindel), n'efface plus les données précédentes si la fonction est exécutée dans une boucle
 - interface KO : OK. (reste à afficher les exons bout à bout ?)
 
-# à faire / bugs
+## à faire / bugs
 - finaliser l'affichage du mode KO
-- ajouter description pour EVA score et vérifier le calcul
+- ajouter description pour EVA score et vérifier le calcul (notamment structurenumber=1)
 - lorsque un batch multiseq est relancé, perte du paramètre "exonSeqs".
+- ajouter / finir les descriptions des fonctions
 
+## 21/01/26
+
+## divers
+
+- dans calcFreeEnergyRNAStructure() : calcul de la mfe structure uniquement
+- comparaison calcul EVA scores avec données de Riesenberg et al. 2025 (OK, quelques différences (négligeables ?), probablement dues aux arrondis, à tester sur + d'exemples)
+- comparaison énergie libre entre RNAstructure et RNAfold : OK
+
+## KO / multiseq mode
+
+- modification de primerDetailsPage() -> obtention de la séquence / exonId depuis les données du batch.
+
+
+
+## à faire / bugs
+
+- internal server error sur lien téléchargement données guides.

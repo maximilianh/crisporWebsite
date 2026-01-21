@@ -1,0 +1,12 @@
+RNAstructure requires Microsoft Visual Studio.NET for compilation.
+
+Both Visual Studio 2005 and Visual Studio 2008 produce a
+bug in the partition function calculation (pfunction.cpp).
+
+Alternatively, Visual Studio 2005 and 2008 will work when the Intel
+C++ compiler is used.  This, however, results in an executable that
+is about 20% slower than the Microsoft compiler.
+
+ 
+
+ 

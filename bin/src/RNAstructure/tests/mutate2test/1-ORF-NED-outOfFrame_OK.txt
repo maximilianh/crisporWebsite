@@ -1,0 +1,3 @@
+Model NED = 0.00781378
+Index 	 Disruptions 	 DisruptedNED 		 Restorations 	 RestoringNED 	 DisruptedNTs# 		 DisruptedSeq 	 RestoredSeq 
+1	AAG3AAA	0.38		ACC15ACT	0.01	9		GCAAAGGCGGCCUUACCUUGC	GCAAAGGCGGCCUUACTUUGC

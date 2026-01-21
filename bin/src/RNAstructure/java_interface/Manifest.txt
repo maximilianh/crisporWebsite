@@ -1,0 +1,4 @@
+Manifest-Version: 3.0
+Created-By: University of Rochester Medical Center, Mathews Lab
+Main-Class: ur_rna.RNAstructureUI.RNAstructure
+SplashScreen-Image: ur_rna/RNAstructureUI/resources/images/logo.png

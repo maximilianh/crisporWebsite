@@ -1,0 +1,16 @@
+# This file lists files and folders in RNAstructure/exe that should be kept -- i.e. not deleted by `make realclean`
+# List each file on a line by itself. Lines that start with a hash (#) are comments.
+# Directories MUST end in a slash (/)
+
+# Special files.
+.gitignore
+.keep
+
+# Batch files and scripts for running the Java GUI etc
+RNAstructure.bat
+RNAstructureScript
+run-gui-test
+RNAstructure_CLI.bat
+
+# Documentation
+windows-required-dlls.txt

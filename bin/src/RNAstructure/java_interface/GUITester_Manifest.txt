@@ -1,0 +1,4 @@
+Manifest-Version: 3.0
+Created-By: University of Rochester Medical Center, Mathews Lab
+Main-Class: ur_rna.GUITester.GUITesterStartup
+Class-Path: RNAstructure.jar lib/abbot.jar lib/gnu-regexp-1.1.4.jar lib/jdom-1.1.1.jar lib/junit-4.8.2.jar

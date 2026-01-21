@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: ProbKnot</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>ProbKnot</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>ProbKnot is used to predict a maximum expected accuracy structure that can contain pseudoknots. This program also implements ThreshKnot, which incorporates a pair probability threshold. To use the ThreshKnot approach, specifiy a threshold &gt; 0.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: ProbKnot &lt;input file&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;input file&gt;</td>
+								<td>
+									The name of a file containing input data. This input data can be in one of three formats:
+									  <ol class="noListTopMargin">
+										<li>Partition function save file (holds base pairing probability data for all pairs and can be generated using the <a href="partition.html">partition</a> interface).</li>
+										<li>
+											<a href="File_Formats.html#Sequence">Sequence file</a> (holds raw sequence: .seq or .fasta).
+											<br>
+											Note that lowercase nucleotides are forced single-stranded in structure prediction.
+											<br>
+											Note that in order to use a squence file, the &quot;sequence&quot; flag must be specified (see &quot;--sequence&quot; below).
+										</li>
+										<li><a href="File_Formats.html#CT">ct file</a> (holds a set of structures). This should be a <a href="stochastic.html">stochastic</a> sample. (see &quot;--ensemble&quot;) below.</li>
+									</ol>
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+							  <td class="cell">-d, -D, --DNA</td>
+							  <td>This flag only matters if the input file is a squence file and has been identified as such (see &quot;--sequence&quot; below). <br>
+Specify that the sequence is DNA, and DNA parameters are to be used. <br>
+Default is to use RNA parameters.</td>
+						  </tr>
+							<tr>
+								<td class="cell">--ensemble</td>
+								<td>Read a ct file of a <a href="stochastic.html">stochastic</a> sample as the input of the program. The base pairing probabilities for each pair are the calculated from the fraction of structures with that pair.</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">--sequence</td>
+								<td>Identify the input file format as a sequence file.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-i, -I, --iterations</td>
+								<td>
+									Specify the number of iterations the calculation will undergo. More iterations can result in more predicted pairs, although a single iteration is generally sufficient.
+									<br>
+									Default is 1 iteration.
+								</td>
+							</tr>
+							<tr>
+							  <td class="cell">-m, -M, --minimum</td>
+							  <td>Specify the minimum length accepted for a helix. A post-processing filter removes short helices. <br>
+Default is 3 base pairs. </td>
+						  </tr>
+							<tr>
+								<td class="cell">-t, -T, --threshold</td>
+								<td>Specify a pair probability threshold. Pairs must exceed this threshold (&gt;threshold) to be included in the prediction.  This needs to be less than 1.0.<br>
+								  Default is 0.0.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li>
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li>
+								Bellaousov, S., and Mathews, D.H.
+								<br>
+								&quot;ProbKnot: fast prediction of RNA secondary structure including pseudoknots.&quot;
+								<br>
+								<i>RNA</i>, 16:1870-1880. (2010).
+							</li>
+							<li>Zhang, L., Zhang, H., Mathews, D.H, andHuang, L.<br>
+  &quot;ThreshKnot: Thresholded Probknot for Improved RNA Secondary Structure  Prediction.&quot; <br>
+In preparation.(2019)</li>
+			        </ol>                    </td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

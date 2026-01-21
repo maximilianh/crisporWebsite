@@ -1,0 +1,137 @@
+%!PS-Adobe-3.0
+%%Pages: 1
+%%Page: 1
+0 792 translate 1 -1 scale
+/tmpstr 100 string def 
+<</sfm{findfont exch makefont setfont}
+/rgb{setrgbcolor}/cWHT{1 1 1 rgb}/cBLK{0 0 0 rgb}/cCYN{0 1 1 rgb}/cRED{1 0 0 rgb}/cGRN{0 1 0 rgb}/cBLU{0 0 1 rgb}/cMGN{1 0 1 rgb}/thin{1 setlinewidth}/thick{3 setlinewidth}
+/toStr{tmpstr cvs}/printany{toStr print}/printv{print printany}/endl{(\n) print}
+/drawLine{newpath moveto lineto closepath stroke}
+/drawBond{cBLU thick drawLine}
+/drawCBond{moveto curveto cRED thick stroke}
+/drawBkbn{cBLK thin drawLine}
+/drawLabel{cMGN 2 copy 30 24 rectfill  20 add moveto cBLK toStr show}
+/drawNuc{newpath 2 copy 12 0 360 arc closepath gsave cWHT fill grestore thin cRED stroke moveto -8 8 rmoveto cGRN show}
+/helix{1 sub{1 index 1 add 1 index 1 sub}repeat}
+% index group size - popgrp - item((index-1)*size)...item(index*size-1) X Y (Color)
+/popgrp{/size exch def /arr exch def 1 sub size mul size{dup arr exch get exch 1 add}repeat pop}%/popgrp { /size exch def /arr exch def 1 sub size mul dup 1 exch 1 sub size add { arr exch get } for } def
+/nuc{nuclist 3 popgrp}/pair{pairs 2 popgrp}/label{labels 3 popgrp}/nucpos{nuclist 3 popgrp 3 2 roll pop}
+/drawRNA{/numNucs nuclist length 3 idiv def /numPairs pairs length 2 idiv def /numLabels labels length 3 idiv def
+1 1 numPairs{pair nucpos 3 2 roll nucpos drawBond}for 
+1 1 numNucs 1 sub{dup nucpos 3 2 roll 1 add nucpos drawBkbn}for
+1 1 numLabels{label 2 index nucpos 3 index 15 add 3 index 12 add drawLine drawLabel}for
+1 1 numNucs{nuc drawNuc}for
+% draw nucs
+%nuclist 3 { pop drawNuc } iter %4 copy	%(Nuc ) printv 	%( Base: ) printv 	%( X: ) printv 	%( Y: ) printv 	%endl 
+% List pairs
+%pairs 2 { (Pair ) printv (: ) printv (--) printv endl } iter
+}
+>> {bind def} forall 
+[24 0 0 -24 0 0] /Courier-Bold sfm
+gsave 0.657358 0.657358 scale
+/nuclist [ % list nucs
+(G) 448 555 
+(G) 443 524 
+(G) 438 493 
+(G) 433 462 
+(G) 428 431
+(C) 423 400 
+(G) 418 369 
+(U) 370 410 
+(A) 321 451 
+(G) 272 493
+(C) 241 498 
+(U) 210 503 
+(C) 179 508 
+(A) 157 538 
+(G) 121 557
+(A) 80 551  
+(u) 51 522  
+(G) 45 482  
+(G) 63 446  
+(U) 99 427
+(A) 139 433 
+(G) 170 454 
+(A) 201 449 
+(G) 232 444 
+(C) 263 439
+(G) 328 324 
+(C) 407 277 
+(U) 398 247 
+(C) 389 217 
+(G) 380 187
+(C) 371 157
+(U) 340 136
+(U) 322 99
+(g) 332 60
+(G) 364 36
+(C) 405 38
+(g) 434 66
+(U) 438 106
+(G) 424 142
+(U) 433 172
+(G) 442 202
+(A) 451 232
+(G) 460 262
+(A) 504 275
+(G) 550 292
+(G) 591 321
+(U) 622 359
+(A) 643 404
+(C) 652 453
+(C) 683 452
+(G) 714 451
+(G) 745 450
+(G) 776 449
+(A) 804 425
+(U) 844 416
+(C) 880 435
+(G) 895 472
+(a) 883 511
+(U) 849 533
+(A) 808 527
+(C) 778 504
+(C) 747 505
+(C) 716 506
+(G) 685 507
+(G) 654 508
+(C) 472 360
+(G) 477 391
+(C) 482 422
+(C) 487 453
+(U) 492 484
+(C) 497 515
+(C) 502 546
+(A) 545 595
+(C) 564 646
+(C) 554 699
+(A) 517 740 ] def 
+
+/breaks [ % indices of nucs not connected forward.
+	59
+]
+
+/pairs [ % list basepairs (1 10) or helices (low high count "helix")
+1 72 7 helix
+10 25 4 helix
+27 43 5 helix
+49 65 5 helix
+] def
+
+/labels [ % list number labels (index x y)
+  10 290 603
+  20 81 317
+  30 273 218
+  40 540 141
+  50 679 341
+  60 757 626
+  70 602 466
+] def
+
+drawRNA
+
+grestore
+[16 0 0 -16 0 0] /Courier-Bold sfm
+36 779 moveto cBLK (ENERGY = -33.6  RA7680) show
+
+showpage

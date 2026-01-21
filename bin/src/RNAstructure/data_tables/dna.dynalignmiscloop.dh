@@ -1,0 +1,67 @@
+# Miscellaneous free energy rules
+# -------------------------------
+
+# Extrapolation for large loops based on polymer theory
+# internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30)
+# --> 
+ 1.
+
+# asymmetric internal loops: the ninio equation
+# the maximum correction
+# --> 
+ 0.0
+
+# the f(m) array (see ninio for details)
+# -->
+ .0  .0  .0  .0
+
+# multibranched loops
+# offset,  free base penalty,  helix penalty
+# --> 
+     0.0          .0                0.0
+
+# efn2 multibranched loops
+# offset,  free base penalty,  helix penalty
+# --> 
+     0.0          .0                0.0
+
+# miscloop asym
+# -->
+0.0
+
+# multiloop strain
+# --> 
+0.0
+
+# terminal AU penalty
+# -->
+ 3.2
+
+# bonus for GGG hairpin
+# -->
+0.0
+
+# c hairpin slope
+# --> 
+0.0
+
+# c hairpin intercept
+# --> 
+0.0
+
+# c hairpin of 3
+# --> 
+0.0
+
+# Intermolecular initiation free energy
+# --> 
+-7.2
+
+# GAIL Rule (Grossly Asymmetric Interior Loop Rule) (on/off <-> 1/0)
+# --> 
+0
+
+# Bonus for Single C bulges adjacent to C
+# -->
+0.0
+

@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: phmm</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					phmm</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>phmm uses a pairwise hidden markov model (<strong>HMM</strong>) to predict the alignment between  two RNA sequences. The default behavior is to produce a matrix of alignment  probabilities. It can also produce maximum likelihood alignment calculated  using the Viterbi algorithm.<br>
+						</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: phmm &lt;<span class="cell">sequence file 1</span>&gt; &lt;<span class="cell">sequence file 2</span>&gt; &lt;output file&gt; [options] </h3>
+					  <h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;sequence file 1&gt;</td>
+								<td>
+							  The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data. (<em>see <a href="#Notes">Notes</a></em>)</td>
+							</tr>
+							<tr>
+							  <td class="cell">&lt;sequence file 2&gt;</td>
+							  <td>The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data. (<em>see <a href="#Notes">Notes</a></em>)</td>
+						  </tr>
+							<tr>
+								<td class="cell">&lt;output file&gt;</td>
+								<td>A plain text file to which the results will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-l, -L, --logprobability&nbsp;&nbsp;&nbsp; </td>
+								<td>Print probability matrix as base 10 log probabilities.</td>
+							</tr>
+							<tr>
+							  <td class="cell">-m, -M, --maxlikelihood&nbsp;&nbsp;&nbsp; </td>
+							  <td>Print a maximum likelihood alignment.</td>
+						  </tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Output Format:</h3>
+						<p>The default output is a matrix of pair probabilities. Using the -l, -L, --logprobability option changes this to the logarithm, base 10, of the pair probabilities. The matrix is a tab-delimited, plain text file where rows are indices for sequence 1 and columns are indices for sequence 2.</p>
+						<p>The -m, -M, --maxlikelihood option changes the output a plain text alignment of the two sequences.</p>
+						<h3 class="leftHeader"><a name="Notes" id="Notes"></a>Notes:</h3>
+						<ul>
+						  <li>Unknown nucleotides (e.g. <strong class="monoFont">N</strong> or <strong class="monoFont">X</strong>) get randomly mapped to A, C, G, or U by HMM. </li>
+					  </ul>
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">Harmanci, A.O., Sharma, G. and Mathews, D.H. <br>
+  &quot;Efficient Pairwise RNA Structure Prediction Using Probabilistic Alignment Constraints in Dynalign.&quot; <br>
+  <i>BMC Bioinformatics</i>, 8:130. (2007). </li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

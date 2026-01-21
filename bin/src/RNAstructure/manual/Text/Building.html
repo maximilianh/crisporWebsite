@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head><title>RNAstructure Command Line Help: Building the Interfaces</title>
+
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+<body>
+<div class="bodydiv">
+<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+<tbody>
+<tr class="headerRow">
+<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+<td class="headerLabel">
+<h2>RNAstructure Command Line Help<br>
+Building Instructions</h2>
+</td>
+<td class="headerBox2">
+<ul id="navigator">
+<li>
+<h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+</li>
+<li>
+<h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td class="mainContent" colspan="3">
+<h3 class="leftHeader">Do I need to build the
+package?</h3>
+<p>RNAstructure is provided both as source code and as
+prebuilt executables. Prebuilt executables are currently available for
+32-bit Linux, 64-bit Linux, Max OS-X (Leopard and higher), and 32-bit
+Windows. If you are using one of these operating systems, then you
+probably do not need to build the package. The available executables
+will work fine.</p>
+<br>
+<h3 class="leftHeader">Configuring the Compiler and
+Build Settings</h3>
+<p>The command line (text) interfaces for RNAstructure are
+built using the Makefile in the main directory (RNAstructure/). The
+definitions for compiler and flags are in RNAstructure/<span style="font-weight: bold;">compiler.h</span>
+&nbsp;Example compiler settings are provided for Linux, Mac, and
+Windows (using Cygwin) platforms.</p>
+<br>
+<h3 class="leftHeader">Building on Unix/Linux/OS-X</h3>
+<p>To build the package, use the command "make all" in
+RNAstructure/. The command line executables are built and placed in
+RNAstructure/exe/. You should probably then update your PATH variable
+to include this directory.</p>
+<p>An optional "make install" command will copy all the
+executables to the /usr/local/RNAstructure/ directory. This is helpful
+in a shared computing environment. This command can only be executed as
+root.</p>
+<br>
+<h3 class="leftHeader">Building on&nbsp;Windows</h3>
+<p>For&nbsp;Windows command line interfaces, you have two
+options for compiling&nbsp;RNAstructure:
+</p>
+<ul>
+<li><span style="font-weight: bold;">Microsoft
+Visual Studio&nbsp;2012 and the Intel
+C++ compiler</span><br>In the folder <span style="font-family: monospace; font-weight: bold;">Windows_text_interfaces</span>, use Visual Studio 2012 to open the solution&nbsp; <span style="font-family: monospace;"><span style="font-weight: bold;">Windows_text_interfaces.sln</span><br></span>Then build using Visual Studio. The executables will be deposited in
+the&nbsp;<span style="font-weight: bold;">Release</span> sub-folder.</li>
+<li><span style="font-weight: bold;">
+Linux-style build process using <a href="https://cygwin.com/">Cygwin</a>
+and <a href="http://mingw-w64.org/">MingW-W64</a></span><br>
+Cygwin provides a complete POSIX environment on Windows and allows compilation
+of RNAstructure using the same framework as on Linux (i.e. gcc/g++ and
+GNU make). <br>Simply run "<span style="font-weight: bold; font-family: monospace;">make all</span>" from the RNAstructure folder.
+&nbsp;The compiled executables will be placed in the <span style="font-weight: bold; font-family: monospace;">RNAstructure/exe</span> directory.<br>(MingW-W64 is a fork of the MinGW project that adds the
+ability to compile 64-bit Windows applications using GCC.The file
+compiler.h includes flags and compiler definitions for building on
+Windows. The name of the compiler may need to be changed depending on
+the "flavor" of MingW-W64 that you install.)<br></li>
+</ul>
+</td>
+</tr>
+<tr>
+<td class="footer" colspan="3">
+<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+Mathews Lab RNAstructure Page</a> for updates and latest
+information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</body></html>

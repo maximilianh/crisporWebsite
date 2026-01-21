@@ -1,0 +1,22 @@
+#!/bin/bash
+
+dir=$(dirname "${BASH_SOURCE[0]}") # Directory containing this script.
+jar_dir="$dir" # The JAR file is located in the same folder as this script.
+
+if [[ $OSTYPE == cygwin ]] && type -p cygpath &> /dev/null ; then
+    # The java program on Windows expects the directory in Windows format
+    # instead of cygwin/linux format.
+	jar_dir=$(cygpath -w "$jar_dir")
+fi
+
+# Modify PATH (for Windows) and LD_LIBRARY_PATH (for Linux/Mac) so that
+# the RNAstructure_GUI library is properly loaded regardless of the CWD
+export LD_LIBRARY_PATH+=":$dir"
+export PATH+=":$dir"
+
+# Set DATAPATH so the native library can find the thermodynamic 
+# parameter files.
+export DATAPATH="$dir/../data_tables"
+
+java -jar "$jar_dir/GUITester.jar" "$@"
+#code=$?; echo "Exit code from test: $code"; exit $code

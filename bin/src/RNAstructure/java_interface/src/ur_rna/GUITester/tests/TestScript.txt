@@ -1,0 +1,20 @@
+StartGUI "-prefs ~test -opt draw-structures=P"
+MENU "RNA", "Fold RNA Single Strand"
+
+CLICK { BUTTON "Sequence File" }
+
+TYPERAW ?SV_PWD, "/../examples/bmorivector.fasta"; ENTER
+
+FOCUS { FIELD  "CT File" }
+
+TYPE "{CTRL}a{DEL}"
+
+TYPERAW ?SV_PWD, "/../tests/banana.ct"
+
+CLICK { BUTTON "START" }
+
+WAIT { BUTTON "OK" }, 5000
+
+CLICK { BUTTON "Cancel" }
+sleep 1000
+CloseGUI

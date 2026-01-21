@@ -1,0 +1,48 @@
+# NAPSS Benchmark folder
+# Author: Richard M. Watson (2017)
+
+This directory (napss/benchmark) contains reference sequences, NMR constraints, and output (ct and pp files) 
+for the NAPSS program.
+
+Specifically:
+For each sequence (e.g. adhr1) there exists:
+1. A sequence file, e.g.: adhr1.seq
+2. An NMR constraints file using triplet constraints, e.g.: adhr1.con
+3. An "accepted" literature reference structure: adhr1.LIT.ct
+4. The NAPSS output and results that were published in the 2015 Biochemistry article (reference below)
+	(a) Structure (CT) output file: adhr1.PUB.ct
+	(b) Output from `scorer` when comparing the NAPSS output CT to the literature structure: adhr1.PUB.score
+	(c) Standard output from the NAPSS program: adhr1.PUB.stdout  (useful for debugging future regressions)
+
+Publication with NAPSS results: 
+	Nuclear Magnetic Resonance-Assisted Prediction of Secondary Structure for RNA: Incorporation of Direction-Dependent Chemical Shift Constraints
+	Jonathan L. Chen, Stanislav Bellaousov, Jason D. Tubbs, Scott D. Kennedy, Michael J. Lopez, David H. Mathews, and Douglas H. Turner
+	Biochemistry 2015, 54, 6769-6782		DOI: 10.1021/acs.biochem.5b00833
+
+In addition there is a file "scores.PUB.txt" that contains a summary of scores for all reference sequences.
+
+The file "run-bench" is a bash script that can be executed to run NAPSS on all reference input (seq and con files) 
+and produce benchmark output in a subdirectory of the napss/benchmark folder 
+(by default this is napss/benchmark/out but it can be changed using the -d option to the script). 
+The script also runs scorer on all output and creates a summary file "scores.BENCH.txt" of all generated output 
+scores and finally compares this against the published values ("scores.PUB.txt").
+
+List of Sequences: (TODO: Add scientific names.)
+adhr1
+bm
+bm_ml
+domain1
+har1
+hdv2
+mdCR45
+mlv
+pbuE
+pemv1
+pk1
+seg7mbl
+spn
+srv1mut
+srv1wt
+tRNATrpBacillus
+tRNATrpBovine
+vpk

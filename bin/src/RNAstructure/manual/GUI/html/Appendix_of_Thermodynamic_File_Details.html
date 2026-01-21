@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Appendix B: An explanation of the thermodynamic parameters used by RNAstructure</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Appendix B: An explanation of the thermodynamic parameters used by RNAstructure</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+
+						<div>
+							<p>There are nineteen files of free energies for RNA-RNA interactions. The derivation of these parameters is in <a href="References.html">Mathews, Disney, Childs, Schroeder, Zuker, and Turner (2004)</a>. The use of these parameters is explained by the <a href="http://rna.urmc.rochester.edu/NNDB/">Nearest Neighbor Database (NNDB)</a>. Here is a brief summary of what the files contain:</p>
+
+							<dl>
+								<dt>coaxial.dat</dt>
+								<dd>The free energy of coaxial stacking for two helixes with no intervening unpaired nucleotides. When applied, the top nucleotides are the continuous sequence and the bottom nucleotides are interrupted by the rest of the multibranch loop or exterior loop.</dd>
+
+								<dt>coaxstack.dat</dt>
+								<dd>The first of the tables for coaxial stacking with an intervening mismatch. This is the stack with the open backbone.</dd>
+
+								<dt>dangle.dat</dt>
+								<dd>Presents the free energy of dangling ends (5' or 3'). These energies are used in multibranch and exterior loops.</dd>
+
+								<dt>hexaloop.dat</dt>
+								<dd>A lookup table for hairpins of six nucleotides.</dd>
+
+								<dt>int11.dat</dt>
+								<dd>The lookup table for single mismatches.</dd>
+
+								<dt>int21.dat</dt>
+								<dd>A lookup table for the free energy of a 2x1 internal loop. The values presented are the total stability of the loop, including the entropic penalty and the terminal stack bonus.</dd>
+
+								<dt>int22.dat</dt>
+								<dd>A lookup table for the free energy of a 2x2 internal loop analogous to the 2x1 internal loop.</dd>
+
+								<dt>loop.dat</dt>
+								<dd>A table which contains the entropic penalty for closing hairpin, internal, and bulge loops. Each has its own penalty based on length.</dd>
+
+								<dt>miscloop.dat</dt>
+								<dd>Contains miscellaneous loop parameters.</dd>
+
+								<dt>stack.dat</dt>
+								<dd>Contains the nearest neighbor parameters for stacking in a helix.</dd>
+
+								<dt>tloop.dat</dt>
+								<dd>The tetraloop bonus table. For hairpin loops with four unpaired nucleotides, this table is consulted. If the sequence (starting with the 5' last paired nucleotide and finishing with its 3' paired nucleotide) appears in the table, the bonus is applied to the hairpin's stability.</dd>
+
+								<dt>triloop.dat</dt>
+								<dd>A lookup table for hairpin loops of three. It is applied analogously to the tetraloop table in Tloop.dat.</dd>
+
+								<dt>tstack.dat</dt>
+								<dd>For terminal mismatch stacking in exterior loops, i.e. loops that contain the ends of the sequence.</dd>
+
+								<dt>tstackcoax.dat</dt>
+								<dd>The second of the tables for coaxial stacking with an intervening mismatch. This is the stack with the continuous backbone.</dd>
+
+								<dt>tstackh.dat</dt>
+								<dd>Gives the free energy of stacking for a terminal mismatch in a hairpin loop.</dd>
+
+								<dt>tstacki.dat</dt>
+								<dd>Gives the free energy of stacking for a terminal mismatch in an internal loop.</dd>
+
+								<dt>tstacki23.dat</dt>
+								<dd>Used for terminal mismatch stacking in internal loops of size 2x3 unpaired nucleotides (and 3x2).</dd>
+
+								<dt>tstacki1n.dat</dt>
+								<dd>Used for terminal mismatch stacking in internal loops of size 1xn nucleotides where n&gt;2.</dd>
+
+								<dt>tstackm.dat</dt>
+								<dd>Used for terminal stacking in a multibranch loop.</dd>
+							</dl>
+
+							<p>The above *.dat files contain standard free energies at 37°C in kcal/mol.</p>
+
+							<hr>
+						</div>
+
+						<div>
+							<p>OligoWalk thermodynamic parameters are specified in two ways. First, special provisions must be taken for the DNA option (see below). Second, for the T<sub>m</sub> calculation in <a name="OligoWalk" id="OligoWalk">OligoWalk</a>, the DH and DS parameters are stored in three files:</p>
+							<ul>
+								<li>helix.dat</li>
+								<li>stack.ds</li>
+								<li>stack.dh</li>
+							</ul>
+
+							<hr>
+						</div>
+
+						<div>
+							<p>For calculations with <a name="Dynalign" id="Dynalign">Dynalign</a>, a separate miscloop.dat table, called <i>dynalignmiscloop.dat</i>, is consulted.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><a name="Enthalpy" id="Enthalpy">Enthalpy</a> change parameters are also now provided to make predictions at temperatures other than 37°C. These files are similar to those used for free energy change, but are terminated with the extension "DH."</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><a name="DNA" id="DNA">DNA-DNA</a> parameters are used if the DNA option is selected in oligo walk or if DNA is folded. The DNA files are analogous to the RNA files, but the file names start with the letters "dna."</p>
+							<hr>
+						</div>
+
+						<p>If the DNA option is selected in OligoWalk or OligoScreen, <a name="DNA-RNA" id="DNA-RNA">DNA-RNA</a> parameters are used. They are derived from Sugimoto, Nakano, Katoh, Matsumura, Nakamuta, Ohmichi, Yoneyama, &amp; Sasaki. These are contained in <i>stackdr.dat</i>.</p>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

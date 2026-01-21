@@ -1,0 +1,23 @@
+Initializing mutant RNA sequences...		DONE
+Running OREGA calculations:
+	ITERATION 1
+Sequence 1:	 Score = 0.8752 	Mean Basepair Probability = 0.5606	Complexity = 0.436 	 Basepair fraction: 0.59 	 Optimized Segment : GGGGGCGUAGCUCAGAGGGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 2:	 Score = 0.9084 	Mean Basepair Probability = 0.5610	Complexity = 0.469 	 Basepair fraction: 0.59 	 Optimized Segment : GGGGGCGUAGCUCAGAuGGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 3:	 Score = 0.9085 	Mean Basepair Probability = 0.5609	Complexity = 0.469 	 Basepair fraction: 0.59 	 Optimized Segment : GGGGGCGUAGCUCAGAuAGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 4:	 Score = 0.9084 	Mean Basepair Probability = 0.5610	Complexity = 0.469 	 Basepair fraction: 0.59 	 Optimized Segment : GGGGGCGUAGCUCAGAuGGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+	ITERATION 2
+Sequence 1:	 Score = 0.9443 	Mean Basepair Probability = 0.5684	Complexity = 0.513 	 Basepair fraction: 0.57 	 Optimized Segment : GGGGUCGUAGCUCAGAuGGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 2:	 Score = 0.8248 	Mean Basepair Probability = 0.6057	Complexity = 0.430 	 Basepair fraction: 0.63 	 Optimized Segment : GGGGGCGUAGCUCCGAuGGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 3:	 Score = 0.9480 	Mean Basepair Probability = 0.5619	Complexity = 0.510 	 Basepair fraction: 0.64 	 Optimized Segment : GGGGGCGUAGCUCAGAuGGUAGAGUGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 4:	 Score = 0.9102 	Mean Basepair Probability = 0.5792	Complexity = 0.489 	 Basepair fraction: 0.62 	 Optimized Segment : GGGGGCGUAGCUCAGAuAGUACAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+	ITERATION 3
+Sequence 1:	 Score = 0.9102 	Mean Basepair Probability = 0.5792	Complexity = 0.489 	 Basepair fraction: 0.62 	 Optimized Segment : GGGGGCGUAGCUCAGAuAGUACAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 2:	 Score = 0.9480 	Mean Basepair Probability = 0.5619	Complexity = 0.510 	 Basepair fraction: 0.64 	 Optimized Segment : GGGGGCGUAGCUCAGAuGGUAGAGUGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 3:	 Score = 0.9383 	Mean Basepair Probability = 0.5591	Complexity = 0.497 	 Basepair fraction: 0.59 	 Optimized Segment : GGGGUCGUAGCUCAGAuGGUAGAGCGCUCGCUUgGGgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Sequence 4:	 Score = 0.9612 	Mean Basepair Probability = 0.5905	Complexity = 0.552 	 Basepair fraction: 0.61 	 Optimized Segment : GGGGGCGAAGCUCAGAuAGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+
+Output:   
+Final Sequence 1:	 Score = 0.9612 	Mean Basepair Probabilty = 0.5905	Complexity = 0.552 	 Basepair fraction: 0.61 	 Optimized Segment : GGGGGCGAAGCUCAGAuAGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Final Sequence 2:	 Score = 0.9480 	Mean Basepair Probabilty = 0.5619	Complexity = 0.510 	 Basepair fraction: 0.64 	 Optimized Segment : GGGGGCGUAGCUCAGAuGGUAGAGUGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Final Sequence 3:	 Score = 0.9443 	Mean Basepair Probabilty = 0.5684	Complexity = 0.513 	 Basepair fraction: 0.57 	 Optimized Segment : GGGGUCGUAGCUCAGAuGGUAGAGCGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC
+Final Sequence 4:	 Score = 0.9480 	Mean Basepair Probabilty = 0.5619	Complexity = 0.510 	 Basepair fraction: 0.64 	 Optimized Segment : GGGGGCGUAGCUCAGAuGGUAGAGUGCUCGCUUgGCgUGUGAGAGGUACCGGGAUCGaUACCCGGCGCCUCCACC

@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head>
+		
+		<title>RNAstructure Command Line Help: dynalign</title><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+
+	<body>
+		<div class="bodydiv">
+			<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+				<tbody><tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>dynalign</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>dynalign
+is used to find the lowest free energy common secondary structures for
+two homologous sequences. It has two distinct executables, a serial
+program called dynalign and a parallelized program called dynalign-smp
+for use in shared memory environments.</p>
+						<p>dynalign_ii
+supercedes dynalign and should be used for most applications.
+dynalign_ii allows inserts of structural domains that appear in only
+one of the two homologs. dynalign_ii also allows unpaired nucleotides
+to align to paired nucleotides. dynalign_ii-smp is a parallelized
+version for shared memory environments.</p>
+						<p> Note that on
+Macintosh OS X, and some versions of Linux, there is a small default
+stack limit. To run Dynalign/Dynalign II, the stack limit needs to be
+increased.<br>
+							On the default shell, bash, use <i>ulimit -s 4096</i>.<br>
+							If you are using tcsh, use <i>limit stack 4096</i>.<br>
+							The limits can be increased as necessary if the given values above are not sufficient.
+						</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3 class="noMarginOrPad">USAGE 1: dynalign_ii &lt;configuration file&gt;</h3>
+                        <h3 class="noMarginOrPad">USAGE 2: dynalign_ii-smp &lt;configuration file&gt;</h3>
+                      <p>&nbsp;</p>
+						<h3 class="noMarginOrPad">USAGE 1: dynalign &lt;configuration file&gt;</h3>
+						<h3 class="noMarginOrPad">USAGE 2: dynalign-smp &lt;configuration file&gt;</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tbody><tr>
+								<td class="cell">&lt;configuration file&gt;</td>
+								<td>The name of a file containing required configuration data.</td>
+							</tr>
+						</tbody></table>
+
+						<h3 class="leftHeader">Options which do not require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader">dynalign_ii configuration file format:</h3>
+					  <p>
+							The following is a description of valid options allowed in the configuration file.
+							<br>
+The example is based on dynalign_ii_sample.conf, a standard example
+found in the examples directory of the RNAstructure repository. </p>
+					  <pre>
+################################################################
+# IMPORTANT CONFIG FILE FORMAT NOTES:
+#
+# Config file options described below are <b>not</b> case sensitive.<br>#<br># Option lines may be specified by the option name followed by an equals sign and the option's desired value.<br># When specifying an option, there may be nothing else on the line.<br># If an option is specified more than once, the last specification is used.<br># &lt;option&gt; = &lt;value&gt;<br>#<br># Specifying comment lines:<br># Comment lines must begin with "#" followed by a space.<br># There may not be more than one "#" in a comment line.<br># However, a comment line may be an unbroken string of "#", as in a divider between sets of options.<br>#<br># Blank lines are skipped.<br># Any leading or trailing whitespace is ignored.<br># Variables may not contain internal whitespace.<br>#<br># Syntax errors produce a warning to standard output and are then ignored.<br>################################################################<br><br>################################################################<br># Required input<br># If one of these values is not defined, the program will exit.<br>################################################################<br><br>#These are required input:<br>inseq1 = RD0260.seq<br>inseq2 = RD0500.seq<br>outct = 1.ct<br>outct2 = 2.ct<br>aout = ali.ali<br><br><br>################################################################<br># Options with default values if not explicitly specified<br># (Default values are shown)<br>#################################################################<br><br>#fgap is the per nucleotide insert penalty for alignments:<br>fgap = .4<br>#slope is the per nucleotide free energy penalty for inserted domains<br>slope = 0.1<br>#intercept is the initiation free energy penalty for inserted domains<br>intercept = 0.5<br>#maxtrace is the masximum number of predicted structures:<br>maxtrace = 750<br>#percent is the maximum % change in free energy from the lowest free energy structure<br>percent = 20<br>#bpwin is the base pair window<br>bpwin = 2<br>#awin is the alignment window<br>awin = 1<br><br>#singlefold_subopt_percent is the maximum % difference in folding free energy change<br>#from single sequence folding for pairs that will be allowed in a subsequent Dynalign calculation.<br>#This is used to save calculation time by pre-screening allowed pairs. <br>singlefold_subopt_percent = 30<br><br>#imaxseparation is the traditional M parameter:<br>#-99 indicates that the alignment constraint (preferred method is used)<br>imaxseparation = -99<br><br>#max_elongation is the maximum length of a consecutive set of base pairs aligned with an internal loop with the same length<br>max_elongation = 5<br><br>#num_processor is required only for smp (parallel) calculations<br>num_processors = 1<br><br>#optimal only is optional, only the lowest free energy structure is calculated if optimal_only = 1<br>optimal_only = 0<br><br>#local alignment is performed if local = 1, the default is 0 (global alignment)<br>local = 0<br><br>#The following are needed for progressive calculations<br>#dsv_templated is set to 1 to read the template from previous calculation<br>dsv_templated = 0<br># dsvtemplatename = RD0260.RD0500.dsv<br><br>#The following are used to predict a structure for sequence 2, where the structure for sequence 1 is known.<br>#If ct_templated is set to 1, inseq1 must refer to a ct file, NOT a sequence file.<br>ct_templated = 0<br><br>#The following parameters are used when SHAPE data is utilized (see below).<br>#There is a set of parameters for each sequence.<br>#shapeslope1 = 1.8<br>#shapeintercept1 = -0.6<br>#shapeslope2 = 1.8<br>#shapeintercept2 = -0.6<br><br>#The following can be used to run Dynalign using DNA thermodynamics instead of RNA.<br>#Use DNA = 1 to do DNA structure prediction.<br>DNA = 0<br><br>#The following is used to change the temperature from the default of 310.15 K (37 degrees C).<br>temperature = 310.15 <br><br><br><br>################################################################<br># Options that are not required and have no default values<br>################################################################<br><br>#savefiles are optional and are needed for dot plots<br># savefile = RD0260.RD0500.dsv<br><br>#Folding constraints can be input using constraint files:<br>#constraint_1_file = constraints_for_sequence1<br>#constraint_2_file = constraints_for_sequence2<br><br>#SHAPE data can be input using .shape files for either, neither, or both<br>#	SHAPE is utilized using the pseudo free energy method of Deigan et al.<br>#	PNAS 106:97<br>#shape_1_file = shape_for_sequence1<br>#shape_2_file = shape_for_sequence2<br><br>#Use constraint_align_file to enforce specific nucleotide alignments<br>#constraint_align_file = aln.txt<br><br>#Use maximumpairingdistance to limit the maximum distance between <br>#	paired nucleotides (where the final # indicates the sequence #).<br>#	Note that this only works for sequence 1 if the calculation is not <br>#	cttemplated or dsvtemplated.<br>#maximumpairingdistance1 = 600<br>#maximumpairingdistance2 = 600<br><br></pre>
+
+                      <h3><span class="leftHeader">dynalign configuration file format:</span></h3>
+                      <p>The
+following is a description of valid options allowed in the
+configuration file. The example is based on dynalign_sample.conf, a
+standard example found in the examples directory of the RNAstructure
+repository. </p>
+                      <pre>
+
+
+################################################################
+# IMPORTANT CONFIG FILE FORMAT NOTES:
+#
+# Config file options described below are <b>not</b> case sensitive.<br>#<br># Option lines may be specified by the option name followed by an equals sign and the option's desired value.<br># When specifying an option, there may be nothing else on the line.<br># If an option is specified more than once, the last specification is used.<br># &lt;option&gt; = &lt;value&gt;<br>#<br># Specifying comment lines:<br># Comment lines must begin with "#" followed by a space.<br># There may not be more than one "#" in a comment line.<br># However, a comment line may be an unbroken string of "#", as in a divider between sets of options.<br>#<br># Blank lines are skipped.<br># Any leading or trailing whitespace is ignored.<br># Variables may not contain internal whitespace.<br>#<br># Syntax errors produce a warning to standard output and are then ignored.<br>################################################################<br><br>################################################################<br># Required input<br># If one of these values is not defined, the program will exit.<br>################################################################<br><br>inseq1 = &lt;seq file 1&gt;<br>inseq2 = &lt;seq file 2&gt;<br>outct = &lt;output ct file for seq 1&gt;<br>outct2 = &lt;output ct file for seq 2&gt;<br>aout = &lt;output alignment file&gt;<br><br>################################################################<br># Options with default values if not explicitly specified<br># (Default values are shown)<br>#################################################################<br><br># fgap is the per nucleotide insert penalty for alignments:<br>fgap = .4<br><br># maxtrace is the masximum number of predicted structures:<br>maxtrace = 750<br><br># percent is the maximum % change in free energy from the lowest free energy structure:<br>percent = 20<br><br># bpwin is the base pair window:<br>bpwin = 2<br><br># awin is the alignment window:<br>awin = 1<br><br># insert indicates whether single basepair inserts will be allowed:<br>insert = 1<br><br># singlefold_subopt_percent is the maximum % difference in folding free energy change<br># from single sequence folding for pairs that will be allowed in a subsequent Dynalign calculation.<br># This is used to save calculation time by pre-screening allowed pairs. <br>singlefold_subopt_percent = 30<br><br># imaxseparation is the traditional M parameter:<br># -99 indicates that the alignment constraint (preferred method is used)<br>imaxseparation = -99<br><br># num_processor is required only for smp (parallel) calculations<br>num_processors = 1<br><br># optimal only is optional, only the lowest free energy structure is calculated if optimal_only = 1<br>optimal_only = 0<br><br># local alignment is performed if local = 1, the default is 0 (global alignment)<br>local = 0<br><br># the following are needed for progressive calculations<br># dsv_templated is set to 1 to read the template from previous calculation<br>dsv_templated = 0<br>dsvtemplatename = &lt;template file name&gt;<br><br># The following are used to predict a structure for sequence 2, where the structure for sequence 1 is known.<br># If ct_templated is set to 1, inseq1 must refer to a ct file, NOT a sequence file.<br>ct_templated = 0<br><br># The following parameters are used when SHAPE data is utilized (see below).<br># There is a set of parameters for each sequence.<br>shapeslope1 = 1.8<br>shapeintercept1 = -0.6<br>shapeslope2 = 1.8<br>shapeintercept2 = -0.6<br><br># The following can be used to run Dynalign using DNA thermodynamics instead of RNA.<br># Use DNA = 1 to do DNA structure prediction.<br>DNA = 0<br><br># The following is used to change the temperature from the default of 310.15 K (37 degrees C).<br>temperature = 310.15  <br><br>################################################################<br># Options that are not required and have no default values<br>################################################################<br><br># Savefiles are optional and are needed for dot plots.<br>savefile = &lt;save file name&gt;<br><br># Folding constraints can be input using constraint files:<br>constraint_1_file = &lt;constraint file for seq 1&gt;<br>constraint_2_file = &lt;constraint file for seq 2&gt;<br><br># SHAPE data can be input using .shape files for either, neither, or both<br># SHAPE is utilized using the pseudo free energy method of Deigan et al.<br># PNAS 106:97<br>shape_1_file = &lt;SHAPE file for seq 1&gt;<br>shape_2_file = &lt;SHAPE file for seq 2&gt;<br><br># Use constraint_align_file to enforce specific nucleotide alignments.<br>constraint_align_file = &lt;alignment constraints file&gt;<br><br># Use maximumpairingdistance to limit the maximum distance between <br># paired nucleotides (where the final # indicates the sequence #).<br># Note that this only works for sequence 1 if the calculation is not <br># cttemplated or dsvtemplated.<br>maximumpairingdistance1 = &lt;value for seq 1&gt;<br>maximumpairingdistance2 = &lt;value for seq 2&gt;<br>						</pre>
+                        
+                         <h3><span class="leftHeader">Comparison of configuration file format:</span></h3>
+                      <p>dynalign_ii
+added parameters slope, intercept, and max_elongation, which apply only
+to dynalign_ii calculations. dynalign has a parameter, insert, which no
+longer applies to dynalign_ii. </p>
+
+					  <h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								"RNAstructure: software for RNA secondary structure prediction and analysis."
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">Fu, Y., Sharma, G., and Mathews, D. H.<br>
+						    "Dynalign II: Common Secondary Structure Prediction for RNA Homologs with Domain Insertions."<br>
+						    In preparation.
+							</li>
+							<li class="gapListItem">Harmanci, A.O., Sharma, G. and Mathews, D.H. <br>
+								"Efficient Pairwise RNA Structure Prediction Using Probabilistic Alignment Constraints in Dynalign."
+								<br>
+								<i>BMC Bioinformatics</i>, 8:130. (2007).
+							</li>
+							<li class="gapListItem">
+								Uzilov, A.V., Keegan, J.M. and Mathews, D.H.
+								<br>
+								"Detection of non-coding RNAs on the basis of predicted secondary structure formation free energy change."
+								<br>
+								<i>BMC Bioinformatics</i>, 7:173. (2006).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H.
+                                <br>
+								"Using the RNAstructure Software Package to Predict Conserved RNA Structures."
+								<br>
+								In Baxevanis, A. D., Davison, D. B., Page, R. D. M., Petsko, G. A., Stein, L. D. and Stormo, G. D. (eds.).
+								<br>
+								<i>Current Protocols in Bioinformatics</i>.
+								<br>
+								John Wiley and Sons, Inc., New York, pp. 12.14.1-12.14.22. (2014).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H.
+								<br>
+								"Predicting a set of minimal free energy RNA secondary structures common to two sequences."
+								<br>
+								<i>Bioinformatics</i>, 21:2246-2253. (2005).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H. and Turner, D.H.
+								<br>
+								"Dynalign: An algorithm for finding the secondary structure common to two RNA sequences."
+								<br>
+								<i>J. Mol. Biol.</i>, 317:191-203. (2002).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</tbody></table>
+		</div>
+	</body></html>

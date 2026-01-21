@@ -1,0 +1,36 @@
+jchen@malatya03:~/RNAstructure3/exe$ /usr/bin/time -v ./NAPSS pk1.seq pk1_triplets.con pk1.NAPSS.ct -pp pk1.NAPSS.pp -d 7
+####################################################
+                  NAPSS Folding Started
+####################################################
+
+Reading files...                                DONE
+Running dynamic programming algorithm...        DONE
+Generating dotplot...                           DONE
+Looking for Matches:
+
+Looking for matches: 0 matches found    DONE
+No possible constraint matches - NAPSS will terminate.
+NO MATCHES2 FOUND
+        Command being timed: "./NAPSS pk1.seq pk1_triplets.con pk1.NAPSS.ct -pp pk1.NAPSS.pp -d 7"
+        User time (seconds): 0.01
+        System time (seconds): 0.00
+        Percent of CPU this job got: 94%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.01
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 6120
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 1610
+        Voluntary context switches: 1
+        Involuntary context switches: 40
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 0
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0

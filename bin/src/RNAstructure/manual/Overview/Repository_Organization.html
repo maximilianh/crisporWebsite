@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head>
+		
+		<title>RNAstructure Installation and Overview: Repository Organization</title><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+
+	<body>
+		<div class="bodydiv">
+			<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+				<tbody><tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Repository Organization</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<h3 style="margin-bottom: -2px;">Code Directories</h3>
+						<table border="5">
+							<tbody><tr>
+								<th>Directory</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>RNA_class</td>
+								<td>A group of related object wrappers that encapsulate most back end code for easy use</td>
+							</tr>
+							<tr>
+								<td>src</td>
+								<td>Location of most back end code</td>
+							</tr>
+						</tbody></table>
+
+						<br><h3 style="margin-bottom: -2px;">GUI Directories</h3>
+						<table border="5">
+							<tbody><tr>
+								<th>Directory</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>java_interface</td>
+								<td>Cross-platform Java interface capable of running on Linux, Mac, or Windows operating systems</td>
+							</tr>
+							
+						</tbody></table>
+
+						<br><h3 style="margin-bottom: -2px;">Text Interface Directories</h3>
+						<table border="5">
+							<tbody><tr>
+								<th>Directory</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>AllSub</td>
+								<td>Generate a group of suboptimal structures</td>
+							</tr>
+							<tr>
+								<td>bifold</td>
+								<td>Bimolecular folding</td>
+							</tr>
+							<tr>
+								<td>bipartition</td>
+								<td>Bimolecular partition function for predicting pair probabilities</td>
+							</tr>
+							<tr>
+								<td>CircleCompare</td>
+								<td>Compare
+two structures for the same sequence, with the nucleic acid backbone
+arranged around a circle to facilitate easy comparisons</td>
+							</tr>
+							<tr>
+								<td>ct2dot</td>
+								<td>Convert CT structure notation to dot bracket structure notation</td>
+							</tr>
+							<tr><td>design</td><td>Find an RNA (or DNA) sequence that is expected to fold into a given structure.</td></tr><tr>
+								<td>dot2ct</td>
+								<td>Convert dot bracket structure notation to CT structure notation</td>
+							</tr>
+							<tr>
+								<td>DotPlots</td>
+								<td>Creates three separate interfaces that can make different dot plot types</td>
+							</tr><tr>
+								<td>draw</td>
+								<td>Generate Postscript images of secondary structures</td>
+							</tr>
+							<tr>
+								<td>DuplexFold</td>
+								<td>Bimolecular folding without intramolecular pairs</td>
+							</tr>
+							<tr>
+								<td>dynalign</td>
+								<td>Predict the lowest free energy structure common to two sequences</td>
+							</tr>
+							<tr>
+								<td>efn2</td>
+								<td>Predict folding free energy change of a given structure</td>
+							</tr>
+							<tr>
+								<td>EnsembleEnergy</td>
+								<td>Predict the energy of a structure ensemble.</td>
+							</tr>
+							<tr>
+								<td>fold</td>
+								<td>Single sequence secondary structure prediction by free energy minimization</td>
+							</tr>
+							<tr>
+								<td>MaxExpect</td>
+								<td>Secondary structure prediction by maximizing expected accuracy</td>
+							</tr>
+							<tr>
+								<td>multilign</td>
+								<td>Predict the lowest free energy structure common to more than two sequences</td>
+							</tr>
+							<tr>
+								<td>napss</td>
+								<td>Use NMR data to improve the prediction of an RNA secondary structure</td>
+							</tr>
+							<tr>
+								<td>oligoscreen</td>
+								<td>Screen a set of oligonuceotides for hybridization stability and self-structure</td>
+							</tr>
+							<tr>
+								<td>oligowalk</td>
+								<td>Calculate thermodynamic features of sense-antisense hybridization and predict free energy changes of oligo binding to target RNA</td>
+							</tr>
+							<tr>
+								<td>PARTS</td>
+								<td>Predict pair probabilities for folding of two sequences to a common structure</td>
+							</tr>
+							<tr>
+								<td>pfunction</td>
+								<td>Partition function calculation of base pairing probabilities</td>
+							</tr>
+							<tr>
+								<td>ProbablePair</td>
+								<td>Generate structures composed of only highly probable pairs as determined by a threshold</td>
+							</tr>
+							<tr>
+								<td>ProbKnot</td>
+								<td>Predict pseudoknots for a single sequence</td>
+							</tr>
+							<tr>
+								<td>refold</td>
+								<td>Refold a previously folded structure</td>
+							</tr>
+							<tr>
+								<td>RemovePseudoknots</td>
+								<td>Remove pseudoknots from a structure</td>
+							</tr>
+							<tr>
+								<td>Windows_text_interfaces</td>
+								<td>Visual Studio Project files for editing and building the Text interfaces on Windows</td>
+							</tr>
+							<tr>
+								<td>scorer</td>
+								<td>Calculate sensitivity and positive predictive value for two structures being compared</td>
+							</tr>
+							<tr>
+								<td>stochastic</td>
+								<td>Stochastic sampling from the Boltzman ensemble</td>
+							</tr>
+							<tr>
+								<td>TurboFold</td>
+								<td>Predict the lowest free energy structure common to more than two sequences, using base pairing probabilities.</td>
+							</tr>
+						</tbody></table>
+
+						<br><h3 style="margin-bottom: -2px;">Resource Directories</h3>
+						<table border="5">
+							<tbody><tr>
+								<th>Directory</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>data_tables</td>
+								<td>Location of thermodynamic parameters</td>
+							</tr>
+							<tr>
+								<td>exe</td>
+								<td>Holds executables for text interfaces, GUIs, and any libraries</td>
+							</tr>
+							<tr>
+								<td>tests</td>
+								<td>Project tests for each text interface</td>
+							</tr>
+						</tbody></table>
+
+						<br><h3 style="margin-bottom: -2px;">Help Directories</h3>
+						<table border="5">
+							<tbody><tr>
+								<th>Directory</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>examples</td>
+								<td>Sample input files</td>
+							</tr>
+							<tr>
+								<td>manual</td>
+								<td>Help and some usage documentation</td>
+							</tr>
+						</tbody></table>
+
+						<br><h3 style="margin-bottom: -2px;">Essential Top-Level Files</h3>
+						<table border="5">
+							<tbody><tr>
+								<th>File Name</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>compiler.h</td>
+								<td>Compiler and compilation flags, macros, and definitions</td>
+							</tr>
+							<tr>
+								<td>gpl.txt</td>
+								<td>The GPL license under which the RNAstructure software package falls</td>
+							</tr>
+							<tr>
+								<td>library_defines.h</td>
+								<td>Names for the libraries the repository builds, defined by operating system</td>
+							</tr>
+							<tr>
+								<td>Makefile</td>
+								<td>The main Makefile which builds most of the repository modules</td>
+							</tr>
+							<tr>
+								<td>Version.txt</td>
+								<td>Contains the most recent version number and release date for the repository</td>
+							</tr>
+						</tbody></table>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</tbody></table>
+		</div>
+	</body></html>

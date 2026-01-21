@@ -1,0 +1,65 @@
+#!/bin/bash
+
+dir=$(dirname "${BASH_SOURCE[0]}") # Directory containing this script.
+jar_dir="$dir" # The JAR file is located in the same folder as this script.
+
+if [[ $OSTYPE == cygwin ]] && type -p cygpath &> /dev/null ; then
+    # The java program on Windows expects the directory in Windows format
+    # instead of cygwin/linux format.
+	jar_dir=$(cygpath -w "$jar_dir")
+fi
+
+# Modify PATH (for Windows) and LD_LIBRARY_PATH (for Linux/Mac) so that
+# the RNAstructure_GUI library is properly loaded regardless of the CWD
+export LD_LIBRARY_PATH+=":$dir"
+export PATH+=":$dir"
+
+# Set DATAPATH so the native library can find the thermodynamic 
+# parameter files.
+export DATAPATH="$dir/../data_tables"
+
+################################################################################
+# Attempt to verify that Java is found and is the right version.
+################################################################################
+# Verify that java is the right version.
+# Usage: testJavaVersion <PATH_TO_JAVA> && ...
+function testJavaVersion() {
+  local path=$(type -p "$1") && [[ -x "$path" ]] || return 1 # verify that the command was found and we can run it
+  local ver=$("$1" -XshowSettings:properties -version 2>&1 | grep 'java.runtime.version')
+  # examples of ver: 
+  #  "    java.runtime.version = 1.8.0_161-b12"
+  #  "    java.runtime.version = 10.0.2+13"
+  ver="${ver##*=}"   # remove the portion before "="
+  ver="${ver//' '/}" # remove spaces
+  FOUND_VERSION="$ver" # set so we can show it to the user if outdated.
+  case "$ver" in
+    1.[89]*|9[-_.]*)  ;; # OK -- Java 8 or 9
+    1[0-9][-_.]*)     ;; # OK -- Java 10-19
+    *) return 2       ;; # FAILED -- return code 2 indicates bad version (as opposed to missing Java)
+  esac
+  JAVA="$1"; return 0 # if we get here, java version was successful.
+}
+
+FOUND_VERSION=
+JAVA=
+
+# If JAVA_HOME is set, try to use it first. 
+[[ $JAVA_HOME ]] && testJavaVersion "$JAVA_HOME/bin/java" || 
+# If that fails (because either JAVA_HOME is NOT set or it points to an old version)
+# then try `java`.
+  testJavaVersion java
+
+# Test the return code. 0=success, 1=missing Java, 2=bad version.
+case $? in
+  1)  printf "Java is not installed or is not available in the PATH. Please install Java (version 8 or later).\n"
+      exit 1 ;;
+  2)  printf "Your version of Java is out of date. Please install Java 8 or later.\n" \
+             "Current version: $FOUND_VERSION\n" \
+             "Note that it is possible to have multiple versions installed.\n" \
+             "You can set the JAVA_HOME environment variable to point to the " \
+             "Java 8 home directory (the parent directory of the 'bin' folder).\n"
+      exit 1 ;;
+esac
+
+# Java was found. Run the program.
+"$JAVA" -jar "$jar_dir/StructureEditor.jar" "$@"

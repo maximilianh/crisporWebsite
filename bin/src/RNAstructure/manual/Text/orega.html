@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: efn2</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                orega and orega-cuda</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p><span style="font-weight: bold;">orega </span>evolves an input sequence to increase end-to-end distance by avoiding base pairing using a genetic algorithm.&nbsp;Only nucleotides in a specified segment are mutated.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: orega &lt;input&nbsp;file&gt;&nbsp;&lt;start&gt; &lt;length&gt; &lt;output
+                file&gt; [options] </h3>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;input file&gt;</td>
+                    <td>The name of a <a href="File_Formats.html#Sequence">sequence
+                        file</a> containing input data. <br>
+Note that lowercase nucleotides are forced single-stranded
+                    in structure prediction. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;start&gt;</td>
+                    <td>Integer that indicates the first nucleotide that can be mutated.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;length&gt;</td>
+                    <td>Integer that indicates the length of the sequence segment that canb be mutated.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;output file&gt;</td>
+                    <td>The name of a FASTA file to which the output will be written.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">--nocomplexity<br>
+                    </td>
+                    <td>Use the objective function that does not include sequence complexity. The default uses an objective function that includes sequence complexity. (This is maintained for backwards compatability. In practice, -f should be used to select the objective function.)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-d, --dna<br>
+                    </td>
+                    <td>Use DNA paarmeters for folding. The default is RNA parameters.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--filterAUG</td>
+                    <td><p>Sequences that have a premature AUG  start codon will be eliminated from the population.  The default is to not test for AUG start  codons.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--filterCUG  </td>
+                    <td><p>Sequences that have a premature CUG  start codon will be eliminated from the population.  The default is to not test for CUG start  codons.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-h&nbsp;--help</td>
+                    <td>Display the usage details message.<br>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--limitG </td>
+                    <td><p>Nucleotide G will not be an option  during nucleotide mutation.  The default  is to allow mutation to G.</p> 
+                      In practice, --limitG accelerates the search.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--MutationSwitch </td>
+                    <td><p>Mutation site will be based on the  mean base pair probability at specific nucleotide instead of random selection.  This bias change towards nucleotides of higher base pairing probability.  The default is to choose any nucleotide at  random for mutation.</p> 
+                      In practice, --MutationSwitch accelerates the search for sequences.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-t</td>
+                    <td><p>The threshold to determine if a  nucleotide is considered base paired or not. This function will be only used  when objection function -f = 3. Default is 0.4</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v&nbsp;--version<br>
+                    </td>
+                    <td>Display version and copyright information for this
+                      interface. </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-a, -A, --alphabet</td>
+                    <td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters).</td>
+                  </tr>
+                  <tr>
+                  </tr>
+                  <tr>
+                    <td height="22">--ComplexityConstant</td>
+                    <td>The A value in the objective function (see below) that weights the linguistic complexity. Default is 1.0.</td>
+                  </tr>
+                  <tr>
+                    <td height="22">-f, --func</td>
+                    <td><p>The objective function, an integer  that chooses which objective function to use. 1 = SIMPLE (no sequence  complexity used), 2 = COMPLEX (the sequence complexity is used). 3 =  ALL (additional sequence pair is used). The  default is 2.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--filteroligoA  </td>
+                    <td><p>This options specified the maximum  number of As in a row.  If this is  exceeded in a sequence, that sequence will be eliminated from the  population.  The default value is 0,  which indicates no filtering will occur.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-i, --iter<br>
+                    </td>
+                    <td>The number of iterations (optimization steps) to run. The default is 1000.<br>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-mr, --mutate<br>
+                    </td>
+                    <td>The mutation rate, the probability that a nucleotide in the target segment should be mutated. The default is 0.03.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-n, --population</td>
+                    <td>The population size, the number of concurrent sequences used in the genetic algorithm. The default is 10.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-rf, --recomb</td>
+                    <td>The recombination frequency, the number of iterations that are run before a recombination/crossover step occurs. The default is 6.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--restart</td>
+                    <td>Specify the name of a previous state file (created with the --save option) that should be loaded to restart an optimization from where it left off before, or continue optimizing a previous result.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-rr, --crossover</td>
+                    <td>The recombination rate, the probability that a nucleotide will be selected as a recombination marker. The default is 0.03.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-rs, --seed</td>
+                    <td>Specify a random seed. This is required to get exactly reproducible results. The default is to use a seed based on the current system time.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-sav, --save</td>
+                    <td>Specify the name of a file where intermediate results can be saved. This file can be used to restart the calculation.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes about objective function:</h3>
+              <p>orega indirectly increases the end-to-end distance of a sequence by evolving a sequence segment to avoid base pairs. The objective function by default also includes the sequence complexity, and this is helpful to keep the sequence from evolving into repeats. </p>
+              <p>The default objective function (-f 2) is:</p>
+              <p><em>Fitness  score = (1 – avgP</em><em>) + A×c  </em></p>
+              <p>where <em>avgP</em> is the average base pairing probability in the segment, <em>A</em> is a weight for sequence complexity (set by --ComplexityConstant, default 1.0), and <em>c</em> is the linguistic sequence complexity.</p>
+              <p>The full objective function (-f 3) is:</p>
+              <p><em>Fitness  score = (1 – avgP) + A×c </em>+<em> (N - sum of base pairs)</em></p>
+              <p>where <strong>N</strong> is the number of nucleotides in the fragment and <em>sum of base pairs</em> is the number of base pairs for nucleotides in the fragment with a probability above the threshold (set by -t with default of 0.4).</p>
+              <p>The lean objective function  (-f 1) is:</p>
+              <p><em>Fitness  score = (1 – avgP</em><em>)</em></p>
+<h3 class="leftHeader">Notes about alphabet size:</h3>
+              <p>The complexity calculation performed by orega assumes a 4-nucleotide alphabet (although RNAstructure can use larger alphabets to include modified nucleotides). It is important to provide a sequence that uses only the standard A, C, G, U/T nucleotide alphabet. Lowercase nucleotides are forced unpaired (as in the rest of RNAstructure), but these should only be included outside the region of sequence being evolved. Lowercase nucleotides within the evolved region will never be allowed to pair as the sequece evolves.</p>
+              <h3 class="leftHeader">Notes for cuda:</h3>
+              <p>orega-cuda is the cuda version (for execution on cuda-enabled graphics cards). The same options are used, but the cuda-enabled partition function is used in the background. This can dramatically improve runtimes.</p>
+              <h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Lai, W. C., Kayedkhordeh, M., Cornell, E. V., Farah, E., Bellaousov, S., Rietmeijer, R., Mathews, D. H., &amp; Ermolenko, D. N.<br>
+  mRNAs and lncRNAs intrinsically form secondary structures with short end-to-end distances. <br>
+  <em>Nature Communications</em>, 9: 4328. (2018). </li>
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+"RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). <br>
+                </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+Mathews
+                  Lab RNAstructure Page</a> for updates and latest information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

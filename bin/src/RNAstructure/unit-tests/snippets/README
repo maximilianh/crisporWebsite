@@ -1,0 +1,10 @@
+This directory contains small code snippets used to test new features or changes to 
+RNAstructure, or to clarify or verify existing c/c++ library or compiler behavior.
+
+These code fragments are stored here because they could potentially be useful in future
+testing, debugging, or feature addition -- or as reminders/documentation of previous tests
+or attempts to implement various features or changes.
+
+This directory is not required for building or testing RNAstucture, and is not likely to be useful
+for anyone other than core developers, so it should not be distributed with public releases.
+Moreover any of these files can be deleted once deemed no longer relevant or helpful.

@@ -1,0 +1,11 @@
+StartGUI '-prefs ~test -opt draw-structures=P -sfc'
+Menu 'File', 'Draw'
+TypeText ?SV_PWD, '/../examples/bmorivector.ct'; TypeEnter
+Prohibit {Dialog 'RNAstructure error'}
+WAIT { Type='DrawingWindow' }, 5000
+Menu 'Draw', 'Write Postscript File'
+TypeText 'test.ps'; TypeENTER
+PROHIBIT { DIALOG 'RNAstructure error' }
+WAIT { Button 'OK' }, 5000
+CLICK { Button 'OK' }
+CloseGUI

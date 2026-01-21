@@ -1,0 +1,245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                <span id="version-info">Version 6.5</span></h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>RNAstructure is a product of the <a href="https://rna.urmc.rochester.edu/">Mathews
+                  Lab</a>, <a href="https://www.urmc.rochester.edu/">University
+                  of Rochester Medical Center</a>, <a href="https://www.urmc.rochester.edu/biochemistry-biophysics.aspx">Department of
+                  Biochemistry and Biophysics</a>, with the help of many <a href="../Overview/Contributors.html">contributors</a>.</p>
+              <p>Continued development of RNAstructure is made possible by the
+                support of NIH grant R35GM132185.</p>
+              <h3 class="centeredHeader">General Help</h3>
+              <ul>
+                <li><a href="Building.html">Instructions for building the text
+                    interfaces</a></li>
+                <li><a href="Thermodynamics.html">General instructions for
+                    specifying thermodynamic parameters</a></li>
+                <li><a href="File_Formats.html">I/O file formats</a></li>
+                <li><a href="pathways.html">Common pathways for analysis, i.e.
+                    how the programs work together</a></li>
+              </ul>
+              <h3 class="centeredHeader">Specific Interface Help</h3>
+              <dl class="noBottomMargin">
+                <dt><a href="accessfold.html">AccessFold</a></dt>
+                <dd>Bimolecular
+                  folding of nucleic acids without intramolecular pairs allowed.
+                  This
+                  program uses a heuristic to determine accessibility to to
+                  duplex
+                  formation.</dd>
+                <dt><a href="AlignmentFold.html">AlignmentFold</a></dt>
+                <dd>Predict the conserved consensus structure for a set of aligned homologous sequences.</dd>
+                <dt><a href="AlignmentFold.html">AlignmentPartition</a></dt>
+                <dd>Predict base pairing probabilities for consensus structures using a
+              partition function.</dd>
+                <dt>&nbsp;</dt>
+                <dt>&nbsp;</dt>
+                <dt><a href="AllSub.html">AllSub</a></dt>
+                <dd>Generate all suboptimal nucleic acid structures within a
+                  small free energy increment of the lowest free energy
+                  structure.</dd>
+                <dt><a href="bifold.html">bifold </a>and bifold-smp</dt>
+                <dd>Bimolecular folding of nucleic acids with intramolecular
+                  pairs allowed.</dd>
+                <dt><a href="bipartition.html">bipartition</a> and
+                  bipartition-smp</dt>
+                <dd>Bimolecular partition function calculation of nucleic acids
+                  without intramolecular pairs allowed.</dd>
+                <dt><a href="CircleCompare.html">CircleCompare</a></dt>
+                <dd>Compare
+                  two structures for the same sequence, with the nucleic acid
+                  backbone
+                  arranged around a circle to facilitate easy comparisons.</dd>
+                <dt><a href="ct2dot.html">ct2dot</a></dt>
+                <dd>Generate a dot bracket file from a CT file. The CT file can
+                  be regenerated from the dot bracket file using dot2ct (below).</dd>
+                <dt><a href="CycleFold.html">CycleFold</a></dt>
+                <dd>Predict canonical and non-canonical base pairs.</dd>
+                <dt><a href="DecoyFinder.html">DecoyFinder</a></dt>
+                <dd>Identify sequences that are not homologous with others in a set of sequences.</dd>
+              </dl>
+              <dl class="noBottomMargin">
+                <dt><a href="design.html">design</a> and design-smp</dt>
+                <dd>Find an RNA (or DNA) sequence that is expected to fold into
+                  a given structure.</dd>
+                <dt><a href="Diana.html">Diana_Cluster.R</a></dt>
+                <dd>Cluster structures in a CT file and write the cluster centroids.</dd>
+              </dl>
+              <dl class="noBottomMargin">
+                <dt><a href="dot2ct.html">dot2ct</a></dt>
+                <dd>Generate a CT file from a dot bracket file. The dot bracket
+                  file can be regenerated from the CT file using ct2dot (above).</dd>
+                <dt><a href="draw.html">draw</a></dt>
+                <dd>Draw
+                  a structure (or structures) in Postscript from a CT file. This
+                  can be
+                  done a variety of ways: annotated, unannotated, circularized,
+                  or a
+                  combination of these.</dd>
+                <dt><a href="DuplexFold.html">DuplexFold</a></dt>
+                <dd>Bimolecular folding of nucleic acids without intramolecular
+                  pairs allowed.</dd>
+                <dt><a href="dynalign.html">dynalign_ii</a>, dynalign,
+                  dynalign_ii-smp, and dynalign-smp</dt>
+                <dd>Find a secondary structure common to two sequences.</dd>
+                <dt><a href="DynalignDotPlot.html">DynalignDotPlot</a></dt>
+                <dd>Generate a free energy dot plot from a Dynalign calculation,
+                  exported as a Postscript file.</dd>
+                <dt><a href="EDcalculator.html">EDcalculator</a> and
+                  EDcalculator-smp</dt>
+                <dd>Determine the Ensemble Defect of a structure (compared to
+                  the ensemble of all possible structures).</dd>
+                <dt><a href="efn2.html">efn2 (Energy Function 2)</a> and
+                  efn2-smp</dt>
+                <dd>Determine the folding free energy change of a structure.</dd>
+                <dt><a href="EnergyPlot.html">EnergyPlot</a></dt>
+                <dd>Generate a free energy dot plot from a folding calculation
+                  save file, exported as a Postscript file.</dd>
+                <dt><a href="EnsembleEnergy.html">EnsembleEnergy</a></dt>
+                <dd>Calculate the ensemble energy of structures from base pair
+                  probabilities or sequence data.</dd>
+                <dt>&nbsp;</dt>
+                <dt><a href="ETEcalculator.html">ETEcalculator</a> and ETEcalculator-smp</dt>
+                <dd>Estimate the end-to-end (ETE) distance of a sequence in nm.</dd>
+                <dt><a href="Fold.html">Fold</a> and Fold-smp</dt>
+                <dd>Predict the lowest free energy structure for a nucleic acid
+                  sequence, as well as a set of low free energy structures.</dd>
+
+                <dt><a href="Fold-cuda.html">Fold-cuda</a></dt>
+                <dd>Predict the lowest free energy structure for a nucleic acid
+                  sequence, in parallel using a GPU. </dd>
+
+
+                <dt><a href="MaxExpect.html">MaxExpect</a></dt>
+                <dd>Predict the maximum expected accuracy structure for a
+                  nucleic acid sequence. </dd>
+                <dt><a href="Multifind.html">Multifind</a></dt>
+                <dd>Find non-coding RNAs in sequence alignments.</dd>
+                <dt><a href="multilign.html">multilign</a></dt>
+                <dd>Find secondary structures common to multiple sequences (more
+                  than two).</dd>
+                <dt><a href="mutate2test.html">mutate2test</a></dt>
+                <dd>Design disrupting and restoring mutations to test a model secondary structure. (Located in RNAstructure/scripts .)</dd>
+                <dt>&nbsp;</dt>
+                <dt><a href="NAPSS.html">NAPSS</a></dt>
+                <dd>Use NMR data to improve the prediction of an RNA secondary
+                  structure.</dd>
+                <dt><a href="oligoscreen.html">oligoscreen</a> and
+                  oligoscreen-smp</dt>
+                <dd>Determine folding thermodynamics for a set of
+                  oligonucleotides.</dd>
+                <dt><a href="OligoWalk.html">OligoWalk</a></dt>
+                <dd>Calculate
+                  thermodynamic features of sense-antisense hybridization and
+                  predict
+                  free energy changes of oligonucleotides binding to target RNA.</dd>
+              </dl>
+              <dl class="noBottomMargin">
+                <dt><a href="orega.html">orega</a></dt>
+                <dd>(Optimize RNA Ends with a Genetic Algorithm) Use a genetic algorithm to evolve a sequence to change the end-to-end distance.</dd>
+              </dl>
+              <p><a href="partition.html">partition</a> and partition-smp<br>
+                <dd>Predict nucleic acid base pairing probabilities using a
+              partition function.</dd>
+              <dl class="noBottomMargin">
+                <dt><a href="partition-cuda.html">partition-cuda</a></dt>
+                <dd>Predict nucleic acid base pairing probabilities using a
+                  partition function in parallel using a GPU.</dd>
+                <dt><a href="PARTS.html">PARTS</a></dt>
+                <dd>Find
+                  a secondary structure common to two nucleic acid sequences, a
+                  sample of
+                  those structures, and/or the probability of pairing for common
+                  base
+                  pairs.</dd>
+                <dt><a href="phmm.html">phmm</a></dt>
+                <dd>Predict the probablistic alignment between two RNA
+                  sequences.</dd>
+                <dt><a href="ProbabilityPlot.html">ProbabilityPlot</a></dt>
+                <dd>Generate a base pairing probabilities dot plot from a
+                  partition function save file, exported as a Postscript file.</dd>
+                <dt><a href="ProbablePair.html">ProbablePair</a></dt>
+                <dd>Predict
+                  structures from base pair probabilities, using a threshold to
+                  include
+                  only pairs within a specific range of probabilities.</dd>
+                <dt><a href="ProbKnot.html">ProbKnot (encompasses ThreshKnot)</a></dt>
+                <dd>Predict a maximum expected accuracy structure, including
+                  pseudoknots.</dd>
+                <dt><a href="ProbScan.html">ProbScan</a></dt>
+                <dd>Calculate the probabilities of loops or helix stacks.</dd>
+                <dt><a href="refold.html">refold</a></dt>
+                <dd>Use a save file to predict a new set of suboptimal
+                  structures.</dd>
+                <dt><a href="RemovePseudoknots.html">RemovePseudoknots</a></dt>
+                <dd>Remove pseudoknots from an RNA structure, outputting the
+                  most likely pseudoknot-free structure.</dd>
+                <dt><a href="Rsample.html">Rsample</a></dt>
+                <dd>Uses SHAPE mapping data to output a partition
+                  function save file, which can  be used to model the
+                  structure of a sequence that populates multiple
+                conformations.</dd>                  
+                <dt><a href="scorer.html">scorer</a></dt>
+                <dd>Calculate sensitivity and positive predictive value for two
+                  structures being compared.</dd>
+                <dt><a href="Shannon.html">Shannon</a></dt>
+                <dd>Calculate the base pairing Shannon entropy per nucleotide in a sequence.</dd>
+                <dt>&nbsp;</dt>
+                <dt><a href="ShapeKnots.html">ShapeKnots</a></dt>
+                <dd>Predict a secondary structure that can contains pseudoknots,
+                  restrained by SHAPE mapping data.</dd>
+                <dt><a href="stochastic.html">stochastic</a> and stochastic-smp</dt>
+                <dd>Generate a representative ensemble of structures.</dd>
+                <dt><a href="SymmetryTester.html">SymmetryTester</a></dt>
+                <dd>Test the required symmetries in a set of data tables.</dd>
+                <dt>&nbsp;</dt>
+                <dt><a href="TurboFold.html">TurboFold</a></dt>
+                <dd class="noBottomMargin">Fold multiple sequences into their
+                  optimal conformations, using one of three different folding
+                  modes.</dd>
+                <dt>&nbsp;</dt>
+                <dd>&nbsp;</dd>
+                <dt><a href="TurboHomology.html">TurboHomology</a></dt>
+                <dd><a href="TurboFold.html"></a>Predict a secondary structure by homology modeling when there is an alignment of homologs with know structure.</dd>
+              </dl>
+              <p>&nbsp;</p>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

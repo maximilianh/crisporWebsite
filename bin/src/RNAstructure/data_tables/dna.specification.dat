@@ -1,0 +1,58 @@
+#Description of DNA Folding Alphabet
+
+#Note that comments start with # and any number of comments are allowed.
+#Note that # must start a line.
+
+#The Bases field defines the characters allowed in the alphabet.
+#The format requires each base type be on its own line.  
+#An = separated by spaces from adjacent nucleotides allows the definition of equivalent bases.
+#Note that for RNA folding, we allow the user to use U or T interchangeably.
+#Note that I is the intermolecular linker for bimolecular folding.
+#N and X are bases that cannot pair or stack.
+
+Bases
+X = N = x = n
+A = a
+C = c
+G = g
+U = u = T = t
+I
+
+
+#The Pairing field defines bases that can form canonical pairs.
+#Note that each equivalent base should be represented only once.
+#Note the space between bases that can pair.
+#Note that there is no direction in a pair so that A U also means U A is a pair.
+
+Pairing
+A U
+G C
+G U
+
+#The Single field defines bases that are not allowed to pair.
+#This is maintained because RNAstructure has traditionally forced lowercase nucleotides unpaired.
+#This field is required, although it may be empty.
+
+Single
+a
+c
+g
+u
+t
+
+#The non-interacting field indicates nucleotides that neither pair nor stack.
+#The parameter tables are filled to give this nucleotide a free energy change of zero for 
+#stacking or mismatching.
+
+Non-interacting
+X
+
+# #The linker field indicates a special "nucleotide" that indicates a break in the backbone.
+# #This is an "intermolecular linker."  The parameter tables are filled to treat this as 
+# #nucleotide that does not exist.  When appearing in a sequence, this should appear as 
+# #three in a row.
+
+Linker
+I
+
+

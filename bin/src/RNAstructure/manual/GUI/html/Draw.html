@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Draw</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Draw</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<p><b>How to display an RNA secondary structure</b></p>
+							<ol>
+								<li>Select &quot;File -&gt; Draw.&quot;</li>
+								<li>Select an existing CT file to draw from the open dialog.</li>
+							</ol>
+
+							<p>Note that, currently, structures without pseudoknots are drawn using the conventional collapsed format where paired nucleotides are close. Structures with pseudoknots are drawn using a circular format.</p>
+							<p>Note also that the JAVA GUI (but not the Windows GUI) contains an option to draw nucleotides circled or uncircled for clarity.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Scroll" id="Scroll">Scrolling</a></b></p>
+							<p>If the structure is larger than the window, scroll bars appear at the edge of the window. The arrow keys can also be used to navigate around the screen.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Choose" id="Choose">Choosing a Structure</a></b></p>
+							<p>If the CT file contains more than one structure, you may select which to view. On the menu, select &quot;Draw -&gt; Structure Number.&quot; If clicking does not change the structure, then the CT file contains only one structure.</p>
+							<p>
+								Structures can also be chosen from the keyboard without using the menu option.
+								Press the control-down arrow or control-up-arrow to change the current structure to a more suboptimal structure.
+								Pressing the control-right-arrow key will change to a more optimally scoring structure.
+								On Macintosh systems, structures can also be chosen by pressing the command key and the appropriate arrow.
+							</p>
+							<p>Limitations of the secondary structure prediction algorithm may cause the order in which structures are displayed to be misleading. The output structures are sorted according to the lowest free energy, but structure #1, although predicted to be most optimal, might not be the actual structure.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Zoom" id="Zoom">Zooming</a></b></p>
+							<p>Select &quot;Structure -&gt; Zoom.&quot;</p>
+							<p>
+								Zooming can also be performed from the keyboard without using the menu options.
+								Press the control-down arrow or control-up-arrow to zoom in or out, respectively.
+								On Macintosh systems, zooming can also be done by pressing the command key and the appropriate arrow.
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b>Printing</b></p>
+							<p>Select &quot;File -&gt; Print.&quot; Choose desired printer and hit OK.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b>Copying</b></p>
+							<p>On Windows, the image of the currently displayed structure can be copied to the clipboard by selecting &quot;Edit-&gt;Copy&quot; or by typing control-C.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Annotation" id="Annotation">Color Annotation of Additional Information</a></b></p>
+							<p>The drawing can be annotated with additional information (by the form of color coding) in one of two ways. Selecting either of the menu options defined below will open a dialog box which will allow the appropriate type of file to be selected.</p>
+							<ol>
+								<li>
+									<a name="Base" id="Base">Base Pairing Probabilities</a>:<br>
+									For paired nucleotides, the probability is that of being in the specified pair. For single-stranded nucleotides, the probability is that of being single-stranded. The higher the probability, the greater the confidence in the prediction.<br>
+									If the partition function has been used to predict base pairing probabilities for the sequence, show the color annotation by clicking &quot;Annotations -&gt; Add Probability Annotation.&quot;<br>
+									In JAVA, the color key used for annotation is automatically displayed below the structure when necessary. In Windows, the color key can be displayed by clicking &quot;Annotations -&gt; Show Color Annotation Key.&quot;
+								</li>
+								<li>
+									<a name="SHAPE" id="SHAPE">SHAPE</a> Data:<br>
+									Nucleotides with higher SHAPE reactivity are more likely to be single-stranded.<br>
+									If SHAPE constraints were added to the sequence prior to folding, display the data by clicking &quot;Annotations -&gt; Add SHAPE Annotation.&quot;<br>
+									In JAVA, the color key used for annotation is automatically displayed below the structure when necessary. In Windows, the color key can be displayed by clicking &quot;Annotations -&gt; Show SHAPE Annotation Key.&quot;
+								</li>
+							</ol>
+
+							<p>Note that base pairing data and SHAPE data cannot be displayed together on a drawing; for the sake of clarity, they are always displayed separately.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Publication" id="Publication">Publication Quality Output</a></b></p>
+							<p>There are several methods for producing publication quality figures from the RNAstructure results.</p>
+							<p>In general, the Draw module alone will not produce publication quality images of secondary structures. The program XRNA, created and distributed by the Santa Cruz RNA Center, is one of several tools for drawing RNA secondary structures and producing high quality output. This program is available for download from <a href="http://rna.ucsc.edu/rnacenter">http://rna.ucsc.edu/rnacenter</a>. It is written in Java and will run on most computer architectures. The draw module from RNAstructure will write .txt helix input files that are read by XRNA to describe the location of helixes. When displaying a secondary structure, this is accessed by &quot;Draw -&gt; Write to Helix (Text) File.&quot;</p>
+							<p>
+								In JAVA only (Macintosh OS X and Linux), images can be exported to either Postscript or SVG files.
+								Both structures and dot plots can be exported with their associated menu commands, under the &quot;Draw&quot; or &quot;Output Plot&quot; menus, respectively.
+								Structures, in particular, can be exported with color annotation.
+							</p>
+							<p>A final alternative is to print the image using a pdf writer instead of a printer to make a pdf. The pdf can then be edited using another program.</p>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

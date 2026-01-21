@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head><title>RNAstructure Installation and Overview: Building the Repository</title><meta http-equiv="Content-Type" content="text/html;charset=utf-8"><link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+<body>
+		<div class="bodydiv">
+			<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+				<tbody><tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>
+					Thermodynamic Parameter Tables</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="mainContent">
+					  <div>
+							<h2 class="leftHeader">Thermodynamic Parameter Tables</h2>
+
+							<h3 class="leftHeader">What are thermodynamic parameters?</h3>
+							<p>RNAstructure uses a set of nearest neighbor parameters to estimate the folding stability of structures.  For RNA, these are called Turner rules.  
+</p>
+							<p>A tutorial for understanding and using these RNA folding parameters is available at the <a href="https://rna.urmc.rochester.edu/NNDB/">NNDB</a>. The latest complete set of rules based on experiments (and those used by RNAstructure) are the Turner 2004 rules. These are described in detail in:<br>
+						    Mathews, D. H., Disney, M. D., Childs, J. L., Schroeder, S. J., Zuker, M. &amp; Turner, D. H. (2004). <a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=15123812">Incorporating chemical modification constraints into a dynamic programming algorithm for prediction of RNA secondary structure</a>. <em>Proceedings of the National Academy of Sciences</em>, USA. <strong>101</strong>, 7287-7292.<br>
+						    The enthalpy parameters, for extrapolating to temperatures other than 37 degrees C are described in:<br>
+					    Lu, Z. J., Turner, D. H., &amp; Mathews, D. H. (2006). <a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=pubmed&cmd=Retrieve&dopt=AbstractPlus&list_uids=16982646&query_hl=1&itool=pubmed_docsum">A set of nearest neighbor parameters for predicting the enthalpy change of RNA secondary structure formation</a>. <em>Nucleic Acids Research</em>. <strong>34</strong>, 4912-4924.<br>
+					    The Watson-Crick helix rules are provided by:<br>
+					    Xia, T., SantaLucia, J., Jr., Burkard,  M. E., Kierzek, R., Schroeder,   S. J., Jiao, X., Cox, C. and Turner, D. H. (1998)  <a href="https://pubmed.ncbi.nlm.nih.gov/9778347/">Thermodynamic   parameters for an expanded nearest-neighbor model for formation  of RNA   duplexes with Watson-Crick pairs</a>. <em>Biochemistry</em>, <strong>37</strong>, 14719-14735.<br>
+					    </p>
+							<p>RNAstructure also comes with thermodynamic parameters for DNA and for an RNA alphabet with m6A, which includes A, C, G, U, and m6A.</p>
+							<hr>
+					    <h3>Where are the thermodynamic parameters located?</h3>
+						<p>The tables are located in the RNAstructure subdirectory data_tables/ .						</p>
+						<hr>
+						<h3>What do the files mean?</h3>
+						<p>The current tables are formatted in a format:<br>
+					    alphabet.type.dg/dh/dat where the current alphabets are rna, dna, m6A, msa, or b-test. msa are the set of RNA parameters used by AlignmentFold and AlignmentPartion for multiple sequence alignments. b-test is an alphabet used for testing the extended alphabet, where B is a new nucleotide with folding thermodynamics identical to A. The .dg files are folding free energies at 37 degrees C and .dh is the folding enthalpy changes. Enthalpies are used for predicting secondary structures at temperatures other than 37 degrees C and are only available for rna, dna, and b-test. The *.specification.dat file is used to define the alphabet, including the allowed nucleotides and the possible base pairs.</p>
+						<p>There are also a set of tables that are in the format:<br>
+						  type.dat, type.dh, dnatype.dat, or dnatype.dh. These are the older parameter format and are still used by the GPU programs at compile time.</p>
+						<p>Finally, some programs use additional data that are stored here:<br>
+					      <a href="../Text/Fold.html">Fold</a> can use a mapping data and a gamma function to estimate the logs odds of a nucleotide being paired vs. unpaired.  The subdirectory dists hold the parameters for the gamma function.<br>
+					      <a href="../Text/Rsample.html">Rsample</a> uses a set of reactivity distributions to interpret SHAPE data.  These distributions are in the subdirectory rsample. <br>
+				        <a href="../Text/Multifind.html">multifind</a> uses an SVM to classify alignments contents as conserved, structured ncRNA or not.  The model for the SVM is in data_assemble_training_Multifind_predict_ensemble_z_final_svmformat.model <br>
+				        <a href="../Text/design.html">design</a> can use a set of loop and helix sequences that are predetermined to work well together.  Those are in files name design.RNA/DNA.Helices/Loops.dat. <br>
+				        <a href="../Text/OligoWalk.html">OligoWalk</a> uses helix.dat and helixdr.dat to store helix free enrgy change nearest neighbors for RNA-RNA and DNA-RNA, respectively. The DNA-RNA helix parameters are from:<br>
+				        Sugimoto, N., Nakano, S., Katoh, M., Matsumura, A., Nakamuta, H., Ohmichi, T., Yoneyama, M., Sasaki, M. 1995. <a href="https://pubmed.ncbi.nlm.nih.gov/7545436/">Thermodynamic parameters to predict stability of RNA/DNA hybrid duplexes</a>. <em>Biochemistry</em>. <strong>34</strong>, 11211–11216. <br>
+					    </p>
+						<hr>
+						<h3>What does each table type contain?</h3>
+						<p>*.specification.dat indicates the alphabet and pairs.</p>
+						<p>*.coaxial.* are parameters for flush coaxial stacking where two helix ends stack without an intervening mismatch.</p>
+						<p>*.coaxstack.* are parameters for coaxial stacking of helices with an intervening mismatch. This is for the stack where the backbone is not continuous.</p>
+						<p>*.dangle.* are parameters for dangling ends on pairs.</p>
+						<p>*.hexaloop.* are parameters for hairpin loops of 6 unpaired nucleotides that have stabilities not well modeled by the parameters.</p>
+						<p>*.int11.* are parameters for 1×1 internal loops.</p>
+						<p>*.int21.* are parameters for 2×1 internal loops.</p>
+						<p>*.int22.* are parameters for 2×2 internal loops.</p>
+						<p>*.loop.* are parameters for loop initiations.</p>
+						<p>*.misloop.* are  parameters that do not fit into other tables.</p>
+						<p>*.stack.* are parameters for helical stacking.</p>
+						<p>*.tloop.* are parameters for hairpin loops of 4 unpaired nucleotides that have stabilities not well modeled by the parameters.</p>
+						<p>*.triloop.* are parameters for hairpin loops of 3 unpaired nucleotides that have stabilities not well modeled by the parameters.</p>
+						<p>*.tstack.* are parameters for terminal mismatches in exterior loops.</p>
+						<p>*.tstackcoax.* are parameters for coaxial stacking of helices with an intervening mismatch. This is for the stack where the backbone is continuous.</p>
+						<p>*.tstackh.* are parameters for first mismtaches in hairpin loops.</p>
+						<p>*.tstacki.* are parameters for the mismatches in internal loops.</p>
+						<p>*.tstacki23.* are parameters for the mismatches in 2×3 internal loops.</p>
+						<p>*.tstackm.* are parameters for the mismatches in multibranch loops.</p>
+						<p>Note that for many terminal stack tables, the AU/GU helix end penalty is included for computational speed.</p>
+						<hr>
+						<p>More about how the parameters are used and their values can be found in the <a href="https://rna.urmc.rochester.edu/NNDB/">NNDB</a>.</p>
+					  </div>
+						<div></div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</tbody></table>
+		</div>
+	</body></html>

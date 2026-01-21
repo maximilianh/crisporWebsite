@@ -1,0 +1,5 @@
+Currently these "Unit Tests" consist of only a single main() function that tests a few utility functions 
+as well as some very basic structure functions. 
+
+Ideally this will evolve into a larger framework for unit testing significant portions of the RNAstructure 
+codebase.

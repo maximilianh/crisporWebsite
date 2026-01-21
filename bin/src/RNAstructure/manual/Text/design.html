@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: efn2</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                design</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p><span style="font-weight: bold;">design </span>attempts to
+                find a nucleic acid sequence that will fold to a given
+                structure.&nbsp;design-smp is the parallel processing version for multi-core calculations.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: design &lt;input&nbsp;file&gt; &nbsp;[-o &lt;output
+                file&gt;]&nbsp; [options] </h3>
+              <h3>or design-smp &lt;input&nbsp;file&gt; &nbsp;[-o &lt;output
+              file&gt;]&nbsp; [options] </h3>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;input file&gt;</td>
+                    <td>A&nbsp;structure (<a href="File_Formats.html#CT">CT</a>
+                      or <a href="File_Formats.html#DotBracket">Dot-Bracket</a>)
+                      file that indictates the target structure. (The sequence
+                      in the file will be ignored.)</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-d --dna</td>
+                    <td>Specify that the sequence is DNA, and DNA parameters are
+                      to be used. (The default is to use RNA parameters.)<br>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-p --preselect<br>
+                    </td>
+                    <td>Specify that use pre-selected sequence segments should
+                      be used. (The default is that all nucleotides are chosen
+                      at random.)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-t --timer<br>
+                    </td>
+                    <td>Use a timer to measure the duration of the design
+                      process and print the elapsed time to standard output.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-h&nbsp;--help</td>
+                    <td>Display the usage details message.<br>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-i, --isolated</td>
+                    <td>Allow isolated base pairs in partition function calculation of pair probabilities. The default is to use a heuristic to forbid isolated base pairs. The heuristic prevents pairs (i-j) if (i+1 - j-1) and (i-1 - j+1) pairs are non-canonical pairs. If the structure to be designed has isolated pairs (i.e. helices of one pair), it is helpful to allow isolated base pairs, otherwise the default behavior of RNAstructure is better.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v&nbsp;--version<br>
+                    </td>
+                    <td>Display version and copyright information for this
+                      interface. </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-a, -A, --alphabet</td>
+                    <td><p>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</p>
+                      <p>Note that, by default, only A, C, G, U/T will be used in loops and A-U/T, G-C will be used in pairs. To use additional pairs or nucleotides, a bias file must be used.</p></td>
+                  </tr>
+                  <tr>
+                  </tr>
+                  <tr>
+                    <td>-b --bias</td>
+                    <td>Specify a sequence bias for random selection of loop nucleotides and base pairs. The bias file format is defined <a href="File_Formats.html#Bias">here</a>. Note that bias must be used with alphabets beyond A, C, G, U/T in order to use the additional nucleotides.</td>
+                  </tr>
+                  <tr>
+                    <td>-o --output</td>
+                    <td>Specify the output file.&nbsp;By default the resulting
+                      designed sequence is written to standard&nbsp;output
+                      only.&nbsp;This flag instructs the program to output the
+                      structure (in ct&nbsp;format) to the specified file.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-e --error<br>
+                    </td>
+                    <td>The maximum allowed ensemble defect per nucleotide.<br>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-s --seed<br>
+                    </td>
+                    <td>Specify a random seed.&nbsp;The default is to use a seed
+                      based on the current system time.&nbsp;(It is necessary to
+                      specify a seed in order to&nbsp;get exactly reproducible
+                      results.) </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-md --maxdepth</td>
+                    <td>Max-depth: The maximum extent to which the structure
+                      will be sub-divided in the binary decomposition. The
+                      default is 5.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-ml --maxleaf</td>
+                    <td>The maximum number of times a leaf can be re-optimized
+                      at random. The default is 3.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-mm --maxmutate</td>
+                    <td>The maximum number of times a nucleotide will be mutated
+                      during defect-weighted reoptimization. The default is 4.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-mr --maxredesign</td>
+                    <td>The maximum number of redesigns per parent node. The
+                      default is 10.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Notes:</h3>
+              <p>Note that pseudoknots cannot be designed with this program and that pseudoknots in the input structure are removed by the method of <a href="RemovePseudoknots.html">RemovePseudoknots</a> (keeping the maximum number of pairs) at the start of the calculation.</p>
+              <h3>Notes for smp:</h3>
+              <p>design-smp, by default, will use all available compute cores for                  processing. The number of cores used can be controlled by                  setting the OMP_NUM_THREADS environment variable.</p>
+              <h3 class="leftHeader">&nbsp;</h3>
+              <h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Bellaousov, S., Kayedkhordeh, M., Peterson, R. J. &amp; Mathews, D. H. (2018). <a href="https://www.ncbi.nlm.nih.gov/pubmed/30097542">Accelerated RNA Secondary Structure Design Using Pre-Selected Sequences for Helices and Loops</a>. <em>RNA</em>. 24: 1555-1567.<br>
+                </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+Mathews
+                  Lab RNAstructure Page</a> for updates and latest information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

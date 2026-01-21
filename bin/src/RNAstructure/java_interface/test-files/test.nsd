@@ -1,0 +1,143 @@
+[
+  { Version:"1.0" Title:Untitled }
+  {
+    Title:""
+    Strands:[
+      {
+        Strand:[
+          { ID:1 Base:A X:364.0 Y:626.0 Fill:Red }
+          { ID:2 Base:B X:364.0 Y:608.0 }
+          { ID:3 Base:C X:364.0 Y:590.0 Fill:Green }
+          { ID:4 Base:D X:364.0 Y:572.0 }
+          { ID:5 Base:E X:404.0 Y:566.0 }
+          { ID:6 Base:F X:431.0 Y:558.0 }
+          { ID:7 Base:G X:457.0 Y:547.0 Fill:Blue }
+          { ID:8 Base:H X:482.0 Y:532.0 }
+          { ID:9 Base:A X:505.0 Y:516.0 Fill:Red }
+          { ID:10 Base:J X:526.0 Y:496.0 }
+          { ID:11 Base:K X:544.0 Y:474.0 }
+          { ID:12 Base:L X:560.0 Y:451.0 }
+          { ID:13 Base:M X:573.0 Y:425.0 }
+          { ID:14 Base:N X:582.0 Y:399.0 Fill:Gray }
+          { ID:15 Base:O X:589.0 Y:371.0 }
+          { ID:16 Base:P X:606.0 Y:374.0 Fill:Purple }
+          { ID:17 Base:Q X:623.0 Y:377.0 }
+          { ID:18 Base:R X:640.0 Y:380.0 Fill:Purple }
+          { ID:19 Base:S X:657.0 Y:383.0 }
+          { ID:20 Base:T X:674.0 Y:386.0 Fill:Orange }
+          { ID:21 Base:U X:690.0 Y:402.0 Fill:Orange }
+          { ID:22 Base:V X:712.0 Y:406.0 }
+          { ID:23 Base:W X:731.0 Y:393.0 }
+          { ID:24 Base:X X:736.0 Y:370.0 Fill:Teal }
+          { ID:25 Base:Y X:722.0 Y:351.0 Fill:Teal }
+          { ID:26 Base:Z X:700.0 Y:347.0 Fill:Purple }
+          { ID:27 Base:A X:679.0 Y:355.0 Fill:Red }
+          { ID:28 Base:B X:662.0 Y:352.0 }
+          { ID:29 Base:C X:645.0 Y:349.0 Fill:Green }
+          { ID:30 Base:D X:628.0 Y:346.0 }
+          { ID:31 Base:E X:611.0 Y:343.0 }
+          { ID:32 Base:F X:594.0 Y:340.0 }
+          { ID:33 Base:G X:586.0 Y:268.0 Fill:Blue }
+          { ID:34 Base:H X:568.0 Y:219.0 }
+          { ID:35 Base:A X:541.0 Y:176.0 Fill:Red }
+          { ID:36 Base:J X:505.0 Y:138.0 }
+          { ID:37 Base:K X:516.0 Y:125.0 }
+          { ID:38 Base:L X:527.0 Y:112.0 }
+          { ID:39 Base:M X:547.0 Y:103.0 }
+          { ID:40 Base:N X:558.0 Y:83.0 Fill:Gray }
+          { ID:41 Base:O X:548.0 Y:62.0 }
+          { ID:42 Base:P X:526.0 Y:56.0 Fill:Purple }
+          { ID:43 Base:Q X:508.0 Y:70.0 }
+          { ID:44 Base:R X:503.0 Y:92.0 Fill:Purple }
+          { ID:45 Base:S X:492.0 Y:105.0 }
+          { ID:46 Base:T X:481.0 Y:118.0 Fill:Orange }
+          { ID:47 Base:U X:446.0 Y:102.0 Fill:Orange }
+          { ID:48 Base:V X:414.0 Y:90.0 }
+          { ID:49 Base:W X:380.0 Y:83.0 }
+          { ID:50 Base:X X:346.0 Y:81.0 Fill:Teal }
+          { ID:51 Base:Y X:312.0 Y:84.0 Fill:Teal }
+          { ID:52 Base:Z X:278.0 Y:92.0 Fill:Purple }
+          { ID:53 Base:A X:246.0 Y:104.0 Fill:Red }
+          { ID:54 Base:B X:215.0 Y:121.0 }
+          { ID:55 Base:C X:206.0 Y:106.0 Fill:Green }
+          { ID:56 Base:D X:197.0 Y:91.0 }
+          { ID:57 Base:E X:188.0 Y:76.0 }
+          { ID:58 Base:F X:179.0 Y:61.0 }
+          { ID:59 Base:G X:170.0 Y:46.0 Fill:Blue }
+          { ID:60 Base:H X:168.0 Y:24.0 }
+          { ID:61 Base:A X:151.0 Y:8.0 Fill:Red }
+          { ID:62 Base:J X:129.0 Y:11.0 }
+          { ID:63 Base:K X:117.0 Y:30.0 }
+          { ID:64 Base:L X:124.0 Y:52.0 }
+          { ID:65 Base:M X:144.0 Y:63.0 }
+          { ID:66 Base:N X:153.0 Y:78.0 Fill:Gray }
+          { ID:67 Base:O X:162.0 Y:93.0 }
+          { ID:68 Base:P X:171.0 Y:108.0 Fill:Purple }
+          { ID:69 Base:Q X:180.0 Y:123.0 }
+          { ID:70 Base:R X:189.0 Y:138.0 Fill:Purple }
+          { ID:71 Base:S X:157.0 Y:174.0 }
+          { ID:72 Base:T X:135.0 Y:206.0 Fill:Orange }
+          { ID:73 Base:U X:118.0 Y:242.0 Fill:Orange }
+          { ID:74 Base:V X:108.0 Y:280.0 }
+          { ID:75 Base:W X:103.0 Y:320.0 }
+          { ID:76 Base:X X:105.0 Y:359.0 Fill:Teal }
+          { ID:77 Base:Y X:113.0 Y:398.0 Fill:Teal }
+          { ID:78 Base:Z X:128.0 Y:434.0 Fill:Purple }
+          { ID:79 Base:A X:112.0 Y:441.0 Fill:Red }
+          { ID:80 Base:B X:96.0 Y:448.0 }
+          { ID:81 Base:C X:80.0 Y:455.0 Fill:Green }
+          { ID:82 Base:D X:64.0 Y:462.0 }
+          { ID:83 Base:E X:48.0 Y:469.0 }
+          { ID:84 Base:F X:26.0 Y:470.0 }
+          { ID:85 Base:G X:8.0 Y:484.0 Fill:Blue }
+          { ID:86 Base:H X:8.0 Y:507.0 }
+          { ID:87 Base:A X:26.0 Y:521.0 Fill:Red }
+          { ID:88 Base:J X:48.0 Y:516.0 }
+          { ID:89 Base:K X:61.0 Y:497.0 }
+          { ID:90 Base:L X:77.0 Y:490.0 }
+          { ID:91 Base:M X:93.0 Y:483.0 }
+          { ID:92 Base:N X:109.0 Y:476.0 Fill:Gray }
+          { ID:93 Base:O X:125.0 Y:469.0 }
+          { ID:94 Base:P X:141.0 Y:462.0 Fill:Purple }
+          { ID:95 Base:Q X:166.0 Y:491.0 }
+          { ID:96 Base:R X:191.0 Y:515.0 Fill:Purple }
+          { ID:97 Base:S X:218.0 Y:535.0 }
+          { ID:98 Base:T X:249.0 Y:551.0 Fill:Orange }
+          { ID:99 Base:U X:281.0 Y:563.0 Fill:Orange }
+          { ID:100 Base:V X:314.0 Y:570.0 }
+          { ID:101 Base:W X:333.0 Y:572.0 }
+          { ID:102 Base:X X:333.0 Y:590.0 Fill:Teal }
+          { ID:103 Base:Y X:333.0 Y:608.0 Fill:Teal }
+          { ID:104 Base:Z X:333.0 Y:626.0 Fill:Purple }
+        ]
+      }
+    ]
+    Pairs:[
+      { Pair:"1:104" Type:BP }
+      { Pair:"2:103" Type:BP }
+      { Pair:"3:102" Type:BP }
+      { Pair:"4:101" Type:BP }
+      { Pair:"15:32" Type:BP }
+      { Pair:"16:31" Type:BP }
+      { Pair:"17:30" Type:BP }
+      { Pair:"18:29" Type:BP }
+      { Pair:"19:28" Type:BP }
+      { Pair:"20:27" Type:BP }
+      { Pair:"36:46" Type:BP }
+      { Pair:"37:45" Type:BP }
+      { Pair:"38:44" Type:BP }
+      { Pair:"54:70" Type:BP }
+      { Pair:"55:69" Type:BP }
+      { Pair:"56:68" Type:BP }
+      { Pair:"57:67" Type:BP }
+      { Pair:"58:66" Type:BP }
+      { Pair:"59:65" Type:BP }
+      { Pair:"78:94" Type:BP }
+      { Pair:"79:93" Type:BP }
+      { Pair:"80:92" Type:BP }
+      { Pair:"81:91" Type:BP }
+      { Pair:"82:90" Type:BP }
+      { Pair:"83:89" Type:BP }
+    ]
+  }
+]

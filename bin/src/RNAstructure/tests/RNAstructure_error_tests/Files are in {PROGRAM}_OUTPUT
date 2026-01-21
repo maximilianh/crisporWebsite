@@ -1,0 +1,2 @@
+Test error and output files for each program are now stored in separate folders.
+The name of the folder is <PROGRAM>_OUTPUT where <PROGRAM> is the name of the executable tested.

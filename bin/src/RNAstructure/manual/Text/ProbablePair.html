@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: ProbablePair</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>ProbablePair</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>ProbablePair creates a group of suboptimal structures that contain base pairs above a probability threshold.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: ProbablePair &lt;input file&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;input file&gt;</td>
+								<td>
+									The name of a file containing input data. This input data can be in one of two formats:
+									<ol class="noListTopMargin">
+										<li>Partition function save file (holds base pairing probability data for all pairs and can be generated using <a href="partition.html">partition</a>).</li>
+										<li>
+											Sequence file (holds sequence: .seq or .fasta). Note that lowercase nucleotides are forced single-stranded in structure prediction.
+											<br>
+											Note that in order to use a squence file, the &quot;sequence&quot; flag must be specified (see &quot;--sequence&quot; below).
+										</li>
+									</ol>
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a CT file to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									This flag only matters if the input file is a sequence file and has been identified as such (see &quot;--sequence&quot; below).
+									<br>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">--sequence</td>
+								<td>Identify the input file format as a sequence file.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-t, -T, --threshold</td>
+								<td>
+									Specify the pairing threshold for pairs to be included.
+									<br>
+									This should be expressed as a number &gt;= 0.5 and &lt;= 1.
+									<br>
+									Default is 0, which signifies structures should be generated at multiple thresholds: 0.99, 0.97, 0.95, 0.90, 0.80, 0.70, 0.60, and 0.50.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li>
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">Mathews, D.H.<br>
+"Using an RNA secondary structure partition function to determine confidence in base pairs predicted by free energy minimization."<br>
+<em>RNA</em>, 10:1178-1190. (2004).</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

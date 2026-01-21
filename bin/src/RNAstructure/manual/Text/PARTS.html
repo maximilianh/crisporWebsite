@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: PARTS</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>PARTS</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>PARTS takes two homologous sequences as input and aligns the two sequences and predits base pairing probabilities for conserved structures. It can run in three modes: map (maximum a posteriori) mode to find a maximum probability structure, pp (pair probability) mode, which yields a matrix of base pairing probabilities, or stochsample (stochastic sampling) to sample generated structures.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: PARTS &lt;configuration file&gt;</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;configuration file&gt;</td>
+								<td>The name of a file containing required configuration data.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader">Configuration file format:</h3>
+						<p>The following is a description of valid options allowed in the configuration file.</p>
+						<pre>
+################################################################
+# IMPORTANT CONFIG FILE FORMAT NOTES:
+#
+# Config file options described below <b>are</b> case sensitive.
+#
+# Option lines may be specified by the option name followed by a space and the option's desired value.
+# When specifying an option, there may be nothing else on the line.
+# &lt;option&gt; &lt;value&gt;
+#
+# Specifying comment lines:
+# Comment lines must begin with "#" followed by a space.
+# There may not be more than one "#" in a comment line.
+# However, a comment line may be an unbroken string of "#", as in a divider between sets of options.
+#
+# Blank lines are skipped.
+################################################################
+
+################################################################
+# Required input
+################################################################
+
+seq1 seq1.seq
+seq2 seq2.seq
+mode map (or pp or stochsample)
+
+################################################################
+# Output files; if these aren't specified defaults are used.
+################################################################
+
+# Output file for sequence 1 in pp mode
+seq1_pp_op ../my_pp1
+
+# Output file for sequence 2 in pp mode
+seq2_pp_op my_pp2
+
+# Output ct for sequence 1 in stochsample mode
+seq1_sample_ct_op ../my_ct1_sample.txt
+
+# Output ct for sequence 2 in stochsample mode
+seq2_sample_ct_op ../../my_ct2_sample.txt
+
+# Output alignment file for stochsample mode
+sample_aln_op ./my_aln_sample.txt
+
+# Output ct for sequence 1 in map mode
+seq1_map_ct_op ../my_map_ct1.txt
+
+# Output ct for sequence 2 in map mode
+seq2_map_ct_op ../../my_map_ct2.txt
+
+# Output alignment file for map mode
+map_aln_op ../my_map_aln.txt
+
+################################################################
+# Other parameters
+################################################################
+
+# Number of structures to sample in stochsample mode
+nsamp 1000
+						</pre>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Harmanci, A.O., Sharma, G. and Mathews, D.H.
+								<br>
+								&quot;Stochastic sampling of the RNA structural alignment space.&quot;
+								<br>
+								<i>Nucleic Acids Res.</i>, 37:4063-4075. (2009).
+							</li>
+							<li class="gapListItem">
+								Harmanci, A.O., Sharma, G. and Mathews, D.H.
+								<br>
+								&quot;PARTS: Probabilistic Alignment for RNA joinT Secondary structure prediction.&quot;
+								<br>
+								<i>Nucleic Acids Res.</i>, 36:2406-2417. (2008).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

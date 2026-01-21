@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="742px" height="241px" viewBox="0 0 742 241" enable-background="new 0 0 742 241" xml:space="preserve">
+<text transform="matrix(1 0 0 1 26.8921 39.519)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="24">Predict the Minimum Free Energy Structure:</tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="24">(producing a color-annotated drawing of the structure):</tspan></text>
+<rect x="234.813" y="96.107" fill="none" stroke="#000000" width="111.334" height="45.333"/>
+<text transform="matrix(1 0 0 1 245.48 125.4399)" font-family="'MyriadPro-Regular'" font-size="24">Fold</text>
+<rect x="234.812" y="170.774" fill="none" stroke="#000000" width="111.335" height="45.333"/>
+<text transform="matrix(1 0 0 1 245.48 200.1069)" font-family="'MyriadPro-Regular'" font-size="24">partition</text>
+<line fill="none" stroke="#000000" x1="27.48" y1="156.107" x2="154.147" y2="156.107"/>
+<text transform="matrix(1 0 0 1 27.48 141.4399)" font-family="'MyriadPro-Regular'" font-size="24">.seq or .fasta</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="154.147" y1="156.107" x2="228.404" y2="121.739"/>
+		<g>
+			<polygon points="234.812,118.773 227.491,126.641 227.925,121.96 224.076,119.263 			"/>
+		</g>
+	</g>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="154.147" y1="156.107" x2="228.404" y2="190.475"/>
+		<g>
+			<polygon points="234.812,193.441 224.075,192.952 227.925,190.253 227.49,185.573 			"/>
+		</g>
+	</g>
+</g>
+<line fill="none" stroke="#000000" x1="346.147" y1="118.773" x2="438.148" y2="118.773"/>
+<text transform="matrix(1 0 0 1 376.8125 110.7739)" font-family="'MyriadPro-Regular'" font-size="24">.ct</text>
+<line fill="none" stroke="#000000" x1="346.147" y1="193.44" x2="438.148" y2="193.44"/>
+<text transform="matrix(1 0 0 1 376.8125 185.4409)" font-family="'MyriadPro-Regular'" font-size="24">.pfs</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="438.148" y1="193.44" x2="512.406" y2="159.072"/>
+		<g>
+			<polygon points="518.814,156.106 511.492,163.974 511.928,159.293 508.078,156.596 			"/>
+		</g>
+	</g>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="438.148" y1="118.773" x2="512.406" y2="153.141"/>
+		<g>
+			<polygon points="518.814,156.107 508.078,155.618 511.928,152.919 511.492,148.239 			"/>
+		</g>
+	</g>
+</g>
+<rect x="518.814" y="133.44" fill="none" stroke="#000000" width="111.336" height="45.333"/>
+<text transform="matrix(1 0 0 1 529.4824 162.7729)" font-family="'MyriadPro-Regular'" font-size="24">draw</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="630.15" y1="156.107" x2="714.779" y2="156.107"/>
+		<g>
+			<path d="M720.814,156.107c-2.84,1.054-6.363,2.852-8.549,4.756l1.721-4.756l-1.721-4.755
+				C714.451,153.256,717.975,155.054,720.814,156.107z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 650.1465 145.4399)" font-family="'MyriadPro-Regular'" font-size="24">.ps</text>
+</svg>

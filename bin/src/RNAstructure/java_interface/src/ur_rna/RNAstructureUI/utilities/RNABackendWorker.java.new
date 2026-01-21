@@ -1,0 +1,58 @@
+package ur_rna.RNAstructureUI.utilities;
+
+import ur_rna.RNAstructureUI.RNAstructureBackendCalculator;
+
+/**
+ * Created by Richard on 2/10/2016.
+ */
+public abstract class RNABackendWorker extends BackgroundWorker {
+    public final static int DEFAULT_UPDATE_INTERVAL = 250;
+    public final RNAstructureBackendCalculator backend;
+    public final int updateInterval;
+    protected Thread updateThread;
+
+    protected int progress = 0;
+    protected int calcProgress() {
+        progress = Math.max(0, Math.min(backend.getProgressNumber(), 100)); return progress;
+    }
+
+    public RNABackendWorker() { this(null); }
+    public RNABackendWorker(RNAstructureBackendCalculator backend) { this(backend, DEFAULT_UPDATE_INTERVAL); }
+    public RNABackendWorker(RNAstructureBackendCalculator backend, int updateInterval) {
+        this.backend = backend!=null? backend : new RNAstructureBackendCalculator();
+        this.updateInterval = updateInterval;
+    }
+
+    protected void startUpdates() {
+        updateThread = new Thread(new Runnable() {
+            @Override public void run() { loopUpdateProgress(); }
+        });
+    }
+    protected void loopUpdateProgress() {
+        try {
+            // Initialize value
+            setProgress(calcProgress());
+            // Run a loop that periodically checks the progress of the back end calculation
+            // and updates the progress bar. The "done" method is called once the
+            // calculation is done to dispose of the progress bar.
+            while (!isDone() && progress < 100) {
+                try {
+                    Thread.sleep(updateInterval);
+                } catch (InterruptedException ex) {
+                    break;
+                }
+                setProgress(calcProgress());
+            }
+            // Do a final update.
+            setProgress(calcProgress());
+        } catch (Exception e) {
+            setError("Error updating background calculation progress: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public Void doInBackground() {
+        startUpdates();
+        return super.doInBackground();
+    }
+}

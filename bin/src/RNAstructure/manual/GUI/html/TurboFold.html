@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- TurboFold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>TurboFold</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<p>TurboFold is a tool that will find the lowest free energy secondary structure common to multiple (two or more) unaligned sequences, using partition function calculations. The input is two or more sequences. The output is an equivalent number of structures (saved as <a href="Appendix_of_File_Formats.html">CT files</a>).</p>
+							<hr>
+						</div>
+
+						<p><b>To predict the common structures with TurboFold</b></p>
+						<ol>
+							<li>Click the button labeled &quot;Sequence File&quot; and provide the name of a sequence file.</li>
+							<li>A default name has been entered for the CT File. If desired, this name can be changed by clicking the corresponding button.</li>
+							<li>Click the &quot;ADD&quot; button to add the sequence and CT files to the sequence set under consideration. Note that at least three sequences must be added for TurboFold to run correctly.</li>
+							<li>Continue adding sequence and CT files to the sequence set in this manner until all desired input and output files have been specified.</li>
+							<li>If a sequence/CT pair was entered in error, it can be removed by clicking the &quot;Delete Sequence&quot; button. The number of the sequence to be removed can be found in the text box next to the button, and it is by default the last sequence. However, specific sequence/CT pairs can be deleted by changing this value. Only one sequence can be deleted at a time.</li>
+							<li>Choose the mode TurboFold should run in. There are three modes, each with its own set of parameters. The modes and their parameters are described below, as well as a group of general parameters. The default mode for TurboFold is Maximum Expected Accuracy.</li>
+							<li>Click &quot;Start&quot; to begin the TurboFold algorithm. This calculation may take some time. A progress bar opens to indicate that the calculation is running.</li>
+							<li>When complete, windows will open to display the structures predicted for each sequence.</li>
+						</ol>
+						<hr>
+
+						<p><b>General Parameters for TurboFold</b></p>
+						<dl>
+						  <dt>Gamma</dt>
+						  <dd>A general optimized constant that balances how much information is used from other sequences when predicting the common structure for a given sequence.</dd>
+
+						  <dt>Iterations</dt>
+						  <dd>The number of iterations the TurboFold calculation should go through in refining the prediction of the common structure.</dd>
+						</dl>
+						<hr/>
+
+						<p><b>Parameters for Maximum Expected Accuracy Mode</b></p>
+						<dl>
+							<dt>&nbsp;</dt>
+							<dd>Maximum expected accuracy assembles a structure of probable pairs.</dd>
+							<dt>Max % Energy Difference</dt>
+							<dd>The maximum percent change in energy between the lowest free energy structure and the most suboptimal structure. Increasing this percentage can increase the number of structures generated.</dd>
+
+							<dt>Max Number of Structures</dt>
+							<dd>An absolute limit on the number of generated suboptimal structures.</dd>
+
+							<dt>Window Size</dt>
+							<dd>
+							  Note that larger windows require that the suboptimal structures be relatively more different from each other.
+							  In each suboptimal structure, there must be at least one new base pair that is separated from all base pairs in other suboptimal structures by <i>window</i> nucleotides.
+							  Once a base pair is formed between nucleotides <i>i</i> and <i>j</i> in a suboptimal structure, the square region of base pairs from <i>i</i>-<i>window</i> to <i>i</i>+<i>window</i> paired to <i>j</i>-<i>window</i> to <i>j</i>+<i>window</i> is marked as represented.
+							  Subsequent suboptimal structures must have at least one pair outside of the marked region.
+							</dd>
+
+							<dt>MEA Gamma</dt>
+							<dd>An optimized constant that balances the number of single and double stranded nucleotides in the predicted structure.
+						</dl>
+						<hr/>
+
+
+						<p><b>Parameters for Probability Threshold Mode</b></p>
+                        <dl>
+                          <dt>&nbsp;</dt>
+                          <dd>Probability threshold mode assembles a structure composed of pairs above a specified probability threshold. </dd>
+                          <dt>Threshold</dt>
+                          <dd> The cutoff below which base pairs of a particular probability can't be included in a structure.
+                            This should be expressed as a number &gt;= 0.5 and &lt;= 1.
+                            Default is 0, which signifies structures should be generated at multiple thresholds: 0.99, 0.97, 0.95, 0.90, 0.80, 0.70, 0.60, and 0.50. </dd>
+                        </dl>
+                        <p></p>
+<hr/>
+
+
+					  <p><b>Parameters for ProbKnot/TurboKnot Mode:</b></p>
+                      <dl>
+                        <dt>&nbsp;</dt>
+                        <dd>ProbKnot/TurboKnot mode assembles a structure of highly probable pairs that can contain a pseudoknot. The pairs are chosen because the nucleotides have mutually maximal pairing probability. </dd>
+                        <dt>Iterations</dt>
+                        <dd>The number of iterations of structure assembly. The default is 1. Mutually maximal pairing probability partners are found in each iteration, where nucleotides in pairs from previous iterations are ignored.</dd>
+                        <dt>Minimum helix length</dt>
+                        <dd>The minimum length of a helix. Shorter helices are removed by post processing. The default is 3.</dd>
+                      </dl>
+                      <p>&nbsp;</p>
+<p>&nbsp;</p>
+		            <p>&nbsp;</p></td>
+</dl>
+				      <hr/>
+			          
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

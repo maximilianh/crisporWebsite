@@ -1,0 +1,163 @@
+Pseudoknot Energy Details for Structure 1:
+	Knotted Pairs:
+	    271:321 273:320 274:319 275:318 276:317 277:316
+	Energy of Broken Structure: -121.1
+	Energy of Pseudo-Helices:   -8.0
+	Pseudoknot Energy Penalty:  7.6
+	Total Free Energy:          -121.5
+Details follow for Broken (Pseudoknot-free) Structure.
+Thermodynamic details for structure # 1
+	Exterior loop = -11.5
+		Stack = -0.9  for stack of 378-411
+		Stack = -2.2  for stack of 379-410
+		Stack = -2.1  for stack of 380-409
+		Stack = -1.3  for stack of 381-408
+		Stack = -0.9  for stack of 382-407
+		Stack = -1.1  for stack of 383-406
+		Stack = -1.3  for stack of 384-405
+	Helix total = -9.8
+	Internal/bulge = 1.9  for closure of 385-404	Size = 2
+		Stack = -1.4  for stack of 387-402
+		Stack = -1.3  for stack of 388-401
+		Stack = -1.1  for stack of 389-400
+		Stack = -1.0  for stack of 390-399
+		Stack = -2.5  for stack of 391-398
+	Helix total = -7.3
+	Hairpin = 3.3  for closure of 392-397
+		Stack = -2.1  for stack of 341-376
+		Stack = -1.0  for stack of 342-375
+		Stack = -2.1  for stack of 343-374
+		Stack = -3.4  for stack of 344-373
+		Stack = -2.4  for stack of 345-372
+		Stack = -3.3  for stack of 346-371
+	Helix total = -14.3
+	Internal/bulge = 1.2  for closure of 347-370	Size = 8
+		Stack = -2.1  for stack of 352-365
+		Stack = -2.2  for stack of 353-364
+		Stack = -2.1  for stack of 354-363
+	Helix total = -6.4
+	Hairpin = 4.3  for closure of 355-362
+		Stack = -2.1  for stack of 327-340
+		Stack = -2.4  for stack of 328-339
+		Stack = -3.3  for stack of 329-338
+		Stack = -2.1  for stack of 330-337
+	Helix total = -9.9
+	Hairpin = 4.7  for closure of 331-336
+		Stack = -1.5  for stack of 289-307
+		Stack = -2.1  for stack of 290-306
+		Stack = -2.4  for stack of 291-305
+		Stack = -0.9  for stack of 292-304
+		Stack = -2.1  for stack of 293-303
+		Stack = -2.4  for stack of 294-302
+	Helix total = -11.4
+	Hairpin = 4.5  for closure of 295-301
+		Stack = -2.4  for stack of 105-287
+		Stack = -2.2  for stack of 106-286
+		Stack = -3.3  for stack of 107-285
+		Stack = -2.4  for stack of 108-284
+	Helix total = -10.3
+	Internal/bulge = -0.6  for closure of 109-283	Size = 2
+		Stack = -2.1  for stack of 111-281
+	Helix total = -2.1
+	Multiloop = 10.1  for closure of 112-280
+		Stack = -2.5  for stack of 224-267
+	Helix total = -2.5
+	Internal/bulge = 3.0  for closure of 225-266	Size = 8
+		Stack = -2.4  for stack of 230-261
+		Stack = -3.3  for stack of 231-260
+	Helix total = -5.7
+	Internal/bulge = 2.8  for closure of 232-259	Size = 7
+		Stack = -2.4  for stack of 237-255
+		Stack = -2.1  for stack of 238-254
+		Stack = -0.9  for stack of 239-253
+		Stack = -2.2  for stack of 240-252
+		Stack = -2.1  for stack of 241-251
+		Stack = -2.1  for stack of 242-250
+	Helix total = -11.8
+	Hairpin = 4.2  for closure of 243-249
+		Stack = -2.1  for stack of 116-223
+		Stack = -3.4  for stack of 117-222
+		Stack = -2.4  for stack of 118-221
+	Helix total = -7.9
+	Internal/bulge = 0.5  for closure of 119-220	Size = 1 BP stack across bulge = -3.3
+		Stack = -3.3  for stack of 120-218
+	Helix total = -3.3
+	Internal/bulge = 2.7  for closure of 121-217	Size = 7
+		Stack = -3.3  for stack of 126-213
+		Stack = -1.5  for stack of 127-212
+		Stack = 1.3  for stack of 128-211
+		Stack = -1.5  for stack of 129-210
+		Stack = -2.1  for stack of 130-209
+	Helix total = -7.1
+	Internal/bulge = 2.6  for closure of 131-208	Size = 7
+		Stack = -3.3  for stack of 136-204
+		Stack = -2.4  for stack of 137-203
+		Stack = -2.2  for stack of 138-202
+	Helix total = -7.9
+	Internal/bulge = 1.0  for closure of 139-201	Size = 1 BP stack across bulge = -2.4
+		Stack = -2.1  for stack of 141-200
+		Stack = -2.1  for stack of 142-199
+	Helix total = -4.2
+	Internal/bulge = 4.5  for closure of 143-198	Size = 5
+		Stack = -1.3  for stack of 144-192
+		Stack = -2.2  for stack of 145-191
+		Stack = -3.3  for stack of 146-190
+		Stack = -2.1  for stack of 147-189
+	Helix total = -8.9
+	Multiloop = 6.3  for closure of 148-188
+		Stack = -3.3  for stack of 174-184
+		Stack = -2.1  for stack of 175-183
+	Helix total = -5.4
+	Hairpin = 5.5  for closure of 176-182
+		Stack = -2.4  for stack of 151-170
+		Stack = -2.1  for stack of 152-169
+		Stack = -2.4  for stack of 153-168
+		Stack = -2.1  for stack of 154-167
+		Stack = -0.6  for stack of 155-166
+		Stack = -0.5  for stack of 156-165
+		Stack = -2.1  for stack of 157-164
+	Helix total = -12.2
+	Hairpin = 3.1  for closure of 158-163
+		Stack = -2.5  for stack of 67-102
+		Stack = -1.5  for stack of 68-101
+		Stack = -2.1  for stack of 69-100
+	Helix total = -6.1
+	Internal/bulge = 2.0  for closure of 70-99	Size = 1 BP stack across bulge = -0.9
+		Stack = -0.9  for stack of 71-97
+		Stack = -1.3  for stack of 72-96
+		Stack = -0.9  for stack of 73-95
+		Stack = -0.9  for stack of 74-94
+		Stack = -2.2  for stack of 75-93
+		Stack = -3.3  for stack of 76-92
+	Helix total = -9.5
+	Internal/bulge = 1.2  for closure of 77-91	Size = 2
+		Stack = -1.1  for stack of 79-89
+	Helix total = -1.1
+	Hairpin = 5.7  for closure of 80-88
+		Stack = -2.1  for stack of 40-65
+		Stack = -2.5  for stack of 41-64
+		Stack = -0.6  for stack of 42-63
+		Stack = -1.3  for stack of 43-62
+		Stack = -1.4  for stack of 44-61
+		Stack = -1.5  for stack of 45-60
+		Stack = -2.1  for stack of 46-59
+		Stack = -2.1  for stack of 47-58
+		Stack = -3.3  for stack of 48-57
+	Helix total = -16.9
+	Hairpin = 4.3  for closure of 49-56
+		Stack = -2.1  for stack of 5-36
+		Stack = -1.5  for stack of 6-35
+		Stack = -2.1  for stack of 7-34
+		Stack = -2.4  for stack of 8-33
+		Stack = -2.1  for stack of 9-32
+		Stack = -1.0  for stack of 10-31
+		Stack = -0.9  for stack of 11-30
+		Stack = -0.9  for stack of 12-29
+	Helix total = -13.0
+	Hairpin = 6.6  for closure of 13-28
+
+
+	Total energy = -121.1
+
+
+

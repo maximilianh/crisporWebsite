@@ -863,39 +863,47 @@ def forceWrapper(func, seqs):
         return [-1]*len(seqs)
 
 def calcFreeEnergyViennaRNA(seq, temperature = 37):
-    " With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float"
+    """ With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float 
+    >>> print(calcFreeEnergyViennaRNA("TGAACGTGGCTATGCCTTCA")) 
+    -2.5
+    >>> print(calcFreeEnergyViennaRNA("GCCCAGGGTGCGGTGGGCCC"))
+    -8.5
+    """
     # temporary solution, should it use the viennarna python package instead ?
-
-    binPath = getBinPath("RNAfold")
-    cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), binPath, temperature)
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding='utf8')
+    binDir = abspath(join(myDir, "bin", platform.system()+"-"+platform.machine()))
+    cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), binDir, temperature)
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
     vienna = proc.stdout.read()
-    proc.wait() 
+    proc.wait() #useless in this case ? 
     viennaouts = [out for out in vienna.split(' ')]
     deltaG = viennaouts.pop()
     #structure (unused for now, needs to be displayed with a monospaced font)
     #seqStructure = ''.join(viennaouts)
-    if proc.returncode == 0:
-        return float(deltaG.strip().replace(')', ''))
+    
+    return float(deltaG.strip().replace(')', '').replace('(', ''))
     
 def calcFreeEnergyRNAStructure(seq):
     """ Using RNAstructure (https://rna.urmc.rochester.edu/Releases/6.0.1/manual/RNA_class/html/index.html)
-    returns the minimum free energy (in kcal/mol) of a sequence """
+    returns the minimum free energy (in kcal/mol) of a sequence
+    >>> print(calcFreeEnergyRNAStructure("TGAACGTGGCTATGCCTTCA")) 
+    -2.6
+    >>> print(calcFreeEnergyRNAStructure("GCCCAGGGTGCGGTGGGCCC"))
+    -8.5
+    """
 
     import RNAstructure
 
     guideStructure = RNAstructure.RNA.fromString(seq)
-    guideStructure.FoldSingleStrand()
+    guideStructure.FoldSingleStrand(mfeonly=True)
     freeEnergy = guideStructure.GetFreeEnergy(structurenumber=1)
 
     return freeEnergy
-
 
 def calcEvaLikeScore(seqs):
     """ 
     Returns the EVA score without the MIT weigth.
     from Riesenberg et al. 2025.
-    Predicts the activity of synthetic guides 
+    Predicts the activity of synthetic guides   
 
     EVA score model:
         Pearson's r:            0.8308		
@@ -909,12 +917,25 @@ def calcEvaLikeScore(seqs):
         number_of_GA	        2.9282
         C20	                   -5.0730
         G17	                   -8.5009
+
+    Examples from from Riesenberg et al. 2025 (supplementary data)
+
+    >>> evaTest1 = calcEvaLikeScore(["GCCCAGGGTGCGGTGGGCCC"])[0] + 31*0.1784
+    >>> print(evaTest1)
+    20.2
+
+    >>> evaTest2 = calcEvaLikeScore(["TGAACGTGGCTATGCCTTCA"])[0] + 75*0.1784
+    >>> print(evaTest2)
+    80.8
+
     """
+
     scores = []
     for seq in seqs:
         freeEnergy = calcFreeEnergyRNAStructure(seq)
         if freeEnergy >= -3:
             freeEnergy = -3
+            
         nGA = seq.upper().count('GA')
         if len(seq) > 17 and seq[16] == 'G':
             G17 = 1

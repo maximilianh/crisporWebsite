@@ -1,0 +1,12 @@
+Initializing predicted and accepted structures...done.
+Calculating sensitivity and PPV for structure 1...done.
+
+Accepted Structure:  testFiles/testFile_CircleCompare_accepted.ct
+Predicted Structure: testFiles/testFile_knotted.ct
+Score of Predicted Structure 1:
+Sensitivity: 108 / 141 = 76.60%
+PPV:         107 / 129 = 82.95%
+
+Saved in output file: scorer_print_option_screen_output.txt
+
+Nucleic acid structure scoring complete.

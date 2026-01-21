@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head>
+		
+		<title>RNAstructure Installation and Overview: Building Requirements</title><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+<body>
+		<div class="bodydiv">
+			<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+				<tbody><tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Building Requirements</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<a name="Compilers"></a>
+						<h3>Compilers</h3>
+						<p>Installation
+of the RNAstructure repository for Unix, Linux, Mac OS X, or Windows requires a
+current C++ compiler. By default, RNAstructure assumes a GNU g++
+compiler, but there are alternative options that may be specified in
+RNAstructure/compiler.h.</p><p>For Windows, see the additional notes <a href="#Windows">below</a>.</p><hr>
+
+						<a name="GUIsoftware"></a>
+						<h3>RNAstructure Java GUI: Software</h3>
+						<p>Building the&nbsp;Java&nbsp;Graphical User Interface (GUI) for RNAstructure requires the following:</p><ul><li>The <a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Oracle Java SE JDK</a> version 1.7 or later</li><li><a href="http://www.swig.org/">SWIG</a> is only required if you make changes to the public interface of the&nbsp;<span style="font-weight: bold;">RNAstructure_GUI</span> library</li><li>A C++ compiler for building&nbsp;the RNAstructure_GUI native libarary</li></ul><hr><a name="Building Multifind"></a>
+						<h3>Building Multifind</h3>
+						<p>To build Multifind, <a href="http://www.csie.ntu.edu.tw/%7Ecjlin/libsvm/">LIBSVM</a>
+version 3.0 or later is required. Building Multifind also requires the
+variable INCLUDESVM to be set in compiler.h. It is the LIBSVM directory
+that contains svm.o and svm.h.</p>
+						<hr>
+
+						<a name="Windows"></a>
+						<h3>Building&nbsp;on Windows</h3>
+						<p>There are two
+options for compiling&nbsp;RNAstructure on Windows:&nbsp;
+</p>
+<ul>
+<li><span style="font-weight: bold;">Microsoft
+Visual Studio</span><br>
+Microsoft Visual Studio is freely available and can be used to build the programs natively for Windows. The individual programs have Visual Studio solutions available.<br></li><li><span style="font-weight: bold;">
+Linux-style build process using <a href="https://cygwin.com/">Cygwin</a>
+and <a href="http://mingw-w64.org/">MingW-W64</a></span><br>Cygwin provides a complete POSIX environment on Windows and allows compilation
+of RNAstructure using the same framework as on Linux (i.e. gcc/g++ and
+GNU make).&nbsp;</li></ul>
+                      <hr>
+                      <h3><a name="CUDA"></a></h3>
+                      <h3>CUDA-enabled Software</h3>
+					<p>Building partition-cuda requires a CUDA compiler, availble from NVIDIA:</p>
+					<p><a href="https://developer.nvidia.com/cuda-downloads">https://developer.nvidia.com/cuda-downloads</a></p>
+					<p>&nbsp;</p></td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</tbody></table>
+		</div>
+	</body></html>

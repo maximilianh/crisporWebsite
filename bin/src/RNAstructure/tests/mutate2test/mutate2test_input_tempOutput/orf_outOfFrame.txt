@@ -1,0 +1,2 @@
+>random ORF containing simple hairpin - hairpin's first codon is missing 1 nt
+GGGUUAUAUCUUUGGUGCAAGGGCGGCCUUACCUUGC

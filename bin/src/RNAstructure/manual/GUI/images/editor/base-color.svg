@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="32"
+   version="1.1"
+   viewBox="0 0 34.133334 34.133335"
+   width="32"
+   x="0mm"
+   y="0mm"
+   id="svg2"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="base-color.svg"
+   inkscape:export-filename="E:\home\jobs\RNA\RNAstructure\manual\GUI\images\editor\base-color-outline.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
+  <metadata
+     id="metadata20">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs18" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1600"
+     inkscape:window-height="847"
+     id="namedview16"
+     showgrid="false"
+     inkscape:zoom="16.107692"
+     inkscape:cx="46.555488"
+     inkscape:cy="18.968171"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="px" />
+  <path
+     style="fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:3.41860986;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     d="m 33.765941,17.057867 20.343327,0.06593"
+     id="path4226"
+     inkscape:connector-curvature="0" />
+  <g
+     id="g4185">
+    <circle
+       cx="17.042503"
+       cy="17.090832"
+       style="fill:#d3d3d3;stroke:none"
+       id="ellipse6"
+       r="16.040003" />
+    <text
+       style="font-weight:bold;font-size:24.06000328px;font-family:Arial;fill:#000000;fill-opacity:1;stroke:none;"
+       x="8.3548203"
+       y="25.110832"
+       id="text8">A</text>
+    <circle
+       cx="17.042503"
+       cy="17.090832"
+       style="fill:none;stroke:#000000;stroke-width:2.00500035;stroke-linecap:square;stroke-miterlimit:10"
+       id="ellipse10"
+       r="16.040003" />
+  </g>
+  <circle
+     r="16.040003"
+     id="ellipse6-9"
+     style="fill:#d3d3d3;stroke:none"
+     cy="17.090832"
+     cx="70.421402" />
+  <text
+     id="text8-2"
+     y="25.110832"
+     x="61.60128"
+     style="font-weight:bold;font-size:24.06000328px;font-family:Arial;fill:#000000;fill-opacity:1;stroke:none">U</text>
+  <circle
+     r="16.040003"
+     id="ellipse10-2"
+     style="fill:none;stroke:#000000;stroke-width:2.00500035;stroke-linecap:square;stroke-miterlimit:10"
+     cy="17.090832"
+     cx="70.421402" />
+</svg>

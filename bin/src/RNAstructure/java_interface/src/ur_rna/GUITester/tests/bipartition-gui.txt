@@ -1,0 +1,20 @@
+StartGUI '-prefs ~test -opt draw-structures=P  -sfc -jmnu'
+WAIT { Menu 'RNA' }, 20000
+Menu 'RNA', 'Partition Function RNA Bimolecular'
+Click { BUTTON 'Sequence File 1' }
+TypeText '../tests/testFiles/testFile_ec5s.seq'; TypeENTER
+Prohibit { DIALOG 'RNAstructure error' }
+Click { BUTTON 'Sequence File 2' }
+TypeText '../tests/testFiles/testFile_ca5s.seq'; TypeENTER
+Prohibit { DIALOG 'RNAstructure error' } 
+SetText { FIELD  'Save File' }, 'bipartition-gui_temperature_option_output.pfs'
+Menu 'Temperature', 'Set Temperature'
+Focus { FIELD 'input' }
+ClearText; 
+TypeText '330'; 
+Click { BUTTON 'OK' };
+CLICK { BUTTON 'START' }
+Prohibit { DIALOG 'RNAstructure error' } 
+WAIT  { BUTTON 'OK' }, 10000 
+CLICK { BUTTON 'Cancel' }
+CloseGUI

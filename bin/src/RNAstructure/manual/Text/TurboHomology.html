@@ -1,0 +1,279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+    <head>
+        <title>RNAstructure Command Line Help: TurboHomology</title>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <link href="Stylesheet.css" rel="stylesheet" type="text/css"><style type="text/css"></style>
+    </head>
+    <body>
+        <div class="bodydiv">
+            <table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+                <tr class="headerRow">
+                    <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+                    <td class="headerLabel"><h2>RNAstructure Command Line Help<br>TurboHomology</h2></td>
+                    <td class="headerBox2">
+                        <ul id="navigator">
+                            <li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+                            <li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="mainContent" colspan="3">
+                        <p>TurboHomology predict the secondary structure and the alignment for a newly discovered sequence of an RNA family having multiple existing homologs with known secondary structures and a known multiple sequence alignment(MSA).  </p>
+                        
+                        <a name="Usage" id="Usage"></a>
+                      <h3 class="noMarginOrPad">USAGE 1: TurboHomology &lt;configuration file&gt;</h3>
+
+                        <h3 class="leftHeader">Required parameters:</h3>
+                        <table>
+                            <tr>
+                                <td class="cell">&lt;configuration file&gt;</td>
+                                <td>The name of a file containing required configuration data.</td>
+                            </tr>
+                        </table>
+
+                        <h3 class="leftHeader">Options that do not require added values:</h3>
+                        <table>
+                            <tr>
+                                <td class="cell">-h, -H, --help</td>
+                                <td>Display the usage details message.</td>
+                            </tr>
+                        </table>
+
+                        <h3 class="leftHeader">Options which require added values:</h3>
+                        <h4>NONE</h4>
+
+<h3 class="leftHeader">Notes:</h3>
+<ul>
+  <li>Unknown nucleotides (e.g. <strong class="monoFont">N</strong> or <strong class="monoFont">X</strong>) get randomly mapped to A, C, G, or U by HMM. </li>
+</ul>
+                        <h3 class="leftHeader">Configuration file format:</h3>
+                      <p>The following is a description of valid options allowed in the configuration file.</p>
+                        <pre class="codeBlock"><span class="codeComment"># IMPORTANT CONFIG FILE FORMAT NOTES:</span><span class="codeComment">
+#</span>
+<span class="codeComment"># Option lines may be specified by the option name followed by an equals sign
+# and the option&#39;s desired value.</span> <span class="codeComment">Option names are not case sensitive.
+# When specifying an option, there may be nothing else on the line.</span>
+<span class="codeComment"># &lt;option&gt; = &lt;value&gt;</span>
+<span class="codeComment">#</span>
+<span class="codeComment"># Specifying comment lines:</span>
+<span class="codeComment"># Comment lines must begin with &quot;#&quot; followed by a space.</span>
+<span class="codeComment"># There may not be more than one &quot;#&quot; in a comment line.</span>
+<span class="codeComment"># However, a comment line may be an unbroken string of &quot;#&quot;, as in a divider 
+# between sets of options.</span>
+<span class="codeComment">#</span>
+<span class="codeComment"># Blank lines are skipped.</span>
+<span class="codeComment"></span><span class="codeComment"></span>
+<span class="codeComment"></span><span class="codeComment"># <strong>Mode</strong> specifies the resolving algorithm TurboFold uses after its initial fold.</span>
+<span class="codeComment"># A valid mode is required for TurboFold to run properly.</span>
+<span class="codeComment"># Valid modes can be one of three options:</span>
+<span class="codeComment">#       1. MEA (Maximum expected accuracy)</span>
+<span class="codeComment">#       2. ProbKnot (For pseudoknotted sequences)</span>
+<span class="codeComment">#       3. Threshold (Finding most probable pairs)</span>
+<span class="codeComment"># Modes should be specified as text strings: MEA, ProbKnot, or Threshold.</span>
+<span class="codeComment"># The default mode is MEA.</span>
+Mode <span >=</span> <span class="codeKeyword">MEA|ProbKnot|Threshold</span>
+
+<span class="codeComment">#### <strong>Listing Input Sequences</strong> ####</span>
+<span class="codeComment"># Place sequence file names in brackets separated by semicolons.
+#    Filenames may contain spaces, but no extra space is allowed before or after
+#    semicolons or braces.</span>
+<span class="codeComment"></span>InSeq <span >=</span> <span class="codeSymbol">{</span><span class="codeKeyword">path/to/input_New.seq</span><span class="codeSymbol">;</span><span class="codeKeyword">path/to/refSeq1.seq</span><span class="codeSymbol">;</span><span class="codeKeyword">path/to/refSeq2.seq</span><span class="codeSymbol">;</span><span class="codeKeyword">path/to/refSeq3.seq</span><span class="codeSymbol">;}</span>
+
+<span class="codeComment">#### <strong>Listing Reference CT files</strong> ####</span>
+<span class="codeComment"># The order of reference sequences' CT files should match with the order of seq files 
+# at above. </span>
+<span class="codeComment"># Place CT file names in brackets separated by semicolons.
+#    Filenames may contain spaces, but no extra space is allowed before or after
+#    semicolons or braces.</span>
+<span class="codeComment"></span>RefCT <span >=</span> <span class="codeSymbol">{</span><span class="codeKeyword">path/to/refCT1.ct</span><span class="codeSymbol">;</span><span class="codeKeyword">path/to/refCT2.ct</span><span class="codeSymbol">;</span><span class="codeKeyword">path/to/refCT3.ct</span><span class="codeSymbol">;}</span>
+
+<span class="codeComment">#### <strong>Reference Existing Alignment file</strong> ####</span>
+<span class="codeComment"># Alignment file is in fasta format.</span>
+
+<span class="codeComment"></span>ExistingAln <span >=</span> <span class="codeKeyword"><span>path/to/existingAlignment</span></span><span class="codeSymbol"></span><span class="codeKeyword"><span>.fasta</span></span>
+
+
+<span class="codeComment">#### <strong> Output CT file</strong> ####
+<span class="codeComment"># Predicted CT file for the input_New.seq.</span><span class="codeComment"></span>
+OutCT <span >=</span> <span class="codeSymbol">{</span><span class="codeKeyword"><span>path/to/output1</span></span><span class="codeSymbol"></span><span class="codeKeyword"><span>.ct</span></span><span class="codeSymbol">;}</span>
+<span class="codeComment">
+
+
+<span class="codeComment"># Partiton function save file (<strong>PFS</strong>) names can be specified for each sequence
+# if this type of output is desired. 
+SaveFiles = <span class="codeSymbol">{</span><span class="codeKeyword"><span>path/to/file1</span></span><span class="codeSymbol"></span><span class="codeKeyword"><span>.pfs</span></span><span class="codeSymbol">;}</span>
+
+<span class="codeComment"># The output multiple sequence alignment filename can be specified. </span>
+<span class="codeComment"># Default is output.aln.</span>
+OutAln <span >=</span> &lt;<span class="codeKeyword">filename</span>&gt;
+
+
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># TurboHomology options</span>
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># TurboHomology options affect output regardless of the mode specified.</span>
+<!-- 
+<span class="codeComment"># Gamma specifies the TurboFold gamma value.</span>
+<span class="codeComment"># This should not be confused with MeaGamma (below).</span>
+<span class="codeComment"># Its default value is 0.3.</span>
+Gamma <span >=</span> <span class="cell" style="color: #6600EE; font-weight: bold"><span class="codeKeyword">0.3</span></span>
+
+<span class="codeComment"># Iterations specifies the number of iterations TurboFold goes through.</span>
+<span class="codeComment"># This should not be confused with PkIterations (below).</span>
+<span class="codeComment"># Its default value is 3.</span>
+Iterations <span >=</span> <span class="codeKeyword">3</span> -->
+
+<span class="codeComment"># MaximumPairingDistance specified the maximum distance between nucleotides that can pair.</span>
+<span class="codeComment"># i.e. for nucleotide i to pair with j, [i - j| &lt; MaximumPairingDistance.</span>
+<span class="codeComment"># This applies to each sequence.</span>
+<span class="codeComment"># Its default is no limit, which is indicated by a value of zero.</span>
+MaximumPairingDistance <span >=</span> <span class="codeKeyword">0</span>
+
+<span class="codeComment"># Temperature specifies the temperature at which TurboFold is run, in Kelvin.</span>
+<span class="codeComment"># Its default value is 310.15 K, which is 37 degrees C.</span>
+Temperature <span >=</span> <span class="codeKeyword">310.15</span>
+
+<span class="codeComment"># Processors specifies the number of processors TurboFold is run on.</span>
+<span class="codeComment"># Note that this flag only has an effect when TurboFold-smp, the parallel version 
+# of TurboFold, is run.</span>
+<span class="codeComment"># Its default value is 1.</span>
+Processors <span >=</span> <span class="codeKeyword">1</span>
+
+<span class="codeComment"># The format of output multiple sequence alignment can be choosen from Fasta or Clustal.</span>
+<span class="codeComment"># Default is Clustal.</span>
+AlnFormat <span >=</span> <span class="codeKeyword">Fasta|Clustal</span>
+
+<span class="codeComment"># The number of columns of output multiple sequence alignment can be specified.</span>
+<span class="codeComment"># Default is 60</span>
+ColumnNumber <span >=</span> <span class="codeKeyword">60</span>
+
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># Maximum expected accuracy (MEA) mode options</span>
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># The following options only have an effect when MEA mode is specified. </span>
+<span class="codeComment"># If they are specified when TurboFold is in a different mode, they are ignored.</span>
+
+<span class="codeComment"># MaxPercent specifies the maximum percent energy difference.</span>
+<span class="codeComment"># Its default value is 50 (percent).</span>
+MaxPercent <span >=</span> <span class="codeKeyword">50</span>
+
+<span class="codeComment"># MaxStructures specifies the maximum number of structures to calculate.</span>
+<span class="codeComment"># Its default value is 1000 structures.</span>
+MaxStructures <span >=</span> <span class="codeKeyword">1000</span>
+
+<span class="codeComment"># MeaGamma specifies the MEA mode gamma value.</span>
+<span class="codeComment"># This should not be confused with Gamma (above).</span>
+<span class="codeComment"># Its default value is 1.0.</span>
+MeaGamma <span >=</span> <span class="codeKeyword">1.0</span>
+
+<span class="codeComment"># Window specifies the window size.</span>
+<span class="codeComment"># Its default value is 5 nucleotides.</span>
+Window <span >=</span> <span class="codeKeyword">5</span>
+
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># Pseudoknot (ProbKnot) mode options</span>
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># The following options only have an effect when ProbKnot mode is specified. </span>
+<span class="codeComment"># If they are specified when TurboFold is in a different mode, they are ignored.</span>
+
+<span class="codeComment"># MinHelixLength is the minimum helix length allowed during folding.</span>
+<span class="codeComment"># Its default value is 3 nucleotides.</span>
+MinHelixLength <span >=</span> <span class="codeKeyword">3</span>
+
+<span class="codeComment"># Iterations specifies the number of iterations ProbKnot goes through.</span>
+<span class="codeComment"># This should not be confused with Iterations (above).</span>
+<span class="codeComment"># Its default value is 1.</span>
+PkIterations <span >=</span> <span class="codeKeyword">1</span>
+
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># Probable Pairs (Threshold) mode options</span>
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># The following options only have an effect when Threshold mode is specified. </span>
+<span class="codeComment"># If they are specified when TurboFold is in a different mode, they are ignored.</span>
+
+<span class="codeComment"># Threshold specifies the probability threshold at which pairs are included in a structure.</span>
+<span class="codeComment"># If a threshold is explicitly specified, it should be expressed as a number &gt;= 0.5 and &lt;= 1.0.</span>
+<span class="codeComment"># Its default value is 0.</span>
+<span class="codeComment"># This signifies that structures should be generated at the following thresholds:</span>
+<span class="codeComment">#       &gt;= 0.99, &gt;= 0.97, &gt;= 0.95, &gt;= 0.90, &gt;= 0.80, &gt;= 0.70, &gt;= 0.60, &gt;= 0.50</span>
+Threshold <span >=</span> <span class="codeKeyword">0</span>
+<!-- 
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># Using SHAPE data</span>
+<span class="codeComment">################################################################</span>
+<span class="codeComment"># To apply SHAPE data on one or more sequences, use the SHAPEFiles option and 
+$ p</span><span class="codeComment">lace shape file names in brackets separated by semicolons.</span>
+<span class="codeComment"># The order of the files should correspond to list of input sequences.</span>
+<span class="codeComment"># Note that there cannot be any spaces whatsoever between the brackets or semicolons.
+# The shape file name can be left <strong>blank</strong> for sequences that lack shape data.
+# For example, the following line applies SHAPE data to sequences 1, 2, and 4, but
+# not to sequences 3 and 5. (Note the empty slots in the 3rd and 5th positions).</span>
+SHAPEFiles <span >=</span> <span class="codeSymbol">{</span><span class="codeKeyword">file1.shape</span><span class="codeSymbol">;</span><span class="codeKeyword"><span class="codeSymbol"></span>file2.shape<span class="codeSymbol"></span></span><span class="codeSymbol">;;</span><span class="codeKeyword">f</span><span class="codeSymbol"><span class="codeKeyword">ile4.shape</span>;;}</span>
+<span class="codeComment">
+# SHAPE files can also be specified individually, which is often more 
+# straightforward when only a few input sequences have SHAPE data:
+</span>SHAPE<span class="codeSymbol">1</span> <span class="codeComment">= <span class="codeKeyword">file1.shape</span>
+</span>SHAPE<span class="codeSymbol">4</span> = <span class="codeComment"><span class="codeKeyword">file4.shape</span>
+
+# SHAPEintercept specifies the SHAPE intercept used by TurboFold.</span>
+<span class="codeComment"># Note that if specified, this value is only used if one or more SHAPE files is also specified.</span>
+<span class="codeComment"># Its default value is -0.6 kcal/mol.</span>
+SHAPEintercept <span >=</span> <span >-</span><span class="codeKeyword">0.6</span>
+
+<span class="codeComment"># SHAPEslope specifies the SHAPE slope used by TurboFold.</span>
+<span class="codeComment"># Note that if specified, this value is only used if one or more SHAPE files is also specified.</span>
+<span class="codeComment"># Its default value is 1.8 kcal/mol.</span>
+SHAPEslope <span >=</span> <span class="codeKeyword">1.8</span>
+
+<span class="codeComment"></span><span class="codeComment"></span><span class="codeComment">##### Using Rsample Mode for SHAPE data ##### 
+# Rsample is a more accurate method of using SHAPE data, which uses stochastic
+# sampling to match SHAPE values to structural motifs.</span>
+<span class="codeComment"># Rsample mode can be enabled with the following option. 
+# (If Rsample is not enabled, SHAPE data are used in legacy mode.</span>)
+<span class="codeComment"></span>UseRsample <span >=</span> <span class="codeKeyword">1</span>
+
+<span class="codeComment"># The following options only have an effect when <strong>Rsample</strong> is enabled<strong></strong>. </span>
+<span class="codeComment"></span>
+<span class="codeComment"># Specify a seed number for stochastic sampling in <strong>Rsample</strong> mode.</span>
+Seed <span >=</span> <span class="codeKeyword">1</span>
+
+<span class="codeComment"># Cparam and Offset specify the SHAPE constraints in <strong>Rsample</strong> mode.</span>
+<span class="codeComment"># Cparam is used to establish the relationship between free energy and reactivities.</span>
+<span class="codeComment"># Offset is used to account for the fact that normalized reactivities can be less than zero.</span>
+<span class="codeComment"># The default values for Cparam is 0.5; for Offset is 1.1.</span>
+Cparam <span >=</span> <span class="codeKeyword">0.5</span>
+Offset <span >=</span> <span class="codeKeyword">1.1</span>
+
+<span class="codeComment"># NumSamples specify the number of samples for stochastic sampling in <strong>Rsample</strong> mode.</span>
+<span class="codeComment"># The default value is 10000.</span>
+NumSamples <span >=</span> <span class="codeKeyword">10000</span></pre> -->
+
+                        <a name="Refs" id="Refs"></a>
+                      <h3 class="leftHeader">References:</h3>
+                        <ol class="noListTopMargin">
+                            <li class="gapListItem">
+                                Harmanci, A.O., Sharma, G., and Mathews, D.H.
+                                <br>
+                                &quot;TurboFold: Iterative Probabilistic Estimation of Secondary Structures for Multiple RNA Sequences.&quot;
+                                <br>
+                                <i>BMC Bioinformatics</i>, 12:108. (2011).</li>
+                            <li class="gapListItem">Reuter, J.S. and Mathews, D.H.
+                                <br>
+                                &quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+                                <br>
+                                <i>BMC Bioinformatics</i>, 11:129. (2010).
+                            </li>
+                        </ol>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="footer" colspan="3">
+                        <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: AccessFold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					AccessFold</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>
+						AccessFold is used to predict the lowest free energy structure for two interacting strands.  Intramolecular pairs are not allowed, but a heuristic is used to determine accessibility for bimolecular pairing. Note that output is written to a CT file where the sequences are concatenated, with an intermolecular linker between them (&quot;III&quot;).</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: AccessFold &lt;seq file 1&gt; &lt;seq file 2&gt; &lt;ct file&gt; [options]					  </h3>
+					  <h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;seq file 1&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data for the first sequence.
+									<br>
+									Note that lowercase nucleotides are forced single-stranded in structure prediction.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;seq file 2&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data for the second sequence.
+									<br>
+									Note that lowercase nucleotides are forced single-stranded in structure prediction.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Note that the backbone type must be the same for both sequences.
+									<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+						  <tr>
+						    <td class="cell">-g, -G, --gamma</td>
+						    <td>Specify the scaling for accessibility. The default is 0.4 .</td>
+					      </tr>
+							<tr>
+								<td class="cell">-l, -L, --loop</td>
+								<td>
+									Specify a maximum internal/bulge loop size.
+									<br>
+									Default is 30 unpaired nucleotides.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-m, -M, --maximum</td>
+								<td>
+									Specify a maximum number of structures. Note that suboptimal structures are generated until either the maximum number of structures are reached or the maximum percent difference is reached (below).
+									<br>
+									Default is 20 structures.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-p, -P, --percent</td>
+								<td>
+									Specify a maximum percent energy difference in free energy of suboptimal structures above the lowest free energy change. Note that suboptimal structures are generated until either the maximum percent free energy difference is reached or until the maximum number of structures is reached (above).
+									<br>
+									Default is 50 percent (specified as 50, not 0.5).
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-t, -T, --temperature</td>
+								<td>
+									Specify the temperature at which calculation takes place in Kelvin.
+									<br>
+									Default is 310.15 K, which is 37 degrees C.
+								</td>
+							</tr>
+							<tr>
+								<td>-w, -W, --window</td>
+								<td>
+									Specify a window size.
+									<br>
+									Default is 0 nucleotides.
+								</td>
+							</tr>
+						</table>
+<h3 class="leftHeader">&nbsp;</h3>
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">DiChiacchio, L. and 
+								Mathews, D.H.<br>
+								&quot;AccessFold: Predicting RNA-RNA Interactions with Consideration for Competing Self-Structure.&quot;
+								<br>
+								submitted for review.
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

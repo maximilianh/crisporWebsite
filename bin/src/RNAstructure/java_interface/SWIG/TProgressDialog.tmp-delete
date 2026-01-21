@@ -1,0 +1,64 @@
+/*
+ * A header file for a progress dialog used with the RNAstructure GUI.
+ *
+ * (c) 2009  Mathews Lab, University of Rochester Medical Center
+ * Written by Jessica Reuter
+ */
+
+#ifndef SWIG_TPROGRESSDIALOG_H
+#define SWIG_TPROGRESSDIALOG_H
+
+class TProgressDialog {
+ public:
+  // Public constructor and method
+
+  /*
+   * Name:        Constructor
+   * Description: Constructs the TProgressDialog proxy object.
+   * Argument:
+   *          1. A reference to a ProgressMonitor
+   */
+  TProgressDialog();
+
+  // A virtual method is required to cause this class to be polymorphic (i.e. have a vtable), which is required for ObservingTextProgressBar
+  //  No longer necessary, virtual ~TProgressDialog();
+
+  /*
+   * Name:        update
+   * Description: Updates the progress percent
+   * Argument:
+   *     1.   The new progress percent value.
+   */
+  void update( int percent );
+
+  /*
+   * Name:        canceled
+   * Description: returns true if the operation was canceled by the user.
+   */
+  bool canceled();
+
+    /*
+   * Name:        cancel
+   * Description: Signal to the current calculation that it should gracefully abort, cleanup, and exit.
+   */
+  void cancel();
+
+  /*
+   * Name:        progress
+   * Description: returns the current progress percent.
+   */
+  int progress();
+
+    /*
+   * Name:        reset
+   * Description: Resets the progress and canceled status.
+   */
+  void reset();
+
+ private:
+  // Private variable: percent of total progress completed
+  int percentProgress;
+  bool isCanceled;
+};
+
+#endif /* SWIG_TPROGRESS_DIALOG_H */

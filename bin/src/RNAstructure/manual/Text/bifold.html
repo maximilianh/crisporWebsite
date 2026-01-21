@@ -1,0 +1,188 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: bifold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					bifold and bifold-smp</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>
+							bifold is used to predict lowest free energy structures containing two strands. The structures can contain intramolecular pairs. A heuristic is used to predict suboptimal structures.
+							<br>
+							Note that output is written to a CT file where the sequences are concatenated, with an intermolecular linker between them (&quot;III&quot;).
+						bifold-smp is a parallel processing version for use on multi-core computers, built using OpenMP.</p>
+						<p>Optionally, --list indicates that a file with a list of sequence pairs will be read and the output will be  the folding free energy changes.</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: bifold &lt;seq file 1&gt; &lt;seq file 2&gt; &lt;ct file&gt; [options]</h3>
+					  <h3>OR: bifold-smp &lt;seq file 1&gt; &lt;seq file 2&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;seq file 1&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data for the first sequence or the filename of a text file list of oligonucleotide pairs (if --list is used).
+									<br>
+									Note that lowercase nucleotides are forced single-stranded in structure prediction.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;seq file 2&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data for the second sequence.
+									<br>
+									Note that lowercase nucleotides are forced single-stranded in structure prediction.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written or the name of a text file to which folding free energies will be written (if --list is used).</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+                        	<tr>
+                    			<td class="cell">-a, -A, --alphabet</td>
+                    			<td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  			</tr>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Note that the backbone type must be the same for both sequences.
+									<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">-i, -I, --intramolecular</td>
+								<td>
+									Forbid intramolecular pairs (pairs within the same strand).
+									<br>
+									Default is to allow intramolecular pairs.
+								</td>
+                                
+							</tr>
+                            
+                            <tr>
+								<td class="cell">--list</td>
+								<td><p>Specify that list of oligonucleotide pairs will be used as input rather than two sequence files. &lt;seq file 1&gt; then specifies the list. &lt;seq file 2&gt;then is unused (but must be specified with some text). &lt;ct file&gt; is the name of a file that will contain the folding free energies for each pair of sequences. The input file format is specified below in <a href="#Notes">Notes</a>. This is substantially faster than invoking bifold for each pair of sequences seperately because the thermodynamic parameters will only be read once.</p></td>
+							</tr>
+                            
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+					  <table>
+							<tr>
+								<td class="cell">-l, -L, --loop</td>
+								<td>
+									Specify a maximum internal/bulge loop size.
+									<br>
+									Default is 30 unpaired nucleotides.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-m, -M, --maximum</td>
+								<td>
+									Specify a maximum number of structures. Note that suboptimal structures are generated until either the maximum number of structures are reached or the maximum percent difference is reached (below).
+									<br>
+									Default is 20 structures.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-p, -P, --percent</td>
+								<td>
+									Specify a maximum percent energy difference in free energy of suboptimal structures above the lowest free energy change. Note that suboptimal structures are generated until either the maximum percent free energy difference is reached or until the maximum number of structures is reached (above).
+									<br>
+									Default is 10 percent (specified as 10, not 0.1).
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-s, -S, --save</td>
+								<td>
+									Specify the name of a save file, needed for dot plots and refolding.
+									<br>
+									Default is not to generate a save file.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-t, -T, --temperature</td>
+								<td>
+									Specify the temperature at which calculation takes place in Kelvin.
+									<br>
+									Default is 310.15 K, which is 37 degrees C.
+								</td>
+							</tr>
+							<tr>
+								<td>-w, -W, --window</td>
+								<td>
+									Specify a window size.
+									<br>
+									Default is 0 nucleotides.
+								</td>
+							</tr>
+						</table>
+<h3 class="leftHeader"><a name="Notes">Notes for using --list:</h3>
+<p>When a list of oligonucleotide pairs is provided (specifed by --list), the input is a plain text file with the format of (where any whitespace between the two sequences will work):</p>
+<pre><em>CGGGGAAG CUUCCCCG<br>GGGGGG  CCCAACCCC<br>GGCGUGAGAAAC</em> <em>GGCGUGAGAAAC</em></pre>
+<p>The output is then the folding free energies of duplexes predicted by free energy minimization.</p>
+<h3 class="leftHeader">Notes for smp:</h3>
+      <p>bifold-smp, by default, will use all available compute cores for processing. The number of cores used can be controlled by setting the OMP_NUM_THREADS environment variable.</p>
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H., Burkard, M.E., Freier, S.M., Wyatt, J.R. and Turner, D.H.
+								<br>
+								&quot;Predicting oligonucleotide affinity to nucleic acid targets.&quot;
+								<br>
+								<i>RNA</i>, 5:1458-1469. (1999).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

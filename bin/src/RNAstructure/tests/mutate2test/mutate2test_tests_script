@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#TODO: change paths of mutatet2test script or add it to global path of envirornment?
+
+
+#this is to run the nonORF version using the stem loop model and NED objective function
+#this output can be compared to 1-nonORF-NED-disrupt0.5_OK.txt, 2-nonORF-NED-disrupt0.5_OK.txt, and 3-nonORF-NED-disrupt0.5_OK.txt
+python3 mutate2test.py /mutate2test_input_tempOutput/model-wt-seq.dot -d 0.5
+
+#this is to run the nonORF version using the stem loop model and probability objective function
+#this output can be compared to 1-nonORF-prob-disrupt20_OK.txt, 2-nonORF-prob-disrupt20_OK.txt, 3-nonORF-prob-disrupt20_OK.txt
+#TODO: change paths?
+# python3 ./scripts/mutate2test.py /mutate2test_input_tempOutput/model-wt-seq.dot -d 0.5 -p
+
+#this is to run the ORF version using the stem loop model with the in frame ORF and NED objective function
+#this output can be compared to 1-ORF-NED-inFrame_OK.txt
+#TODO: change paths?
+# python3 ../scripts/mutate2test.py /mutate2test_input_tempOutput/model-wt-seq.dot -ORF /mutate2test_input_tempOutput/orf_inFrame.txt
+
+#this is to run the ORF version using the stem loop model with the out of frame ORF and NED objective function
+#this output can be compared to 1-ORF-NED-outOfFrame_OK.txt
+#TODO: change paths?
+# python3 ../scripts/mutate2test.py /mutate2test_input_tempOutput/model-wt-seq.dot -ORF /mutate2test_input_tempOutput/orf_outOfFrame.txt
+
+#this is to run the ORF version using the stem loop model with the out of frame ORF and prob objective function
+#this output can be compared to 1-ORF-NED-outOfFrame_OK.txt
+#TODO: change paths?
+# python3 ./scripts/mutate2test.py /mutate2test_input_tempOutput/model-wt-seq.dot -ORF /mutate2test_input_tempOutput/orf_outOfFrame.txt -p -d 20

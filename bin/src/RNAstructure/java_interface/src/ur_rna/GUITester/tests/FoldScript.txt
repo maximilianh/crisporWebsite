@@ -1,0 +1,23 @@
+StartGUI '-prefs ~test -opt draw-structures=P -sfc'
+Menu 'RNA', 'Fold RNA Single Strand'
+Click { BUTTON 'Sequence File' }
+TypeText ?SV_PWD, '/../examples/bmorivector.fasta'; TypeEnter
+ClearText { FIELD 'CT File' }
+Sleep 2000
+SetText { FIELD  'CT File' }, '../tests/banana.ct'
+
+Menu 'Force', 'Read SHAPE Reactivity -- Pseudo-Energy Constraints'
+TypeText { FIELD 'SHAPE Data File' }, 'testFiles/testFile_tRNA.shape'
+ClearText { FIELD '~Slope*' }
+Capture "shape.jpg"
+//Capture "main.jpg", { BUTTON 'Sequence File' }
+//Capture "desktop.jpg", "screen"
+Sleep 2000
+
+/*
+Click { BUTTON 'OK' }
+Click { BUTTON 'START' }
+Wait { BUTTON 'OK' }, 5000
+Click { BUTTON 'Cancel' }
+*/
+CloseGUI

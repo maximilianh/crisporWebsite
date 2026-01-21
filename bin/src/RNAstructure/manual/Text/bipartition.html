@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: bipartition</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					bipartition and bipartition-smp</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>
+							bipartition is used to predict the partition function for structures containing two strands. Note that the structures do not include those with intramolecular pairs.
+							<br>
+							Note that output is written to a partition function save file where the sequences are concatenated, with an intermolecular linker between them (&quot;III&quot;).
+							<br>
+							Note also that the partition function save file remembers the nucleic acid type it was built with (RNA or DNA), so any further calculations with that file will assume they are done with that same nucleic acid type.
+						</p>
+						<p>bipartition-smp is a parallel processing version for use on multi-core computers, built using OpenMP.</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: bipartition &lt;seq file 1&gt; &lt;seq file 2&gt; &lt;pfs file&gt; [options]</h3>
+					  <h3>OR: bipartition-smp &lt;seq file 1&gt; &lt;seq file 2&gt; &lt;pfs file&gt; [options]</h3>
+
+					<h3 class="leftHeader">Required parameters:</h3>
+					<table>
+						<tr>
+							<td class="cell">&lt;seq file 1&gt;</td>
+							<td>
+								The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data for the first sequence.
+								<br>
+								Note that lowercase nucleotides are forced single-stranded in structure prediction.
+							</td>
+						</tr>
+						<tr>
+							<td class="cell">&lt;seq file 2&gt;</td>
+							<td>
+								The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data for the second sequence.
+								<br>
+								Note that lowercase nucleotides are forced single-stranded in structure prediction.
+							</td>
+						</tr>
+						<tr>
+							<td class="cell">&lt;pfs file&gt;</td>
+							<td>The name of a binary partition function save file to which output will be written.</td>
+						</tr>
+					</table>
+
+					<h3 class="leftHeader">Options that do not require added values:</h3>
+					<table>
+						<tr>
+							<td class="cell">-d, -D, --DNA</td>
+							<td>
+								Specify that the sequence is DNA, and DNA parameters are to be used.
+								<br>
+								Note that the backbone type must be the same for both sequences.
+								<br>
+								Default is to use RNA parameters.
+							</td>
+						</tr>
+						<tr>
+							<td class="cell">-h, -H, --help</td>
+							<td>Display the usage details message.</td>
+						</tr>
+					</table>
+
+					<h3 class="leftHeader">Options that require added values:</h3>
+					<table>
+                    	<tr>
+                    		<td class="cell">-a, -A, --alphabet</td>
+                   			 <td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  		</tr>
+						<tr>
+							<td class="cell">-t, -T, --temperature</td>
+							<td>
+								Specify the temperature at which calculation takes place in Kelvin.
+								<br>
+								Default is 310.15 K, which is 37 degrees C.
+							</td>
+						</tr>
+					</table>
+<h3 class="leftHeader">Notes for smp:</h3>
+      <p>bipartition-smp, by default, will use all available compute cores for processing. The number of cores used can be controlled by setting the OMP_NUM_THREADS environment variable.</p>
+					<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Lu, Z.J. and Mathews, D.H.
+								<br>
+								&quot;Efficient siRNA Selection Using Hybridization Thermodynamics.&quot;
+								<br>
+								<i>Nucleic Acids Res.</i>, 36:640-647. (2007).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

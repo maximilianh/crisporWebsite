@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: efn2</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                EDcalculator</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>EDcalculator is used to calculate the Ensemble Defect (ED) of a
+                structure or structures in a <a href="File_Formats.html#CT">CT
+                  file</a> or <a href="File_Formats.html#DotBracket">Dot-Bracket
+                  file</a>. This is the average number of nucleotides (as estimated by a partition function calculation) that will not be paired as expected in the structure, for the specific sequence and structure in the input ct or dot-bracket file.</p>
+              <p>EDcalculator-smp is a parallel processing version for use on
+                multi-core computers.</p>
+              <p>The program outputs both the total ED and the normalized ED
+                (NED; i.e. the total divided by the number of nucleotides in the
+                sequence). The program can also calculate the ED for a local region of the structure. The region is specified using --start and --end (inclusive), and the normalized ED is the ED divided by the fragment length. The default behavior is to use the full length of the sequence.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: EDcalculator &lt;structure file&gt; [options]</h3>
+              <h3>OR: EDcalculator-smp &lt;structure file&gt;  [options]</h3>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;structure file&gt;</td>
+                    <td>The name of a <a href="File_Formats.html#CT">CT file</a>
+                      or <a href="File_Formats.html#DotBracket">Dot-Bracket
+                        file</a> containing the input structure. The ED is calculated for this sequence to fold to the structure encoded in the input file.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-d, -D, --DNA</td>
+                    <td> Specify that the sequence is DNA, and DNA parameters
+                      are to be used. <br>
+                      Default is to use RNA parameters. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-h, -H, --help</td>
+                    <td>Display the usage details message.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-i, --isolated</td>
+                    <td>Allow isolated base pairs in partition function calculation of pair probabilities. The default is to use a heuristic to forbid isolated base pairs. The heuristic prevents pairs (i-j) if (i+1 - j-1) and (i-1 - j+1) pairs are non-canonical pairs. If the structure to be designed has isolated pairs (i.e. helices of one pair), it is helpful to allow isolated base pairs, otherwise the default behavior of RNAstructure is better.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-r, --raw</td>
+                    <td> Output just the *Normalized* ensemble defect as a pure
+                      number (with no<br>
+                      &nbsp;&nbsp;&nbsp; additional description). </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v -V --version</td>
+                    <td>Display version and copyright information for this
+                      interface.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-a, -A, --alphabet</td>
+                    <td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-c -C --constraint</td>
+                    <td> Specify a folding constraints file to be applied.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-f --file</td>
+                    <td>Output the results to the specified file instead of to
+                    the screen (stdout).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--nucfile</td>
+                    <td>Specify the name of file to which the per nucleotide defect will be written. This will be a plain text file with the defect per nucleotide and per structure. The default is to not write this file. NOTE: The per nucleotide defects will be appended to this file, i.e. the contents of the file will be preserved.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-n --number</td>
+                    <td>Specify the index of a particular structure for which
+                      to calculate the defect. The default is -1, which means to
+                    calculate the defect for all structures in the input file.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-s -S --start</td>
+                    <td>Specify a start nucleotide for a local calculation. The default is to start at the first nucleotide (nucleotide 1).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-e -E --end</td>
+                    <td>Specify an end nucleotide for a local calculation. The default is to end at the last nucleotide of the sequence.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes for smp:</h3>
+              <p>The <strong>-smp</strong>, by default, will use all available
+                compute cores for processing. The number of cores used can be
+                controlled by setting the OMP_NUM_THREADS environment variable.</p>
+              
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+                <ol class="noListTopMargin">
+                  <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                    "RNAstructure: software for RNA secondary structure prediction
+                    and analysis." <br>
+                    <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+                  <li class="gapListItem">Bellaousov, S., Kayedkhordeh, M., Peterson, R. J. and Mathews, D. H.<br>
+  &quot;Accelerated RNA Secondary Structure Design Using Pre-Selected Sequences for Helices and Loops.&quot;<br>
+  <em>RNA</em>. 24: 1555-1567. (2018). </li>
+                  <li class="gapListItem">Zadeh, J.N., Wolfe, B.R.,  and Pierce, N.A. <br>
+                    &quot;Nucleic acid sequence design via efficient ensemble defect optimization.&quot;<br>
+                  <em>J. Comput. Chem.</em>, 32: 439-452. (2011). </li>
+                </ol>
+                <p>&nbsp;</p>
+              
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

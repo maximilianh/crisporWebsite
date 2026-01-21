@@ -1,0 +1,494 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Installation and Overview: Software Package Components</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Software Package Components</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<h2 class="leftHeader">Single Sequence Methods</h2><br>
+						<table border="5">
+							<tr>
+								<th>Feature</th>
+								<th>Text Interface Program</th>
+								<th>JAVA GUI Menu Item</th>
+								<th>Class Library and Function Name</th>
+							</tr>
+							<tr>
+								<td>
+									Free energy minimization and generation of all suboptimal structures<br>
+									(References: <a href="#Bombyx">Duan et al. 2006</a>, <a href="#Suboptimal">Wuchty et al. 1999</a>)
+								</td>
+								<td>AllSub</td>
+								<td>Generate All Suboptimal RNA Structures</td>
+								<td>RNA::GenerateAllSuboptimalStructures</td>
+							</tr>
+							<tr>
+							  <td>Predict canonical and non-canonical pairs.</td>
+							  <td>CycleFold</td>
+							  <td>N/A</td>
+							  <td>N/A</td>
+						  </tr>
+							<tr>
+							  <td>Design a sequence to fold with low ensemble defect to a target structure.<br>
+						      (Reference: <a href="#Design">Bellaousov et al. 2018</a>)</td>
+							  <td>Design</td>
+							  <td>N/A</td>
+							  <td>Design</td>
+						  </tr>
+							<tr>
+								<td>Drawing secondary structure diagrams</td>
+								<td>draw</td>
+								<td>Draw</td>
+								<td>RNA::DetermineDrawingCoordinates</td>
+							</tr>
+							<tr>
+							  <td>Ensemble defect calculator.<br>
+						      (Reference: <a href="#Design">Bellaousov et al. 2018</a>)</td>
+							  <td>EDcalculator</td>
+							  <td>N/A</td>
+							  <td>N/A</td>
+						  </tr>
+							<tr>
+								<td>
+									Efn2 (Energy function 2)<br>
+									(Reference: <a href="#SeqDependence">Mathews, Sabina et al. 1999</a>)
+								</td>
+								<td>efn2</td>
+								<td>Efn2 RNA</td>
+								<td>RNA::CalculateFreeEnergy</td>
+							</tr>
+							<tr>
+								<td>
+									Free energy minimization structure prediction<br>
+									(Reference: <a href="#ChemMod">Mathews et al. 2004</a>)
+								</td>
+								<td>Fold</td>
+								<td>Fold RNA Single Strand</td>
+								<td>RNA::FoldSingleStrand</td>
+							</tr>
+							<tr>
+								<td>
+									Maximum expected accuracy structure prediction<br>
+									(Reference: <a href="#MaxExpect">Lu et al. 2009</a>)
+								</td>
+								<td>MaxExpect</td>
+								<td>MaxExpect: Predict RNA MEA Structure</td>
+								<td>RNA::MaximumExpectedAccuracy</td>
+							</tr>
+							<tr>
+								<td>
+									NAPSS<br>
+									(Reference: <a href="#NMR">Hart et al. 2008</a>)
+								</td>
+								<td>NAPSS</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>
+									Estimate base pairing probabilities and probabilities of structures.<br>
+								  Partition function<br>
+									(Reference: <a href="#Pfunction">Mathews 2004</a>)
+								</td>
+								<td>partition</td>
+								<td>Partition Function RNA</td>
+								<td>RNA::PartitionFunction</td>
+							</tr>
+							<tr>
+							  <td>Partition function, implemented in parallel for CUDA GPUs</td>
+							  <td>partition-cuda</td>
+							  <td>N/A</td>
+							  <td>N/A</td>
+						  </tr>
+							<tr>
+								<td>
+									Prediction of structures with pairs above specified pairing probability threshold<br>
+									(Reference: <a href="#Pfunction">Mathews 2004</a>)
+								</td>
+								<td>ProbablePair</td>
+								<td>Output Probable Structures</td>
+								<td>RNA::PredictProbablePairs</td>
+							</tr>
+							<tr>
+							  <td>Prediction of secondary structures including pseudoknots<br>
+(Reference: <a href="#Bellaousov">Bellaousov and Mathews 2010</a>) </td>
+							  <td>ProbKnot</td>
+							  <td>ProbKnot: Predict RNA MEA Structure Including Pseudoknots</td>
+							  <td>RNA::ProbKnot</td>
+						  </tr>
+							<tr>
+								<td>Calculation of loop probabilities <br>
+							    (Reference: <a href="#ProbScan">Sloma and Mathews 2016</a>)</td>
+								<td>ProbScan</td>
+								<td>N/A</td>
+								<td>ProbScan</td>
+							</tr>
+							<tr>
+								<td>
+									Remove Pseudoknots<br>
+									(Reference: <a href="#Pseudo">Smit et al. 2008</a>)
+								</td>
+								<td>RemovePseudoknots</td>
+								<td>Break Pseudoknots</td>
+								<td>RNA::BreakPseudoknot</td>
+							</tr>
+							<tr>
+							  <td>Predict multiple folding conformations, guided by SHAPE data.<br>
+							    (Reference: <a href="#Rsample">Spasic et al. 2018</a>)</td>
+							  <td>Rsample</td>
+							  <td>N/A</td>
+							  <td>Rsample</td>
+						  </tr>
+							<tr>
+							  <td>Predict structures that may contains pseudoknots, restrained by SHAPE mapping data.</td>
+							  <td>ShapeKnots</td>
+							  <td>N/A</td>
+							  <td>N/A</td>
+						  </tr>
+							<tr>
+								<td>
+									Stochastic sampling of structures<br>
+									(Reference: <a href="#Stochastic">Ding and Lawrence, 2003</a>)
+								</td>
+								<td>stochastic</td>
+								<td>Stochastic RNA Sampling</td>
+								<td>RNA::Stochastic</td>
+							</tr>
+						</table>
+
+		        <h2 class="leftHeader">Multiple Sequence Methods (Bimolecular or Common Folding)</h2><br>
+						<table border="5">
+							<tr>
+								<th>Feature</th>
+								<th>Text Interface Program</th>
+								<th>JAVA GUI Menu Item</th>
+								<th>Class Library and Function Name</th>
+							</tr>
+							<tr>
+							  <td>Predict bimolecular base pairs while accounting for preexisting structure.<a href="#AccessFold">DiChiacchio et al 2016.</a></td>
+							  <td>AccessFold</td>
+							  <td>N/A</td>
+							  <td>HybridRNA::AccessFold</td>
+						  </tr>
+							<tr>
+								<td>Bimolecular structure prediction with intramolecular pairs</td>
+								<td>bifold</td>
+								<td>Fold RNA Bimolecular</td>
+								<td>HybridRNA::FoldBimolecular</td>
+							</tr>
+							<tr>
+								<td>Bimolecular partition function (no intramolecular pairs)</td>
+								<td>bipartition</td>
+								<td>Partition Function RNA Bimolecular</td>
+								<td>HybridRNA::PartitionFunctionBimolecular</td>
+							</tr>
+							<tr>
+							  <td>Predict conserved pairs, both canonical and non-canonical.</td>
+							  <td>CycleFold</td>
+							  <td>N/A</td>
+							  <td>N/A</td>
+						  </tr>
+							<tr>
+								<td>Bimolecular structure prediction without intramolecular pairs</td>
+								<td>DuplexFold</td>
+								<td>N/A</td>
+								<td>HybridRNA::FoldDuplex</td>
+							</tr>
+							<tr>
+								<td>
+									Predict a secondary structure common to two homologs.<br>
+								  Dynalign<br>
+									(References: <a href="#Pairwise">Harmanci et al. 2007</a>, <a href="#NonCoding">Uzilov et al 2006</a>, <a href="#Dynalign">Mathews and Turner 2002</a>)
+							  </td>
+								<td>dynalign</td>
+								<td>RNA Dynalign</td>
+								<td>Dynalign_object::Dynalign</td>
+							</tr>
+							<tr>
+							  <td>Predict a secondary structure common to two homologs, allowing structure domain inserts.<br>
+						      Dynalign II</td>
+							  <td>dynalign_ii</td>
+							  <td>N/A</td>
+							  <td><p>Dynalign_object::Dynalign (Built by defining DYNALIGN_II at precompile time)</p></td>
+						  </tr>
+							<tr>
+								<td>
+									Predict a common secondary structure to multiple homologs.<br>
+								  Multilign<br>
+									(Reference: <a href="#Multilign">Xu and Mathews, 2011</a>)
+								</td>
+								<td>multilign</td>
+								<td>RNA Multilign</td>
+								<td>Multilign_object::ProgressiveMultilign</td>
+							</tr>
+							<tr>
+								<td>Assess the duplex formation thermodynamics for a set of oligonucleotides.<br>
+								  OligoScreen<br>
+									Reference: <a href="#Screen">Mateeva et al. 2003</a>)
+								</td>
+								<td>oligoscreen</td>
+								<td>OligoScreen</td>
+								<td>Oligowalk_object::OligoScreen</td>
+							</tr>
+							<tr>
+								<td>
+									Find high affinity oligonucleotides to a structured RNA target.<br>
+								  OligoWalk<br>
+									(References: <a href="#Equilibrium">Lu and Mathews, 2008</a>, <a href="#siRNA">Lu and Mathews, 2007</a>, <a href="#Oligonucleotide">Mathews, Burkard et al. 1999</a>)
+								</td>
+								<td>OligoWalk</td>
+								<td>OligoWalk</td>
+								<td>Oligowalk_object::OligoWalk</td>
+							</tr>
+							<tr>
+								<td>
+									PARTS<br>
+									(References: <a href="#PARTS2">Harmanci et al. 2009</a>, <a href="#PARTS">Harmanci et al. 2008</a>)
+								</td>
+								<td>PARTS</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+                            <tr>
+                              <td>Predict the common secondary structure and multiple sequence alignment for multiple sequence homologs.<br>
+                                TurboFold<br>
+References: <a href="#TurboFold2">Harmanci et al. 2011, Tan et al. 2017</a>) </td>
+                              <td>TurboFold</td>
+                              <td>RNA TurboFold</td>
+                              <td>TurboFold::fold</td>
+                            </tr>
+                            <tr>
+								<td>Predict a secondary structure by homology modeling when the structure and alignment is available for sequence homologs.<br>
+							    TurboHomology</td>
+								<td>TurboHomology</td>
+								<td>N/A</td>
+								<td>TurboHomology</td>
+							</tr>
+						</table>
+
+						<h2 class="leftHeader">Utilities</h2><br>
+						<table border="5">
+							<tr>
+								<th>Feature</th>
+								<th>Text Interface Program</th>
+								<th>JAVA GUI Menu Item</th>
+								<th>Class Library and Function Name</th>
+							</tr>
+							<tr>
+								<td>Circular structure comparison</td>
+								<td>CircleCompare</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>CT file to dot bracket file conversion</td>
+								<td>ct2dot</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>Dot bracket file to CT file conversion</td>
+								<td>dot2ct</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>Create a dot plot from a Dynalign save file</td>
+								<td>DynalignDotPlot</td>
+								<td>Dot Plot Dynalign</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>Create a dot plot from a folding energy save file</td>
+								<td>EnergyPlot</td>
+								<td>Dot Plot</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>Ensemble energy calculation</td>
+								<td>EnsembleEnergy</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>Create a dot plot from a partition function save file</td>
+								<td>ProbabilityPlot</td>
+								<td>Dot Plot Partition Function</td>
+								<td>N/A</td>
+							</tr>
+							<tr>
+								<td>Refold from a previously folded sequence.</td>
+								<td>refold</td>
+								<td>Refold From Save File</td>
+								<td>RNA::ReFoldSingleStrand</td>
+							</tr>
+							<tr>
+								<td>
+									Scoring comparison of two structures<br>
+									(Reference: <a href="#SeqDependence">Mathews, Sabina et al. 1999</a>)
+								</td>
+								<td>scorer</td>
+								<td>N/A</td>
+								<td>N/A</td>
+							</tr>
+							<tr><td>Graphical Secondary Structure Editing and Drawing</td>
+								<td colspan="3">Standalone Program: <a href="../GUI/html/StructureEditor.html">StructureEditor</a></td>
+							</tr>
+							<tr><td>Free energy calculation library</td>
+								<td colspan="3">C++ Source Code (class library) <b>RNAstructure/efn_lib</b><br>Written by Max Ward (PhD Candidate, University of Western Australia)</td>
+							</tr>
+						</table>
+
+						<br><hr><h3 class="leftHeader" style="margin-top: 0;">References</h3>
+						<ol>
+                            <li><a name="Design" id="Design"></a>Bellaousov, S., Kayedkhordeh, M., Peterson, R. J. &amp; Mathews, D. H. (2018). <a href="https://www.ncbi.nlm.nih.gov/pubmed/30097542"><br>
+                            Accelerated RNA Secondary Structure Design Using Pre-Selected Sequences for Helices and Loops</a>. <em><br>
+                            RNA</em>. 24: 1555-1567.</li>
+                            <li><a name="Rsample" id="ProbScan2"></a>Spasic, A., Assmann, S. M., Bevilacqua, P. C., &amp; Mathews, D. H. (2018). <a href="https://www.ncbi.nlm.nih.gov/pubmed/29177466"><br>
+                            Modeling RNA Secondary Structure Folding Ensembles Using SHAPE Mapping Data</a>. <em><br>
+                            Nucleic Acids Research</em>. 46: 314-323. </li>
+                            <li><a name="TurboFold2" id="ProbScan3"></a>Tan, Z., Fu, Y., Sharma, G., &amp; Mathews, D. H.  (2017). <a href="https://www.ncbi.nlm.nih.gov/pubmed/29036420"><br>
+                            TurboFold II: RNA structural alignment and secondary structure prediction informed by multiple homologs.</a> <em><br>
+                            Nucleic Acids Research</em>. 45: 11570-11581.</li>
+                            <li><a name="ProbScan" id="ProbScan"></a>Sloma, M.F., &amp; Mathews, D.H. (2016). <br>
+                            <a href="https://www.ncbi.nlm.nih.gov/pubmed/27852924">Exact calculation of loop formation probability identifies folding motifs in RNA secondary structures</a>. <em><br>
+                            RNA</em>. <strong>22</strong>: 1808-1818.</li>
+                            <li><a name="AccessFold"></a>DiChiacchio, L., Sloma, M. F., &amp; Mathews, D. H. (2016). <br>
+                              AccessFold: <a href="https://pubmed.ncbi.nlm.nih.gov/27665592/">Predicting RNA-RNA Interactions with Consideration for Competing Self-Structure</a>. <br>
+                            Bioinformatics. 32: 1033-1039.<br>
+                            </li>
+                            <li> 
+                            	<a name="TurboFold"></a>
+                                Harmanci, A.O., Sharma, G. and Mathews, D.H. (2011).<br>
+								TurboFold: Iterative probabilistic estimation of secondary structures for multiple RNA sequences.<br>
+								<em>BMC Bioinformatics</em>. 12:108.<br>
+                            </li>
+							<li>
+								<a name="Multilign"></a>
+								Xu, Z., and Mathews, D.H. (2011).<br>
+								Multilign: An algorithm to predict secondary structures conserved in multiple RNA sequences.<br>
+								<em>Bioinformatics</em>, 27:626-632.</li>
+							<li> 
+                            	<a name="Bellaousov"></a>
+                                Bellaousov, S., and Mathews, D. H. (2010.<br>
+								ProbKnot: fast prediction of RNA secondary structure including pseudoknots.<br>
+								<em>RNA</em>. 16:1870-1880</li>
+							<li>
+								<a name="PARTS2"></a>
+								Harmanci, A.O., Sharma, G. and Mathews, D.H. (2009).<br>
+								Stochastic sampling of the RNA structural alignment space.<br>
+								<em>Nucleic Acids Res.</em>, 37:4063-4075.<br>
+							</li>
+							<li>
+								<a name="MaxExpect"></a>
+								Lu, Z.J., Gloor, J.W. and Mathews, D.H. (2009).<br>
+								Improved RNA Secondary Structure Prediction by Maximizing Expected Pair Accuracy.<br>
+								<em>RNA</em>, 15:1805-1813.</li>
+							<li>
+								<a name="PARTS"></a>
+								Harmanci, A.O., Sharma, G. and Mathews, D.H. (2008).<br>
+								PARTS: Probabilistic Alignment for RNA joinT Secondary structure prediction.<br>
+								<em>Nucleic Acids Res.</em>, 36:2406-2417.</li>
+							<li>
+								<a name="NMR"></a>
+								Hart, J.M., Kennedy, S.D., Mathews, D.H. and Turner, D.H. (2008).<br>
+								NMR-assisted prediction of RNA secondary structure: identification of a probable pseudoknot in the coding region of an R2 retrotransposon.<br>
+								<em>J. Am. Chem. Soc.</em>, 130:10233-10239.</li>
+							<li>
+								<a name="Equilibrium"></a>
+								Lu, Z.J. and Mathews, D.H. (2008).<br>
+								Fundamental Differences in the Equilibrium Considerations for siRNA and Antisense Oligodeoxynucleotide Design.<br>
+								<em>Nucleic Acids Res.</em>, 36:3738-3745.</li>
+							<li>
+								<a name="Pseudo"></a>
+								Smit, S., Rother, K., Heringa, J. and Knight, R. (2008).<br>
+								From knotted to nested RNA structures: a variety of computational methods for pseudoknot removal.<br>
+								<em>RNA</em>, 14:410-416.</li>
+							<li>
+								<a name="Pairwise"></a>
+								Harmanci, A.O., Sharma, G. and Mathews, D.H. (2007).<br>
+								Efficient Pairwise RNA Structure Prediction Using Probabilistic Alignment Constraints in Dynalign.<br>
+								<em>BMC Bioinformatics</em>, 8:130.</li>
+							<li>
+								<a name="siRNA"></a>
+								Lu, Z.J. and Mathews, D.H. (2007).<br>
+								Efficient siRNA Selection Using Hybridization Thermodynamics.<br>
+								<em>Nucleic Acids Res.</em>, 36:640-647.</li>
+							<li>
+								<a name="Bombyx"></a>
+								Duan, S., Mathews, D.H. and Turner, D.H. (2006).<br>
+								Interpreting oligonucleotide microarray data to determine RNA secondary structure: application to the 3' end of Bombyx mori R2 RNA.<br>
+								<em>Biochemistry</em>, 45:9819-9832.</li>
+							<li>
+								<a name="NonCoding"></a>
+								Uzilov, A.V., Keegan, J.M. and Mathews, D.H. (2006).<br>
+								Detection of non-coding RNAs on the basis of predicted secondary structure formation free energy change.<br>
+								<em>BMC Bioinformatics</em>, 7:173.</li>
+							<li>
+								<a name="Pfunction"></a>
+								Mathews, D.H. (2004).<br>
+								Using an RNA secondary structure partition function to determine confidence in base pairs predicted by free energy minimization.<br>
+								<em>RNA</em>, 10:1178-1190.</li>
+							<li>
+								<a name="ChemMod"></a>
+								Mathews, D.H., Disney, M.D., Childs, J.L., Schroeder, S.J., Zuker, M. and Turner, D.H. (2004).<br>
+								Incorporating chemical modification constraints into a dynamic programming algorithm for prediction of RNA secondary structure.<br>
+								<em>Proc. Natl. Acad. Sci. USA</em>, 101:7287-7292.</li>
+							<li>
+								<a name="Stochastic"></a>
+								Ding, Y. and Lawrence, C.E. (2003).<br>
+								A statistical sampling algorithm for RNA secondary structure prediction.<br>
+								<em>Nucleic Acids Res.</em>, 31:7280-7301.</li>
+							<li>
+								<a name="Screen"></a>
+								Matveeva, O.V., Mathews, D.H., Tsodikov, A.D., Shabalina, S.A., Gesteland, R.F., Atkins, J.F. and Freier, S.M. (2003).<br>
+								Thermodynamic criteria for high hit rate antisense oligonucleotide design.<br>
+								<em>Nucleic Acids Res.</em>, 31:4989-4994.</li>
+							<li>
+								<a name="Dynalign"></a>
+								Mathews, D.H. and Turner, D.H. (2002).<br>
+								Dynalign: An algorithm for finding the secondary structure common to two RNA sequences.<br>
+								<em>J. Mol. Biol.</em>, 317:191-203.</li>
+							<li>
+								<a name="Oligonucleotide"></a>
+								Mathews, D.H., Burkard, M.E., Freier, S.M., Wyatt, J.R. and Turner, D.H. (1999).<br>
+								Predicting oligonucleotide affinity to nucleic acid targets.<br>
+								<em>RNA</em>, 5:1458-1469.</li>
+							<li>
+								<a name="SeqDependence"></a>
+								Mathews, D.H., Sabina, J., Zuker, M. and Turner, D.H. (1999).<br>
+								Expanded sequence dependence of thermodynamic parameters provides improved prediction of RNA secondary structure.<br>
+								<em>J. Mol. Biol.</em>, 288:911-940.</li>
+							<li>
+								<a name="Suboptimal"></a>
+								Wuchty, S., Fontana, W., Hofacker, I.L. and Schuster, P. (1999).<br>
+								Complete suboptimal folding of RNA and the stability of secondary structures.<br>
+								<em>Biopolymers</em>, 49:145-165.
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

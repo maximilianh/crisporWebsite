@@ -1,0 +1,78 @@
+[
+  { Version:"1.0" Title:"  ENERGY = -20.8  kiss2 " }
+  {
+    Title:"  ENERGY = -20.8  kiss2 "
+    Strands:[
+      {
+        Strand:[
+          { Base:G X:422.7 Y:38.8 }
+          { Base:G X:404.7 Y:38.9 }
+          { Base:C X:386.7 Y:39.0 }
+          { Base:C X:368.6 Y:39.1 }
+          { Base:G X:350.6 Y:39.1 }
+          { Base:C X:332.6 Y:39.2 }
+          { Base:U X:317.1 Y:22.7 }
+          { Base:C X:296.6 Y:11.0 }
+          { Base:U X:273.7 Y:12.6 }
+          { Base:A X:252.9 Y:24.1 }
+          { Base:A X:242.2 Y:44.5 }
+          { Base:A X:241.8 Y:67.7 }
+          { Base:A X:254.2 Y:87.4 }
+          { Base:U X:274.2 Y:99.6 }
+          { Base:C X:297.6 Y:100.5 }
+          { Base:C X:318.4 Y:89.8 }
+          { Base:G X:331.4 Y:70.4 }
+          { Base:C X:349.5 Y:70.3 }
+          { Base:G X:367.5 Y:70.2 }
+          { Base:G X:385.5 Y:70.1 }
+          { Base:C X:403.6 Y:70.0 }
+          { Base:C X:421.6 Y:70.0 }
+        ]
+      }
+      {
+        Strand:[
+          { Base:C X:18.5 Y:73.8 }
+          { Base:G X:36.5 Y:73.9 }
+          { Base:C X:54.5 Y:74.0 }
+          { Base:G X:72.6 Y:74.1 }
+          { Base:G X:90.6 Y:74.1 }
+          { Base:G X:108.6 Y:74.2 }
+          { Base:C X:122.3 Y:93.2 }
+          { Base:U X:143.7 Y:102.8 }
+          { Base:C X:166.9 Y:100.5 }
+          { Base:T X:186.0 Y:86.9 }
+          { Base:T X:197.3 Y:65.5 }
+          { Base:T X:195.6 Y:43.4 }
+          { Base:T X:183.8 Y:23.6 }
+          { Base:U X:162.3 Y:13.3 }
+          { Base:C X:139.3 Y:13.9 }
+          { Base:C X:119.5 Y:26.8 }
+          { Base:U X:107.5 Y:43.1 }
+          { Base:C X:89.4 Y:43.0 }
+          { Base:C X:71.4 Y:42.9 }
+          { Base:G X:53.4 Y:42.9 }
+          { Base:C X:35.4 Y:42.8 }
+          { Base:G X:17.3 Y:42.7 }
+        ]
+      }
+    ]
+    Pairs:[
+      { Pair:"1:22" Type:P }
+      { Pair:"2:21" Type:P }
+      { Pair:"3:20" Type:P }
+      { Pair:"4:19" Type:P }
+      { Pair:"5:18" Type:P }
+      { Pair:"6:17" Type:P }
+      { Pair:"10:35" Type:P }
+      { Pair:"11:34" Type:P }
+      { Pair:"12:33" Type:P }
+      { Pair:"13:32" Type:P }
+      { Pair:"23:44" Type:P }
+      { Pair:"24:43" Type:P }
+      { Pair:"25:42" Type:P }
+      { Pair:"26:41" Type:P }
+      { Pair:"27:40" Type:P }
+      { Pair:"28:39" Type:P }
+    ]
+  }
+]

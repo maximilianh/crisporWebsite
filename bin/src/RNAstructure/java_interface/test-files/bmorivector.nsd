@@ -1,0 +1,402 @@
+[
+  { Version:"1.0" Title:">  ENERGY = -89.7  bmori in vector" }
+  {
+    Title:">  ENERGY = -89.7  bmori in vector"
+    Strands:[
+      {
+        Strand:[
+          { ID:1 Base:G X:626.0 Y:1802.0 Color:"#CC00FF" Fill:Blue }
+          { ID:2 Base:G X:630.0 Y:1819.0 Color:"#CC00FF" Fill:Blue }
+          { ID:3 Base:G X:634.0 Y:1836.0 Color:"#CC00FF" Fill:Blue }
+          { ID:4 Base:C X:638.0 Y:1853.0 Color:"#CC00FF" Fill:Green }
+          { ID:5 Base:G X:624.0 Y:1870.0 Color:"#CC00FF" Fill:Blue }
+          { ID:6 Base:A X:619.0 Y:1905.0 Color:"#CC00FF" Fill:Red }
+          { ID:7 Base:A X:640.0 Y:1933.0 Color:"#CC00FF" Fill:Red }
+          { ID:8 Base:U X:660.0 Y:1941.0 Color:"#CC00FF" Fill:Orange }
+          { ID:9 Base:U X:664.0 Y:1958.0 Color:"#CC00FF" Fill:Orange }
+          { ID:10 Base:G X:668.0 Y:1975.0 Color:"#CC00FF" Fill:Blue }
+          { ID:11 Base:G X:672.0 Y:1992.0 Color:"#CC00FF" Fill:Blue }
+          { ID:12 Base:G X:676.0 Y:2016.0 Color:"#CC00FF" Fill:Blue }
+          { ID:13 Base:U X:697.0 Y:2024.0 Color:"#CC00FF" Fill:Orange }
+          { ID:14 Base:A X:711.0 Y:2007.0 Color:"#CC00FF" Fill:Red }
+          { ID:15 Base:C X:702.0 Y:1984.0 Color:"#CC00FF" Fill:Green }
+          { ID:16 Base:C X:698.0 Y:1967.0 Color:"#CC00FF" Fill:Green }
+          { ID:17 Base:G X:694.0 Y:1950.0 Color:"#CC00FF" Fill:Blue }
+          { ID:18 Base:G X:690.0 Y:1933.0 Color:"#CC00FF" Fill:Blue }
+          { ID:19 Base:G X:668.0 Y:1846.0 Color:"#CC00FF" Fill:Blue }
+          { ID:20 Base:C X:664.0 Y:1829.0 Color:"#CC00FF" Fill:Green }
+          { ID:21 Base:C X:660.0 Y:1812.0 Color:"#CC00FF" Fill:Green }
+          { ID:22 Base:C X:656.0 Y:1795.0 Color:"#CC00FF" Fill:Green }
+          { ID:23 Base:C X:741.0 Y:1383.0 Color:"#CC00FF" Fill:Green }
+          { ID:24 Base:C X:753.0 Y:1370.0 Color:"#CC00FF" Fill:Green }
+          { ID:25 Base:C X:765.0 Y:1357.0 Color:"#CC00FF" Fill:Green }
+          { ID:26 Base:C X:802.0 Y:1319.0 Color:"#CC00FF" Fill:Green }
+          { ID:27 Base:U X:814.0 Y:1307.0 Color:"#CC00FF" Fill:Orange }
+          { ID:28 Base:C X:826.0 Y:1295.0 Color:"#CC00FF" Fill:Green }
+          { ID:29 Base:G X:838.0 Y:1283.0 Color:"#CC00FF" Fill:Blue }
+          { ID:30 Base:A X:850.0 Y:1271.0 Color:"#CC00FF" Fill:Red }
+          { ID:31 Base:G X:926.0 Y:1197.0 Color:"#CC00FF" Fill:Blue }
+          { ID:32 Base:G X:939.0 Y:1185.0 Color:"#CC00FF" Fill:Blue }
+          { ID:33 Base:U X:952.0 Y:1173.0 Color:"#CC00FF" Fill:Orange }
+          { ID:34 Base:C X:965.0 Y:1161.0 Color:"#CC00FF" Fill:Green }
+          { ID:35 Base:G X:978.0 Y:1149.0 Color:"#CC00FF" Fill:Blue }
+          { ID:36 Base:A X:1017.0 Y:1113.0 Color:"#CC00FF" Fill:Red }
+          { ID:37 Base:C X:1030.0 Y:1101.0 Color:"#CC00FF" Fill:Green }
+          { ID:38 Base:G X:1043.0 Y:1089.0 Color:"#CC00FF" Fill:Blue }
+          { ID:39 Base:U X:1056.0 Y:1077.0 Color:"#CC00FF" Fill:Orange }
+          { ID:40 Base:U X:1069.0 Y:1065.0 Color:"#CC00FF" Fill:Orange }
+          { ID:41 Base:G X:1082.0 Y:1053.0 Color:"#CC00FF" Fill:Blue }
+          { ID:42 Base:G X:1095.0 Y:1041.0 Color:"#CC00FF" Fill:Blue }
+          { ID:43 Base:U X:1108.0 Y:1029.0 Color:"#CC00FF" Fill:Orange }
+          { ID:44 Base:U X:1135.0 Y:1019.0 Color:"#CC00FF" Fill:Orange }
+          { ID:45 Base:G X:1147.0 Y:992.0 Color:"#CC00FF" Fill:Blue }
+          { ID:46 Base:A X:1160.0 Y:980.0 Color:"#CC00FF" Fill:Red }
+          { ID:47 Base:G X:1295.0 Y:987.0 Color:"#CC00FF" Fill:Blue }
+          { ID:48 Base:C X:1343.0 Y:925.0 Color:"#CC00FF" Fill:Green }
+          { ID:49 Base:C X:1360.0 Y:930.0 Color:"#CC00FF" Fill:Green }
+          { ID:50 Base:T X:1377.0 Y:935.0 Color:"#CC00FF" Fill:Orange }
+          { ID:51 Base:T X:1394.0 Y:940.0 Color:"#CC00FF" Fill:Orange }
+          { ID:52 Base:G X:1411.0 Y:945.0 Color:"#CC00FF" Fill:Blue }
+          { ID:53 Base:C X:1428.0 Y:950.0 Color:"#CC00FF" Fill:Green }
+          { ID:54 Base:A X:1435.0 Y:970.0 Color:"#CC00FF" Fill:Red }
+          { ID:55 Base:C X:1462.0 Y:993.0 Color:"#CC00FF" Fill:Green }
+          { ID:56 Base:A X:1497.0 Y:990.0 Color:"#CC00FF" Fill:Red }
+          { ID:57 Base:G X:1514.0 Y:978.0 Color:"#CC00FF" Fill:Blue }
+          { ID:58 Base:T X:1531.0 Y:983.0 Color:"#CC00FF" Fill:Orange }
+          { ID:59 Base:A X:1545.0 Y:1000.0 Color:"#CC00FF" Fill:Red }
+          { ID:60 Base:G X:1567.0 Y:1007.0 Color:"#CC00FF" Fill:Blue }
+          { ID:61 Base:T X:1587.0 Y:996.0 Color:"#CC00FF" Fill:Orange }
+          { ID:62 Base:C X:1594.0 Y:974.0 Color:"#CC00FF" Fill:Green }
+          { ID:63 Base:C X:1583.0 Y:954.0 Color:"#CC00FF" Fill:Green }
+          { ID:64 Base:A X:1561.0 Y:947.0 Color:"#CC00FF" Fill:Red }
+          { ID:65 Base:G X:1540.0 Y:953.0 Color:"#CC00FF" Fill:Blue }
+          { ID:66 Base:C X:1523.0 Y:948.0 Color:"#CC00FF" Fill:Green }
+          { ID:67 Base:G X:1489.0 Y:906.0 Color:"#CC00FF" Fill:Blue }
+          { ID:68 Base:G X:1437.0 Y:920.0 Color:"#CC00FF" Fill:Blue }
+          { ID:69 Base:T X:1420.0 Y:915.0 Color:"#CC00FF" Fill:Orange }
+          { ID:70 Base:A X:1403.0 Y:910.0 Color:"#CC00FF" Fill:Red }
+          { ID:71 Base:A X:1386.0 Y:905.0 Color:"#CC00FF" Fill:Red }
+          { ID:72 Base:G X:1369.0 Y:900.0 Color:"#CC00FF" Fill:Blue }
+          { ID:73 Base:G X:1352.0 Y:895.0 Color:"#CC00FF" Fill:Blue }
+          { ID:74 Base:G X:1343.0 Y:853.0 Color:"#CC00FF" Fill:Blue }
+          { ID:75 Base:T X:1326.0 Y:821.0 Color:"#CC00FF" Fill:Orange }
+          { ID:76 Base:G X:1300.0 Y:795.0 Color:"#CC00FF" Fill:Blue }
+          { ID:77 Base:T X:1310.0 Y:781.0 Color:"#CC00FF" Fill:Orange }
+          { ID:78 Base:A X:1320.0 Y:767.0 Color:"#CC00FF" Fill:Red }
+          { ID:79 Base:G X:1330.0 Y:753.0 Color:"#CC00FF" Fill:Blue }
+          { ID:80 Base:A X:1340.0 Y:739.0 Color:"#CC00FF" Fill:Red }
+          { ID:81 Base:T X:1350.0 Y:725.0 Color:"#CC00FF" Fill:Orange }
+          { ID:82 Base:C X:1366.0 Y:729.0 Color:"#CC00FF" Fill:Green }
+          { ID:83 Base:A X:1397.0 Y:730.0 Color:"#CC00FF" Fill:Red }
+          { ID:84 Base:G X:1427.0 Y:719.0 Color:"#CC00FF" Fill:Blue }
+          { ID:85 Base:G X:1450.0 Y:697.0 Color:"#CC00FF" Fill:Blue }
+          { ID:86 Base:C X:1463.0 Y:668.0 Color:"#CC00FF" Fill:Green }
+          { ID:87 Base:C X:1464.0 Y:636.0 Color:"#CC00FF" Fill:Green }
+          { ID:88 Base:C X:1453.0 Y:607.0 Color:"#CC00FF" Fill:Green }
+          { ID:89 Base:G X:1444.0 Y:593.0 Color:"#CC00FF" Fill:Blue }
+          { ID:90 Base:T X:1454.0 Y:579.0 Color:"#CC00FF" Fill:Orange }
+          { ID:91 Base:C X:1464.0 Y:565.0 Color:"#CC00FF" Fill:Green }
+          { ID:92 Base:T X:1474.0 Y:551.0 Color:"#CC00FF" Fill:Orange }
+          { ID:93 Base:G X:1484.0 Y:537.0 Color:"#CC00FF" Fill:Blue }
+          { ID:94 Base:T X:1494.0 Y:523.0 Color:"#CC00FF" Fill:Orange }
+          { ID:95 Base:T X:1504.0 Y:509.0 Color:"#CC00FF" Fill:Orange }
+          { ID:96 Base:T X:1514.0 Y:495.0 Color:"#CC00FF" Fill:Orange }
+          { ID:97 Base:C X:1524.0 Y:481.0 Color:"#CC00FF" Fill:Green }
+          { ID:98 Base:T X:1534.0 Y:467.0 Color:"#CC00FF" Fill:Orange }
+          { ID:99 Base:C X:1814.0 Y:159.0 Color:"#CC00FF" Fill:Green }
+          { ID:100 Base:C X:1827.0 Y:148.0 Color:"#CC00FF" Fill:Green }
+          { ID:101 Base:C X:1847.0 Y:152.0 Color:"#CC00FF" Fill:Green }
+          { ID:102 Base:C X:1880.0 Y:141.0 Color:"#CC00FF" Fill:Green }
+          { ID:103 Base:C X:1896.0 Y:110.0 Color:"#CC00FF" Fill:Green }
+          { ID:104 Base:G X:1895.0 Y:89.0 Color:"#CC00FF" Fill:Blue }
+          { ID:105 Base:G X:1908.0 Y:78.0 Color:"#CC00FF" Fill:Blue }
+          { ID:106 Base:A X:1921.0 Y:67.0 Color:"#CC00FF" Fill:Red }
+          { ID:107 Base:G X:1934.0 Y:56.0 Color:"#CC00FF" Fill:Blue }
+          { ID:108 Base:C X:1955.0 Y:47.0 Color:"#CC00FF" Fill:Green }
+          { ID:109 Base:T X:1963.0 Y:25.0 Color:"#CC00FF" Fill:Orange }
+          { ID:110 Base:C X:1948.0 Y:8.0 Color:"#CC00FF" Fill:Green }
+          { ID:111 Base:G X:1925.0 Y:13.0 Color:"#CC00FF" Fill:Blue }
+          { ID:112 Base:C X:1914.0 Y:33.0 Color:"#CC00FF" Fill:Green }
+          { ID:113 Base:T X:1901.0 Y:44.0 Color:"#CC00FF" Fill:Orange }
+          { ID:114 Base:C X:1888.0 Y:55.0 Color:"#CC00FF" Fill:Green }
+          { ID:115 Base:C X:1875.0 Y:66.0 Color:"#CC00FF" Fill:Green }
+          { ID:116 Base:C X:1854.0 Y:62.0 Color:"#CC00FF" Fill:Green }
+          { ID:117 Base:T X:1821.0 Y:73.0 Color:"#CC00FF" Fill:Orange }
+          { ID:118 Base:T X:1805.0 Y:104.0 Color:"#CC00FF" Fill:Orange }
+          { ID:119 Base:G X:1807.0 Y:125.0 Color:"#CC00FF" Fill:Blue }
+          { ID:120 Base:G X:1794.0 Y:136.0 Color:"#CC00FF" Fill:Blue }
+          { ID:121 Base:C X:1781.0 Y:129.0 Color:"#CC00FF" Fill:Green }
+          { ID:122 Base:T X:1757.0 Y:111.0 Color:"#CC00FF" Fill:Orange }
+          { ID:123 Base:T X:1731.0 Y:97.0 Color:"#CC00FF" Fill:Orange }
+          { ID:124 Base:C X:1703.0 Y:86.0 Color:"#CC00FF" Fill:Green }
+          { ID:125 Base:C X:1675.0 Y:79.0 Color:"#CC00FF" Fill:Green }
+          { ID:126 Base:C X:1645.0 Y:77.0 Color:"#CC00FF" Fill:Green }
+          { ID:127 Base:T X:1616.0 Y:79.0 Color:"#CC00FF" Fill:Orange }
+          { ID:128 Base:T X:1587.0 Y:84.0 Color:"#CC00FF" Fill:Orange }
+          { ID:129 Base:A X:1559.0 Y:94.0 Color:"#CC00FF" Fill:Red }
+          { ID:130 Base:T X:1532.0 Y:108.0 Color:"#CC00FF" Fill:Orange }
+          { ID:131 Base:A X:1508.0 Y:125.0 Color:"#CC00FF" Fill:Red }
+          { ID:132 Base:T X:1487.0 Y:146.0 Color:"#CC00FF" Fill:Orange }
+          { ID:133 Base:A X:1469.0 Y:169.0 Color:"#CC00FF" Fill:Red }
+          { ID:134 Base:T X:1454.0 Y:194.0 Color:"#CC00FF" Fill:Orange }
+          { ID:135 Base:T X:1443.0 Y:222.0 Color:"#CC00FF" Fill:Orange }
+          { ID:136 Base:T X:1435.0 Y:251.0 Color:"#CC00FF" Fill:Orange }
+          { ID:137 Base:T X:1432.0 Y:280.0 Color:"#CC00FF" Fill:Orange }
+          { ID:138 Base:A X:1433.0 Y:310.0 Color:"#CC00FF" Fill:Red }
+          { ID:139 Base:A X:1439.0 Y:339.0 Color:"#CC00FF" Fill:Red }
+          { ID:140 Base:C X:1448.0 Y:367.0 Color:"#CC00FF" Fill:Green }
+          { ID:141 Base:A X:1461.0 Y:393.0 Color:"#CC00FF" Fill:Red }
+          { ID:142 Base:T X:1478.0 Y:418.0 Color:"#CC00FF" Fill:Orange }
+          { ID:143 Base:C X:1498.0 Y:440.0 Color:"#CC00FF" Fill:Green }
+          { ID:144 Base:A X:1509.0 Y:449.0 Color:"#CC00FF" Fill:Red }
+          { ID:145 Base:G X:1499.0 Y:463.0 Color:"#CC00FF" Fill:Blue }
+          { ID:146 Base:A X:1489.0 Y:477.0 Color:"#CC00FF" Fill:Red }
+          { ID:147 Base:A X:1479.0 Y:491.0 Color:"#CC00FF" Fill:Red }
+          { ID:148 Base:A X:1469.0 Y:505.0 Color:"#CC00FF" Fill:Red }
+          { ID:149 Base:C X:1459.0 Y:519.0 Color:"#CC00FF" Fill:Green }
+          { ID:150 Base:A X:1449.0 Y:533.0 Color:"#CC00FF" Fill:Red }
+          { ID:151 Base:G X:1439.0 Y:547.0 Color:"#CC00FF" Fill:Blue }
+          { ID:152 Base:A X:1429.0 Y:561.0 Color:"#CC00FF" Fill:Red }
+          { ID:153 Base:C X:1419.0 Y:575.0 Color:"#CC00FF" Fill:Green }
+          { ID:154 Base:A X:1402.0 Y:571.0 Color:"#CC00FF" Fill:Red }
+          { ID:155 Base:T X:1370.0 Y:570.0 Color:"#CC00FF" Fill:Orange }
+          { ID:156 Base:T X:1340.0 Y:581.0 Color:"#CC00FF" Fill:Orange }
+          { ID:157 Base:A X:1317.0 Y:603.0 Color:"#CC00FF" Fill:Red }
+          { ID:158 Base:A X:1304.0 Y:632.0 Color:"#CC00FF" Fill:Red }
+          { ID:159 Base:A X:1303.0 Y:664.0 Color:"#CC00FF" Fill:Red }
+          { ID:160 Base:C X:1315.0 Y:693.0 Color:"#CC00FF" Fill:Green }
+          { ID:161 Base:A X:1325.0 Y:707.0 Color:"#CC00FF" Fill:Red }
+          { ID:162 Base:T X:1315.0 Y:721.0 Color:"#CC00FF" Fill:Orange }
+          { ID:163 Base:C X:1305.0 Y:735.0 Color:"#CC00FF" Fill:Green }
+          { ID:164 Base:T X:1295.0 Y:749.0 Color:"#CC00FF" Fill:Orange }
+          { ID:165 Base:A X:1285.0 Y:763.0 Color:"#CC00FF" Fill:Red }
+          { ID:166 Base:C X:1275.0 Y:777.0 Color:"#CC00FF" Fill:Green }
+          { ID:167 Base:T X:1248.0 Y:775.0 Color:"#CC00FF" Fill:Orange }
+          { ID:168 Base:G X:1220.0 Y:774.0 Color:"#CC00FF" Fill:Blue }
+          { ID:169 Base:A X:1192.0 Y:781.0 Color:"#CC00FF" Fill:Red }
+          { ID:170 Base:T X:1167.0 Y:794.0 Color:"#CC00FF" Fill:Orange }
+          { ID:171 Base:C X:1146.0 Y:813.0 Color:"#CC00FF" Fill:Green }
+          { ID:172 Base:C X:1130.0 Y:837.0 Color:"#CC00FF" Fill:Green }
+          { ID:173 Base:A X:1120.0 Y:863.0 Color:"#CC00FF" Fill:Red }
+          { ID:174 Base:A X:1117.0 Y:892.0 Color:"#CC00FF" Fill:Red }
+          { ID:175 Base:T X:1121.0 Y:920.0 Color:"#CC00FF" Fill:Orange }
+          { ID:176 Base:T X:1132.0 Y:946.0 Color:"#CC00FF" Fill:Orange }
+          { ID:177 Base:T X:1139.0 Y:957.0 Color:"#CC00FF" Fill:Orange }
+          { ID:178 Base:C X:1126.0 Y:969.0 Color:"#CC00FF" Fill:Green }
+          { ID:179 Base:G X:1087.0 Y:1006.0 Color:"#CC00FF" Fill:Blue }
+          { ID:180 Base:C X:1074.0 Y:1018.0 Color:"#CC00FF" Fill:Green }
+          { ID:181 Base:C X:1061.0 Y:1030.0 Color:"#CC00FF" Fill:Green }
+          { ID:182 Base:G X:1048.0 Y:1042.0 Color:"#CC00FF" Fill:Blue }
+          { ID:183 Base:G X:1035.0 Y:1054.0 Color:"#CC00FF" Fill:Blue }
+          { ID:184 Base:C X:1022.0 Y:1066.0 Color:"#CC00FF" Fill:Green }
+          { ID:185 Base:G X:1009.0 Y:1078.0 Color:"#CC00FF" Fill:Blue }
+          { ID:186 Base:T X:996.0 Y:1090.0 Color:"#CC00FF" Fill:Orange }
+          { ID:187 Base:A X:968.0 Y:1100.0 Color:"#CC00FF" Fill:Red }
+          { ID:188 Base:C X:957.0 Y:1126.0 Color:"#CC00FF" Fill:Green }
+          { ID:189 Base:G X:944.0 Y:1138.0 Color:"#CC00FF" Fill:Blue }
+          { ID:190 Base:G X:931.0 Y:1150.0 Color:"#CC00FF" Fill:Blue }
+          { ID:191 Base:C X:918.0 Y:1162.0 Color:"#CC00FF" Fill:Green }
+          { ID:192 Base:C X:905.0 Y:1174.0 Color:"#CC00FF" Fill:Green }
+          { ID:193 Base:A X:885.0 Y:1169.0 Color:"#CC00FF" Fill:Red }
+          { ID:194 Base:C X:852.0 Y:1174.0 Color:"#CC00FF" Fill:Green }
+          { ID:195 Base:G X:828.0 Y:1197.0 Color:"#CC00FF" Fill:Blue }
+          { ID:196 Base:A X:823.0 Y:1231.0 Color:"#CC00FF" Fill:Red }
+          { ID:197 Base:T X:828.0 Y:1249.0 Color:"#CC00FF" Fill:Orange }
+          { ID:198 Base:C X:816.0 Y:1261.0 Color:"#CC00FF" Fill:Green }
+          { ID:199 Base:G X:804.0 Y:1273.0 Color:"#CC00FF" Fill:Blue }
+          { ID:200 Base:G X:792.0 Y:1285.0 Color:"#CC00FF" Fill:Blue }
+          { ID:201 Base:G X:780.0 Y:1297.0 Color:"#CC00FF" Fill:Blue }
+          { ID:202 Base:A X:752.0 Y:1308.0 Color:"#CC00FF" Fill:Red }
+          { ID:203 Base:G X:743.0 Y:1336.0 Color:"#CC00FF" Fill:Blue }
+          { ID:204 Base:G X:731.0 Y:1349.0 Color:"#CC00FF" Fill:Blue }
+          { ID:205 Base:G X:719.0 Y:1362.0 Color:"#CC00FF" Fill:Blue }
+          { ID:206 Base:T X:326.0 Y:1531.0 Color:"#CC00FF" Fill:Orange }
+          { ID:207 Base:G X:309.0 Y:1529.0 Color:"#CC00FF" Fill:Blue }
+          { ID:208 Base:G X:292.0 Y:1527.0 Color:"#CC00FF" Fill:Blue }
+          { ID:209 Base:G X:275.0 Y:1525.0 Color:"#CC00FF" Fill:Blue }
+          { ID:210 Base:A X:258.0 Y:1523.0 Color:"#CC00FF" Fill:Red }
+          { ID:211 Base:A X:247.0 Y:1506.0 Color:"#CC00FF" Fill:Red }
+          { ID:212 Base:T X:217.0 Y:1489.0 Color:"#CC00FF" Fill:Orange }
+          { ID:213 Base:C X:184.0 Y:1499.0 Color:"#CC00FF" Fill:Green }
+          { ID:214 Base:T X:169.0 Y:1514.0 Color:"#CC00FF" Fill:Orange }
+          { ID:215 Base:C X:151.0 Y:1513.0 Color:"#CC00FF" Fill:Green }
+          { ID:216 Base:G X:133.0 Y:1512.0 Color:"#CC00FF" Fill:Blue }
+          { ID:217 Base:G X:115.0 Y:1511.0 Color:"#CC00FF" Fill:Blue }
+          { ID:218 Base:G X:97.0 Y:1510.0 Color:"#CC00FF" Fill:Blue }
+          { ID:219 Base:G X:78.0 Y:1499.0 Color:"#CC00FF" Fill:Blue }
+          { ID:220 Base:G X:55.0 Y:1502.0 Color:"#CC00FF" Fill:Blue }
+          { ID:221 Base:T X:43.0 Y:1521.0 Color:"#CC00FF" Fill:Orange }
+          { ID:222 Base:C X:51.0 Y:1543.0 Color:"#CC00FF" Fill:Green }
+          { ID:223 Base:T X:73.0 Y:1550.0 Color:"#CC00FF" Fill:Orange }
+          { ID:224 Base:T X:95.0 Y:1541.0 Color:"#CC00FF" Fill:Orange }
+          { ID:225 Base:C X:113.0 Y:1542.0 Color:"#CC00FF" Fill:Green }
+          { ID:226 Base:C X:131.0 Y:1543.0 Color:"#CC00FF" Fill:Green }
+          { ID:227 Base:G X:149.0 Y:1544.0 Color:"#CC00FF" Fill:Blue }
+          { ID:228 Base:A X:167.0 Y:1545.0 Color:"#CC00FF" Fill:Red }
+          { ID:229 Base:T X:255.0 Y:1554.0 Color:"#CC00FF" Fill:Orange }
+          { ID:230 Base:C X:272.0 Y:1556.0 Color:"#CC00FF" Fill:Green }
+          { ID:231 Base:C X:289.0 Y:1558.0 Color:"#CC00FF" Fill:Green }
+          { ID:232 Base:T X:306.0 Y:1560.0 Color:"#CC00FF" Fill:Orange }
+          { ID:233 Base:A X:323.0 Y:1562.0 Color:"#CC00FF" Fill:Red }
+          { ID:234 Base:A X:335.0 Y:1635.0 Color:"#CC00FF" Fill:Red }
+          { ID:235 Base:T X:356.0 Y:1684.0 Color:"#CC00FF" Fill:Orange }
+          { ID:236 Base:C X:387.0 Y:1727.0 Color:"#CC00FF" Fill:Green }
+          { ID:237 Base:C X:374.0 Y:1739.0 Color:"#CC00FF" Fill:Green }
+          { ID:238 Base:A X:351.0 Y:1740.0 Color:"#CC00FF" Fill:Red }
+          { ID:239 Base:T X:324.0 Y:1765.0 Color:"#CC00FF" Fill:Orange }
+          { ID:240 Base:G X:321.0 Y:1788.0 Color:"#CC00FF" Fill:Blue }
+          { ID:241 Base:A X:308.0 Y:1800.0 Color:"#CC00FF" Fill:Red }
+          { ID:242 Base:T X:295.0 Y:1812.0 Color:"#CC00FF" Fill:Orange }
+          { ID:243 Base:G X:268.0 Y:1822.0 Color:"#CC00FF" Fill:Blue }
+          { ID:244 Base:A X:256.0 Y:1848.0 Color:"#CC00FF" Fill:Red }
+          { ID:245 Base:T X:243.0 Y:1860.0 Color:"#CC00FF" Fill:Orange }
+          { ID:246 Base:T X:230.0 Y:1872.0 Color:"#CC00FF" Fill:Orange }
+          { ID:247 Base:A X:217.0 Y:1884.0 Color:"#CC00FF" Fill:Red }
+          { ID:248 Base:C X:197.0 Y:1881.0 Color:"#CC00FF" Fill:Green }
+          { ID:249 Base:G X:164.0 Y:1893.0 Color:"#CC00FF" Fill:Blue }
+          { ID:250 Base:A X:150.0 Y:1924.0 Color:"#CC00FF" Fill:Red }
+          { ID:251 Base:C X:151.0 Y:1945.0 Color:"#CC00FF" Fill:Green }
+          { ID:252 Base:C X:138.0 Y:1957.0 Color:"#CC00FF" Fill:Green }
+          { ID:253 Base:T X:118.0 Y:1954.0 Color:"#CC00FF" Fill:Orange }
+          { ID:254 Base:G X:85.0 Y:1966.0 Color:"#CC00FF" Fill:Blue }
+          { ID:255 Base:A X:71.0 Y:1998.0 Color:"#CC00FF" Fill:Red }
+          { ID:256 Base:G X:73.0 Y:2018.0 Color:"#CC00FF" Fill:Blue }
+          { ID:257 Base:T X:60.0 Y:2030.0 Color:"#CC00FF" Fill:Orange }
+          { ID:258 Base:C X:47.0 Y:2042.0 Color:"#CC00FF" Fill:Green }
+          { ID:259 Base:A X:26.0 Y:2045.0 Color:"#CC00FF" Fill:Red }
+          { ID:260 Base:C X:9.0 Y:2061.0 Color:"#CC00FF" Fill:Green }
+          { ID:261 Base:T X:8.0 Y:2084.0 Color:"#CC00FF" Fill:Orange }
+          { ID:262 Base:A X:24.0 Y:2101.0 Color:"#CC00FF" Fill:Red }
+          { ID:263 Base:A X:47.0 Y:2102.0 Color:"#CC00FF" Fill:Red }
+          { ID:264 Base:A X:64.0 Y:2086.0 Color:"#CC00FF" Fill:Red }
+          { ID:265 Base:G X:68.0 Y:2065.0 Color:"#CC00FF" Fill:Blue }
+          { ID:266 Base:A X:81.0 Y:2053.0 Color:"#CC00FF" Fill:Red }
+          { ID:267 Base:C X:94.0 Y:2041.0 Color:"#CC00FF" Fill:Green }
+          { ID:268 Base:G X:115.0 Y:2044.0 Color:"#CC00FF" Fill:Blue }
+          { ID:269 Base:A X:147.0 Y:2032.0 Color:"#CC00FF" Fill:Red }
+          { ID:270 Base:T X:162.0 Y:2000.0 Color:"#CC00FF" Fill:Orange }
+          { ID:271 Base:G X:159.0 Y:1980.0 Color:"#CC00FF" Fill:Blue }
+          { ID:272 Base:G X:172.0 Y:1968.0 Color:"#CC00FF" Fill:Blue }
+          { ID:273 Base:C X:205.0 Y:1970.0 Color:"#CC00FF" Fill:Green }
+          { ID:274 Base:A X:238.0 Y:1939.0 Color:"#CC00FF" Fill:Red }
+          { ID:275 Base:T X:238.0 Y:1907.0 Color:"#CC00FF" Fill:Orange }
+          { ID:276 Base:G X:251.0 Y:1895.0 Color:"#CC00FF" Fill:Blue }
+          { ID:277 Base:A X:264.0 Y:1883.0 Color:"#CC00FF" Fill:Red }
+          { ID:278 Base:T X:277.0 Y:1871.0 Color:"#CC00FF" Fill:Orange }
+          { ID:279 Base:G X:305.0 Y:1862.0 Color:"#CC00FF" Fill:Blue }
+          { ID:280 Base:A X:316.0 Y:1835.0 Color:"#CC00FF" Fill:Red }
+          { ID:281 Base:T X:329.0 Y:1823.0 Color:"#CC00FF" Fill:Orange }
+          { ID:282 Base:C X:342.0 Y:1811.0 Color:"#CC00FF" Fill:Green }
+          { ID:283 Base:C X:383.0 Y:1802.0 Color:"#CC00FF" Fill:Green }
+          { ID:284 Base:G X:395.0 Y:1762.0 Color:"#CC00FF" Fill:Blue }
+          { ID:285 Base:G X:408.0 Y:1750.0 Color:"#CC00FF" Fill:Blue }
+          { ID:286 Base:C X:532.0 Y:1805.0 Color:"#CC00FF" Fill:Green }
+          { ID:287 Base:G X:530.0 Y:1822.0 Color:"#CC00FF" Fill:Blue }
+          { ID:288 Base:A X:528.0 Y:1839.0 Color:"#CC00FF" Fill:Red }
+          { ID:289 Base:T X:511.0 Y:1850.0 Color:"#CC00FF" Fill:Orange }
+          { ID:290 Base:G X:498.0 Y:1870.0 Color:"#CC00FF" Fill:Blue }
+          { ID:291 Base:A X:498.0 Y:1893.0 Color:"#CC00FF" Fill:Red }
+          { ID:292 Base:A X:510.0 Y:1913.0 Color:"#CC00FF" Fill:Red }
+          { ID:293 Base:A X:531.0 Y:1923.0 Color:"#CC00FF" Fill:Red }
+          { ID:294 Base:A X:554.0 Y:1920.0 Color:"#CC00FF" Fill:Red }
+          { ID:295 Base:U X:572.0 Y:1905.0 Color:"#CC00FF" Fill:Orange }
+          { ID:296 Base:A X:579.0 Y:1883.0 Color:"#CC00FF" Fill:Red }
+          { ID:297 Base:U X:573.0 Y:1860.0 Color:"#CC00FF" Fill:Orange }
+          { ID:298 Base:U X:559.0 Y:1843.0 Color:"#CC00FF" Fill:Orange }
+          { ID:299 Base:C X:561.0 Y:1826.0 Color:"#CC00FF" Fill:Green }
+          { ID:300 Base:G X:563.0 Y:1809.0 Color:"#CC00FF" Fill:Blue }
+        ]
+      }
+    ]
+    Pairs:[
+      { Pair:"1:22" Type:BP }
+      { Pair:"2:21" Type:BP }
+      { Pair:"3:20" Type:BP }
+      { Pair:"4:19" Type:BP }
+      { Pair:"8:18" Type:BP }
+      { Pair:"9:17" Type:BP }
+      { Pair:"10:16" Type:BP }
+      { Pair:"11:15" Type:BP }
+      { Pair:"23:205" Type:BP }
+      { Pair:"24:204" Type:BP }
+      { Pair:"25:203" Type:BP }
+      { Pair:"26:201" Type:BP }
+      { Pair:"27:200" Type:BP }
+      { Pair:"28:199" Type:BP }
+      { Pair:"29:198" Type:BP }
+      { Pair:"30:197" Type:BP }
+      { Pair:"31:192" Type:BP }
+      { Pair:"32:191" Type:BP }
+      { Pair:"33:190" Type:BP }
+      { Pair:"34:189" Type:BP }
+      { Pair:"35:188" Type:BP }
+      { Pair:"36:186" Type:BP }
+      { Pair:"37:185" Type:BP }
+      { Pair:"38:184" Type:BP }
+      { Pair:"39:183" Type:BP }
+      { Pair:"40:182" Type:BP }
+      { Pair:"41:181" Type:BP }
+      { Pair:"42:180" Type:BP }
+      { Pair:"43:179" Type:BP }
+      { Pair:"45:178" Type:BP }
+      { Pair:"46:177" Type:BP }
+      { Pair:"48:73" Type:BP }
+      { Pair:"49:72" Type:BP }
+      { Pair:"50:71" Type:BP }
+      { Pair:"51:70" Type:BP }
+      { Pair:"52:69" Type:BP }
+      { Pair:"53:68" Type:BP }
+      { Pair:"57:66" Type:BP }
+      { Pair:"58:65" Type:BP }
+      { Pair:"76:166" Type:BP }
+      { Pair:"77:165" Type:BP }
+      { Pair:"78:164" Type:BP }
+      { Pair:"79:163" Type:BP }
+      { Pair:"80:162" Type:BP }
+      { Pair:"81:161" Type:BP }
+      { Pair:"89:153" Type:BP }
+      { Pair:"90:152" Type:BP }
+      { Pair:"91:151" Type:BP }
+      { Pair:"92:150" Type:BP }
+      { Pair:"93:149" Type:BP }
+      { Pair:"94:148" Type:BP }
+      { Pair:"95:147" Type:BP }
+      { Pair:"96:146" Type:BP }
+      { Pair:"97:145" Type:BP }
+      { Pair:"98:144" Type:BP }
+      { Pair:"99:120" Type:BP }
+      { Pair:"100:119" Type:BP }
+      { Pair:"104:115" Type:BP }
+      { Pair:"105:114" Type:BP }
+      { Pair:"106:113" Type:BP }
+      { Pair:"107:112" Type:BP }
+      { Pair:"206:233" Type:BP }
+      { Pair:"207:232" Type:BP }
+      { Pair:"208:231" Type:BP }
+      { Pair:"209:230" Type:BP }
+      { Pair:"210:229" Type:BP }
+      { Pair:"214:228" Type:BP }
+      { Pair:"215:227" Type:BP }
+      { Pair:"216:226" Type:BP }
+      { Pair:"217:225" Type:BP }
+      { Pair:"218:224" Type:BP }
+      { Pair:"236:285" Type:BP }
+      { Pair:"237:284" Type:BP }
+      { Pair:"240:282" Type:BP }
+      { Pair:"241:281" Type:BP }
+      { Pair:"242:280" Type:BP }
+      { Pair:"244:278" Type:BP }
+      { Pair:"245:277" Type:BP }
+      { Pair:"246:276" Type:BP }
+      { Pair:"247:275" Type:BP }
+      { Pair:"251:272" Type:BP }
+      { Pair:"252:271" Type:BP }
+      { Pair:"256:267" Type:BP }
+      { Pair:"257:266" Type:BP }
+      { Pair:"258:265" Type:BP }
+      { Pair:"286:300" Type:BP }
+      { Pair:"287:299" Type:BP }
+      { Pair:"288:298" Type:BP }
+    ]
+  }
+]

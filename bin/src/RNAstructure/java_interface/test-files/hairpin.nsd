@@ -1,0 +1,50 @@
+[
+  { Version:"1.0" Title:"  ENERGY = -9.5  Hairpin " }
+  {
+    Title:"  ENERGY = -9.5  Hairpin "
+    Strands:[
+      {
+        Title:"  ENERGY = -9.5  Hairpin "
+        Bases:[
+          { Base:C X:67.0 Y:222.0 }
+          { Base:C X:67.0 Y:204.0 }
+          { Base:U X:67.0 Y:186.0 }
+          { Base:A X:67.0 Y:168.0 }
+          { Base:G X:67.0 Y:150.0 }
+          { Base:U X:67.0 Y:132.0 }
+          { Base:A X:67.0 Y:114.0 }
+          { Base:C X:67.0 Y:96.0 }
+          { Base:A X:83.0 Y:83.0 }
+          { Base:C X:155.3 Y:69.9 }
+          { Base:U X:94.0 Y:40.0 }
+          { Base:A X:83.0 Y:19.0 }
+          { Base:C X:63.0 Y:8.0 }
+          { Base:U X:40.0 Y:8.0 }
+          { Base:A X:20.0 Y:19.0 }
+          { Base:C X:8.0 Y:40.0 }
+          { Base:A X:8.0 Y:63.0 }
+          { Base:C X:20.0 Y:83.0 }
+          { Base:G X:36.0 Y:96.0 }
+          { Base:U X:36.0 Y:114.0 }
+          { Base:A X:36.0 Y:132.0 }
+          { Base:C X:36.0 Y:150.0 }
+          { Base:U X:36.0 Y:168.0 }
+          { Base:A X:36.0 Y:186.0 }
+          { Base:G X:36.0 Y:204.0 }
+          { Base:G X:36.0 Y:222.0 }
+        ]
+      }
+    ]
+    Bonds:[
+      { Link:"0:25" Type:P }
+      { Link:"1:24" Type:P }
+      { Link:"2:23" Type:P }
+      { Link:"3:22" Type:P }
+      { Link:"4:21" Type:P }
+      { Link:"5:20" Type:P }
+      { Link:"6:19" Type:P }
+      { Link:"7:18" Type:P }
+    ]
+    Styles:[ ]
+  }
+]

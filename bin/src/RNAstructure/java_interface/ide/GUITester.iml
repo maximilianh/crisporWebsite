@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/../../exe/java" />
+    <output-test url="file://$MODULE_DIR$/../../exe/java_test" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../src/ur_rna/GUITester">
+      <sourceFolder url="file://$MODULE_DIR$/../src/ur_rna/GUITester" isTestSource="false" packagePrefix="ur_rna.GUITester" />
+      <sourceFolder url="file://$MODULE_DIR$/../src/ur_rna/GUITester/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/../src/ur_rna/GUITester/ScriptParser_generator" />
+      <excludeFolder url="file://$MODULE_DIR$/../src/ur_rna/GUITester/cvs.ignore" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="module-library">
+      <library name="gnu-regexp-1.1.4.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../lib/gnu-regexp-1.1.4.jar!/" />
+        </CLASSES>
+        <JAVADOC>
+          <root url="jar://$MODULE_DIR$/../lib/abbot_doc.zip!/" />
+        </JAVADOC>
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/../lib/abbot_src.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jdom-1.1.1.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../lib/jdom-1.1.1.jar!/" />
+        </CLASSES>
+        <JAVADOC>
+          <root url="jar://$MODULE_DIR$/../lib/abbot_doc.zip!/" />
+        </JAVADOC>
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/../lib/abbot_src.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module" module-name="Utilities" />
+    <orderEntry type="module" module-name="RNAstructureUI" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../lib/abbot.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/../lib/abbot.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+  </component>
+</module>

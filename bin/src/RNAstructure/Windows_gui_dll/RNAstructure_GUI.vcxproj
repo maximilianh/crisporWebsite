@@ -1,0 +1,342 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F1A53758-78D1-423A-93F2-E10FA7A78370}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>RNAstructure_GUI</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 15.0 [Intel(R) System Studio]</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseIntelMKL>Parallel</UseIntelMKL>
+    <BasePlatformToolset> [Intel(R) System Studio]</BasePlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 15.0 [Intel(R) System Studio]</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseIntelMKL>No</UseIntelMKL>
+    <BasePlatformToolset> [Intel(R) System Studio]</BasePlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 15.0 [Intel(R) System Studio]</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 15.0 [Intel(R) System Studio]</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <BasePlatformToolset> [Intel(R) System Studio]</BasePlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)_64</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>$(ProjectName)_64</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;RNASTRUCTURE_GUI_EXPORTS;_JAVA_GUI;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <ShowIncludes>false</ShowIncludes>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include;$(JAVA_HOME)\include\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CallingConvention>Cdecl</CallingConvention>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(ProjectDir)copy-to-exe.bat  "$(TargetPath)" VSx86</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_ITERATOR_DEBUG_LEVEL=0;WIN32;_DEBUG;_WINDOWS;_USRDLL;RNASTRUCTURE_GUI_EXPORTS;_JAVA_GUI;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include\win32;$(JAVA_HOME)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CallingConvention>Cdecl</CallingConvention>
+      <DisableSpecificWarnings>2586;2949</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <NoEntryPoint>false</NoEntryPoint>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(ProjectDir)copy-to-exe.bat  "$(TargetPath)" VSx86_64</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;RNASTRUCTURE_GUI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;RNASTRUCTURE_GUI_EXPORTS;_JAVA_GUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(JAVA_HOME)\include\win32;$(JAVA_HOME)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableSpecificWarnings>2586;2949</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(ProjectDir)copy-to-exe.bat  "$(TargetPath)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\java_interface\SWIG\RNAstructureBackendCalculator.h" />
+    <ClInclude Include="..\RNA_class/Dynalign_object.h" />
+    <ClInclude Include="..\RNA_class/HybridRNA.h" />
+    <ClInclude Include="..\RNA_class/Multilign_object.h" />
+    <ClInclude Include="..\RNA_class/Oligowalk_object.h" />
+    <ClInclude Include="..\RNA_class/RNA.h" />
+    <ClInclude Include="..\RNA_class/thermodynamics.h" />
+    <ClInclude Include="..\RNA_class/TwoRNA.h" />
+    <ClInclude Include="..\java_interface/SWIG/drawing/DotPlotBackend.h" />
+    <ClInclude Include="..\java_interface/SWIG/drawing/StructureBackend.h" />
+    <ClInclude Include="..\RNA_class\design.h" />
+    <ClInclude Include="..\RNA_class\ProbScan.h" />
+    <ClInclude Include="..\src/algorithm.h" />
+    <ClInclude Include="..\src/alltrace.h" />
+    <ClInclude Include="..\src/alltrace_intermolecular.h" />
+    <ClInclude Include="..\src/bimol.h" />
+    <ClInclude Include="..\src/dotarray.h" />
+    <ClInclude Include="..\src/DotPlotHandler.h" />
+    <ClInclude Include="..\src/draw.h" />
+    <ClInclude Include="..\src/dynalign.h" />
+    <ClInclude Include="..\src/dynalignarray.h" />
+    <ClInclude Include="..\src/dynalignheap.h" />
+    <ClInclude Include="..\src/dynalignstackclass.h" />
+    <ClInclude Include="..\src/extended_double.h" />
+    <ClInclude Include="..\src/forceclass.h" />
+    <ClInclude Include="..\src/intermolecular.h" />
+    <ClInclude Include="..\src/MaxExpect.h" />
+    <ClInclude Include="..\src/MaxExpectStack.h" />
+    <ClInclude Include="..\src/observable.h" />
+    <ClInclude Include="..\src/observer.h" />
+    <ClInclude Include="..\src/OligoScreenCalc.h" />
+    <ClInclude Include="..\src/outputconstraints.h" />
+    <ClInclude Include="..\src/pclass.h" />
+    <ClInclude Include="..\src/pfunction.h" />
+    <ClInclude Include="..\src/probknot.h" />
+    <ClInclude Include="..\src/random.h" />
+    <ClInclude Include="..\src/rna_library.h" />
+    <ClInclude Include="..\src/siRNAfilter.h" />
+    <ClInclude Include="..\src/stackclass.h" />
+    <ClInclude Include="..\src/stackstruct.h" />
+    <ClInclude Include="..\src/stochastic.h" />
+    <ClInclude Include="..\src/structure.h" />
+    <ClInclude Include="..\src/StructureImageHandler.h" />
+    <ClInclude Include="..\src/thermo.h" />
+    <ClInclude Include="..\src/varray.h" />
+    <ClInclude Include="..\src/wendarray.h" />
+    <ClInclude Include="..\src/phmm/p_alignment.h" />
+    <ClInclude Include="..\src/phmm/phmm_aln.h" />
+    <ClInclude Include="..\src/phmm/phmm_array.h" />
+    <ClInclude Include="..\src/phmm/phmm.h" />
+    <ClInclude Include="..\src/phmm/structure/folding_constraints.h" />
+    <ClInclude Include="..\src/phmm/structure/structure_object.h" />
+    <ClInclude Include="..\src/phmm/utils/ansi_string/ansi_string.h" />
+    <ClInclude Include="..\src/phmm/utils/xmath/linear/linear_math.h" />
+    <ClInclude Include="..\src/phmm/utils/xmath/log/xlog_math.h" />
+    <ClInclude Include="..\src/phmm/utils/xmath/matrix/matrix.h" />
+    <ClInclude Include="..\src\defines.h" />
+    <ClInclude Include="..\src\DynProgArray.h" />
+    <ClInclude Include="..\src\ErrorChecker.h" />
+    <ClInclude Include="..\src\gamma.h" />
+    <ClInclude Include="..\src\geometry2D.h" />
+    <ClInclude Include="..\src\loop_utils.h" />
+    <ClInclude Include="..\src\phmm\utils\file\utils.h" />
+    <ClInclude Include="..\src\StructureTools.h" />
+    <ClInclude Include="..\src\TProgressDialog.h" />
+    <ClInclude Include="..\src\common_utils.h" />
+    <ClInclude Include="..\src\version.h" />
+    <ClInclude Include="..\TurboFold/TurboFold_object.h" />
+    <ClInclude Include="..\TurboFold\Alignment.h" />
+    <ClInclude Include="..\TurboFold\GuideTree.h" />
+    <ClInclude Include="..\TurboFold\MultiSequence.h" />
+    <ClInclude Include="..\TurboFold\ProbabilisticModel.h" />
+    <ClInclude Include="..\TurboFold\SafeVector.h" />
+    <ClInclude Include="..\TurboFold\Sequence.h" />
+    <ClInclude Include="..\TurboFold\SparseMatrix.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\java_interface\SWIG\drawing\DotPlotBackend_wrap.cxx" />
+    <ClCompile Include="..\java_interface\SWIG\drawing\StructureBackend_wrap.cxx" />
+    <ClCompile Include="..\java_interface\SWIG\RNAstructureBackendCalculator.cpp" />
+    <ClCompile Include="..\java_interface\SWIG\RNAstructureBackendCalculator_wrap.cxx" />
+    <ClCompile Include="..\java_interface\SWIG\RNA_wrap.cxx" />
+    <ClCompile Include="..\RNA_class/Dynalign_object.cpp" />
+    <ClCompile Include="..\RNA_class/HybridRNA.cpp" />
+    <ClCompile Include="..\RNA_class/Multilign_object.cpp" />
+    <ClCompile Include="..\RNA_class/Oligowalk_object.cpp" />
+    <ClCompile Include="..\RNA_class/RNA.cpp" />
+    <ClCompile Include="..\RNA_class/thermodynamics.cpp" />
+    <ClCompile Include="..\RNA_class/TwoRNA.cpp" />
+    <ClCompile Include="..\java_interface/SWIG/drawing/DotPlotBackend.cpp" />
+    <ClCompile Include="..\java_interface/SWIG/drawing/StructureBackend.cpp" />
+    <ClCompile Include="..\RNA_class\design.cpp" />
+    <ClCompile Include="..\RNA_class\ProbScan.cpp" />
+    <ClCompile Include="..\src/algorithm.cpp" />
+    <ClCompile Include="..\src/alltrace.cpp" />
+    <ClCompile Include="..\src/alltrace_intermolecular.cpp" />
+    <ClCompile Include="..\src/bimol.cpp" />
+    <ClCompile Include="..\src/dotarray.cpp" />
+    <ClCompile Include="..\src/DotPlotHandler.cpp" />
+    <ClCompile Include="..\src/draw.cpp" />
+    <ClCompile Include="..\src/dynalign.cpp" />
+    <ClCompile Include="..\src/dynalignarray.cpp" />
+    <ClCompile Include="..\src/dynalignheap.cpp" />
+    <ClCompile Include="..\src/dynalignstackclass.cpp" />
+    <ClCompile Include="..\src/extended_double.cpp" />
+    <ClCompile Include="..\src/forceclass.cpp" />
+    <ClCompile Include="..\src/intermolecular.cpp" />
+    <ClCompile Include="..\src/MaxExpect.cpp" />
+    <ClCompile Include="..\src/MaxExpectStack.cpp" />
+    <ClCompile Include="..\src/observable.cpp" />
+    <ClCompile Include="..\src/observer.cpp" />
+    <ClCompile Include="..\src/OligoScreenCalc.cpp" />
+    <ClCompile Include="..\src/outputconstraints.cpp" />
+    <ClCompile Include="..\src/pclass.cpp" />
+    <ClCompile Include="..\src/pfunction.cpp" />
+    <ClCompile Include="..\src/probknot.cpp" />
+    <ClCompile Include="..\src/random.cpp" />
+    <ClCompile Include="..\src/rna_library.cpp" />
+    <ClCompile Include="..\src/siRNAfilter.cpp" />
+    <ClCompile Include="..\src/stackclass.cpp" />
+    <ClCompile Include="..\src/stackstruct.cpp" />
+    <ClCompile Include="..\src/stochastic.cpp" />
+    <ClCompile Include="..\src/structure.cpp" />
+    <ClCompile Include="..\src/StructureImageHandler.cpp" />
+    <ClCompile Include="..\src/thermo.cpp" />
+    <ClCompile Include="..\src/varray.cpp" />
+    <ClCompile Include="..\src/wendarray.cpp" />
+    <ClCompile Include="..\src/phmm/aln_env_utils.cpp" />
+    <ClCompile Include="..\src/phmm/p_alignment.cpp" />
+    <ClCompile Include="..\src/phmm/phmm_aln.cpp" />
+    <ClCompile Include="..\src/phmm/phmm_array.cpp" />
+    <ClCompile Include="..\src/phmm/phmm.cpp" />
+    <ClCompile Include="..\src/phmm/phmm_ml_loops.cpp" />
+    <ClCompile Include="..\src/phmm/phmm_pp_loops.cpp" />
+    <ClCompile Include="..\src/phmm/structure/folding_constraints.cpp" />
+    <ClCompile Include="..\src/phmm/structure/structure_object.cpp" />
+    <ClCompile Include="..\src/phmm/utils/ansi_string/ansi_string.cpp" />
+    <ClCompile Include="..\src/phmm/utils/xmath/linear/linear_math.cpp" />
+    <ClCompile Include="..\src/phmm/utils/xmath/log/xlog_math.cpp" />
+    <ClCompile Include="..\src/phmm/utils/xmath/matrix/matrix.cpp" />
+    <ClCompile Include="..\src\DynProgArray.cpp" />
+    <ClCompile Include="..\src\gamma.cpp" />
+    <ClCompile Include="..\src\geometry2D.cpp" />
+    <ClCompile Include="..\src\loop_utils.cpp" />
+    <ClCompile Include="..\src\phmm\utils\file\utils.cpp" />
+    <ClCompile Include="..\src\StructureTools.cpp" />
+    <ClCompile Include="..\src\TProgressDialog.cpp" />
+    <ClCompile Include="..\src\common_utils.cpp" />
+    <ClCompile Include="..\TurboFold/TurboFold_object.cpp" />
+    <ClCompile Include="..\TurboFold\Alignment.cpp" />
+    <ClCompile Include="..\TurboFold\GuideTree.cpp" />
+    <ClCompile Include="..\TurboFold\MultiSequence.cpp" />
+    <ClCompile Include="..\TurboFold\ProbabilisticModel.cpp" />
+    <ClCompile Include="..\TurboFold\SafeVector.cpp" />
+    <ClCompile Include="..\TurboFold\Sequence.cpp" />
+    <ClCompile Include="..\TurboFold\SparseMatrix.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\java_interface\SWIG\drawing\DotPlotBackend.i" />
+    <None Include="..\java_interface\SWIG\drawing\StructureBackend.i" />
+    <None Include="..\java_interface\SWIG\RNA.i" />
+    <None Include="..\java_interface\SWIG\RNAstructureBackendCalculator.i" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

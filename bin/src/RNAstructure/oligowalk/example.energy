@@ -1,0 +1,36 @@
+position:	5' end of the target site
+overall:	overall free energe change of the equilibrium 
+duplex:		free energy change of the sense-antisense hybrid duplex
+breaking:	the free energy cost to open the binding site's base pairs
+Tm:		melting temperature of sensen-antisense duplex
+intraoligo:	free energy change of intra-oligomer structure
+interoligo:	free energy change of inter-oligomer (antisense dimer) structure
+end_diff:	the difference of the free enegy change of the two ends of siRNA duplex (5' end - 3' endwindow size: 2)
+sequence:	the sequence of antisense siRNA (5'-3')
+---------------------------------------------------------------------------------
+
+position	 overall	 duplex	 breaking	 Tm	 intraoligo	 interoligo	 end_diff	 pre_filter_score	 sequence
+1	 -20.8	 -30.2	 -9.4	 76.7	0	 -8.9	 0.16	 6	 CCAAUUCCACCAAAAUAGC
+2	 -19.1	 -28.5	 -9.4	 74.8	0	 -8.8	 0.74	 6	 ACCAAUUCCACCAAAAUAG
+11	 -25.0	 -31.4	 -5.7	 78.7	-0.1	 -10	 0.56	 6	 AUCGUGUCUACCAAUUCCA
+17	 -25.0	 -31.7	 -5.2	 79.7	-1.3	 -11.5	 0.73	 6	 AAGAGUAUCGUGUCUACCA
+18	 -25.0	 -31.4	 -4.9	 78.8	-1.3	 -11.6	 1.93	 7	 UAAGAGUAUCGUGUCUACC
+19	 -22.8	 -29	 -4.8	 75.3	-1.2	 -11.5	 1.76	 6	 UUAAGAGUAUCGUGUCUAC
+22	 -21.6	 -29	 -5.3	 74.3	-0.2	 -13.8	 1.7	 7	 AUCUUAAGAGUAUCGUGUC
+24	 -20.7	 -28.7	 -5.6	 74.2	-0.3	 -14.4	 0.77	 6	 ACAUCUUAAGAGUAUCGUG
+25	 -19.0	 -27.4	 -5.5	 73.1	-0.6	 -15.4	 0.46	 6	 UACAUCUUAAGAGUAUCGU
+26	 -18.1	 -26.8	 -5.3	 71.1	-1.2	 -16.4	 1.26	 7	 AUACAUCUUAAGAGUAUCG
+27	 -16.5	 -25.3	 -5	 68.7	-1.6	 -17.1	 1.87	 8	 AAUACAUCUUAAGAGUAUC
+30	 -17.4	 -25.6	 -5.9	 70.6	-0.2	 -14.2	 0.16	 8	 AGUAAUACAUCUUAAGAGU
+31	 -16.7	 -24.8	 -6	 68.7	-0.4	 -13.8	 1.6	 6	 AAGUAAUACAUCUUAAGAG
+32	 -16.2	 -23.1	 -5.2	 66.4	-0.5	 -12.9	 0.97	 7	 AAAGUAAUACAUCUUAAGA
+33	 -17.6	 -22.5	 -4	 65.3	-0.5	 -10.7	 1.2	 6	 UAAAGUAAUACAUCUUAAG
+42	 -13.5	 -23.3	 -7.3	 67.2	-2.5	 -11.5	 0.4	 7	 UUCAUACUGUAAAGUAAUA
+46	 -20.7	 -27.2	 -5.4	 73.9	-0.7	 -11.3	 0.86	 7	 AACCUUCAUACUGUAAAGU
+55	 -20.4	 -29.6	 -7.2	 76.7	-1.8	 -12.8	 0.4	 7	 AAGGACUUGAACCUUCAUA
+56	 -19.9	 -29.2	 -6.9	 75.9	-2.3	 -13.3	 0.17	 6	 AAAGGACUUGAACCUUCAU
+57	 -19.9	 -29.4	 -7.2	 76.9	-2.2	 -13.3	 0.33	 7	 UAAAGGACUUGAACCUUCA
+58	 -18.8	 -28.7	 -7.6	 75.2	-2.2	 -13.3	 1.87	 7	 UUAAAGGACUUGAACCUUC
+60	 -17.3	 -26.9	 -8.1	 73.1	-1	 -12.1	 0.53	 8	 AUUUAAAGGACUUGAACCU
+61	 -17.3	 -26.6	 -8.2	 72.1	-0.4	 -11.5	 1.93	 8	 UAUUUAAAGGACUUGAACC
+62	 -17.8	 -25.9	 -7	 70.2	-0.4	 -11.5	 0.16	 7	 CUAUUUAAAGGACUUGAAC

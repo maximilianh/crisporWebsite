@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html><head><title>StructureEditor</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+<link href="editor.css" rel="stylesheet" type="text/css">
+</head>
+
+	<body style="background-color: white">
+<div class="bodydiv">
+<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+<tbody>
+<tr class="headerRow" style="border: thin solid green;" valign="middle">
+<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+<td class="headerLabel">
+<h2>StructureEditor 1.0</h2>
+Secondary Structure Editor and Drawing Tool
+</td>
+<td align="center" valign="middle">
+<a href="Contents.html">RNAstructure Help</a>
+</td>
+</tr>
+<tr>
+<td class="mainContent" colspan="3">
+<div class="section">
+<h2><a name="top"></a>StructureEditor Help Contents</h2>
+<ul>
+	<li><a href="#intro">The StructureEditor Program</a></li>
+	<li><a href="#getting-started">Getting Started</a>
+	  <ul>
+	    <li><a href="#switch-structure">Switching Between Structures</a></li>
+	    </ul>
+	  </li>
+	<li><a href="#draw-modes">Drawing Modes</a>
+	  <ul>
+	    <li><a href="#draw-direction">Drawing Orientation</a></li>
+	    </ul>
+	  </li>
+	<li><a href="#zoom">View and Zoom</a></li>
+	<li><a href="#selection">Nucleobase Selection</a>
+<ul>
+  <li><a href="#selection-modes">Nucleobase Selection Modes</a></li>
+	    <li><a href="#expand-selection">Expanding Selection</a></li>
+	    </ul>
+	</li>
+	<li><a href="#edit-pairs">Adding and Removing Basepairs</a></li>
+	<li><a href="#edit-bases">Inserting, Editing and Deleting Nucleobases in the Sequence</a></li>
+	<li><a href="#position-bases">Positioning Nucleobases and Using Semi-Automated Layout Tools</a>
+	  <ul>
+	    <li><a href="#loop-resizing">Loop Resizing</a></li>
+	    <li><a href="#branch-sliding">Branch Sliding</a></li>
+	    <li><a href="#free-rotation">Free Rotation</a></li>
+	    <li><a href="#motif-repair">Helix and Multi-Loop Repair</a></li>
+	    </ul>
+	  </li>
+	<li><a href="#color-bases">Coloring Nucleobases</a></li>
+	<li><a href="#saving">Saving and Exporting Files</a></li>
+	</ul>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="intro"></a>The StructureEditor Program</h2>
+<p><b>StructureEditor</b> is an RNA secondary
+structure editor and drawing tool. It facilitates editing the primary
+sequence (inserting or deleting nucleobases) as well as modifying the
+secondary structure (creating and deleting basepairs) and visualizing
+the secondary structure in a 2D drawing. <br>
+It aids in secondary structure drawing by providing useful tools, such
+as loop resizing or helix rotation around a multi-branch loop, while
+also allowing the user to have full control of the exact positioning
+and formatting of nucleobases. </p>
+<p><b>StructureEditor</b> can also act as as a
+conversion tool for RNA-related file formats because it can open a
+number of file types and can also export to a variety of file formats.
+For example, one could open a CT structure file and export it as a
+Dot-Bracket (DBN) file, a Sequence (SEQ or FASTA) file, or an image
+(SVG, PNG, JPEG) etc. </p>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="getting-started"></a>Getting Started</h2>
+<p>Begin using the program by either opening an existing
+file or by creating a new one using the <span class="menu-bar">File</span>
+menu.</p>
+You can open any of the file types listed below:
+<ul>
+<li><b>Structure Drawing Files</b> <span class="file-type-note"> contain drawing information (e.g. 2D
+positioning, color, and formatting) in addition to sequence and
+structure.</span>
+<ul>
+<li>Nucleobase Structure Drawing (nsd) <span class="note"> – The StructureEditor's native file format.</span></li>
+<li>Extended CT file (cte) <span class="note">
+– A CT file with more columns containing additional information such as
+nucleotide X and Y positions in the drawing.</span></li>
+</ul>
+</li>
+<li><b>Structure Files</b> <span class="file-type-note"> contain secondary structure
+information (i.e. basepairs) in addition to the sequence.</span>
+<ul>
+<li>CT Connection file (ct)</li>
+<li>Dot-Bracket file (dbn, dot, bracket)</li>
+</ul>
+</li>
+<li><b>Sequence Files</b><span class="file-type-note"> contain only nucleobase sequence
+information and are opened as an unstructured (circular) chain of
+bases, to which basepairs can be added.</span>
+<ul>
+<li>FASTA Sequence (fasta, fa)</li>
+<li>SEQ Sequence File (seq)</li>
+<li>Plain Text Sequence File (txt)</li>
+</ul>
+</li>
+<li><b>RNAstructure Saved-Calculation Files</b><span class="file-type-note"> contain sequence information and may
+contain additional information from partial or completed RNAstructure
+calculations.</span>
+<ul>
+<li>Partition Function Save File (pfs)</li>
+<li>Fold Save File (fsv, sav, save) </li>
+</ul>
+</li>
+</ul>
+<p>You can create a new drawing using the <span class="menu-bar"><img src="../images/editor/toolbar/file-new.png" alt="File-New Toolbar Icon" width="19" height="23"> File &gt; New</span> menu
+command. This allows you to enter a sequence and optionally a structure
+in dot-bracket notation, helix notation, or paired-positions notation. </p>
+<p><img src="../images/editor/new-sequence.png" class="border-screenshot"></p>
+<h3><a id="switch-structure"></a>Switching between structures</h3>
+Often files contain more than one structure. For example the <strong>CT</strong> files produced by the <i class="windowTitle" style="margin-right:0.5em;">RNAstructure</i> program <span class="windowTitle">Fold</span> often contain a minimum free energy structure along with several sub-optimal structures. The StructureEditor only shows one of these structures at a time, but you can choose antoher structure to view using the menu item <span class="menu-bar"><img src="../images/editor/toolbar/structure-choose.png" width="24" height="24" alt="Choose Structure">View &gt; Choose Structure</span> (or the associated toolbar button). You can also switch to the next or previous structure in a series using the menu items <span class="menu-bar"><img src="../images/editor/toolbar/structure-next.png" width="24" height="24" alt="Next Structure">View &gt; Next Structure</span> or <span class="menu-bar"><img src="../images/editor/toolbar/structure-prev.png" width="24" height="24" alt="Previous Structure">View &gt; Previous Structure</span>.</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="draw-modes"></a>Drawing Modes</h2>
+<p>Structures can be visualized in one of the three modes listed below. You can switch between modes using their associated menu commands, keyboard shortcuts, or toolbar buttons. Switching from one mode to another (or even redrawing in the same mode) is destructive in the sense that any changes made to the X,Y positions of bases will be reset and redrawn according to the chosen mode. (However structural changes such as basepairs and formatting changes, such as base colors, will be preserved.)</p>
+<table class="innerTable" border="0" cellspacing="0" cellpadding="3">
+  <caption>
+    Drawing Modes
+    </caption>
+  <tr>
+    <td nowrap><strong>Mode</strong></td>
+    <td><strong>Description</strong></td>
+    <td nowrap><strong>Toolbar Icon,<br>
+      Menu Command &amp;<br>
+      Keyboard Shortcuts</strong></td>
+    <td align="center" nowrap><strong>Example</strong></td>
+  </tr>
+  <tr>
+    <td nowrap><strong>Radial<br>
+    (default)</strong></td>
+    <td>A radial layout algorithm is used to estimate the best way to position nucleobases with the following constraints: paired bases are next to each other and helices are straight. Multibranch, internal, and hairpin loops are circular while bulge loops are straight.</td>
+    <td nowrap>
+      <span class="menu-bar"><img src="../images/editor/toolbar/edit-redraw.png"> Format &gt; Redraw</span>
+      <p><strong class="infoHeader">Keyboard Shortcut(s)</strong><br>
+        <span class="keyboard-key">Ctrl</span>+<span class="keyboard-key">R</span><br>
+        Mac: <span class="keyboard-key">&#8984;</span>+<span class="keyboard-key">R</span><br>
+      </p></td>
+    <td align="center" nowrap><img src="../images/editor/draw-mode-radial.png" width="300" height="126" alt="radial"></td>
+  </tr>
+  <tr>
+    <td nowrap><strong>Circular</strong></td>
+    <td>Bases are arranged in a circle. Basepairs are shown as arcs inside the circle.</td>
+    <td nowrap>
+      <span class="menu-bar"><img src="../images/editor/toolbar/edit-redraw-circ.png"> Format &gt; Redraw Circular</span>
+      <p><strong class="infoHeader">Keyboard Shortcut(s)</strong><br>
+        <span class="keyboard-key">Ctrl</span>+<span class="keyboard-key">Shift</span>+<span class="keyboard-key">R</span><br>
+        Mac: <span class="keyboard-key">&#8984;</span>+<span class="keyboard-key">Shift</span>+<span class="keyboard-key">R</span></p></td>
+    <td align="center" nowrap><img src="../images/editor/draw-mode-circular.png" width="300" height="302" alt="radial"></td>
+  </tr>
+  <tr>
+    <td nowrap><strong>Linear</strong></td>
+    <td>Bases are arranged in a line with basepairs forming semi-circles on one side of the line.</td>
+    <td nowrap>
+      <span class="menu-bar"><img src="../images/editor/toolbar/edit-redraw-linear.png"> Format &gt; Redraw Linear</span>
+      <p><strong class="infoHeader">Keyboard Shortcut(s)</strong><br>
+        <span class="keyboard-key">Ctrl</span>+<span class="keyboard-key">Shift</span>+<span class="keyboard-key">L</span><br>
+        Mac: <span class="keyboard-key">&#8984;</span>+<span class="keyboard-key">Shift</span>+<span class="keyboard-key">L</span></p></td>
+    <td align="center" nowrap><img src="../images/editor/draw-mode-linear.png" width="300" height="124" alt="radial"></td>
+  </tr>
+</table>
+<span class="toplink"><a href="#top">Back to Top</a></span>
+<h3><a name="draw-direction"></a>Drawing Orientation</h3>
+In Radial or Circular mode, structures can be drawn clockwise or counterclockwise. You can change the direction of drawing using the <span class="menu-bar">Settings &gt; Draw Structures Clockwise</span> menu item, but note that this setting only has an effect when the structure is redrawn. <br>
+You can reverse the orienation of an already-drawn structure using the menu item <span class="menu-bar"><img src="../images/editor/toolbar/layout-flip-scene.png" width="24" height="24" alt="Flip Scene"> Format &gt; Flip Scene</span>.</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="zoom" id="zoom"></a>View and Zoom</h2>
+
+<p>RNA structures can be quite large and it is often desirable to zoom in or out of the drawing to either see a region in greater detail or conversely to fit more of the structure into view. The following menu commands (or associated toolbar buttons) can be used to zoom to the desired magnification level.</p>
+<table class="innerTable" border="0" cellspacing="0" cellpadding="3">
+<caption>Zoom Tools</caption>
+  <tr>
+    <td><strong>Menu Command</strong></td>
+    <td><strong>Description</strong></td>
+    </tr>
+  <tr>
+    <td nowrap class="menu-bar"><img src="../images/editor/toolbar/zoom-in.png" alt="Zoom In">View &gt; Zoom In</td>
+    <td>Increase Magnification</td>
+    </tr>
+  <tr>
+    <td nowrap><span class="menu-bar"><img src="../images/editor/toolbar/zoom-out.png" alt="Zoom Out">View &gt; Zoom In</span></td>
+    <td>Decrease Magnification</td>
+    </tr>
+  <tr>
+    <td nowrap><span class="menu-bar"><img src="../images/editor/toolbar/zoom-fit.png" alt="Auto-Fit">View &gt; Auto-Fit</span></td>
+    <td>Use the highest magnification possible while still fitting the entire structure in the view area. This also moves the structure as close to the top-left corner of the view.</td>
+    </tr>
+  <tr>
+    <td nowrap><span class="menu-bar"><img src="../images/editor/toolbar/zoom-reset.png" alt="Zoom In">View &gt; Reset Zoom</span></td>
+    <td>This sets magnification to 100%. At this magnification, nucleobases are <strong>16 pixels</strong> in diameter and the Font size of nucleobase symbols is <strong>10 pt </strong>(Arial).</td>
+    </tr>
+</table>
+<table border="0" cellspacing="0" cellpadding="3">
+  <tr>
+    <td>A quick way to zoom  is to hold down the <span class="keyboard-key">Control</span> key (<span class="keyboard-key">&#8984; Command</span> key on Mac) while scrolling the mouse wheel up (to zoom in) or down (to zoom out). When zooming in with the mouse wheel, you can point the mouse at the part of the structure you would like to zoom in on.</td>
+    <td><img src="../images/editor/mouse-wheel.png" width="74" height="126" alt="Mouse-Wheel"></td>
+  </tr>
+</table>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="selection"></a>Nucleobase Selection</h2>
+  <p>A nucleobases (aka base, nucleotide) can be selected by clicking on its symbol (letter) or anywhere inside the circle surrounding it. Multiple bases can be selected holding down the <span class="keyboard-key">Shift</span> key while clicking additional bases after the first one. Alternatively, you can click on any location in the background of the drawing and drag to select multiple bases using a selection rectangle. Selected bases are highlighted by changing their outline color (to blue, by default).</p>
+  <p><span class="imageCaption">Selection Rectangle: </span><img src="../images/editor/selection-box.png" width="241" height="131" alt="Selection Rectangle"></p>
+<p>One base among the selection may have a different highlight color (lime green, by default) to indicate that it is the "focused" base. The identity of the focused base may influence the type of movements or tools that are available after selection, as described later. You can click on any base among the selection to assign it as the focused base, without changing the list of selected bases.</p>
+<p><span class="imageCaption">Multiple selected bases (blue outline) and Focused base (lime green outline):</span><img src="../images/editor/selection.png" width="208" height="177" alt="selection"></p>
+<p>&nbsp;&nbsp;</p>
+<p>It is sometimes easier to have the program automatically select a larger section of the structure when you click on a nucleobase. For this reason, there are three selection modes, as listed below. You can switch between them using the associated Toolbar, Menu, or Shortcut Key.</p>
+<table class="innerTable" border="0" cellspacing="0" cellpadding="3">
+  <caption>
+    <span class="toplink"><a href="#top">Back to Top</a></span>
+    <a name="selection-modes"></a>Nucleobase Selection Modes
+    </caption>
+  <tr>
+    <td><strong>Single</strong></td>
+    <td>Clicking a base selects only the single base that was clicked.</td>
+<td nowrap>
+      <span class="menu-bar"><img src="../images/editor/toolbar/edit-sel-single.png"> Edit &gt; Select Individual Nucleobases</span>
+      <p><strong class="infoHeader">Keyboard Shortcut</strong><br>
+        <span class="keyboard-key">N</span><span class="note">(with no other keys)</span></p></td>
+  </tr>
+  <tr>
+    <td><strong>Helix/Loop</strong></td>
+    <td>Clicking a base selects the .Loop (if the base is unpaired) or Helix (if the base is paired) that contains the clicked base.</td>
+<td nowrap>
+      <span class="menu-bar"><img src="../images/editor/toolbar/edit-sel-helix.png"> Edit &gt; Select Helices and Loops</span>
+      <p><strong class="infoHeader">Keyboard Shortcut</strong><br>
+        <span class="keyboard-key">H</span><span class="note">(with no other keys)</span></p></td>
+  </tr>
+  <tr>
+    <td><strong>Branch</strong></td>
+    <td>Clicking a base selects the Branch that contains the clicked base.</td>
+<td nowrap>
+      <span class="menu-bar"><img src="../images/editor/toolbar/edit-sel-branch.png"> Edit &gt; Select Branches</span>
+      <p><strong class="infoHeader">Keyboard Shortcut</strong><br>
+        <span class="keyboard-key">B</span><span class="note">(with no other keys)</span></p></td>
+  </tr>
+</table>
+<p>Another very convienient way to select additional bases is <span class="menu-bar"><img src="../images/editor/toolbar/edit-sel-expand.png" alt="Expand-Selection Toolbar Icon" width="24" height="24"> Edit &gt; Expand Selection</span>. This operation can be peformed by simply clicking <span class="keyboard-key">Space</span>. This selects a Loop/Helix when one base is selected and then, if performed again, it selects the containing Branch. This is an easy way to work in <strong>Single</strong> selection mode, but to quickly select the Helix/Loop or Branch that contains the selected base (or bases).</p>
+<span class="toplink"><a href="#top">Back to Top</a></span>
+<h3><a name="expand-selection"></a>Expanding Selection from Single Base to Motif (Helix or Loop) to Branch</h3>
+<p><img src="../images/editor/sel-1.png" width="240" height="265" alt="single selection"> <img src="../images/editor/sel-2.png" width="240" height="265" alt="single selection"> <img src="../images/editor/sel-3.png" width="233" height="255" alt="single selection"></p>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="edit-pairs"></a>Adding and Removing Basepairs</h2>
+  <p>Basepairs can be added by  holding down the <span class="keyboard-key">Control</span> key (<span class="keyboard-key">&#8984; Command</span> key on Mac) while clicking (with the left mouse button) on a base and then dragging the mouse pointer to another base. A basepair will be formed between the two bases. 
+    To remove (delete) a basepair, simply click on one of the bases involved and press the <span class="keyboard-key">Delete</span> key. You can select multiple nucleobases at once and click <span class="keyboard-key">Delete</span>to remove all basepairs on any of the selected bases.</p>
+  <h4>Adding a Basepair in Radial Mode:</h4>
+  <p><img src="../images/editor/create-bp.png" width="230" height="187" alt="Create Basepair"><span class="largeText"> &rarr; </span><img src="../images/editor/create-bp-end.png" width="245" height="187" alt="Create Basepair"></p>
+  <h4>Adding a Basepair in Circular Mode:</h4>
+  <p><img src="../images/editor/create-bp-circ.png" width="346" height="355" alt="Create Basepair"><span class="largeText">&rarr;</span><img src="../images/editor/create-bp-circ-end.png" width="350" height="357" alt="Create Basepair"></p>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+  <h2><a name="edit-bases"></a>Inserting, Editing and Deleting Nucleobases in the Sequence</h2>
+  <p>Bases can be inserted by first selecting a single base in the existing sequence and then clicking the menu item <span class="menu-bar"><img src="../images/editor/toolbar/edit-insert-nucs.png" alt="Loop-Resize Toolbar Icon" width="19" height="24"> Structure &gt; Insert Bases</span>. You can then enter the sequence you wish to insert, either before or after the selected base.</p>
+  <p>Bases can be deleted by first selecting one or more bases to delete, and then clicking the menu item <span class="menu-bar"><img src="../images/editor/toolbar/edit-rem-nucs.png" alt="Loop-Resize Toolbar Icon" width="23" height="23"> Structure &gt; Delete Selected Bases</span>.</p>
+  <p>You can edit the sequence to change either a single base (e.g. from <span class="nucleobase">A</span> to <span class="nucleobase">C</span>) or a section of the sequence. First select the base or bases you wish to modify and the click <span class="menu-bar"><img src="../images/editor/toolbar/edit-base.png" alt="Loop-Resize Toolbar Icon" width="24" height="24"> Structure &gt; Edit Selected Bases .</span></p>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+  <h2><a name="position-bases"></a>Positioning Nucleobases and Using Semi-Automated Layout Tools</h2>
+<p>Once you have made a selection, you can click (with the left mouse button) on any selected base and drag (while holding the mouse button down) to move the entire selection to a new location.
+<p>In addition to being able to position individual bases manually, <b>StructureEditor</b> also provides several tools that facilitate moving larger motifs (loops, helices, multi-loops, branches, etc) in semi-automated ways to speed up the positioning of these elements or to redraw them in aestetic ways.
+<h3><a id="loop-resizing"></a>Loop Resizing</h3>
+<p>When the focused nucleobase is unpaired, you will see one of the following icons next to it: <span class="menu-bar"><img src="../images/editor/toolbar/loop-resize-handle.png" alt="Loop-Resize Toolbar Icon" width="16" height="14"></span> or <span class="menu-bar"><img src="../images/editor/toolbar/multiloop-resize-handle.png" alt="Loop-Resize Toolbar Icon" width="16" height="16"></span>. These icons are called &quot;Drag Handles&quot; and they allow you make coordinated changes to multiple bases at once by clicking and dragging them. The former icon allows you to resize a &quot;<strong>Loop</strong>&quot; while the latter allows you to resize a &quot;Multi-Loop&quot; (aka &quot;circuit&quot;). The distinction between the two is described in the table below. You can switch between Loop-Resizing and 
+  Multi-Loop-Resizing by clicking the the menu item <span class="menu-bar">Settings &gt; Resize MultiLoops by Default</span>. You can also temporarily toggle between the two modes by holding down the <span class="keyboard-key">Shift</span> key while dragging the handle.
+<table class="innerTable" border="0" cellspacing="0" cellpadding="3">
+  <caption>
+    Loops vs Multi-Loops
+    </caption>
+  <tr>
+    <td align="center"><strong>Loop</strong></td>
+    <td align="center">&quot;<strong>Multi-Loop</strong>&quot; or &quot;Circuit&quot;</td>
+  </tr>
+  <tr>
+    <td valign="top">One contiguous unpaired section of the RNA structure (e.g. a hairpin loop, a bulge loop, one side of an internal loop,  one section of a multi-branch loop, or one section of  an external loop)</td>
+    <td valign="top">One or more Loop sections (and the helices that join them) to form a full circuit, closed by paired bases</td>
+  </tr>
+  <tr>
+    <td><p>Loops are highlighted. Different colors only indicate that each section is an individual loop.</p>
+      <p><img src="../images/editor/loops.png" width="300" height="190" alt="Loops"></p></td>
+    <td><p>Multi-Loops are highlighted. Note that each full circuit, including the paired bases that close the circuit are included.</p>
+      <p><img src="../images/editor/multi-loops.png" width="300" height="187" alt="Loops"></p></td>
+  </tr>
+  <tr>
+    <td valign="top"><p><strong>Resizing Operation</strong>: Only one loop section is modified. No helices are moved.<br>
+      <img src="../images/editor/loop-resize.png" width="299" height="189" alt="Loops"><br>
+      </p></td>
+    <td valign="top"><strong>Resizing Operation</strong>: All loop sections in the circuit are resized. Helices are also re-positioned, including all bases attached to each helix. The &quot;trunk&quot; helix (closest to the 5' end) is <strong>not </strong>moved.<br>
+      <img src="../images/editor/multi-loop-resize.png" width="328" height="189" alt="Loops"></td>
+  </tr>
+</table>
+<h3><a id="branch-sliding"></a>Branch Sliding</h3>
+<p>When the focused nucleobase is paired, you will see the following icon next to it: <span class="menu-bar"><img src="../images/editor/toolbar/slide-branch-handle.png" alt="Loop-Resize Toolbar Icon" width="20" height="20"></span>.
+  By clicking and dragging this &quot;Drag Handle&quot; you can move a helix around the circumference of a Multi-Loop. All bases attached to the helix are also automatically repositioned, including the unpaired bases in Loop sections on either side of the helix, which are evenly spaced along the circumference of the Multi-Loop.</p>
+<img src="../images/editor/branch-slide-example.png" width="800" height="290" alt="Loops">
+<h3><a id="free-rotation"></a>Free Rotation</h3>
+<p>When two or more bases are selected a rotation Drag Handle <span class="menu-bar"><img src="../images/editor/toolbar/rotate-handle.png" alt="Loop-Resize Toolbar Icon" width="16" height="16"></span> will appear near the top-right corner of the bounding rectangle that contains all selected bases. In addition a cross-hair handle <span class="menu-bar"><img src="../images/editor/toolbar/rotate-center.png" alt="Loop-Resize Toolbar Icon" width="16" height="16"></span> will also appear, either at the base of a helix or at the geometric center of all selected nucleotdies. By dragging the rotation handle, all selected nucleotides will rotate, using the cross-hair location as the center of rotation. The cross-hair can be dragged to any desired location.
+<p><img src="../images/editor/rotate-start.png" width="281" height="337" alt="Loops">
+  <img src="../images/editor/rotate-end.png" width="345" height="311" alt="Loops">
+<p>
+<h3><a id="motif-repair"></a>Helix and Multi-Loop Repair</h3>
+<p>When a paired nucleobase is selected, pressing the <span class="keyboard-key">R</span> key (with no other keys held down) will &quot;repair&quot; the helix that contains the selected base. This causes all the bases in the helix to be aligned and evenly spaced along the axis of the helix. The axis of the helix is defined as the line from the midpoint of the first basepair in the helix to the midpoint of the last basepair in the helix.
+<p>Similarly, when an <strong>un</strong>paired nucleobase is selected, pressing the <span class="keyboard-key">R</span> key (with no other keys held down) will &quot;repair&quot; the Multi-Loop that contains the selected base. This causes all the unpaired bases in the Multi-Loop to be evenly spaced around the circumference of the circle formed by the Multi-Loop. It also repositions any helices that enter or exit the Multi-Loop and aligns them along the axis normal to this circle. The radius of the circle is determined based on the current average distance of each base in the Multi-Loop from the center of a best-fit circle.
+<p>The above two repair operations are applied to ALL Helices and Multi-Loops that contain bases in the current selection. You can quickly repair multiple Helices and Multi-Loops at the same time by simply selecting at least one nucleobase in each Helix or Multi-Loop that you want to repair and then pressing <span class="keyboard-key">R</span>.
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+  <h2><a name="color-bases"></a>Coloring Nucleobases</h2>
+  <p>Clicking <span class="menu-bar"><img src="../images/editor/toolbar/format-color.png" alt="Loop-Resize Toolbar Icon" width="24" height="24">Format &gt; Color-Annotate Bases</span> brings up a dialog window that can be used to color nucleobases according to a wide variety of criteria. Nucleobases have four properties that can be colored independently: </p>
+  <table class="innerTable" border="0" cellspacing="0" cellpadding="3">
+    <caption>Nucleobase Properties that can be Color-formatted:</caption>
+    <tr>
+      <td><strong>Fill</strong></td>
+      <td>The background/interior of the base.</td>
+      <td><img src="../images/editor/base-color-fill.png" width="32" height="32" alt="fill"></td>
+      </tr>
+    <tr>
+      <td><strong>Outline</strong></td>
+      <td>The outline/border of the base.</td>
+      <td><img src="../images/editor/base-color-outline.png" width="32" height="32" alt="outline"></td>
+      </tr>
+    <tr>
+      <td><strong>Text</strong></td>
+      <td>The symbol/foreground of the base.</td>
+      <td><img src="../images/editor/base-color-text.png" width="32" height="32" alt="text"></td>
+      </tr>
+    <tr>
+      <td><strong>Bonds</strong></td>
+      <td>The color of the basepair/bond associated with a base.</td>
+      <td><img src="../images/editor/base-color-bond.png" width="82" height="32" alt="bond"></td>
+      </tr>
+  </table>
+  <p>This Color Dialog has four tabs, each of which provides a different method of coloring bases:</p>
+  <table class="innerTable" border="0" cellspacing="0" cellpadding="3">
+  <caption>
+  Color Dialog Tabs (Methods of Applying Color to Nucleobases)
+  </caption>
+    <tr>
+      <td>Basepair Probability</td>
+      <td>Automatically color nucleobases according to the probability that they are paired (or unpaired) correctly. This requires additional information in the form of basepair probabilities that can be obtained from a PFS file (which can be obtained from the <strong>partition</strong> program) or a text file that lists pairwise probabilities for each possible basepair.</td>
+      </tr>
+    <tr>
+      <td>Chemical Modification <br>
+        (e.g. SHAPE)</td>
+      <td>Automatically color nucleobases according to SHAPE reactivities or any other type of chemical modification or analysis data which assigns a numeric value to some or all nucleobase indices in a sequence.</td>
+      </tr>
+    <tr>
+      <td>Nucleobase Identity</td>
+      <td>Automatically color nucleobases according to their sequence identity (e.g. <span class="nucleobase"><span style="color:blue">G</span> <span style="color:darkgreen">C</span> <span style="color:red">A</span> <span style="color:orange">U</span> </span>etc)</td>
+      </tr>
+    <tr>
+      <td>Single Color</td>
+      <td>Manually apply a single, chosen color to all selected nucleobases.</td>
+      </tr>
+  </table>
+  <p>Any of the above methods can apply colors to any of the properties (Fill, Outline, Text, or Bond) of the effected nuclobases. It is even possible to combine them, for example the Text of all bases can be colored according to sequence identity, while the Fill color can be set according to basepair probability, etc.</p>
+  <p>To apply colors, simply select the desired tab and customize the colors and other settings as desired. For Basepair Probabilities or Chemical Modification, you must either type (or copy/paste) data or load it from a file. Then click the button at the bottom of the dialog that corresponds to the nucleobase property you would like to set.</p>
+  <p><img src="../images/editor/color.png" width="684" height="395" alt="Color Dialog"></p>
+</div>
+<div class="section"><span class="toplink"><a href="#top">Back to Top</a></span>
+<h2><a name="saving"></a>Saving and Exporting Files</h2>
+<p>When you have finished editing a structure or drawing, you can save it in several different formats. </p>
+<p>The menu command <span class="menu-bar"><img src="../images/editor/toolbar/file-save.png" alt="Loop-Resize Toolbar Icon" width="24" height="24">File &gt; Save Drawing</span> (keyboard shortcut: <span class="keyboard-key">Ctrl</span>+<span class="keyboard-key">S</span> or <span class="keyboard-key">&#8984;Cmd</span>+<span class="keyboard-key">S</span> on Mac) will let you save the drawing in the StructureEditor's native file format (Nucleobase Structure Drawing, <strong>NSD</strong>). This format saves all sequence, structure, layout (X, Y positions of bases) and formatting (e.g. color) information.</p>
+<p>It is also possible to export information from the drawing in several other formats using the menu command <span class="menu-bar"><img src="../images/editor/toolbar/export-as.png" alt="Loop-Resize Toolbar Icon" width="24" height="23">File &gt; Export</span> (keyboard shortcut: <span class="keyboard-key">Ctrl</span>+<span class="keyboard-key">Shift</span>+<span class="keyboard-key">E</span> or <span class="keyboard-key">&#8984;Cmd</span>+<span class="keyboard-key">Shift</span>+<span class="keyboard-key">E</span> on Mac). You can then select the desired output file type from the <span class="windowTitle">File Type</span> drop-down menu at the bottom of the <span class="windowTitle">Export Drawing</span> dialog that appears. Some of the output formats are listed below.</p>
+<table class="innerTable" border="0" cellpadding="3" cellspacing="0">
+  <caption>
+    File Formats for Save and Export
+    </caption>
+  <tr>
+    <td>Sequence Files: <br>
+      &nbsp;      <strong>FASTA</strong>, <strong>SEQ</strong>, 
+      or Plain Text</td>
+    <td>The sequence is exported without any structure (e.g. basepairs), layout, or formatting information.</td>
+  </tr>
+  <tr>
+    <td>Structure Files: 
+      <br>
+      &nbsp;&nbsp;Connection Table (<strong>CT</strong>) or <br>
+      &nbsp;&nbsp;Dot-Bracket (<strong>DBN</strong>)</td>
+    <td>These are standard formats for saving RNA (or DNA) sequences along with structure information (basepairs). However, layout (X, Y positions of bases) and other formattting (base colors etc) are <strong>not </strong>saved in these files.</td>
+  </tr>
+  <tr>
+    <td nowrap>Extended CT (<strong>CTE</strong>)</td>
+    <td><p>This format is identical to CT except that it contains additional columns in the connection table that that indicate the X, Y positions of bases as well as some formatting information (e.g. base colors).<br>
+      This format is provided because it preserves much of the added drawing information (e.g. layout and formatting) but at the same time is more compatible with software that typically reads CT files. (All that is required is for the software to ignore columns after those found in standard CT files). Therefore it <em>might</em> be possible to store drawing information in the same file that is passed to <strong>CT</strong> structure analysis programs.</p></td>
+  </tr>        
+  <tr>
+    <td>Nucleobase Structure Drawing (<strong>NSD</strong>)</td>
+    <td><p>As mentioned above, this is the native file format of the StructureEditor program. The file format is a text file with a syntax similar to JSON. In it, each base is considered to be an &quot;object&quot; with properties such as X,Y  positions, color, etc.<br>
+      This format can fully save all information from StructureEditor drawings.</p></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center" nowrap class="imageCaption">Image Formats for Export</td>
+    </tr>
+  <tr>
+    <td nowrap>Portable Network Graphics (<strong>PNG</strong>)</td>
+    <td>The full drawing is exported at 100% zoom with a transparent background. PNG files are compressed bitmaps. They are high quality and great for use on the web, but they do not resize as well as vector graphics such as SVG, which are recomended for publication.</td>
+  </tr>
+  <tr>
+    <td nowrap>JPEG Image (<strong>JPG</strong>, <strong>JPEG</strong>)</td>
+    <td>This is a lossy compressed bitmap image format. The full drawing is exported at 100% zoom with an opaque background (because JPEG does not support transparency).</td>
+  </tr>
+  <tr>
+    <td nowrap>Scaleable Vector Graphics (<strong>SVG</strong>)</td>
+    <td>The drawing is exported as vector graphics objects (which includes shapes and text etc). This is a high quality format that can be resized without loss of resolution and so it is an excellent choice for publication. In addition, you can open the exported SVG file in 3rd-party programs such as <a href="https://inkscape.org/en/" target="_blank">Inkscape</a> or <a href="https://helpx.adobe.com/illustrator/using/svg.html" target="_blank">Adobe Illustrator</a> to further modify the drawing or add labels or other annotations.</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+</div>
+</td>
+</tr>
+<tr>
+<td class="footer" colspan="3">
+<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+Mathews Lab RNAstructure Page</a> for updates and latest
+information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</body></html>

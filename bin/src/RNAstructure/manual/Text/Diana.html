@@ -1,0 +1,84 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: Fold</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                Diana_Cluster.R</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>Diana_Cluster.R clusters structures using DIANA clustering and reports the number of clusters and the centroids of the clusters. This follows the method of Ding <em>et al</em>. (2005). This is an R script available in scripts/.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: Rscript Diana_Cluster.R &lt;ct file&gt;</h3>
+              <p>example: Rscript /home/username/RNAstructure/scripts/Diana_Cluster.R stochastic_sample.ct</p>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt; ct file &gt;</td>
+                    <td>The <a href="File_Formats.html#CT">ct</a> file containg the set of structures to cluster.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes:</h3>
+              <p>Output is to standard out and a set of <a href="File_Formats.html#CT">ct</a> files. The program provides the number of clusters and their size. It also writes ct files with the centroids of each cluster in the format input_name.centroid.#.ct where input_name was the input filename and # is the number of the clsuter.</p>
+              <p class="leftHeader"><strong>Required Packages:</strong>Diana_Cluster.R requires installation of the fpc package.</p>
+              <p class="leftHeader"><strong>Set up RNAstructure:</strong> Diana_Cluster.R calls components of the RNAstructure package. Make sure to add the RNAstructure executables to your global path. The following steps show how to do so in Linux: <br>
+              1- Use a command line-based text editor like nano to open up the bash profile in the users home directory. For example, use &quot;nano ~/.bashrc&quot; <br>
+              2- Add this line to the file: export PATH=/path/to/RNAstructure/exe/:${PATH} <br>
+              3- Add this line to the file: export DATAPATH=/path/to/RNAstructure/data_tables<br>
+              4- Save changes and source the changed bashrc profile. You can use: source ~/.bashrc<br>
+              On Apple OS, the steps are the same, but edit the file ~/.zshrc .<br>
+              See <a href="Thermodynamics.html">Thermodynamics.html</a> . </p>
+              <h3 class="leftHeader">&nbsp;</h3>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem">Ding, Y., Chan, C.Y., and Lawrence, C.E.<br>
+                "RNA secondary structure prediction by centroids in a Boltzmann weighted ensemble."<br>
+                <em>RNA</em>.  11: 1157-1166.  (2005).</li>
+                <li class="gapListItem">Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+                <li class="gapListItem"> Mathews, D.H., Disney, M.D., Childs,
+                  J.L., Schroeder, S.J., Zuker, M. and Turner, D.H. <br>
+                  "Incorporating chemical modification constraints into a
+                  dynamic programming algorithm for prediction of RNA secondary
+                  structure." <br>
+                  <i>Proc. Natl. Acad. Sci. USA</i>, 101:7287-7292. (2004). </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

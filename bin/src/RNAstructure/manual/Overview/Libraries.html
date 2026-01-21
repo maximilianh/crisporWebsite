@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head>
+		
+		<title>RNAstructure Installation and Overview: Libraries</title><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+
+	<body>
+		<div class="bodydiv">
+			<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+				<tbody><tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Libraries</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<a name="Dynalign"></a>
+						<h3>The Dynalign Library</h3>
+						<p>The
+Dynalign library holds information necessary to build a Dynalign
+object, which is used for running Dynalign. This library is
+self-contained and depends on no other libraries once built. The names
+of this library, depending on the operating system on which it is
+built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libDynalign.so</li>
+							<li>Macintosh systems: libDynalign.dylib</li>
+							<li>Windows systems (cygwin): Dynalign_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="Dynalign-SMP"></a>
+						<h3>The Dynalign SMP Library</h3>
+						<p>The
+Dynalign SMP library holds information necessary to build a Dynalign
+object. This library is self-contained and depends on no other
+libraries once built. Unlike the Dynalign library (above), the Dynalign
+SMP library can be used in parallel SMP computing environments. The
+names of this library, depending on the operating system on which it is
+built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libDynalign_SMP.so</li>
+							<li>Macintosh systems: libDynalign_SMP.dylib</li>
+							<li>Windows systems (cygwin): Dynalign_SMP_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="Hybrid"></a>
+						<h3>The Hybrid RNA Library</h3>
+						<p>The
+Hybrid RNA library holds information necessary to build a Hybrid RNA
+object, which is used for bimolecular secondary structure prediction.
+This library is self-contained and depends on no other libraries once
+built. The names of this library, depending on the operating system on
+which it is built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libHybridRNA.so</li>
+							<li>Macintosh systems: libHybridRNA.dylib</li>
+							<li>Windows systems (cygwin): HybridRNA_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="Multilign"></a>
+						<h3>The Multilign Library</h3>
+						<p>The
+Multilign library holds information necessary to build a Multilign
+object, which is used for running Multilign. This library is
+self-contained and depends on no other libraries once built. The names
+of this library, depending on the operating system on which it is
+built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libMultilign.so</li>
+							<li>Macintosh systems: libMultilign.dylib</li>
+							<li>Windows systems (cygwin): Multilign_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="Multilign-SMP"></a>
+						<h3>The Multilign SMP Library</h3>
+						<p>The
+Multilign SMP library holds information necessary to build a Multilign
+object, which is used for running Multilign. This library is
+self-contained and depends on no other libraries once built. Unlike the
+Multilign library (above), the Multilign SMP library can be used in
+parallel SMP computing environments. The names of this library,
+depending on the operating system on which it is built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libMultilign_SMP.so</li>
+							<li>Macintosh systems: libMultilign_SMP.dylib</li>
+							<li>Windows systems (cygwin): Multilign_SMP_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="Oligo"></a>
+						<h3>The Oligo Library</h3>
+						<p>The
+Oligo library holds information necessary to build an Oligowalk object,
+which is used for running OligoWalk and OligoScreen. This library is
+self-contained and depends on no other libraries once built. The names
+of this library, depending on the operating system on which it is
+built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libOligo.so</li>
+							<li>Macintosh systems: libOligo.dylib</li>
+							<li>Windows systems (cygwin): Oligo_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="PARTS"></a>
+						<h3>The PARTS Library</h3>
+						<p>The
+PARTS library holds information necessary to build a t_ppf_loops
+object, which runs PARTS calculations. This library is not
+self-contained, and must be linked together with the RNA library into
+an executable. The names of this library, depending on the operating
+system on which it is built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libPARTS.so</li>
+							<li>Macintosh systems: libPARTS.dylib</li>
+							<li>Windows systems (cygwin): PARTS_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="Postscript"></a>
+						<h3>The Postscript Library</h3>
+						<p>The
+Postscript library holds information necessary to build a variety of
+specific objects, each of which has the ability to draw a specific type
+of Postscript image. This library is not self-contained, and must be
+linked together with the Dynalign library into an executable. The names
+of this library, depending on the operating system on which it is
+built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libPS.so</li>
+							<li>Macintosh systems: libPS.dylib</li>
+							<li>Windows systems (cygwin): Postscript_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="RNA"></a>
+						<h3>The RNA Library</h3>
+						<p>The
+RNA library holds information necessary to build an RNA object, which
+is a basic representation of a single strand of nucleic acids and any
+data associated with it. This library provides access to most single
+sequence secondary structure prediction and analysis methods. This
+library is self-contained and depends on no other libraries once built.
+The names of this library, depending on the operating system on which
+it is built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libRNA.so</li>
+							<li>Macintosh systems: libRNA.dylib</li>
+							<li>Windows systems (cygwin): RNA_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="TurboFold"></a>
+						<h3>The TurboFold Library</h3>
+						<p>The
+TurboFold library holds information necessary to build a TurboFold
+object, which is used for running TurboFold. This library is not
+self-contained, and must be linked together with the RNA library into
+an executable. The names of this library, depending on the operating
+system on which it is built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libTurboFold.so</li>
+							<li>Macintosh systems: libTurboFold.dylib</li>
+							<li>Windows systems (cygwin): TurboFold_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="TurboFold-SMP"></a>
+						<h3>The TurboFold SMP Library</h3>
+						<p>The
+TurboFold SMP library holds information necessary to build a TurboFold
+object, which is used for running TurboFold. This library is not
+self-contained, and must be linked together with the RNA library into
+an executable. Unlike the TurboFold library (above), the TurboFold SMP
+library can be used in parallel SMP computing environments. The names
+of this library, depending on the operating system on which it is
+built, are as follows:</p>
+						<ul>
+							<li>Linux systems, 32 or 64 bit: libTurboFold_SMP.so</li>
+							<li>Macintosh systems: libTurboFold_SMP.dylib</li>
+							<li>Windows systems (cygwin): TurboFold_SMP_Library.dll</li>
+						</ul>
+
+						<hr>
+
+						<a name="RNAstructure"></a>
+						<h3>The RNAstructure (JAVA) GUI Library</h3>
+						<p>The
+RNAstructure (JAVA) GUI library, unlike the other libraries on this
+page, is a dynamic library, so it must always stay in the
+RNAstructure/exe directory, and is not capable of being used for
+anything other than its connection to the RNAstructure GUI. It holds
+all information necessary to run calculations from the RNAstructure
+GUI, so it contains some elements of all the other libraries on this
+page. This library is self-contained and depends on no other libraries
+once built. The names of this library, depending on the operating
+system on which it is built, are as follows:</p>
+						<ul>
+							<li>Linux: <span class="pathName">libRNAstructure_GUI_32.so</span> (on 32-bit systems) or<span class="pathName">&nbsp;libRNAstructure_GUI_64.so</span> &nbsp;(on 64-bit systems)</li>
+							<li>Mac OS X: &nbsp;<span class="pathName">libRNAstructure_GUI.dylib</span></li>
+							<li>Windows: &nbsp;<span class="pathName">RNAstructure_GUI_32.dll</span> (on 32-bit systems) or &nbsp;<span class="pathName">RNAstructure_GUI_64.dll</span> &nbsp;(on 64-bit systems)</li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</tbody></table>
+		</div>
+	</body></html>

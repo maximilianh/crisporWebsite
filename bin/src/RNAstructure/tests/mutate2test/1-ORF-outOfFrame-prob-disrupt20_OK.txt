@@ -1,0 +1,3 @@
+Model Pstructure = 0.9385456272476858
+Index 	 Disruptions 	 DisruptedPstructure 	 Restorations 	 RestoringPstructure 	 DisruptedSeq 	 RestoredSeq 
+1	AAG3AAA	0.00624	ACC15ACT	0.939	GCAAAGGCGGCCUUACCUUGC	GCAAAGGCGGCCUUACTUUGC

@@ -1,0 +1,73 @@
+[
+  { Version:"1.0" Title:"  ENERGY = -20.8  kiss2 " }
+  {
+    Title:"  ENERGY = -20.8  kiss2 "
+    Strands:[
+      {
+        Bases:[
+          { Base:G X:692.8 Y:633.5 }
+          { Base:G X:692.9 Y:615.5 }
+          { Base:C X:692.9 Y:597.4 }
+          { Base:C X:693.0 Y:579.4 }
+          { Base:G X:693.1 Y:561.4 }
+          { Base:C X:693.1 Y:543.4 }
+          { Base:U X:710.5 Y:531.4 }
+          { Base:C X:723.5 Y:511.7 }
+          { Base:U X:724.3 Y:488.7 }
+          { Base:A X:713.2 Y:467.2 }
+          { Base:A X:693.5 Y:455.2 }
+          { Base:A X:670.4 Y:453.4 }
+          { Base:A X:650.0 Y:464.5 }
+          { Base:U X:637.0 Y:484.2 }
+          { Base:C X:636.2 Y:507.3 }
+          { Base:C X:646.3 Y:528.8 }
+          { Base:G X:662.0 Y:542.0 }
+          { Base:C X:661.9 Y:560.0 }
+          { Base:G X:661.9 Y:578.0 }
+          { Base:G X:661.8 Y:596.1 }
+          { Base:C X:661.8 Y:614.1 }
+          { Base:C X:661.7 Y:632.1 }
+        ]
+      }
+      {
+        Bases:[
+          { Base:C X:896.0 Y:157.0 }
+          { Base:G X:824.0 Y:98.0 }
+          { Base:C X:743.0 Y:52.0 }
+          { Base:G X:655.0 Y:22.0 }
+          { Base:G X:564.0 Y:8.0 }
+          { Base:G X:472.0 Y:10.0 }
+          { Base:C X:381.0 Y:28.0 }
+          { Base:U X:294.0 Y:62.0 }
+          { Base:C X:215.0 Y:112.0 }
+          { Base:T X:146.0 Y:174.0 }
+          { Base:T X:90.0 Y:248.0 }
+          { Base:T X:47.0 Y:330.0 }
+          { Base:T X:19.0 Y:419.0 }
+          { Base:U X:8.0 Y:511.0 }
+          { Base:C X:13.0 Y:604.0 }
+          { Base:C X:35.0 Y:694.0 }
+          { Base:U X:72.0 Y:779.0 }
+          { Base:C X:124.0 Y:857.0 }
+          { Base:C X:188.0 Y:923.0 }
+          { Base:G X:264.0 Y:978.0 }
+          { Base:C X:347.0 Y:1018.0 }
+          { Base:G X:437.0 Y:1042.0 }
+        ]
+      }
+    ]
+    Bonds:[
+      { Link:"0:21" Type:P }
+      { Link:"1:20" Type:P }
+      { Link:"2:19" Type:P }
+      { Link:"3:18" Type:P }
+      { Link:"4:17" Type:P }
+      { Link:"5:16" Type:P }
+      { Link:"9:34" Type:D }
+      { Link:"10:33" Type:D }
+      { Link:"11:32" Type:D }
+      { Link:"12:31" Type:D }
+    ]
+    Styles:[ ]
+  }
+]

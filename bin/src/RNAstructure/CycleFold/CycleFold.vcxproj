@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\common_utils.cpp" />
+    <ClCompile Include="..\src\ParseCommandLine.cpp" />
+    <ClCompile Include="..\src\phmm\phmm.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_aln.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_array.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_ml_loops.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_pp_loops.cpp" />
+    <ClCompile Include="..\src\phmm\p_alignment.cpp" />
+    <ClCompile Include="..\src\phmm\structure\structure_object.cpp" />
+    <ClCompile Include="..\src\phmm\utils\ansi_string\ansi_string.cpp" />
+    <ClCompile Include="..\src\phmm\utils\file\utils.cpp" />
+    <ClCompile Include="..\src\phmm\utils\xmath\log\xlog_math.cpp" />
+    <ClCompile Include="..\src\phmm\utils\xmath\matrix\matrix.cpp" />
+    <ClCompile Include="alignment.cpp" />
+    <ClCompile Include="arrays.cpp" />
+    <ClCompile Include="constraints.cpp" />
+    <ClCompile Include="extrinsic.cpp" />
+    <ClCompile Include="io.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="mainloop.cpp" />
+    <ClCompile Include="maxexpect.cpp" />
+    <ClCompile Include="NCM_parameters.cpp" />
+    <ClCompile Include="options.cpp" />
+    <ClCompile Include="sequence.cpp" />
+    <ClCompile Include="turbo_calculation.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\common_utils.h" />
+    <ClInclude Include="..\src\defines.h" />
+    <ClInclude Include="..\src\ParseCommandLine.h" />
+    <ClInclude Include="..\src\phmm\phmm.h" />
+    <ClInclude Include="..\src\phmm\phmm_aln.h" />
+    <ClInclude Include="..\src\phmm\p_alignment.h" />
+    <ClInclude Include="..\src\phmm\structure\structure_object.h" />
+    <ClInclude Include="..\src\phmm\utils\ansi_string\ansi_string.h" />
+    <ClInclude Include="..\src\phmm\utils\file\utils.h" />
+    <ClInclude Include="..\src\phmm\utils\xmath\log\xlog_math.h" />
+    <ClInclude Include="..\src\phmm\utils\xmath\matrix\matrix.h" />
+    <ClInclude Include="alignment.h" />
+    <ClInclude Include="arrays.h" />
+    <ClInclude Include="constants.h" />
+    <ClInclude Include="constraints.h" />
+    <ClInclude Include="extrinsic.h" />
+    <ClInclude Include="io.h" />
+    <ClInclude Include="logdouble.h" />
+    <ClInclude Include="mainloop.h" />
+    <ClInclude Include="maxexpect.h" />
+    <ClInclude Include="NCM_parameters.h" />
+    <ClInclude Include="options.h" />
+    <ClInclude Include="sequence.h" />
+    <ClInclude Include="test.h" />
+    <ClInclude Include="turbo_calculation.h" />
+    <ClInclude Include="zero.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CB012AD9-75BB-43EF-B2DD-CF260A4811EE}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>CycleFold</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Cpp0xSupport>true</Cpp0xSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>Default</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

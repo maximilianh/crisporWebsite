@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: Fold</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                DecoyFinder.py</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>DecoyFinder applies machine learning trained with features determined by TurboFold to detect sequences that are not homologous with the other sequences in the set.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: python3 DecoyFinder.py &lt;ct file&gt;  [options]              </h3>
+              <p>example: python3 /home/username/RNAstructure/scripts/DecoyFinder /home/username/TurboFold.conf</p>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt; configuration file  &gt;</td>
+                    <td>The name of a file containing required configuration data. This is the TurboFold configuration file that was used for the TurboFold calculation.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">--smp</td>
+                    <td>This option is used when TurboFold is not yet run, and TurboFold should  be run in parallel.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--FPR</td>
+                    <td>False Positive Rate; user can set the threshold for the classification probability. Lower thresholds are more stringent and would lower the False Positive Rate. Default is  0.05.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes:</h3>
+              <p>DecoyFinder post-processes the result of a TurboFold calculation. It uses the configuration file from <a href="TurboFold.html">TurboFold</a>. If all the TurboFold output is not available, DecoyFinder calls TurboFold with the configuration file first.</p>
+              <p>The configuration file must include the option SaveFiles and must include the option StartingSaveFiles. These save the partition function results that are processed by DecoyFinder. The configuration file must also specify the OutAln, the alignment file name, which is also used by DecoyFinder.</p>
+              <p>The output is to standard out. Identified decoys (non-homologous sequences) are listed. They are named according to the sequence name iside the sequence file.</p>
+              <p class="leftHeader"><strong>Required Libraries:</strong>DecoyFinder requires installation of the following Python libraries: joblib, numpy, and scikit-learn. We highly recommend the use of conda. A good reference for installing scikit-learn is available at: <a href="https://scikit-learn.org/stable/install.html">https://scikit-learn.org/stable/install.html</a>.</p>
+              <p class="leftHeader"><strong>Set up RNAstructure:</strong> DecoyFinder calls components of the RNAstructure package. Make sure to add the RNAstructure executables to your global path. The following steps show how to do so in Linux: <br>
+              1- Use a command line-based text editor like nano to open up the bash profile in the users home directory. For example, use &quot;nano ~/.bashrc&quot; <br>
+              2- Add this line to the file: export PATH=/path/to/RNAstructure/exe/:${PATH} <br>
+              3- Add this line to the file: export DATAPATH=/path/to/RNAstructure/data_tables<br>
+              4- Save changes and source the changed bashrc profile. You can use: source ~/.bashrc<br>
+              On Apple OS, the steps are the same, but edit the file ~/.zshrc .<br>
+              See <a href="Thermodynamics.html">Thermodynamics.html</a> . </p>
+              <h3 class="leftHeader">DecoyFinder Training:</h3>
+              <p>DecoyFinder also provides code for user to train their own  model. DecoyFinder training will generate configure file for DecoyFinder to  train and output the trained AdaBoost model.</p>
+              <p><strong>USAGE: python3 DecoyFinder_training.py  &lt;sequence file directory&gt; &lt;output file directory&gt; &lt;Model  output&gt;</strong></p>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;sequence file directory&gt; </td>
+                    <td><p>The directory contains all sequence files.</p>
+                    <p><strong>Note</strong>: Please make sure the  different RNA family sequence files are saved in different directories, so that  the script will be able to build the training set.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;output file directory&gt;</td>
+                    <td>The directory that will  output all the configure file as well as TurboFold result.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;Model output&gt;                  </td>
+                    <td><p>The name of the trained machine learning model will be  output.</p></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="leftHeader">&nbsp;</p>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+                <li class="gapListItem"> Mathews, D.H., Disney, M.D., Childs,
+                  J.L., Schroeder, S.J., Zuker, M. and Turner, D.H. <br>
+                  "Incorporating chemical modification constraints into a
+                  dynamic programming algorithm for prediction of RNA secondary
+                  structure." <br>
+                  <i>Proc. Natl. Acad. Sci. USA</i>, 101:7287-7292. (2004). </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

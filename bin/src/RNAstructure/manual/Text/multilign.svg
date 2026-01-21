@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="764px" height="237px" viewBox="0 0 764 237" enable-background="new 0 0 764 237" xml:space="preserve">
+<text transform="matrix(1 0 0 1 24.8916 42.8921)" font-family="'MyriadPro-Regular'" font-size="24">Predict a Structure Common to Three or More Sequences with Multilign:</text>
+<rect x="172.146" y="79.813" fill="none" stroke="#000000" width="131.854" height="117.187"/>
+<text transform="matrix(1 0 0 1 182.8145 109.146)" font-family="'MyriadPro-Regular'" font-size="24">multilign</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="13" y1="102.48" x2="164.777" y2="102.48"/>
+		<g>
+			<path d="M170.813,102.48c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755
+				C164.449,99.629,167.973,101.427,170.813,102.48z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 22.4795 87.813)" font-family="'MyriadPro-Regular'" font-size="24">.seq or .fasta</text>
+<text transform="matrix(1 0 0 1 325.1484 85.8135)" font-family="'MyriadPro-Regular'" font-size="24">.ct</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="303.481" y1="96.48" x2="404.965" y2="96.48"/>
+		<g>
+			<path d="M411,96.48c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755C404.637,93.629,408.16,95.427,411,96.48z"/>
+		</g>
+	</g>
+</g>
+<rect x="411" y="73.813" fill="none" stroke="#000000" width="75.818" height="45.333"/>
+<text transform="matrix(1 0 0 1 421.1504 103.1465)" font-family="'MyriadPro-Regular'" font-size="24">draw</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="486.818" y1="96.48" x2="571.447" y2="96.48"/>
+		<g>
+			<path d="M577.482,96.48c-2.84,1.054-6.363,2.852-8.548,4.756l1.721-4.756l-1.721-4.755
+				C571.119,93.63,574.643,95.428,577.482,96.48z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 506.8154 85.8135)" font-family="'MyriadPro-Regular'" font-size="24">.ps</text>
+<g>
+	<line fill="none" x1="375.482" y1="96.48" x2="375.482" y2="96.48"/>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="304.5" y1="186.481" x2="570.129" y2="186.481"/>
+		<g>
+			<path d="M576.164,186.481c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755
+				C569.801,183.63,573.324,185.428,576.164,186.481z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 431.8154 175.814)" font-family="'MyriadPro-Regular'" font-size="24">.ali</text>
+<text transform="matrix(1 0 0 1 32.4795 127.813)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="24">(for each </tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="24">sequence)</tspan></text>
+<text transform="matrix(1 0 0 1 311.4795 119.1465)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="24">(for each </tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="24">sequence)</tspan></text>
+<text transform="matrix(1 0 0 1 493.4795 119.1465)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="24">(for each </tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="24">sequence)</tspan></text>
+</svg>

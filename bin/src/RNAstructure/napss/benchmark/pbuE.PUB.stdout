@@ -1,0 +1,43 @@
+jchen@malatya03:~/RNAstructure3/exe$ /usr/bin/time -v ./NAPSS pbuE.seq pbuE_triplets.con pbuE.NAPSS.ct -pp pbuE.NAPSS.pp -d 1
+####################################################
+                  NAPSS Folding Started
+####################################################
+
+Reading files...                                DONE
+Running dynamic programming algorithm...        DONE
+Generating dotplot...                           DONE
+Looking for Matches:
+
+Looking for matches: 1 matches found    DONE
+Folding structure 1 of 1                        DONE
+Num_Of_Structures 1
+Recalculating energies 1 of 1           DONE
+Sorting structures...                           DONE
+1 structures are within the specified cutoff percentage.
+
+####################################################
+                        DONE
+####################################################
+        Command being timed: "./NAPSS pbuE.seq pbuE_triplets.con pbuE.NAPSS.ct -pp pbuE.NAPSS.pp -d 1"
+        User time (seconds): 0.07
+        System time (seconds): 0.00
+        Percent of CPU this job got: 84%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.09
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 11872
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 3064
+        Voluntary context switches: 3
+        Involuntary context switches: 73
+        Swaps: 0
+        File system inputs: 16
+        File system outputs: 16
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0

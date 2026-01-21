@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Generate All Suboptimal Structures</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Generate All Suboptimal Structures</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>Two suboptimal secondary structure routines are available in RNAstructure. The first is based on the popular mfold program and provides a set of representative low free energy structures in addition to the lowest free energy structure. The second is based on the algorithm of <a href="References.html">Wuchty et al.</a> and can generate all possible secondary structures for a (small) free energy increment above the lowest free energy structure.</p>
+
+						<p><b>Predicting All Suboptimal Structures</b></p>
+						<ol>
+							<li>Choose &quot;Generate All Suboptimal Structures&quot; to open the module.</li>
+							<li>Choose the sequence by clicking the button labeled &quot;Sequence File.&quot;</li>
+							<li>A default output file (CT file) is provided. That can be changed by clicking the button labeled &quot;CT File.&quot;</li>
+							<li>Choose the upper energy limit for the predicted secondary structures. The program stops generating structures when it either reaches the maximum limit (in kcal/mol) or the maximum percent difference limit. This limit needs to be carefully chosen. There is an exponential increase in the number of predicted structures as the energy limit is increased in size. It is best to choose a conservative cutoff (perhaps <1 kcal/mol) for first calculations and then carefully increase this value.</li>
+							<li>Enter any constraints on the calculation from the Force menu, and/or change the calculation temperature, if desired. (See &quot;<a href="Tips_and_Techniques.html">Tips and Techniques</a>&quot; for details.)</li>
+							<li>Click &quot;Start.&quot; When the program is complete, the option to display structures is given. Click &quot;OK&quot; to <a href="Draw.html">display</a> the structures, or &quot;Cancel&quot; to close the module.</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

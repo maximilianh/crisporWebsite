@@ -1,0 +1,5 @@
+** DO NOT DELETE OR CHANGE THE NAME OF THIS FILE **
+
+This file is used to aid RNAstructure programs in auto-detecting the location of the thermodynamic parameter files. Specifically, if one of the standard search paths (e.g. ./data_tables or ../data_tables) contains a file called "autodetect.txt" it is assumed that it is a valid location for thermodynamic parameter files.
+
+So if you need to delete or rename this file, you must make a corresponding change to the DATAPATH_VERIFY_FILE constant in RNAstructure/src/defines.h

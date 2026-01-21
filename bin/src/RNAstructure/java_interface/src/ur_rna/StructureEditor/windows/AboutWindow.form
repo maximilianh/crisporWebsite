@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="ur_rna.StructureEditor.windows.AboutWindow">
+  <grid id="27dc6" binding="mainPanel" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="50" y="9" width="667" height="374"/>
+    </constraints>
+    <properties>
+      <font size="12"/>
+      <preferredSize width="600" height="400"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <component id="ec692" class="javax.swing.JButton" binding="btnClose">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="3" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag top="10" left="0" bottom="5" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="close"/>
+          <font name="Arial" size="14"/>
+          <text value="OK"/>
+        </properties>
+      </component>
+      <component id="803f6" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="3" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="10" left="0" bottom="5" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="RNAstucture is developed by the David H. Mathews Lab at the University of Rochester."/>
+        </properties>
+      </component>
+      <grid id="6d400" binding="pnlLogo" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <background color="-5919315"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="f9ede" class="javax.swing.JLabel" binding="lblLogo">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag top="10" left="0" bottom="10" right="0" weightx="0.4" weighty="1.0"/>
+            </constraints>
+            <properties>
+              <background color="-5919315"/>
+              <icon value="ur_rna/StructureEditor/resources/images/logo-pic.png"/>
+              <text value=""/>
+            </properties>
+          </component>
+          <grid id="1039c" layout-manager="GridBagLayout">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.5" weighty="1.0"/>
+            </constraints>
+            <properties>
+              <minimumSize width="300" height="209"/>
+              <opaque value="false"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="b3c25" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="10" left="0" bottom="0" right="0" weightx="1.0" weighty="0.1"/>
+                </constraints>
+                <properties>
+                  <focusable value="false"/>
+                  <font name="Bookman Old Style" size="26" style="1"/>
+                  <foreground color="-16757760"/>
+                  <text value="RNAstructure"/>
+                </properties>
+              </component>
+              <component id="efa89" class="javax.swing.JLabel" binding="lblCopyright">
+                <constraints>
+                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="1.0" weighty="0.1"/>
+                </constraints>
+                <properties>
+                  <font name="Times New Roman" size="26" style="1"/>
+                  <foreground color="-16757760"/>
+                  <text value="© [YEARS]"/>
+                </properties>
+              </component>
+              <component id="f088c" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="0" bottom="20" right="0" weightx="1.0" weighty="0.1"/>
+                </constraints>
+                <properties>
+                  <font name="Times New Roman" size="26" style="1"/>
+                  <foreground color="-16757760"/>
+                  <text value="Mathews Lab"/>
+                </properties>
+              </component>
+              <component id="cb032" class="javax.swing.JLabel" binding="lblVersion">
+                <constraints>
+                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="2" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="10" left="0" bottom="0" right="0" weightx="1.0" weighty="0.1"/>
+                </constraints>
+                <properties>
+                  <font name="Times New Roman" size="26" style="1"/>
+                  <foreground color="-16757760"/>
+                  <text value="Version [VERSION]"/>
+                </properties>
+              </component>
+              <component id="a6281" class="javax.swing.JLabel" binding="lblProgramTitle">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="5" left="0" bottom="0" right="0" weightx="1.0" weighty="0.1"/>
+                </constraints>
+                <properties>
+                  <focusable value="false"/>
+                  <font name="Times New Roman" size="28" style="3"/>
+                  <foreground color="-16776854"/>
+                  <text value="[PROGRAM TITLE]"/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+        </children>
+      </grid>
+      <component id="87ca7" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="3" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="0" bottom="10" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="The structure drawing editor was written by Richard M. Watson"/>
+        </properties>
+      </component>
+      <component id="6cbcf" class="javax.swing.JLabel" binding="lblHelp" custom-create="true">
+        <constraints>
+          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.3" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="&lt;html&gt;View &lt;a href=&quot;&quot;&gt;Documentation and Help&lt;/a&gt;"/>
+        </properties>
+      </component>
+      <component id="5621b" class="javax.swing.JLabel" binding="lblWebsite" custom-create="true">
+        <constraints>
+          <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.3" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="&lt;html&gt;Go to &lt;a href=&quot;&quot;&gt;Lab Website&lt;/a&gt;"/>
+        </properties>
+      </component>
+      <component id="39f79" class="javax.swing.JLabel" binding="lblFeedback" custom-create="true">
+        <constraints>
+          <grid row="3" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.3" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="&lt;html&gt;Send &lt;a href=&quot;&quot;&gt;Feedback/Bug Report&lt;/a&gt;"/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>

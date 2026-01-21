@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: stochastic</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					stochastic and stochastic-smp</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>stochastic is used to sample secondary structures from the Boltzman enemble. The probability of sampling a given structure is proportional to the probability that it occurs. stochastic-smp is a parallel processing version for use on multi-core computers, built using OpenMP.</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: stochastic &lt;input file&gt; &lt;ct file&gt; [options]</h3>
+					  <h3>OR: stochastic-smp &lt;input file&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;input file&gt;</td>
+								<td>
+									The name of a file containing input data. This input data can be in one of two formats:
+									<ol class="noListTopMargin">
+										<li>Partition function save file (holds base pairing probability data for all pairs and can be generated using the <a href="partition.html">partition</a> interface).</li>
+										<li>
+											<a href="File_Formats.html#Sequence">Sequence file</a> (holds raw sequence: .seq or .fasta).
+											<br>
+											Note that lowercase nucleotides are forced single-stranded in structure prediction.
+											<br>
+											Note that in order to use a squence file, the &quot;sequence&quot; flag must be specified (see &quot;--sequence&quot; below).
+										</li>
+									</ol>
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									This flag only matters if the input file is a sequence file and has been identified as such (see &quot;--sequence&quot; below).
+									<br>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">--sequence</td>
+								<td>Identify the input file format as a sequence file.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-e, -E, --ensemble</td>
+								<td>
+									Specify the ensemble sample size.
+									<br>
+									Default is 1000 structures.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-s, -S, --seed</td>
+								<td>
+									Specify the random number seed as an integer. Using a different seed will result in a different sample of structures.
+									<br>
+									Default is 1234.
+								</td>
+							</tr>
+						</table>
+<h3 class="leftHeader">Notes for smp:</h3>
+      <p>stochastic-smp, by default, will use all available compute cores for processing. The number of cores used can be controlled by setting the OMP_NUM_THREADS environment variable.</p>
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Harmanci, A.O., Sharma, G. and Mathews, D.H.
+								<br>
+								&quot;Stochastic sampling of the RNA structural alignment space.&quot;
+								<br>
+								<i>Nucleic Acids Res.</i>, 37:4063-4075. (2009).
+							</li>
+							<li class="gapListItem">
+								Ding, Y. and Lawrence, C.E.
+								<br>
+								&quot;A statistical sampling algorithm for RNA secondary structure prediction.&quot;
+								<br>
+								<i>Nucleic Acids Res.</i>, 31:7280-7301. (2003).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

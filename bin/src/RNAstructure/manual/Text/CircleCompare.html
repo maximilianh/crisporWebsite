@@ -1,0 +1,219 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: CircleCompare</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>CircleCompare</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>CircleCompare is used to compare two nucleic acid structures for the same sequence by arranging them on top of one another around a circle. This layout makes base pairs and pseudoknotted pairs easily visible.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: CircleCompare &lt;predicted ct&gt; &lt;accepted ct&gt; &lt;ps file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;predicted ct&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> containing data for the predicted structure.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;accepted ct&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> containing data for the accepted structure.</td>
+							</tr>
+							<tr>
+								<td class="cell">&ltoutput file&gt;</td>
+								<td>
+									The name of an image file to which output will be written.
+									Usually, this is a Postscript image file, although the user can specify that it be an SVG image file instead.
+									To specify SVG images, the \"--svg\" flag must be specified in conjunction with a structure number flag (see the flags below).
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-a, -A, --alternative</td>
+								<td>
+									Specify that an alternative color scheme should be used. CircleCompare uses the following color scheme when identifying secondary structure pairs:
+									<table class="smallTable" cellpadding="2" cellspacing="1">
+										<tr>
+											<td class="boldGreen">Green </td>
+											<td>Present in predicted and accepted structures</td>
+										</tr>
+										<tr>
+											<td class="boldRed">Red</td>
+											<td>Present in predicted structure only</td>
+										</tr>
+										<tr>
+											<td class="boldBlack">Black</td>
+											<td>Present in accepted structure only</td>
+										</tr>
+									</table>
+
+									The alternative color scheme is similar to the default, but the colors used for accepted and predicted pairs differ:
+									<table class="smallTable" cellpadding="2" cellspacing="1">
+										<tr>
+											<td class="boldGreen">Green </td>
+											<td>Present in predicted and accepted structures</td>
+										</tr>
+										<tr>
+											<td class="boldPurple">Purple</td>
+											<td>Present in predicted structure only</td>
+										</tr>
+										<tr>
+											<td class="boldRed">Red</td>
+											<td>Present in accepted structure only</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-e, -E, --exact</td>
+								<td>
+									Specify exact comparison when structure comparison is scored.
+									<br>
+									When exact comparison is specified, a known base pair between nucleotides <i>i</i> and <i>j</i> is considered to be correctly predicted only by the base pair <i>i</i>-<i>j</i>.
+									<br>
+									By contrast, when flexible pairings are allowed, base pairs are considered to be correctly predicted when one of the two indices is different by up to one nucleotide. This better accounts for RNA dynamics and uncertainty in the RNA structure. For a known base pair <i>i</i>-<i>j</i>, all of the following predicted pairs are considered correct with flexible pairings:
+
+									<ul class="noListTopMargin">
+										<li class="monoFont"><i>i</i> - <i>j</i></li>
+										<li class="monoFont"><i>i</i> - <i>j</i>-1</li>
+										<li class="monoFont"><i>i</i> - <i>j</i>+1</li>
+										<li class="monoFont"><i>i</i>-1 - <i>j</i></li>
+										<li class="monoFont"><i>i</i>+1 - <i>j</i></li>
+									</ul>
+
+									Default is to allow flexible pairings.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-f, -F, --file</td>
+								<td>
+									Specify that structure file names should be shown in addition to their descriptions.
+									<br>
+									Default is not to show structure file names.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">-l, -L, --levorotatory</td>
+								<td>
+									Specify that the drawn structure is rendered counterclockwise.
+									<br>
+									Default is to render drawn structures clockwise.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">--svg</td>
+								<td>
+									Specify that the output file should be an SVG image file, rather than a Postscript image file.
+									<br>
+									Note that only one SVG image can be written into a particular file, so the structure number flag (below) must also be specified when writing an SVG document.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-u, -U, --uncircled</td>
+								<td>
+									Specify that no circles should surround nucleotides when drawing.
+									<br>
+									Default is to surround nucleotides with circles.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-n, -N, --number</td>
+								<td>
+									Specify the index of a particular structure in the predicted CT to be compared with the accepted CT, one-indexed.
+									<br>
+									Default is -1, which signifies all structures output to one file.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-p, -P, --probability</td>
+								<td>
+									Specify the name of the file from which base pairing probability data will be read for annotation. The pairing data must be for the predicted structure. This file must be a partition function save file.
+									<br>
+									Default is no probability annotation file used.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-p2, -P2, --probability2</td>
+								<td>
+									Specify the name of the file from which base pairing probability data will be read for annotation. The pairing data must be for the accepted structure. This file must be a partition function save file.
+									<br>
+									Default is no probability annotation file used.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-s, -S, --SHAPE</td>
+								<td>
+									Specify the name of the file from which SHAPE data will be read for annotation.
+									<br>
+									This annotation is not structure dependent.
+									<br>
+									Default is no SHAPE annotation file used.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-t, -T, --text</td>
+								<td>
+									Specify the name of the text file from which base pairing probability data will be read for annotation.
+									<br>
+									This file should describe pairing data for the predicted structure, not the accepted structure.
+									<br>
+									Default is no probability annotation file used.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li>
+								Mathews, D.H., Sabina, J., Zuker, M. and Turner, D.H.
+								<br>
+								&quot;Expanded sequence dependence of thermodynamic parameters provides improved prediction of RNA secondary structure.&quot;
+								<br>
+								<i>J. Mol. Biol.</i>, 288:911-940. (1999).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

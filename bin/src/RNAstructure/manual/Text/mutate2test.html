@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: Fold</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                mutate2test.py</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>mutate2test takes an input model structure and an optional open reading frame and then outputs a set of disrupting and restoring mutations that can be used to test the model. This is a python program available in scripts/.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: python3 mutate2test.py &lt;ct file&gt;  [options]              </h3>
+              <p>example: python3 /home/username/RNAstructure/scripts/mutate2test /home/username/mutate_to_test_files/bmorivector.ct</p>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;ct file&gt;</td>
+                    <td> The name of a <a href="File_Formats.html#CT">CT file</a> containing the model structure and its sequence. <strong>Please make sure to provide the absolute path.</strong><br>
+                      Note that a dot-bracket file can also be provided and mutate2test distinguishes between the two automatically. </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-h, -H, --help</td>
+                    <td>Display the usage details message.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-p, -P, --Prob</td>
+                    <td> Specify that the probability of the structure should be used as the objective function to evaluate designs.<br>
+                      Default is to use <a href="EDcalculator.html">NED</a> as the objective function. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v, -V, --verbose</td>
+                    <td>Use extra verbosity. Mutations are provided as standard out as they are found.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-q, -Q, --quiet</td>
+                    <td>Suppress progress bar output.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-c, -C, --Calc</td>
+                    <td>Calculate the <a href="EDcalculator.html">NED</a> and the probability for an input structure. This does not generate mutations, but evaluates a model and sequence. The output is a predicted structure and details provided to standard out. This can be helpful to evaluate the mutations provided by mutate2test or by mutations generated manually. (See notes.)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-f, -F, --flexible</td>
+                    <td>When using -c, -C, --Calc, allow flexibility in base pairing. The default is to require all pairs in the model when calculating the structure probability. In other words, for the default, if a model includes a pair that cannot base pair because the nucleotides do not allow pairing, the structure probability will be 0.  If -f, -F, or --flexible is specified, the probability calculation will allow pairs to be open. This is important in evaluating disrupting mutants. (See notes.)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-i,-I,--Interact</td>
+                    <td>Use an interactive mode that prompts the user for required input. The default is to control the calculation using these parameters.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-a, -A, --alt</td>
+                    <td>Allow restoring mutants to make conservative amino acid changes.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--smp</td>
+                    <td>Run the parallel version of EDcalculator. EDcalculator-smp is a parallel processing version available for use on Linux and windows. It cannot be used for MacOS with an M chip.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-b, -B, --blosum</td>
+                    <td>Specify the blosum matrix used to indentify alternative amino acids in restoring mutations if -a, -A, and --alt is used.  You can choose from BLOSUM 45, 50, 62, 80 and 90. Default is 62.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-o, -O, --ORF</td>
+                    <td>Specify the sequence of the open reading frame (ORF) in fasta format. If the ORF is provided, mutate2test will preserve amino acid identities. The default is to assume there is no ORF.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-n, -N, --Number</td>
+                    <td> <p>Specify the number of mutations that are desired for disrupting mutations (and the same number of additional mutations in the restoring structure). When an ORF is used (see -o,-O,--ORF), then this indicates the number of codon mutations (a codon mutation can contain more than one nucleotide mutation).</p>
+                    <p>Default is 3.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-d, --D, --Disrupt</td>
+                    <td><p>Specify the threshold for disrupting mutations. The disruptions must exceed this threshold. (See notes below.)</p>
+                    <p>By default, the NED threshold is 0.15 and the probability (see -p, -P, --Prob)  default is a factor of 100.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-r,-R,--Restore</td>
+                    <td><p>Specify the threshold for restoring mutations. The mutants must be better than the threshold. (See notes below.)</p>
+                    <p>By default, the NED threshold is 0.05 and the probability (see -p, -P, --Prob)  default is a factor of 3.</p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-s,-S,--Start </td>
+                    <td>Specify the start nucleotide of the local structure to be targeted for mutations when using the NED as the objective function. The default is the 5' end, i.e. nucleotide 1.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-e, -E, --End</td>
+                    <td>Specify the end nucleotide of the local structure to be targeted for mutations when using the NED as the objective function. The default is the 3' end, i.e. nucleotide N for an N-nucleotide sequence.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes:</h3>
+              <p><strong>Paths: The path to mutate2test.py and to the input .ct or .dot file need to be provided as absolute paths, i.e. starting with &quot;/&quot;.</strong></p>
+              <p class="leftHeader"><strong>Output files:</strong> The output folder will be in the same directory as the input CT file. Please make sure the ORF fasta file, if used, is in the same directory as the input CT file. </p>
+              <p class="leftHeader">mutate2test provides detailed reports on selected mutations. Ranked Mutations are outputted in the same directory as the inputput ct file. Each report file is in a space-delimited .txt format. <br>
+              * Using the NED objective function, mutations are ranked in a descending order based on disrupting NED. Mutations with the same disruption NED are ranked further in an ascending order using restoring NED. We also output another report file where we rank mutations in a descending order based on the total number of disrupted nucleotides in each disrupting mutation. <br>
+              * Similarly, using the probability objective function, we rank mutations based on disrupting probability in an ascending order and for groups with the same disrupting probability, we rank them further using restoring probability in a descending order. </p>
+              <p class="leftHeader">mutate2test outputs structure drawings for the top ranked mutation for each file report in the topHitDrawings folder created in the same directory as the input ct file. For each mutation pair we draw the following structures: <br>
+              * disrupting mutant predicted maximum expected accuracy structure (e.g. 1topDisruption_MEA.ps where the number represents the number of codons changed for disruption). <br>
+              * disrupting mutant used to draw the model structure color-annotated using the base-pairing probabilites calculated using the mutant sequence (e.g. 1topDisruption_bpProbEffectOnModelStruct.ps where the number represents the number of codons changed for disruption). <br>
+              * restoring mutantpredicted maximum expected accuracy structure (e.g. 1topRestoration_MEA.ps where the number represents the number of codons changed for disruption). <br>
+              * restoring mutant used to draw the model structure color-annotated using the base-pairing probabilites calculated using the mutant sequence (e.g. 1topRestoration_bpProbEffectOnModelStruct.ps where the number represents the number of codons changed for disruption). </p>
+              <p class="leftHeader">When using the NED function, there will be 2 subfolders in topHitDrawings: <br>
+              * totalNEDrank: this shows the top ranked mutation structure drawings based on the total disrupting NED. <br>
+              * nt-NEDrank: this shows the top ranked mutation structure drawings based on the number of disrupted nucleotides.</p>
+              <p class="leftHeader"><strong>Required Libraries:</strong> mutate2test requires installation of the following Python libraries: biopython, tqdm, and blosum (the 2.0.2 release). A package manager can be used to install them. For example, pip can be used using the following command: pip install biopython .</p>
+              <p class="leftHeader"><strong>Set up RNAstructure:</strong> mutate2test calls components of the RNAstructure package. Make sure to add the RNAstructure executables to your global path. The following steps show how to do so in Linux: <br>
+              1- Use a command line-based text editor like nano to open up the bash profile in the users home directory. For example, use &quot;nano ~/.bashrc&quot; <br>
+              2- Add this line to the file: export PATH=/path/to/RNAstructure/exe/:${PATH} <br>
+              3- Add this line to the file: export DATAPATH=/path/to/RNAstructure/data_tables<br>
+              4- Save changes and source the changed bashrc profile. You can use: source ~/.bashrc<br>
+              On Apple OS, the steps are the same, but edit the file ~/.zshrc .<br>
+              See <a href="Thermodynamics.html">Thermodynamics.html</a> . </p>
+              <p class="leftHeader"><strong>Execution time and setting parameters:</strong> The execution time and the number of mutations outputted by each metric might vary when using NED or Probability as the objective functions, therefore, it is important to adjust Accepting/Rejecting Mutation thresholds to best fit the your needs. Depending on the number of mutations outputted, the user may increase or decrease the disrupting and the restoring thresholds as needed. <br>
+              * The NED disruption threshold ensures that the disrupting mutations are selected such that their NED has to be greater than or equal to the sum of the model NED and the disruption threshold. <br>
+              * The NED restoration threshold means that the restoring mutations are only accepted if they have an NED lower than or equal to the sum of the model NED and the restoration threshold. <br>
+              * The recommended start NED values are an NED disruption increase threshold of 0.15 and an NED restoration difference threshold of 0.05. </p>
+              <p class="leftHeader">* The probability disruption threshold ensures that the disrupting mutations are only accepted if they have a probability lower than or equal to the model probability multiplied by the disruption factor. <br>
+              * The probability restoration threshold determines that the restoring mutations are to be accepted only if they have a probability greater than or equal to the model probability divided by the restoration factor. <br>
+              * I recommend starting with a probability factor threshold of 100 and a restoration factor threshold of 3. </p>
+              <p class="leftHeader"><strong>Evaluating mutations:</strong> There are two modes where mutatet2test can used to evaluate user-inputted mutations. <br>
+              1- The exact base-paring mode (using -c, -C, --Calc) ensures that if a model includes a pair that cannot base pair because the mutated nucleotides do not allow pairing, the structure probability will be 0. This can be used to evaluate wildtype sequence and restoring mutants. <br>
+              2- The flexible mode (using -f, -F, --flexible) allows flexibility in base pairing. This indicates that the probability will be calculated after any base pairs no longer pairing given the sequence are eliminated. This can be used to evaluate disrupting mutants where the sequence may have been mutated to eliminate base pairs in the model.              </p>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+                <li class="gapListItem"> Mathews, D.H., Disney, M.D., Childs,
+                  J.L., Schroeder, S.J., Zuker, M. and Turner, D.H. <br>
+                  "Incorporating chemical modification constraints into a
+                  dynamic programming algorithm for prediction of RNA secondary
+                  structure." <br>
+                  <i>Proc. Natl. Acad. Sci. USA</i>, 101:7287-7292. (2004). </li>
+                <li class="gapListItem">Zadeh, J.N., Wolfe, B.R.,  and Pierce, N.A. <br>
+&quot;Nucleic acid sequence design via efficient ensemble defect optimization.&quot;<br>
+<em>J. Comput. Chem.</em>, 32: 439-452. (2011). </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

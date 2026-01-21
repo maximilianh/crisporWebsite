@@ -1,0 +1,132 @@
+<section mod>
+<html>
+<style>
+  body { font-family: "Arial,Helvetica"; }
+  tt { font-weight: bold; font-family: monospace; font-size: larger; }
+  .excode { background-color: #EEEEEE; border: thin solid black; }
+  .numbers { color:blue; font-style: italic; }
+  .s1br { color: #660099; font-family: monospace;  font-style: normal; }
+  .s2br { color: red;     font-family: monospace;  font-style: normal; }
+  .note { font-style: italic; color: #333333; font-family:"Arial,Helvetica"; font-size: 10px; }
+  .comment { font-style: italic; color: #666666; }
+  .button { 
+	display: inline-block;
+	background-color: #CCCCCC;
+	font-family: "dialog";
+	border: outset black;
+	font-weight: bold;
+	padding: 5px;
+	}
+	.img { border: thin solid #666666; background-color: white; margin-top: 5px; }
+</style>
+<body>
+<h2>Data Format</h2>
+This tool sets the color of each base according to a data table arranged in two columns:<br>
+(1) The base <b>index</b> and (2) The corresponding numeric <b>value</b>.<br/>
+The columns can be separated by either spaces or tabs.<br><br>
+This data can come from chemical modification studies (e.g. SHAPE) but it can also be manually entered or generated based on <b>any criteria</b>.<br>
+<br>
+Any line in the data that starts with one of the following symbols is considered a comment and is ignored:<br>
+<b>Comment Symbols: </b><tt># ; / !</tt> (hash, semicolon, forward-slash or exclamation point)<br>
+<br>
+<b>Data Example:</b>
+<div class="excode" style="width:200px"><pre>
+<span class="comment">#Base	Value</span>
+1	0.949369084
+2	0.008434194
+3	0.115617068
+4	0.182823643
+5	0.656706731
+6	0.761605327
+<span class="comment">...</span></pre>
+</div>
+<br>
+Note that it is <b>not</b> necessary to include a line for each nucleotide, but unlisted nucleotides will <b>not</b> be colored.<br>
+
+<h2>Value Ranges and Colors</h2>
+Colors are applied to nucleobases according to a set of rules that specify a value range and a corresponding color.<br>
+This tool allows you to flexibly choose the value ranges and colors that make the most sense for your data.<br>
+To define the value ranges, you choose a set of numeric limits as well as a comparison operator.<br>
+You can click the <span class="button">Add Rule</span> button to add as many rules as are necessary to describe your data. Conversely, you can click <span class="button">Remove Last Rule</span> to remove rules from the bottom of the list. In addition, any rules that are empty (i.e. the "Numeric Limit" or "Color" boxes are blank) will be ignored.<br>
+Finally, to reset the list of rules and start over, you can click the <span class="button">Reset List</span> button.<br/>
+<div class="img"><img src="res://messages/colorize-help-mod-values.png"></div>
+<br><br>
+<h3>Example 1: </h3>
+<blockquote>
+<b>Comparison operator:</b> "<tt>&lt;</tt>" (less than)<br>
+<b>Numeric limits and colors:</b>
+<blockquote>
+<table>
+<tr><td><b>Limit &nbsp;&nbsp;</b></td><td colspan="2"><b>Color</b></td></tr>
+<tr><td>2</td><td>Red</td><td style="background-color:Red; width:40px;">&nbsp;</td></tr>
+<tr><td>0.85</td><td>Orange</td><td style="background-color:Orange; width:40px;">&nbsp;</td></tr>
+<tr><td>0.4</td><td>Black</td><td style="background-color:Black; width:40px;">&nbsp;</td></tr>
+</table>
+</blockquote>
+This combination of limits and comparison operator lead to the following rules:
+<ul>
+<li>If the data-value is <b>less than 2</b> (but greater than or equal to 0.85) it will be colored <b>red</b>. </li>
+<li>If the data-value is <b>less than 0.85</b> (but greater than or equal to 0.4) it will be colored <b>orange</b>. </li>
+<li>If the data-value is <b>less than 0.4</b> it will be colored <b>black</b>. </li>
+<li><i class="comment">(If the data-value is greater than or equal to 2, it will not be colored by these rules.)</i></li>
+</ul>
+</blockquote>
+<h3>Example 2: </h3>
+<blockquote>
+The choice of comparison operator is important. If "<tt>&gt;</tt>" were chosen instead of "<tt>&lt;</tt>", the same set of numeric limits would produce entirely different rules, as shown in the following example.<br><br>
+<b>Comparison operator:</b> "<tt>&gt;</tt>" (greater than)<br> 
+<b>Numeric limits and colors:</b> (same as in Example 1)<br>
+This comparison operator would lead to the following rules:
+<ul>
+<li>If the data-value is <b>greater than 2</b> it will be colored <b>red</b>. </li>
+<li>If the data-value is <b>greater than 0.85</b> (but less than or equal to 2) it will be colored <b>orange</b>. </li>
+<li>If the data-value is <b>greater than 0.4</b> (but less than or equal to 0.85)  it will be colored <b>black</b>. </li>
+<li><i class="comment">(If the data-value is less than or equal to 0.4, it will not be colored by these rules.)</i></li>
+</ul>
+</blockquote>
+<h3>Example 3: </h3>
+<blockquote>
+Instead of using <tt>&lt;</tt> (less-than) or <tt>&gt;</tt> (greater-than), one can select <tt>&gt;=</tt> (greater-than-or-equal-to) or <tt>&lt;=</tt> (less-than-or-equal-to).<br>
+The choice of comparison operator (<tt>&gt;</tt> <i>vs</i> <tt>&gt;=</tt> &nbsp;or&nbsp; <tt>&lt;</tt> <i>vs</i> <tt>&lt;=</tt>) can be subtle, but can sometimes have an important impact on the overall colorizing effect.<br/>
+Note the differences (in <i>italics</i>) between the rules in this example and those in <b>Example 1</b>.<br><br>
+<b>Comparison operator:</b> "<tt>&lt;=</tt>" (less than or equal to)<br> 
+<b>Numeric limits and colors:</b> (same as in Example 1)<br>
+This comparison operator would lead to the following rules:
+<ul>
+<li>If the data-value is <b>less than <i>or equal to</i> 2</b> (but <i>greater than</i> 0.85) it will be colored <b>red</b>. </li>
+<li>If the data-value is <b>less than <i>or equal to</i> 0.85</b> (but <i>greater than</i> 0.4) it will be colored <b>orange</b>. </li>
+<li>If the data-value is <b>less than <i>or equal to</i> 0.4</b> it will be colored <b>black</b>. </li>
+<li><i class="comment">(If the data-value is <i>greater than</i> 2, it will not be colored by these rules.)</i></li>
+</ul>
+</blockquote>
+<h3>Example 4: </h3>
+<blockquote>
+Note that in the above examples, there was always a numeric range that fell outside of the rules (e.g. in Example 1, any value greater than or equal to 2 would not have been affected by the coloring operation). 
+This is not a problem if the data has <b>known upper and lower limits</b>, because you can always add more rules to ensure that all valid data values are included.
+But for some types of data that do not have fixed upper and/or lower limits, it might be safer to add a rule that implicitly covers values that fall outside of the range of other rules.
+This can be done using the special limits "INF" (infinity) and "-INF" (negative infinity). For example, we could amend Example 1 to cover all values, even those greater than or equal to 2 as follows:
+
+<b>Comparison operator:</b> "<tt>&lt;</tt>" (less than)<br> 
+<b>Numeric limits and colors:</b>
+<blockquote>
+<table>
+<tr><td><b>Limit &nbsp;&nbsp;</b></td><td colspan="2"><b>Color</b></td></tr>
+<tr><td>INF</td><td>Blue</td><td style="background-color:Blue; width:40px;">&nbsp;</td></tr>
+<tr><td>2</td><td>Red</td><td style="background-color:Red; width:40px;">&nbsp;</td></tr>
+<tr><td>0.85</td><td>Orange</td><td style="background-color:Orange; width:40px;">&nbsp;</td></tr>
+<tr><td>0.4</td><td>Black</td><td style="background-color:Black; width:40px;">&nbsp;</td></tr>
+</table>
+</blockquote>
+This comparison operator and limits would lead to the following rules:
+<ul>
+<li style="color:navy">If the data-value is <b>less than <i>Infinity</i></b> (but greater than or equal to 2) it will be colored <b>blue</b>.</li>
+<li>If the data-value is <b>less than 2</b> (but greater than or equal to 0.85) it will be colored <b>red</b>. </li>
+<li>If the data-value is <b>less than 0.85</b> (but greater than or equal to 0.4) it will be colored <b>orange</b>. </li>
+<li>If the data-value is <b>less than 0.4</b> it will be colored <b>black</b>. </li>
+</ul>
+Since, by definition, every real data value is less than infinity, the first rule would apply to any number greater than or equal to 2.
+<br>A similar situation would occur for the comparison operators <tt>&gt;</tt> and <tt>&gt;=</tt> (e.g. in Example 2, where any value less than or equal to 0.4 would have been ignored). 
+ In those cases "-INF" could be used to ensure that all values below a given limit would still be included. In Example 2, adding the limit "-INF" with the color "Purple" would have ensured that any value less than or equal to 0.4 would have been colored purple.
+</blockquote>
+</body></html>
+</section>

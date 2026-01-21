@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\RNA_class\RNA.h" />
+    <ClInclude Include="..\RNA_class\thermodynamics.h" />
+    <ClInclude Include="..\src\algorithm.h" />
+    <ClInclude Include="..\src\alltrace.h" />
+    <ClInclude Include="..\src\basepair.h" />
+    <ClInclude Include="..\src\boltzmann.h" />
+    <ClInclude Include="..\src\common_utils.h" />
+    <ClInclude Include="..\src\domain_class.h" />
+    <ClInclude Include="..\src\dotarray.h" />
+    <ClInclude Include="..\src\DotBracketFormat.h" />
+    <ClInclude Include="..\src\DotPlotHandler.h" />
+    <ClInclude Include="..\src\draw.h" />
+    <ClInclude Include="..\src\DynProgArray.h" />
+    <ClInclude Include="..\src\findpseudo.h" />
+    <ClInclude Include="..\src\forceclass.h" />
+    <ClInclude Include="..\src\gamma.h" />
+    <ClInclude Include="..\src\MaxExpect.h" />
+    <ClInclude Include="..\src\MaxExpectStack.h" />
+    <ClInclude Include="..\src\outputconstraints.h" />
+    <ClInclude Include="..\src\ParseCommandLine.h" />
+    <ClInclude Include="..\src\pfunction.h" />
+    <ClInclude Include="..\src\pkHelix.h" />
+    <ClInclude Include="..\src\probknot.h" />
+    <ClInclude Include="..\src\Pseudoknot.h" />
+    <ClInclude Include="..\src\PseudoParser.h" />
+    <ClInclude Include="..\src\random.h" />
+    <ClInclude Include="..\src\rna_library.h" />
+    <ClInclude Include="..\src\ShapeKnots.h" />
+    <ClInclude Include="..\src\stackclass.h" />
+    <ClInclude Include="..\src\stackstruct.h" />
+    <ClInclude Include="..\src\stochastic.h" />
+    <ClInclude Include="..\src\structure.h" />
+    <ClInclude Include="..\src\substructure.h" />
+    <ClInclude Include="..\src\TProgressDialog.h" />
+    <ClInclude Include="..\src\varray.h" />
+    <ClInclude Include="..\src\version.h" />
+    <ClInclude Include="..\src\wendarray.h" />
+    <ClInclude Include="ST.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\RNA_class\RNA.cpp" />
+    <ClCompile Include="..\RNA_class\thermodynamics.cpp" />
+    <ClCompile Include="..\src\algorithm.cpp" />
+    <ClCompile Include="..\src\alltrace.cpp" />
+    <ClCompile Include="..\src\basepair.cpp" />
+    <ClCompile Include="..\src\common_utils.cpp" />
+    <ClCompile Include="..\src\domain_class.cpp" />
+    <ClCompile Include="..\src\dotarray.cpp" />
+    <ClCompile Include="..\src\DotPlotHandler.cpp" />
+    <ClCompile Include="..\src\draw.cpp" />
+    <ClCompile Include="..\src\DynProgArray.cpp" />
+    <ClCompile Include="..\src\findpseudo.cpp" />
+    <ClCompile Include="..\src\forceclass.cpp" />
+    <ClCompile Include="..\src\gamma.cpp" />
+    <ClCompile Include="..\src\MaxExpect.cpp" />
+    <ClCompile Include="..\src\MaxExpectStack.cpp" />
+    <ClCompile Include="..\src\outputconstraints.cpp" />
+    <ClCompile Include="..\src\ParseCommandLine.cpp" />
+    <ClCompile Include="..\src\pfunction.cpp" />
+    <ClCompile Include="..\src\pkHelix.cpp" />
+    <ClCompile Include="..\src\probknot.cpp" />
+    <ClCompile Include="..\src\Pseudoknot.cpp" />
+    <ClCompile Include="..\src\PseudoParser.cpp" />
+    <ClCompile Include="..\src\random.cpp" />
+    <ClCompile Include="..\src\rna_library.cpp" />
+    <ClCompile Include="..\src\ShapeKnots.cpp" />
+    <ClCompile Include="..\src\stackclass.cpp" />
+    <ClCompile Include="..\src\stackstruct.cpp" />
+    <ClCompile Include="..\src\stochastic.cpp" />
+    <ClCompile Include="..\src\structure.cpp" />
+    <ClCompile Include="..\src\substructure.cpp" />
+    <ClCompile Include="..\src\TProgressDialog.cpp" />
+    <ClCompile Include="..\src\varray.cpp" />
+    <ClCompile Include="..\src\wendarray.cpp" />
+    <ClCompile Include="SymmetryTester.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{9E5F0FC8-93B1-4171-B68D-F346BE6143D9}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>SymmetryTester</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>Default</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

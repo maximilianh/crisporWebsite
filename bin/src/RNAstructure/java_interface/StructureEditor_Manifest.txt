@@ -1,0 +1,3 @@
+Manifest-Version: 3.0
+Created-By: University of Rochester Medical Center, Mathews Lab
+Main-Class: ur_rna.StructureEditor.Program

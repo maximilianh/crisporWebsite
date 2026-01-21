@@ -1,0 +1,238 @@
+body {
+    background: #333333;
+    min-width:  800px;
+}
+
+.boldBlack {
+    color:       #000000;
+    font-weight: bold;
+}
+
+.boldGreen {
+    color:       #006600;
+    font-weight: bold;
+}
+
+.boldPurple {
+    color:       #6600FF;
+    font-weight: bold;
+}
+
+.boldRed {
+    color:       #FF0000;
+    font-weight: bold;
+}
+
+.bodydiv {
+    background:   white;
+    margin:       0;
+    margin-left:  5px;
+    margin-right: 5px;
+    min-width:    800px;
+}
+
+.cell {
+    vertical-align: top;
+    width:          225px;
+}
+
+.centeredHeader {
+    margin-bottom: 0;
+    text-align:    center;
+}
+
+dd {
+	margin-bottom: 15px;
+}
+
+.footer {
+    background: #CCCCCC;
+    height:     50px;
+    text-align: center;
+    width:      100%;
+}
+
+.gapListItem {
+    margin-top: 5px;
+}
+
+.grayed {
+    color: #666666;
+}
+
+.half {
+    padding:        0;
+    vertical-align: top;
+    width:          50%;
+}
+
+.headerBox {
+    float:         left;
+    margin-bottom: 10px;
+    margin-left:   10px;
+    margin-top:    10px;
+    width:         150px;
+}
+
+.headerBox2 {
+    float:          right;
+    width:          150px;
+}
+
+.headerLabel {
+    color:       black;
+    text-align:  center;
+}
+
+.headerRow {
+    background: #CCCCCC;
+    height:     75px;
+    padding:    10px;
+}
+
+.leftHeader {
+    margin-bottom: 0;
+    margin-top:    30px;
+    text-align:    left;
+}
+
+.mainContent {
+    padding:        20px;
+    padding-top:    0;
+    vertical-align: top;
+    width:          800px;
+}
+
+.mainTable {
+    height:    100%;
+}
+
+.monoFont {
+    font-family: monospace;
+    font-size:   18px;
+}
+
+#navigator {
+    margin-bottom: 36px;
+}
+
+.noListTopMargin {
+    margin:      0;
+    padding-top: 0;
+}
+
+.noBottomMargin {
+    margin-bottom: 0;
+}
+
+.noMarginOrPad {
+    margin:  0;
+    padding: 0;
+}
+
+pre {
+    width: 750px;
+}
+
+pre.autosize {
+    width: auto;
+}
+pre.smBlock {
+    width: 40em;
+}
+
+.smallTable {
+    padding-left: 20px;
+    width:        500px;
+}
+
+table {
+    width: 100%;
+}
+
+.seqIgnored {
+    color:#666666;
+}
+
+.seqUnpaired {
+    background-color:#66FFFF;
+}
+
+.seqUnspecified {
+    background-color:#CFE6E6;
+}
+
+.seqInvalid {
+   background-color:#FFCCCC; 
+   color: #990000;
+}
+
+.inlineShellCmd {
+    font-weight: bold;
+    font-family: "Consolas", "Courier New", Courier, monospace;
+	display: inline-block;
+	background-color: #DFDFDF;
+	color: black;
+	padding:  0em 0.2em;
+}
+
+.shellError {
+    font-weight: bold;
+    font-family: "Consolas", "Courier New", Courier, monospace;
+	display: inline-block;
+	background-color: #DFDFDF;
+	color: black;
+	padding:  0em 0.2em;
+	white-space:pre-wrap;
+}
+
+.pathName {
+    font-weight: bold;
+    font-family: "Consolas", "Courier New", monospace;
+    color: navy;
+}
+
+.specialName {
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight: bold;
+}
+
+.codeText { font-family: "Consolas", "Courier New", Courier, monospace; }
+
+.codeBlock {
+	font-family: "Consolas", "Courier New", Courier, monospace;
+	font-size: 11pt;
+
+	color: #080808;
+	background-color: #F4F8FC;
+	border:1px solid #c7cfd5;
+
+	white-space:pre-wrap;
+	line-height:110%;
+
+	display: inline-block;
+	padding: 0.2em 1em;
+	margin: .1em .25em .1em .1em;
+}
+
+.codeComment { color: #557799; }
+.codeKeyword { color: #039; font-weight: bold; }
+.codeKeyword2 { color: #909; font-weight: bold; }
+.codeSymbol { color: red; font-weight: bold; }
+.codeString { color: #008000; font-weight: bold; }
+
+/* codeThemes are used in conjunction with codeBlock 
+   to choose a color scheme when different types of code are present
+. */
+.codeThemeShell {
+	color: white;
+	background-color: #303030;
+	border:1px solid #666666;
+}
+
+.codeThemeShell .codeComment { color: #DCDCDC; }
+.codeThemeShell .codeKeyword { color: #A0FAFA; }
+.codeThemeShell .codeSymbol { color: #F96; }
+.codeThemeShell .codeKeyword2 { color: #CE82B8; font-weight: bold; }
+.codeThemeShell .codeString { color: #86C670; font-weight: bold; }
+

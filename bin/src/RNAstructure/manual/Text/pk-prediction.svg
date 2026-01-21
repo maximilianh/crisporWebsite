@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="976px" height="206px" viewBox="0 0 976 206" enable-background="new 0 0 976 206" xml:space="preserve">
+<text transform="matrix(1 0 0 1 24.8916 37.8921)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="24">Predict a Structure that can Contain a Pseudoknot:</tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="24">(producing a color-annotated drawing of the structure):</tspan></text>
+<rect x="456.148" y="96.479" fill="none" stroke="#000000" width="129.333" height="45.333"/>
+<text transform="matrix(1 0 0 1 466.8154 125.812)" font-family="'MyriadPro-Regular'" font-size="24">ProbKnot</text>
+<rect x="172.146" y="131.813" fill="none" stroke="#000000" width="111.335" height="45.333"/>
+<text transform="matrix(1 0 0 1 182.8145 161.146)" font-family="'MyriadPro-Regular'" font-size="24">partition</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="25.479" y1="154.48" x2="164.777" y2="154.48"/>
+		<g>
+			<path d="M170.813,154.48c-2.84,1.054-6.363,2.852-8.547,4.756l1.72-4.756l-1.72-4.755
+				C164.449,151.629,167.973,153.427,170.813,154.48z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 25.4795 139.813)" font-family="'MyriadPro-Regular'" font-size="24">.seq or .fasta</text>
+<line fill="none" stroke="#000000" x1="585.483" y1="122.48" x2="677.485" y2="122.48"/>
+<text transform="matrix(1 0 0 1 616.1484 114.481)" font-family="'MyriadPro-Regular'" font-size="24">.ct</text>
+<line fill="none" stroke="#000000" x1="283.481" y1="156.48" x2="375.482" y2="156.48"/>
+<text transform="matrix(1 0 0 1 314.1475 148.481)" font-family="'MyriadPro-Regular'" font-size="24">.pfs</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="375.484" y1="156.48" x2="449.741" y2="122.112"/>
+		<g>
+			<polygon points="456.148,119.146 448.827,127.014 449.262,122.333 445.412,119.636 			"/>
+		</g>
+	</g>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="677.485" y1="122.48" x2="751.742" y2="156.848"/>
+		<g>
+			<polygon points="758.149,159.814 747.413,159.324 751.263,156.626 750.827,151.946 			"/>
+		</g>
+	</g>
+</g>
+<rect x="758.149" y="137.147" fill="none" stroke="#000000" width="111.336" height="45.333"/>
+<text transform="matrix(1 0 0 1 768.8174 166.48)" font-family="'MyriadPro-Regular'" font-size="24">draw</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="869.485" y1="159.814" x2="954.114" y2="159.814"/>
+		<g>
+			<path d="M960.149,159.814c-2.84,1.054-6.363,2.852-8.548,4.756l1.721-4.756l-1.721-4.755
+				C953.786,156.963,957.31,158.761,960.149,159.814z"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 889.4824 149.147)" font-family="'MyriadPro-Regular'" font-size="24">.ps</text>
+<g>
+	<g>
+		<line fill="none" stroke="#000000" x1="375.482" y1="156.48" x2="732.778" y2="156.48"/>
+		<g>
+			<path d="M738.813,156.48c-2.84,1.054-6.363,2.852-8.548,4.756l1.721-4.756l-1.721-4.755
+				C732.45,153.629,735.974,155.427,738.813,156.48z"/>
+		</g>
+	</g>
+</g>
+</svg>

@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Installation and Overview: Makefiles</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Makefiles</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<h3>Quick Navigation</h3>
+							<p>Go to: <a href="#Main">Main&nbsp;Makefile</a> | <a href="#Java">JAVA&nbsp;Interface&nbsp;Makefile</a> | <a href="#NAPSS">NAPSS&nbsp;Makefile</a> | <a href="#Oligo">OligoWalk&nbsp;Makefile</a> | <a href="#PARTS">PARTS&nbsp;Makefile</a> | <a href="#Postscript">Postscript&nbsp;Library&nbsp;Makefile</a> | <a href="#RNA">RNA&nbsp;Class&nbsp;Makefile</a> | <a href="#Testing">Testing&nbsp;Makefile</a> | <a href="#TurboFold">TurboFold&nbsp;Makefile</a></p>
+						</div>
+						<hr>
+
+						<div>
+							<a name="Main"></a>
+							<h3>Main Makefile (Location: RNAstructure/)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The main Makefile's purpose is to build the text (command line) interfaces from the RNAstructure repository. It has a variety of convenient targets to do so, as well as certain general targets that provide useful information or moving functionality related to the interface executables.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions</span><br>
+								At the top of the main Makefile, two include statements incorporate all variables defined in RNAstructure/compiler.h and RNAstructure/library_defines.h.
+							</p>
+							<div>
+								<p>
+									<span style="text-decoration: underline;">Section 2: General Build Actions</span><br>
+									There are three general build actions in the main Makefile, defined as follows:
+								</p>
+								<dl>
+									<dt>(make) instructions</dt>
+									<dd>The &quot;make instructions&quot; target is a convenience target. It prints specific information on standard output to explain which targets can be used to create interfaces in the main Makefile. This information does not include all possible targets used in the Makefile; only those that, when directly invoked, build a particular interface.</dd>
+
+									<dt>(make) all</dt>
+									<dd>The &quot;make all&quot; target calls all the individual targets referenced in the &quot;instructions&quot; target, except for itself. The result of calling this target is that all the Linux/Unix/OS X text interfaces are built and placed with their libraries in the RNAstructure/exe directory. Note, however, that this target does NOT build the Windows text interfaces, the Windows GUI, or the JAVA cross platform GUI.</dd>
+
+									<dt>(make) install</dt>
+									<dd>&quot;make install&quot; copies the contents of the RNAstructure/exe directory to /usr/local/RNAstructure, so &quot;make all&quot; must be run first. &quot;make install&quot; can only be run as root on Linux platforms because of file permisions. Note that it is not required to run &quot;make install&quot; to use RNAstructure; it is a convenience target.</dd>
+								</dl>
+								<p>
+								  <span style="text-decoration: underline">Section 3: Common Objects For All Interfaces</span><br>
+									At the current time, there is only one file that is used in all the text interfaces the main Makefile builds, which is a command line parser. Since there have been other common objects in the past, and may be more common objects in the future, this common object is in a section of its own.
+								</p>
+								<p>
+									<span style="text-decoration: underline">Section 4: Common Objects For Certain Interfaces</span><br>
+									This section containts objects and variables that are used in multiple text interfaces the Makefile builds, but not all of them. This section, like the one before it, is a convenience section to make individual interface targets cleaner later on.
+								</p>
+								<p>
+									<span style="text-decoration: underline">Section 5: Library Dependencies and Variables</span><br>
+									This section holds commands that, if run, will build the specific text interface libraries, as well as convenience variables that will group these libraries with common objects. These convenience variables are used extensively when building specific interfaces.
+								</p>
+								<p>
+									<span style="text-decoration: underline">Sections 6 and Higher: Text Interface Building Targets</span><br>
+									Each of these sections has a target in it to build a specific text interface. In general, each of these sections is set up with two aliased commands that can be used to build the appropriate interface, as well as one that builds the main interface dependency, if necessary. There are a few instances in which the interface requires more complex build steps, but this is explained inside a section where appropriate.
+								</p>
+								<p>
+									<span style="text-decoration: underline">Final Section: Object and Executable Cleanup</span><br>
+									The final section of the main Makefile is devoted to cleanup commands, one that removes all object files from the repository (&quot;make clean&quot;) and one that removes object files and any executables in the RNAstructure/exe directory (&quot;make realclean&quot;). These cleanup targets do not just clean up executables and object files made by the commands in this Makefile. Instead, they clean up executables and object files wherever they are found in the RNAstructure repository.
+								</p>
+							</div>
+							<hr>
+						</div>
+
+						<div>
+							<a name="Java"></a>
+							<h3>JAVA Interface Makefile (Location:&nbsp;RNAstructure/java_interface/)</h3>
+
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The JAVA Interface Makefile's purpose is to build the cross platform JAVA GUI interface. This Makefile creates two files when run to completion: a JAVA JAR archive file called RNAstructure.jar and a dynamic library of C++ code (the name of this library varies depending on the operating system, see <a href="Libraries.html#RNAstructure">the JAVA GUI library listing</a> for details).
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions</span><br>
+								At the top of the main Makefile, two include statements incorporate all variables defined in RNAstructure/compiler.h and RNAstructure/library_defines.h.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 2: Set Special GUI Flags</span><br>
+								For the GUI dynamic library to compile properly, the <a href="Building_Requirements.html#GUIvariables">INCLUDEPATH variables</a> must be added to the compiling and linking flags. The number of include paths used, as well as the exact flags used, vary depending on the current operating system.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 3: Define Repeated Commands</span><br>
+								This section holds repeated building commands that are used many times in the main build targets.
+								<br>
+								Note that this section will probably be eliminated in some future version of RNAstructure, once the interface is improved.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 4: Define Actions</span><br>
+								This section holds the main building and cleaning actions for the JAVA GUI. The GUI can be built using either &quot;make&quot; or &quot;make all.&quot;
+								<br>
+								Note that this section will probably split into further pieces and reorganized in some future version of RNAstructure, once the interface is improved.
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="NAPSS"></a>
+							<h3>NAPSS Makefile (Location: RNAstructure/napss/)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The NAPSS Makefile's purpose is to build the NAPSS text interface. The main Makefile, when it builds the NAPSS interface, calls this Makefile explicitly.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Using the Makefile</span><br>
+								NAPSS can be built by typing &quot;make&quot; or &quot;make NAPSS.&quot;
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Makefile Organization</span><br>
+								The NAPSS Makefile is not divided into sections like most other Makefiles. At its top, it includes RNAstructure/compiler.h, which is then followed by two convenience macros for dependency organization. After these macros is the main NAPSS target, followed by all dependencies. At the end of the file is a clean target, which deletes any object files in the RNAstructure/napss or RNAstructure/src directories.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Important Usage Notice</span><br>
+								This Makefile will probably be removed in the near future (merged into the main Makefile), coinciding with improvements to NAPSS.
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="Oligo"></a>
+							<h3>OligoWalk Makefile (Location: RNAstructure/oligowalk/src/)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The OligoWalk Makefile's purpose is to build the OligoWalk text interface. The main Makefile, when it builds the OligoWalk interface, calls this Makefile explicitly.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions and Convenience Macro</span><br>
+								At the top of the OligoWalk Makefile, an include statement incorporates all variables defined in RNAstructure/compiler.h, and directly below that is a convenience macro that defines a dependency list.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 2: OligoWalk Targets</span><br>
+								This section contains a &quot;make all&quot; target that gives information on the proper target to use for building OligoWalk, and two aliased targets that build OligoWalk when run.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 3: Dependency Lists</span><br>
+								This section contains dependency lists for all the object files that make up the OligoWalk interface.
+							</p>
+							<p>
+								<span style="text-decoration: underline">Final Section: Object and Executable Cleanup</span><br>
+								The final section of the OligoWalk Makefile is devoted to cleanup commands, one that removes all object files from the oligowalk/src directory (&quot;make clean&quot;) and one that removes those object files and the OligoWalk executable, if necessary, in the RNAstructure/exe directory (&quot;make realclean&quot;).
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Important Usage Notice</span><br>
+								This Makefile will probably be removed in the near future (merged into the main Makefile).
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="PARTS"></a>
+							<h3>PARTS Makefile (Location: RNAstructure/PARTS/)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The PARTS Makefile's purpose is to build the PARTS text interface and its associated library. The main Makefile, when it builds the PARTS interface, calls this Makefile explicitly.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions</span><br>
+								At the top of the PARTS Makefile, two include statements incorporate all variables defined in RNAstructure/compiler.h and RNAstructure/library_defines.h.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 2: Convenience Variables</span><br>
+								This section holds a small group of convenience variables that define necessary directories and the location of the main object.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 3: Rules for Object Groups</span><br>
+								This section holds another group of convenience macros that defines all the PARTS dependencies as easy to use groups.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 4: Targets for the PARTS Library and Executable</span><br>
+								This section contains three targets: one to build the PARTS Library, one to build the PARTS executable, and a &quot;make all&quot; target that is an alias for the PARTS executable target.
+							</p>
+							<p>
+								<span style="text-decoration: underline">Final Section: Object and Executable Cleanup</span><br>
+								The final section of the PARTS Makefile is devoted to cleanup commands, one that removes all object files from the PARTS directory and any of its subdirectories (&quot;make clean&quot;) and one that removes those object files and the PARTS library or executable, if necessary, in the RNAstructure/exe directory (&quot;make realclean&quot;).
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="Postscript"></a>
+							<h3>Postscript Library Makefile <span style="white-space: nowrap;">(Location: RNAstructure/src/PostscriptWriting/)</span></h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The Postscript Makefile's purpose is to build the Postscript Library.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions</span><br>
+								At the top of the Postscript Makefile, two include statements incorporate all variables defined in RNAstructure/compiler.h and RNAstructure/library_defines.h.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 2: Rules for Object Groups</span><br>
+								This section holds a pair of convenience macros that define all the Postscript dependencies as easy to use groups.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 3: Define Build Actions</span><br>
+								This section contains two targets, &quot;make all&quot; and &quot;make Postscript_Library,&quot; that can be used to build the Postscript Library. Note that it is also possible to build the library simply by typing &quot;make.&quot;
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Sections 4 and 5: Rules for Postscript Dependencies</span><br>
+								These sections hold the the dependencies that each object file for the Postscript library needs. The only reason the last dependency is in a section of its own is because it depends on everything, including itself, so it's different from the rest.
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="RNA"></a>
+							<h3>RNA Class Makefile (Location: RNAstructure/RNA_class/)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The RNA Class Makefile's purpose is to build the RNA, HybridRNA, Dynalign, Dynalign-SMP, Oligo, Multilign, and Multilign-SMP libraries. It can also build working examples for basic functions in the RNA, HybridRNA, Dynalign, Dynalign-SMP, and Oligo libraries.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions</span><br>
+								At the top of the RNA Class Makefile, two include statements incorporate all variables defined in RNAstructure/compiler.h and RNAstructure/library_defines.h.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 2: JAVA Interface Re-Definitions</span><br>
+								This section contains variables whose values change if the objects being built by the Makefile are destined for the JAVA interface. If objects are being prepared for the JAVA interface, extra compiler flags and some different progress monitoring objects are necessary.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 3: Internal Macros for Object Groups</span><br>
+								This section holds the object groups necessary to build each of the libraries. Not every library has a specific object group, only those where repeating the object list multiple times would be cumbersome.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 4: Define Build Actions</span><br>
+								This section contains targets to build all the libraries and examples described in the summary, as well as a &quot;make all&quot; convenience target that lists instructions telling which targets can be invoked for each library and example executable.
+							</p>
+							<p>
+								<span style="text-decoration: underline">Sections 5 and Higher: Dependency Lists</span><br>
+								Each of these sections, roughly divided by the libraries or executables they're included in, holds dependency lists for objects that make up libraries and examples.
+							</p>
+							<p>
+								<span style="text-decoration: underline">Final Section: Object and Executable Cleanup</span><br>
+								The final section of the RNA Class Makefile is devoted to cleanup commands, one that removes all object files from the RNA_class directory and the RNAstructure/src directory (&quot;make clean&quot;) and one that removes those object files and any libraries or executables built from this Makefile, if necessary, in the RNAstructure/exe directory (&quot;make realclean&quot;).
+							</p>
+							<hr>
+						</div>
+
+						<div>
+							<a name="Testing"></a>
+							<h3>Testing Framework Makefile (Location: RNAstructure/tests)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The testing Makefile's purpose is to build (if necessary) and run the text interfaces, comparing the output of the interfaces to a group of accepted results to ensure that the interfaces are running properly. Note that this Makefile does not do the testing itself; it calls a main script called &quot;NixScript&quot; in the RNAstructure/tests/testFiles directory that in turn calls a group of small scripts when appropriate. In this sense, the Makefile is somewhat of a convenience wrapper.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Convenience Targets</span><br>
+								The &quot;make all&quot; target calls all the individual targets that test each interface, sequentially in alphabetical order. All tests can also be run by simply typing &quot;make,&quot; or by using three other possible aliases: &quot;make runTests,&quot; &quot;make tests,&quot; or &quot;make testing.&quot;
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Interface Testing Targets</span><br>
+								Each text interface has two distinct testing targets that are aliases for each other. For every interface, one can use either the command &quot;make [Interface executable name]&quot; or &quot;make tests/[Interface executable name]&quot; to run specific tests.
+							</p>
+							<p><span style="text-decoration: underline;">General Testing Strategy</span></p>
+							<ol>
+								<li>Run &quot;make <em>Text_Interface_Name</em>&quot; to run a particular interface's tests.</li>
+								<li>Each available option in the interface is tested separately. Progress is shown by progress messages that say &quot;<em>TestType</em>started...&quot; and &quot;<em>TestType</em>finished.&quot;</li>
+								<li>If a test passes, it will print &quot;Test Passed.&quot; If it encounters a possible failure, it will print &quot;Possible Failure: <em>TestType</em>.&quot;</li>
+								<li>If a test encounters a possible failure, all files that were generated over the course of the test are placed in the tests/RNAstructure_error_tests directory.</li>
+								<li>The file named <em>TestType</em>_<em>InterfaceOption</em>_errors.txt holds any error output from the interface when running the test.</li>
+								<li>The file named <em>TestType</em>_<em>InterfaceOption</em>_diff_output.txt holds information detailing any differences between the output of a particular test for a particular option, and its expected output.</li>
+								<li>Any files with &quot;test_output&quot; in the name are results files generated from running the test.</li>
+								<li>In general, the presence of error files or diff output files shows that an unexpected change has been made to a program, which may signal a problem.</li>
+							</ol>
+							<hr>
+						</div>
+
+						<div>
+							<a name="TurboFold"></a>
+							<h3>TurboFold Makefile (Location: RNAstructure/TurboFold/)</h3>
+							<p>
+								<span style="text-decoration: underline;">Summary</span><br>
+								The TurboFold Makefile's purpose is to build the TurboFold text interface and its associated library, as well as the TurboFold-smp text interface. The main Makefile, when it builds the TurboFold or TurboFold-smp interface, calls this Makefile explicitly.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 1: Included Definitions</span><br>
+								At the top of the TurboFold Makefile, two include statements incorporate all variables defined in RNAstructure/compiler.h and RNAstructure/library_defines.h.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 2: Convenience Target</span><br>
+								This section holds a &quot;make all&quot; target that builds TurboFold and TurboFold-smp both at once.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 3: Rules for Object Groups</span><br>
+								This section holds a group of convenience macros that define all the dependencies used in both TurboFold and TurboFold-smp.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 4: Targets for the TurboFold Library and Executable</span><br>
+								This section contains targets for objects specific to the serial TurboFold executable and TurboFold library.
+							</p>
+							<p>
+								<span style="text-decoration: underline;">Section 5: Targets for the TurboFold-smp Library and Executable</span><br>
+								This section contains targets for objects specific to the parallel TurboFold-smp executable and TurboFold-smp library.
+							</p>
+							<p>
+								<span style="text-decoration: underline">Final Section: Object and Executable Cleanup</span><br>
+								The final section of the TurboFold Makefile is devoted to cleanup commands, one that removes object files and one that removes those object files and the TurboFold libraries or executables, if necessary, in the RNAstructure/exe directory (&quot;make realclean&quot;).
+							</p>
+							<hr>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

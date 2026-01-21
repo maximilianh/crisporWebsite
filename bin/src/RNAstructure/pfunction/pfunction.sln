@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pfunction", "pfunction.vcxproj", "{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pfunction-SMP", "pfunction-SMP.vcxproj", "{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Debug|Win32.Build.0 = Debug|Win32
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Debug|x64.ActiveCfg = Debug|x64
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Debug|x64.Build.0 = Debug|x64
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Release|Win32.ActiveCfg = Release|Win32
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Release|Win32.Build.0 = Release|Win32
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Release|x64.ActiveCfg = Release|x64
+		{E8F30812-5A9E-4AA4-AB30-6C47CECBD02E}.Release|x64.Build.0 = Release|x64
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Debug|Win32.Build.0 = Debug|Win32
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Debug|x64.ActiveCfg = Debug|x64
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Debug|x64.Build.0 = Debug|x64
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Release|Win32.ActiveCfg = Release|Win32
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Release|Win32.Build.0 = Release|Win32
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Release|x64.ActiveCfg = Release|x64
+		{6A18DD22-2CC5-409A-8FED-67E444C3FC5D}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

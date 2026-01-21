@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: NAPSS</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>NAPSS</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>NAPSS is used to improve the prediction of an RNA secondary structure by integrating NMR data.</p>
+                        <p>
+                            Note that on Macintosh OS X, and some versions of Linux, there is a small default stack limit. To run NAPSS, the stack limit needs to be increased.<br>
+                            On the default shell, bash, use <i>ulimit -s 8912</i> or higher, depending on your system configuration.<br>
+                            If you are using tcsh, use <i>limit stack 4096</i> or higher, depending on your system configuration.<br>
+                            The limits can be increased as necessary if the given values above are not sufficient.
+                        </p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: NAPSS &lt;seq file&gt; &lt;NMR file&gt; &lt;ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;seq file&gt;</td>
+								<td>
+									The name of a <a href="File_Formats.html#Sequence">sequence file</a> containing input data.
+									<br>
+									??Note that lowercase nucleotides are forced single-stranded in structure prediction.??
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;NMR file&gt;</td>
+								<td>The name of an <a href="File_Formats.html#NRM">NMR file with constraings.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+						  <tr>
+							<td class="cell">-h, -H, --help</td>
+							<td>Display the usage details message.</td>
+						  </tr>
+                          <tr>
+							<td class="cell">-pf, -PF, --pseudoknotFree</td>
+							<td>
+							  Specify that the sequence is DNA, and DNA parameters are to be used.
+							  <br>
+							  Default is to use RNA parameters.
+							</td>
+						  </tr>
+                          <tr>
+							<td class="cell">-v, -V, --version</td>
+							<td>Display version and copyright information for this interface.</td>
+						  </tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+                          <tr>
+                            <td class="cell">-c, -C, --constraint</td>
+							<td>
+							  Specify a <a href="File_Formats.html#Constraint">folding constraints file</a> to be applied. For Fold, current supported constraints are force pairs, force a nucleotide to be single stranded, and force a nucleotide to be double stranded.
+							  <br>
+							  Default is to have no constraints applied.
+							</td>
+						  </tr>
+                          <tr>
+							<td class="cell">-d, -D, --DotPercent</td>
+							<td>
+							  Specify a maximum percent energy difference to consider in the dotplot.
+							  <br>
+							  Default is 5 percent.
+							</td>
+						  </tr>
+						  <tr>
+							<td class="cell">-m, -M, --maximum</td>
+							<td>
+							  Specify a maximum number of structures per matched constraint set.
+							  <br>
+							  Default is 100 structures.
+							</td>
+						  </tr>
+                          <tr>
+							<td class="cell">-p, -P, --percent</td>
+							<td>
+							  Specify a maximum percent energy difference. For example, 20 would indicate 20%.
+							  <br>
+							  Default is 0 which means that all structures are outputted.
+							</td>
+						  </tr>
+						  <tr>
+							<td class="cell">-pp, -PP, --posPaired</td>
+							<td>
+							  Specify the name of the positions paired style output file.
+							  <br>
+							  Default is to have no file specified.
+							</td>
+						  </tr>
+						  <tr>
+							<td class="cell">-sh, -SH, --SHAPE</td>
+							<td>
+							  Specify a <a href="File_Formats.html#SHAPE">SHAPE data file</a> to be used to generate restraints. These restraints specificially use SHAPE pseudoenergy restraints.
+							  <br>
+							  Default is no SHAPE data file specified.
+							</td>
+						  </tr>
+						  <tr>
+							<td class="cell">-si, -SI, --SHAPEintercept</td>
+							<td>
+							  Specify an intercept used with SHAPE restraints.
+							  <br>
+							  Default is -0.6 kcal/mol.
+							</td>
+						  </tr>
+						  <tr>
+							<td class="cell">-sm, -SM, --SHAPEslope</td>
+							<td>
+							  Specify a slope used with SHAPE restraints.
+							  <br>
+							  Default is 1.8 kcal/mol.
+							</td>
+						  </tr>
+                          <tr>
+							<td class="cell">-w, -W, --window</td>
+							<td>
+							  Specify a window size.
+							  <br>
+							  Default is 0 nucleotides.
+							</td>
+						  </tr>
+                        </table>
+				
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Hart, J.M., Kennedy, S.D., Mathews, D.H. and Turner, D.H.
+								<br>
+								&quot;NMR-assisted prediction of RNA secondary structure: identification of a probable pseudoknot in the coding region of an R2 retrotransposon.&quot;
+								<br>
+								<i>J. Am. Chem. Soc.</i>, 130:10233-10239. (2008).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

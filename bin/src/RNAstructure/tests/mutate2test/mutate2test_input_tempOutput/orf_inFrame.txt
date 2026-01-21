@@ -1,0 +1,2 @@
+>random ORF containing simple hairpin - hairpin should be in frame
+GGGUUUAUCUUUGGUGCAAGGGCGGCCUUACCUUGC

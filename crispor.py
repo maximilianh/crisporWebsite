@@ -476,7 +476,7 @@ scoreDescs = {
     "seqDeepCpf1" : ("DeepCpf1", "Range: ~ 0-100. Convolutional Neural Network trained on ~20k Cpf1 lentiviral guide results. This is the score without DNAse information, 'Seq-DeepCpf1' in the paper. See <a target='_blank' href='https://www.nature.com/articles/nbt.4061'>Kim et al. 2018</a>"),
     "oof" : ("Out-of-Frame", "Range: 0-100. Out-of-Frame score, only for deletions. Predicts the percentage of clones that will carry out-of-frame deletions, based on the micro-homology in the sequence flanking the target site. See <a target='_blank' href='http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html'>Bae et al. 2014</a>. Click the score to show the predicted deletions."),
     "lindel": ("Lindel", "Wei Chen Frameshift ratio (0-100). Predicts probability of a frameshift caused by any type of insertion or deletion. See <a href='https://academic.oup.com/nar/article/47/15/7989/5511473'>Wei Chen et al, Bioinf 2018</a>. Click the score to see the most likely deletions and insertions."),
-    "EVA" : ("EVA score", "PLACEHOLDER"),
+    "EVA" : ("EVA score", "EVA score, predicts the activity of synthetic guides (range 0-100). This score is derived from a linear model, based on data from human cell lines edited with synthetic gRNAs. See <a href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al. 2025</a>"),
 }
 
 # the headers for the guide and offtarget output files
@@ -2676,6 +2676,9 @@ def calcGlobScore(guideSeq, MitScore, CfdScore, effs, GC, freeE):
 
 def calcEVAscore(EVAlike, MIT):
     " add the MIT score weight to the EVA-like score "
+
+    if MIT >= 75:
+        MIT = 75
     
     EVAfull = EVAlike + 0.1784*MIT
     return EVAfull
@@ -2721,9 +2724,6 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             ontargetDesc = ""
             repCount = 0
             seq34Mer = None
-        
-
-
 
         gcFrac = gcContent(guideSeq)
         freeEnergy = getFreeEnergy(guideSeq, temperature)
@@ -4683,7 +4683,7 @@ def processMultiSeqSubmission(multiseq, genome, pam, batchBase, batchId, queue):
     pam = setupPamInfo(pam)
     
     global maxMMs
-    maxMMs=2
+    maxMMs=4
 
     batchInfo = readBatchAsDict(batchId)
     batchInfo["exonSeqs"] = []
@@ -8509,7 +8509,7 @@ def getExonsFromID(geneId, org, pam, getFirst = None):
 
     return formatExonPos(exons, chrom, strand, GUIDELEN)
 
-def getGenePos(geneID, org, feature = 'codingExons', promoterLen = None):
+def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
 
     genomeDir = genomesDir
     twoBitFname = getTwoBitFname(org)
@@ -8545,14 +8545,27 @@ def getGenePos(geneID, org, feature = 'codingExons', promoterLen = None):
     chrom = geneInfo['chrom']
     strand = geneInfo['strand']
 
-    # Get promoterLen bases upstream and downstream of the TSS
+    # Get flankLen bases upstream and downstream around the TSS
     if feature == 'promoter':
         if strand == '+':
             tss = geneInfo['txStart']
         else:
             tss = geneInfo['txEnd']
-        promoterPos = (tss - promoterLen, tss + promoterLen)
+        promoterPos = (tss - flankLen, tss + flankLen)
         featureList.append(promoterPos)
+    
+    # Get flankLen bases upstream of the TSS and downstream of the TES
+    # to get guides for knocking-out a gene by the excision of its locus
+    # returns (upstreampos, downstreampos)
+    if feature == 'flanking':
+        tss = geneInfo['txStart']
+        tes = geneInfo['txEnd']
+        upstreamPos = (tss - flankLen, tss)
+        downstreamPos = (tes, tes + flankLen)
+        if strand == '+':
+            featureList.append(upstreamPos, downstreamPos)
+        else:
+            featureList.append(downstreamPos, upstreamPos)
 
     # may add other features
     elif feature == 'codingExons':
@@ -9918,18 +9931,34 @@ def primerDetailsPage(params):
     pam = setupPamInfo(pam)
 
     inSeq, genome, pamSeq, position, extSeq, multiseq = readBatchParams(batchId)
+    batchInfo = readBatchAsDict(batchId)
+    exonSeqs = batchInfo.get("exonSeqs")
+
+    # get the exonID  and its sequence if in multiseq mode
+    if exonSeqs:
+        exonId = int(pamId.split('.')[0])
+        for exonInfo in exonSeqs:
+            if exonInfo[0] == exonId:
+                inSeq = exonInfo[1]
+                break
+    else:
+        exonId = None
+
     seqLen = len(inSeq)
     batchBase = join(batchDir, batchId)
 
     guideSeq, pamSeq, pamPlusSeq, guideSeqWPam, guideStrand, guideSeqHtml, guideStart, guideEnd \
-        = findGuideSeq(inSeq, pam, pamId)
+        = findGuideSeq(inSeq, pam, pamId, exonId)
 
     # search for restriction enzymes that overlap the mutation site
     allEnzymes = readRestrEnzymes()
     mutEnzymes = matchRestrEnz(allEnzymes, guideSeq.upper(), pamSeq.upper(), pamPlusSeq, pam)
 
     # create a more human readable name of this guide
-    guidePos = int(pamId.strip("s+-"))+1
+    if exonSeqs:
+        guidePos = int(pamId.split('.')[1].strip("s+-"))+1
+    else:
+        guidePos = int(pamId.strip("s+-"))+1
     guideStrand = pamId[-1]
     if guideStrand=="+":
         primerGuideName = str(guidePos)+"fw"

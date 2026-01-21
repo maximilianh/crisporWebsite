@@ -1,0 +1,6 @@
+Scripts in this directory are for use by end-users (usually to launch jar files etc). 
+They are copied to the RNAstructure/exe directory when the corresponding programs are built.
+
+In contrast, scripts in the "build" directory are utility scripts for making/building/maintaining 
+programs or source code. These are not typically for direct use by end-users, but may be called by
+the Makefile etc.

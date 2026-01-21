@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Stochastic Sampling</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Stochastic Sampling</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>The stochastic sampling module generates a sample of secondary structures, with the probability of choosing a secondary structure equal to its probability of occurrence in the complete folding ensemble.</p>
+
+					<p><b>How to Predict a Stochastic Sample</b></p>
+					<ol>
+						<li>Do a partition function calculation with the sequence of interest. (See &quot;<a href="Partition_Function.html">Partition Function</a>.&quot;) Any folding constraints must be applied at the partition function calculation step. Also, any changes in the folding temperature must be applied at the partition function step.</li>
+							<li>Start the module by choosing &quot;Stochastic Sampling.&quot; This module is available for both RNA and DNA.</li>
+							<li>Click the button labeled &quot;Partition Function Save File&quot; to choose a save file for use in sampling.</li>
+							<li>The default value of the output file, which is filled in after save file selection, can be changed by clicking the &quot;CT File&quot; button.</li>
+							<li>The default ensemble size and random seed can also be changed. Changing the random seed changes the sample of structures generated.</li>
+							<li>Click &quot;Start&quot; to run the calculation. A progress bar will open to show the progress of the sampling.</li>
+							<li>When the calculation is complete, the option is given to draw the set of structures sampled. Click &quot;OK&quot; to draw the structures or &quot;Cancel&quot; to exit the module.</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

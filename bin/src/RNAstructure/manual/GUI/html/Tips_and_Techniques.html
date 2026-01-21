@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Tips and Techniques</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Tips and Techniques</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<p><b>Changing Temperature of Calculations</b></p>
+							<p>To change the temperature at which calculations occur, choose the &quot;Temperature&quot; menu item. (This menu item only appears after a structure prediction module has been chosen.) A dialog will pop up showing the current temperature of calculations. This can be edited by changing the value in the text box and clicking &quot;OK.&quot; If &quot;Cancel&quot; is selected, or an invalid temperature is entered, the temperature is not changed. Temperature changes should be used with caution. The enthalpy parameters for predicting free energy changes at temperatures other than 37 degrees C are prone to significant errors outside the range of about 20 to 50 degrees C. Note that the change in temperature applies only to a single calcution. Subsequent calculations will be performed at the default of 37 degrees C.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="MaxPair" id="MaxPair">Changing the Maximum Pairing Distance</a></b></p>
+							<p>A maximum pairing distance can be specified by choosing &quot;Force -&gt; Maximum Pairing Distance&quot; and clicking &quot;Yes&quot; for &quot;Limit Distance Between Paired Bases,&quot; then entering the preferred distance. (This menu item only appears after a structure prediction module has been chosen.) Nucleotides farther separated in sequence than the specified number will not be allowed to pair. The maximum distance constraint is not saved with other constraints.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="MaxLoop" id="MaxLoop">Changing the Maximum Internal/Bulge Loop Size</a></b></p>
+							<p>The maximum size of bulge or internal loops can be by choosing &quot;Maximum Loop -&gt; Set Maximum Loop Size&quot; on the menu. (This menu item only appears after a structure prediction module has been chosen.) The default is 30, and this is sufficient for structure predictions.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Images" id="Images">Outputting Images</a></b></p>
+							<p>RNAstructure can output images from the &quot;Draw&quot; and &quot;Dot Plot&quot; modules as Postscript. Select one of the associated options to export these images.</p>
+							<hr>
+						</div>
+
+						<div>
+							<p><b><a name="Constraints" id="Constraints">Using Folding and Alignment Constraints</a></b></p>
+
+							<div>
+								<p><i><a name="ReviewReset" id="ReviewReset">Reviewing and Resetting Constraints</a></i></p>
+								<p>To review current selections, choose &quot;Force -&gt; Show Current Constraints.&quot; To reset selections, select &quot;Force -&gt; Reset Current Constraints.&quot; (This menu item only appears after a structure prediction module has been chosen.)</p>
+								<p>Note that neither of these options include SHAPE constraints.</p>
+								<br>
+
+								<p><i><a name="SaveRestore" id="SaveRestore">Saving and Restoring Secondary Structure Prediction Constraints</a></i></p>
+								<p>Folding constraints can be saved for future use or restored from previous saves using the &quot;Force -&gt; Save Constraints&quot; and &quot;Force -&gt; Restore Constraints&quot; menu options, respectively. (This menu item only appears after a structure prediction module has been chosen.) Constraint files are saved using the constraint file format. (See &quot;<a href="Appendix_of_File_Formats.html#ConstraintFileFormat">Constraint File Format</a>.&quot;)</p>
+								<p>As above, neither of these options include SHAPE constraints.</p>
+								<br>
+
+								<p><i><a name="ForcePair" id="ForcePair">Forcing a Base Pair</a></i></p>
+								<p>Helixes can be forced to occur in secondary structure prediction. After selecting the sequence to fold, choose the menu option &quot;Force -&gt; Base Pair.&quot; (This menu item only appears after a structure prediction module has been chosen.) Under &quot;Base 1,&quot; indicate the number of the 5' most base to be paired. Under &quot;Base 2,&quot; indicate the 3' most base to be paired. Under &quot;Helix Length,&quot; enter the number of base pairs long the forced helix must be.</p>
+								<p>For example, if 17 was indicated for the first base in pair, and 83 for the second base in pair, with a helix length of 5, a helix would occur with these base pairs: 17-83, 18-82, 19-81, 20-80, and 21-79.</p>
+								<p>Note that it is important that the nucleotides forced to pair can form a canonical pair (A-U, G-C, or G-U). If not, no structure will be predicted. Also, RNAstructure does not allow base pairs at positions that cannot stack, i.e. be directly adjacent to, another canonical pair. If a pair is forced between nucleotides that cannot stack on an adjacent pair, then no structure will be predicted.</p>
+								<br>
+
+								<p><i><a name="ForbidPair" id="ForbidPair">Forbidding a Base Pair</a></i></p>
+								<p>Helixes can be specified as forbidden in secondary structure prediction. After selecting the sequence to fold, choose the menu option &quot;Force -&gt; Prohibit Base Pairs.&quot; (This menu item only appears after a structure prediction module has been chosen.) Under &quot;Base 1,&quot; indicate the number of the 5' most base of the forbidden helix. Under &quot;Base 2,&quot; indicate the 3' most base of the forbidden helix. Under &quot;Helix Length,&quot; enter the length of the helix that is to be forbidden.</p>
+								<p>For example, if 17 was indicated for the first base in pair, and 83 for the second base in pair, with a helix length of 5, the following base pairs would be prohibited: 17-83, 18-82, 19-81, 20-80, and 21-79.</p>
+								<br>
+
+								<p><i><a name="Single" id="Single">Forcing Single Stranded Bases</a></i></p>
+								<p>Bases can be selected that should not pair in the secondary structure prediction. This can be done in one of two ways:</p>
+								<ol>
+									<li>A base can appear as lowercase in the sequence file (see <a href="Appendix_of_File_Formats.html#SequenceFileFormat">Sequence File Format</a>).</li>
+									<li>The &quot;Force -&gt; Single Stranded&quot; menu option can also be chosen. (This menu item only appears after a structure prediction module has been chosen.) Into the &quot;Base Number&quot; box, enter the number indicating the position from the 5' end of the sequence of a base that should be single-stranded. Click &quot;OK&quot; and the dialog will reset to take another forced single-stranded nucleotide. Click &quot;OK and Close&quot; after all single-stranded nucleotides have been entered.</li>
+								</ol><br>
+
+								<p><i><a name="Double" id="Double">Forcing Double Stranded Bases</a></i></p>
+								<p>Bases can be selected that must be base paired. This is done with the &quot;Force -&gt; Double Stranded&quot; menu. (This menu item only appears after a structure prediction module has been chosen.) It is analogous to forcing a base to be single stranded.</p>
+								<br>
+
+								<p><i><a name="Chemical" id="Chemical">Specifying Nucleotides Accessible to Chemical Modification</a></i></p>
+								<p>Nucleotides can be selected that are accessible to chemical modification. These nucleotides can be located in a loop, at the end of a helix, in a GU pair, or adjacent to a GU pair.</p>
+								<p>Select the &quot;Force -&gt; Chemical Modification&quot; menu option. (This menu item only appears after a structure prediction module has been chosen.) Into the &quot;Base Number&quot; box, enter the number indicating the position from the 5' end of a modified nucleotide. Click &quot;OK&quot; and the dialog will reset to take another nucleotide. Click &quot;OK and Close&quot; after all chemically modified nucleotides have been entered.</p>
+								<br>
+
+								<p><i><a name="FMN" id="FMN">Specifying FMN Cleavage (U's in GU pairs)</a></i></p>
+								<p>Select the &quot;Force -&gt; FMN Cleavage&quot; menu option. (This menu item only appears after a structure prediction module has been chosen.) Into the &quot;Base Number&quot; box, enter the number indicating the position from the 5' end of a U in a GU pair. Click &quot;OK&quot; and the dialog will reset to take another nucleotide. Click &quot;OK and Close&quot; after all nucleotides have been entered.</p>
+								<br>
+
+								<p><i>A Note About Adding Multiple Folding Constraints Files</i></p>
+								<p>If a constraints file is specified after constraints have already been appplied, either by a constraints file or manual input, all former constraints are erased in favor of the data in the new constraints file</p>
+								<br>
+							</div>
+
+							<div>
+								<p><i><a name="SHAPE" id="SHAPE">Specifying SHAPE Mapping Data</a></i></p>
+								<p>See &quot;<a href="Appendix_of_File_Formats.html#SHAPEFileFormat">SHAPE File Format</a>&quot; for details on the file type used for these constraints. Two methods exist to enter SHAPE data, as follows:</p>
+								<ol>
+									<li>The preferred method uses a pseudo free energy change to influence the structure prediction. To use this method, choose the menu <a name="Energy" id="Energy">option</a> &quot;Force -&gt; Read SHAPE Reactivity -- Pseudo-Energy Constraints.&quot; (This menu item only appears after a structure prediction module has been chosen.) First, choose a data file by clicking the &quot;SHAPE Data File&quot; button. Then, choose values for the &quot;Slope&quot; and &quot;Intercept&quot; boxes (defaults are provided). Click &quot;OK&quot; when finished.</li>
+									<li>The less preferred method is a hard cutoff method. To use this method, choose the menu <a name="Hard" id="Hard">option</a> &quot;Force -&gt; Read SHAPE Reactivity -- Hard Constraints.&quot; (This menu item only appears after a structure prediction module has been chosen.) First, choose a data file as specified in the previous method. Then, choose values for the &quot;Threshold for Force Single Stranded&quot; and &quot;Threshold for Chemical Modification&quot; boxes (defaults are provided). Nucleotides with SHAPE reactivity above &quot;Threshold for Force Single Stranded&quot; will be forced single stranded. Nucleotides with SHAPE reactivity between &quot;Threshold for Chemical Modification&quot; and &quot;Threshold for Force Single Stranded&quot; will be treated as though they are nucleotides accessible to chemical modification.</li>
+								</ol>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

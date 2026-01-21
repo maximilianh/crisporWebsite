@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/../../exe/java" />
+    <output-test url="file://$MODULE_DIR$/../../exe/java_test" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../resources">
+      <sourceFolder url="file://$MODULE_DIR$/../resources/RNAstructureUI" type="java-resource" relativeOutputPath="ur_rna/RNAstructureUI/resources" />
+    </content>
+    <content url="file://$MODULE_DIR$/../src/ur_rna/RNAstructure">
+      <sourceFolder url="file://$MODULE_DIR$/../src/ur_rna/RNAstructure" isTestSource="false" packagePrefix="ur_rna.RNAstructure" />
+    </content>
+    <content url="file://$MODULE_DIR$/../src/ur_rna/RNAstructureUI">
+      <sourceFolder url="file://$MODULE_DIR$/../src/ur_rna/RNAstructureUI" isTestSource="false" packagePrefix="ur_rna.RNAstructureUI" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Utilities" />
+  </component>
+</module>

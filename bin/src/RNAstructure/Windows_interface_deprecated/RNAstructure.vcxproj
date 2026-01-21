@@ -1,0 +1,577 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Template|Win32">
+      <Configuration>Template</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Template|x64">
+      <Configuration>Template</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D714DA77-D9B5-40D8-8CE6-4E7D39898281}</ProjectGuid>
+    <RootNamespace>RNAstructure</RootNamespace>
+    <Keyword>MFCProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Static</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Static</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Static</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Static</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
+    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Template|x64'" Label="Configuration">
+    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC70.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC70.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC70.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC70.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_WINDOWS_GUI;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalOptions>/DWINVER=0x0700 /D_WIN32_WINNT=0x0700 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <StackReserveSize>10000000</StackReserveSize>
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalOptions>/NODEFAULTLIB:libmmdd %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_WINDOWS_GUI;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/DWINVER=0x0700 /D_WIN32_WINNT=0x0700 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+    </Midl>
+    <ClCompile>
+      <AdditionalOptions>/DWINVER=0x0700 /D_WIN32_WINNT=0x0700 /Qopenmp %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeedHighLevel</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <PreprocessorDefinitions>SMP; WIN32;_WINDOWS;NDEBUG;_WINDOWS_GUI;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FloatingPointModel>Strict</FloatingPointModel>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalOptions>/NODEFAULTLIB:libmmd %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <StackReserveSize>10000000</StackReserveSize>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+    </Midl>
+    <ClCompile>
+      <AdditionalOptions>/DWINVER=0x0700 /D_WIN32_WINNT=0x0700 /Qopenmp %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeedHighLevel</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <PreprocessorDefinitions>SMP;WIN32;_WINDOWS;NDEBUG;_WINDOWS_GUI;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FloatingPointModel>Strict</FloatingPointModel>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalOptions>/NODEFAULTLIB:libmmd %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <StackReserveSize>10000000</StackReserveSize>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\extended_double.cpp" />
+    <ClCompile Include="..\src\gamma.cpp" />
+    <ClCompile Include="..\src\phmm\aln_env_utils.cpp" />
+    <ClCompile Include="..\src\phmm\phmm.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_aln.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_array.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_ml_loops.cpp" />
+    <ClCompile Include="..\src\phmm\phmm_pp_loops.cpp" />
+    <ClCompile Include="..\src\phmm\p_alignment.cpp" />
+    <ClCompile Include="..\src\phmm\structure\folding_constraints.cpp" />
+    <ClCompile Include="..\src\phmm\structure\structure_object.cpp" />
+    <ClCompile Include="..\src\phmm\utils\ansi_string\ansi_string.cpp" />
+    <ClCompile Include="..\src\phmm\utils\file\utils.cpp" />
+    <ClCompile Include="..\src\phmm\utils\rng\rng.cpp" />
+    <ClCompile Include="..\src\phmm\utils\rng\seed_manager.cpp" />
+    <ClCompile Include="..\src\phmm\utils\xmath\linear\linear_math.cpp" />
+    <ClCompile Include="..\src\phmm\utils\xmath\log\xlog_math.cpp" />
+    <ClCompile Include="..\src\phmm\utils\xmath\matrix\matrix.cpp" />
+    <ClCompile Include="..\src\phmm\utils\xmath\xmath.cpp" />
+    <ClCompile Include="..\TurboFold\TurboFold_object.cpp" />
+    <ClCompile Include="..\TurboFold\TurboFold_thread.cpp" />
+    <ClCompile Include="Advanced.cpp" />
+    <ClCompile Include="..\src\algorithm.cpp" />
+    <ClCompile Include="AlignForceDialog.cpp" />
+    <ClCompile Include="AllFoldView.cpp" />
+    <ClCompile Include="..\src\alltrace.cpp" />
+    <ClCompile Include="..\src\alltrace_intermolecular.cpp" />
+    <ClCompile Include="..\src\DynProgArray.cpp" />
+    <ClCompile Include="BiFoldDoc.cpp" />
+    <ClCompile Include="BiFoldView.cpp" />
+    <ClCompile Include="BimolPFView.cpp" />
+    <ClCompile Include="BoxPlotOpen.cpp" />
+    <ClCompile Include="BoxPlotView.cpp" />
+    <ClCompile Include="ChildFrm.cpp" />
+    <ClCompile Include="ColorKey.cpp" />
+    <ClCompile Include="ColorKeyDoc.cpp" />
+    <ClCompile Include="colors.cpp" />
+    <ClCompile Include="common_windows_actions.cpp" />
+    <ClCompile Include="..\src\configfile.cpp" />
+    <ClCompile Include="CTDoc.cpp" />
+    <ClCompile Include="DistanceDialog.cpp" />
+    <ClCompile Include="..\src\dotarray.cpp" />
+    <ClCompile Include="DotPlot.cpp" />
+    <ClCompile Include="DotPlotView.cpp" />
+    <ClCompile Include="DoubleDialog.cpp" />
+    <ClCompile Include="DPDoc.cpp" />
+    <ClCompile Include="..\src\draw.cpp" />
+    <ClCompile Include="DrawDoc.cpp" />
+    <ClCompile Include="DrawFrame.cpp" />
+    <ClCompile Include="DrawMDIChildWin.cpp" />
+    <ClCompile Include="DrawView.cpp" />
+    <ClCompile Include="..\src\dynalign.cpp" />
+    <ClCompile Include="..\RNA_class\Dynalign_object.cpp" />
+    <ClCompile Include="..\src\dynalignarray.cpp" />
+    <ClCompile Include="DynalignDotPlot.cpp" />
+    <ClCompile Include="..\src\dynalignheap.cpp" />
+    <ClCompile Include="Dynaligninterface.cpp" />
+    <ClCompile Include="..\src\dynalignstackclass.cpp" />
+    <ClCompile Include="DynDoc.cpp" />
+    <ClCompile Include="DynDotPlot.cpp" />
+    <ClCompile Include="DynRefoldView.cpp" />
+    <ClCompile Include="Efn2_View.cpp" />
+    <ClCompile Include="Error.cpp" />
+    <ClCompile Include="..\src\findpseudo.cpp" />
+    <ClCompile Include="FMNDialog.cpp" />
+    <ClCompile Include="FoldDoc.cpp" />
+    <ClCompile Include="FoldView.cpp" />
+    <ClCompile Include="..\src\forceclass.cpp" />
+    <ClCompile Include="globals.cpp" />
+    <ClCompile Include="GoDialog.cpp" />
+    <ClCompile Include="..\src\intermolecular.cpp" />
+    <ClCompile Include="InternalDialog.cpp" />
+    <ClCompile Include="LinearSHAPEDialog.cpp" />
+    <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="..\src\MaxExpect.cpp" />
+    <ClCompile Include="..\src\MaxExpectStack.cpp" />
+    <ClCompile Include="MEADialog.cpp" />
+    <ClCompile Include="MicroarrayDialog.cpp" />
+    <ClCompile Include="..\RNA_class\Multilign_object.cpp" />
+    <ClCompile Include="MultilignDoc.cpp" />
+    <ClCompile Include="MultilignView.cpp" />
+    <ClCompile Include="MyMDIChildWin.cpp" />
+    <ClCompile Include="NMRDialog.cpp" />
+    <ClCompile Include="Number.cpp" />
+    <ClCompile Include="..\src\observable.cpp" />
+    <ClCompile Include="..\src\observer.cpp" />
+    <ClCompile Include="OligoDialog.cpp" />
+    <ClCompile Include="OligoDoc.cpp" />
+    <ClCompile Include="OligoObject.cpp" />
+    <ClCompile Include="OligoScreen.cpp" />
+    <ClCompile Include="..\src\OligoScreenCalc.cpp" />
+    <ClCompile Include="OligoScreenDoc.cpp" />
+    <ClCompile Include="OLigoView.cpp" />
+    <ClCompile Include="OligoWalk.cpp" />
+    <ClCompile Include="OligoWalkRNAiView.cpp" />
+    <ClCompile Include="..\src\outputconstraints.cpp" />
+    <ClCompile Include="PairDialog.cpp" />
+    <ClCompile Include="..\src\pclass.cpp" />
+    <ClCompile Include="PFDPDoc.cpp" />
+    <ClCompile Include="PFFormView.cpp" />
+    <ClCompile Include="..\src\pfunction.cpp" />
+    <ClCompile Include="platform.cpp" />
+    <ClCompile Include="Plot.cpp" />
+    <ClCompile Include="PlotDoc.cpp" />
+    <ClCompile Include="PlotRange.cpp" />
+    <ClCompile Include="..\src\probknot.cpp" />
+    <ClCompile Include="ProbKnotView.cpp" />
+    <ClCompile Include="..\src\random.cpp" />
+    <ClCompile Include="ReadSHAPE.cpp" />
+    <ClCompile Include="ReFoldDoc.cpp" />
+    <ClCompile Include="RefoldView.cpp" />
+    <ClCompile Include="RegionalNMR.cpp" />
+    <ClCompile Include="RemovePseudo.cpp" />
+    <ClCompile Include="..\RNA_class\RNA.cpp" />
+    <ClCompile Include="..\src\rna_library.cpp" />
+    <ClCompile Include="RNAstructure.cpp" />
+    <ClCompile Include="RNAstructureDoc.cpp" />
+    <ClCompile Include="RNAstructureView.cpp" />
+    <ClCompile Include="SequenceDoc.cpp" />
+    <ClCompile Include="SequenceEdit.cpp" />
+    <ClCompile Include="SequenceEditor.cpp" />
+    <ClCompile Include="SHAPEColorKey.cpp" />
+    <ClCompile Include="SingleDialog.cpp" />
+    <ClCompile Include="..\src\siRNAfilter.cpp" />
+    <ClCompile Include="Splash.cpp" />
+    <ClCompile Include="..\src\stackclass.cpp" />
+    <ClCompile Include="..\src\stackstruct.cpp" />
+    <ClCompile Include="StdAfx.cpp" />
+    <ClCompile Include="..\src\stochastic.cpp" />
+    <ClCompile Include="StochasticView.cpp" />
+    <ClCompile Include="..\src\structure.cpp" />
+    <ClCompile Include="Temp_Dialog.cpp" />
+    <ClCompile Include="..\src\thermo.cpp" />
+    <ClCompile Include="..\RNA_class\thermodynamics.cpp" />
+    <ClCompile Include="TProgressDialog.cpp" />
+    <ClCompile Include="..\RNA_class\TwoRNA.cpp" />
+    <ClCompile Include="..\src\varray.cpp" />
+    <ClCompile Include="..\src\wendarray.cpp" />
+    <ClCompile Include="TurboFoldDoc.cpp" />
+    <ClCompile Include="TurboFoldView.cpp" />
+    <ClCompile Include="Zoom.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\extended_double.h" />
+    <ClInclude Include="..\src\gamma.h" />
+    <ClInclude Include="..\src\phmm\phmm.h" />
+    <ClInclude Include="..\src\phmm\phmm_aln.h" />
+    <ClInclude Include="..\src\phmm\phmm_array.h" />
+    <ClInclude Include="..\src\phmm\phmm_paths.h" />
+    <ClInclude Include="..\src\phmm\p_alignment.h" />
+    <ClInclude Include="..\src\phmm\structure\folding_constraints.h" />
+    <ClInclude Include="..\src\phmm\structure\structure_object.h" />
+    <ClInclude Include="..\src\phmm\utils\ansi_string\ansi_string.h" />
+    <ClInclude Include="..\src\phmm\utils\file\utils.h" />
+    <ClInclude Include="..\src\phmm\utils\rng\rng.h" />
+    <ClInclude Include="..\src\phmm\utils\rng\seed_manager.h" />
+    <ClInclude Include="..\src\phmm\utils\xmath\linear\linear_math.h" />
+    <ClInclude Include="..\src\phmm\utils\xmath\log\xlog_math.h" />
+    <ClInclude Include="..\src\phmm\utils\xmath\matrix\matrix.h" />
+    <ClInclude Include="..\src\phmm\utils\xmath\xmath.h" />
+    <ClInclude Include="..\TurboFold\TurboFold_object.h" />
+    <ClInclude Include="..\TurboFold\TurboFold_thread.h" />
+    <ClInclude Include="Advanced.h" />
+    <ClInclude Include="..\src\algorithm.h" />
+    <ClInclude Include="AlignForceDialog.h" />
+    <ClInclude Include="AllFoldView.h" />
+    <ClInclude Include="..\src\alltrace.h" />
+    <ClInclude Include="..\src\alltrace_intermolecular.h" />
+    <ClInclude Include="..\src\DynProgArray.h" />
+    <ClInclude Include="BiFoldDoc.h" />
+    <ClInclude Include="BiFoldView.h" />
+    <ClInclude Include="BimolPFView.h" />
+    <ClInclude Include="BoxPlotOpen.h" />
+    <ClInclude Include="BoxPlotView.h" />
+    <ClInclude Include="ChildFrm.h" />
+    <ClInclude Include="ColorKey.h" />
+    <ClInclude Include="ColorKeyDoc.h" />
+    <ClInclude Include="colors.h" />
+    <ClInclude Include="common_windows_actions.h" />
+    <ClInclude Include="commonoligowalkdataexchange.h" />
+    <ClInclude Include="commonoligowalkmessagemap.h" />
+    <ClInclude Include="..\src\configfile.h" />
+    <ClInclude Include="CTDoc.h" />
+    <ClInclude Include="..\src\defines.h" />
+    <ClInclude Include="DistanceDialog.h" />
+    <ClInclude Include="..\src\dotarray.h" />
+    <ClInclude Include="DotPlot.h" />
+    <ClInclude Include="DotPlotView.h" />
+    <ClInclude Include="DoubleDialog.h" />
+    <ClInclude Include="DPDoc.h" />
+    <ClInclude Include="..\src\draw.h" />
+    <ClInclude Include="DrawDoc.h" />
+    <ClInclude Include="DrawFrame.h" />
+    <ClInclude Include="DrawMDIChildWin.h" />
+    <ClInclude Include="DrawView.h" />
+    <ClInclude Include="..\src\dynalign.h" />
+    <ClInclude Include="..\RNA_class\Dynalign_object.h" />
+    <ClInclude Include="..\src\dynalignarray.h" />
+    <ClInclude Include="DynalignDotPlot.h" />
+    <ClInclude Include="..\src\dynalignheap.h" />
+    <ClInclude Include="dynaligninterface.h" />
+    <ClInclude Include="..\src\dynalignstackclass.h" />
+    <ClInclude Include="DynDoc.h" />
+    <ClInclude Include="DynDotPlot.h" />
+    <ClInclude Include="DynRefoldView.h" />
+    <ClInclude Include="Efn2_View.h" />
+    <ClInclude Include="Error.h" />
+    <ClInclude Include="..\src\findpseudo.h" />
+    <ClInclude Include="FMNDialog.h" />
+    <ClInclude Include="FoldDoc.h" />
+    <ClInclude Include="FoldView.h" />
+    <ClInclude Include="..\src\forceclass.h" />
+    <ClInclude Include="globals.h" />
+    <ClInclude Include="GoDialog.h" />
+    <ClInclude Include="interface.h" />
+    <ClInclude Include="..\src\intermolecular.h" />
+    <ClInclude Include="InternalDialog.h" />
+    <ClInclude Include="..\src\legacy.h" />
+    <ClInclude Include="LinearSHAPEDialog.h" />
+    <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="..\src\MaxExpect.h" />
+    <ClInclude Include="..\src\MaxExpectStack.h" />
+    <ClInclude Include="MEADialog.h" />
+    <ClInclude Include="MicroarrayDialog.h" />
+    <ClInclude Include="MixMatch.h" />
+    <ClInclude Include="..\RNA_class\Multilign_object.h" />
+    <ClInclude Include="MultilignDoc.h" />
+    <ClInclude Include="MultilignView.h" />
+    <ClInclude Include="MyMDIChildWin.h" />
+    <ClInclude Include="NMRDialog.h" />
+    <ClInclude Include="Number.h" />
+    <ClInclude Include="..\src\observable.h" />
+    <ClInclude Include="..\src\observer.h" />
+    <ClInclude Include="OligoDialog.h" />
+    <ClInclude Include="OligoDoc.h" />
+    <ClInclude Include="OligoObject.h" />
+    <ClInclude Include="OligoScreen.h" />
+    <ClInclude Include="..\src\OligoScreenCalc.h" />
+    <ClInclude Include="OligoScreenDoc.h" />
+    <ClInclude Include="OLigoView.h" />
+    <ClInclude Include="OligoWalk.h" />
+    <ClInclude Include="OligoWalkRNAiView.h" />
+    <ClInclude Include="..\src\outputconstraints.h" />
+    <ClInclude Include="PairDialog.h" />
+    <ClInclude Include="..\src\pclass.h" />
+    <ClInclude Include="PFDPDoc.h" />
+    <ClInclude Include="PFFormView.h" />
+    <ClInclude Include="..\src\pfunction.h" />
+    <ClInclude Include="platform.h" />
+    <ClInclude Include="Plot.h" />
+    <ClInclude Include="PlotDoc.h" />
+    <ClInclude Include="PlotRange.h" />
+    <ClInclude Include="..\src\probknot.h" />
+    <ClInclude Include="ProbKnotView.h" />
+    <ClInclude Include="..\src\process_output.h" />
+    <ClInclude Include="..\src\random.h" />
+    <ClInclude Include="ReadSHAPE.h" />
+    <ClInclude Include="ReFoldDoc.h" />
+    <ClInclude Include="RefoldView.h" />
+    <ClInclude Include="RegionalNMR.h" />
+    <ClInclude Include="RemovePseudo.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="..\RNA_class\RNA.h" />
+    <ClInclude Include="..\src\rna_library.h" />
+    <ClInclude Include="RNAstructure.h" />
+    <ClInclude Include="RNAstructureDoc.h" />
+    <ClInclude Include="RNAstructureView.h" />
+    <ClInclude Include="SequenceDoc.h" />
+    <ClInclude Include="SequenceEdit.h" />
+    <ClInclude Include="SequenceEditor.h" />
+    <ClInclude Include="SHAPEColorKey.h" />
+    <ClInclude Include="SingleDialog.h" />
+    <ClInclude Include="..\src\siRNAfilter.h" />
+    <ClInclude Include="Splash.h" />
+    <ClInclude Include="..\src\stackclass.h" />
+    <ClInclude Include="..\src\stackstruct.h" />
+    <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="..\src\stochastic.h" />
+    <ClInclude Include="StochasticView.h" />
+    <ClInclude Include="..\src\structure.h" />
+    <ClInclude Include="Temp_Dialog.h" />
+    <ClInclude Include="..\src\thermo.h" />
+    <ClInclude Include="..\RNA_class\thermodynamics.h" />
+    <ClInclude Include="TProgressDialog.h" />
+    <ClInclude Include="TProgressDialog_dialog.h" />
+    <ClInclude Include="..\RNA_class\TwoRNA.h" />
+    <ClInclude Include="..\src\varray.h" />
+    <ClInclude Include="..\src\wendarray.h" />
+    <ClInclude Include="TurboFoldDoc.h" />
+    <ClInclude Include="TurboFoldView.h" />
+    <ClInclude Include="Zoom.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\bitmap2.bmp" />
+    <None Include="res\ico00001.ico" />
+    <None Include="res\ico00002.ico" />
+    <None Include="res\ico00003.ico" />
+    <None Include="res\ico00004.ico" />
+    <None Include="res\ico00005.ico" />
+    <None Include="res\ico00006.ico" />
+    <None Include="res\ico00007.ico" />
+    <None Include="res\ico00008.ico" />
+    <None Include="res\idr_draw.ico" />
+    <None Include="res\idr_efn3.ico" />
+    <None Include="res\idr_fold.ico" />
+    <None Include="res\idr_main.ico" />
+    <None Include="res\mainfram.bmp" />
+    <None Include="mdi.ico" />
+    <None Include="res\RNAstructure.ico" />
+    <None Include="res\RNAstructure.rc2" />
+    <None Include="res\RNAstructureDoc.ico" />
+    <None Include="SPLASH-40.bmp" />
+    <None Include="SPLASH-46.bmp" />
+    <None Include="SPLASH-generic.bmp" />
+    <None Include="res\Toolbar.bmp" />
+    <None Include="res\toolbar1.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuildStep Include="res\RNAstructure.manifest">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </CustomBuildStep>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RNAstructure.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="RNAstructure.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

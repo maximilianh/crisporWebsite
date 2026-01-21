@@ -1,0 +1,156 @@
+set -exo pipefail
+
+SELF="$BASH_SOURCE"
+DIR=$(dirname "$SELF")
+
+RNAF=../.. # relative to DIR
+EXE=$RNAF/exe
+export DATAPATH=$RNAF/data_tables
+cd "$DIR"
+
+NAPSS=$EXE/NAPSS
+SCORER=$EXE/scorer
+
+SFX=BENCH
+skipNAPSS=
+OUTDIR=./out
+TESTFILE=
+continueOnError=
+
+function parseCmd() {
+	for arg; do
+		case "$arg" in 
+			-s)   skipNAPSS=1 ;;
+			-o=*) SFX="${arg:3}" ;;
+			-x=*) NAPSS="${arg:3}"; [[ $NAPSS == */* ]] || NAPSS=$EXE/$NAPSS ;;
+			-d=*) OUTDIR="${arg:3}" ;;
+			-f=*) TESTFILE="${arg:3}" ;;
+			-c) continueOnError=1 ;;
+			*) echo >&2 "Invalid argument: $arg.  Aborting."; exit 1 ;;
+		esac
+	done
+	local action=Running files=ALL
+	[[ $TESTFILE ]] && files=$TESTFILE
+	[[ $skipNAPSS ]] && action=Scoring
+
+	[[ -x $NAPSS ]] || die "Failed to locate NAPSS: $NAPSS"
+	[[ -x $SCORER ]] || die "Failed to locate SCORER: $SCORER"
+
+	printf "%s NAPSS Benchmarks. Output: %s/%s  EXE: %s  FILE: %s\n" \
+		"$action" "$OUTDIR" "$SFX" "$NAPSS" "$files"
+
+	rm -f $OUTDIR/scores.$SFX.txt
+	mkdir -p $OUTDIR
+	runALL
+	diff  $OUTDIR/scores.$SFX.txt scores.PUB.txt  && echo "Successful Match!!"
+}
+function cerr() {
+	echo >&2 "$@"
+}
+function die() {
+	cerr "$@"
+	exit 1
+}
+function runBENCH() {
+	[[ -z $TESTFILE || $1 == $TESTFILE ]] || return 0
+	[[ $skipNAPSS ]] || runNAPSS $1 $2
+	runSCORER $1
+}
+function runNAPSS() {
+	local n=$1 d=$2 out=$OUTDIR/$1.$SFX
+	echo "Running Benchmark: $NAPSS $n.seq $n.con $out.ct -pp $out.pp -d $d > $out.stdout 2> $out.stderr"
+	$NAPSS $n.seq $n.con $out.ct -pp $out.pp -d $d 2> $out.stderr | tee $out.stdout  || [[ $continueOnError ]] || die "NAPSS Failed for $n"
+	[[ -s $out.stderr ]] || rm -f $out.stderr
+}
+function runSCORER() {
+	local n=$1 out=$OUTDIR/$1.$SFX
+	echo "Scoring: $SCORER -n 1 $out.ct $n.LIT.ct $out.score"
+	{
+		$SCORER -n 1 $out.ct $n.LIT.ct $out.score
+		echo -ne "$n\t" >> $OUTDIR/scores.$SFX.txt
+		extractScores $out.score >> $OUTDIR/scores.$SFX.txt
+	} || [[ $continueOnError ]] || die "SCORER Failed for $n"
+}
+function extractScores() {
+  local data=$(cat $1)
+  sens=$(grep <<< "$data" 'Sensitivity:' $f | perl -pe 's/.* = //' )
+  ppv=$(grep <<< "$data"  'PPV:' $f         | perl -pe 's/.* = //' )
+  echo -e "$sens\t$ppv"
+}
+
+function runALL() {
+	runBENCH adhr1 1
+	#./pseudoScorer adhr1.NAPSS.ct adhr1_lit.ct adhr1.NAPSS.pseudoscore
+
+	runBENCH bm 10
+	#./pseudoScorer bm.NAPSS.ct bm_lit.ct bm.NAPSS.pseudoscore
+
+	runBENCH bm_ml 2
+	#./pseudoScorer bm_ml.NAPSS.ct bm_ml_lit.ct bm_ml.NAPSS.pseudoscore
+
+	#runBENCH dh40 13
+	#./pseudoScorer dh40.NAPSS.ct dh40_lit.ct dh40.NAPSS.pseudoscore
+
+	runBENCH domain1 3
+	#./pseudoScorer domain1.NAPSS.ct domain1_lit.ct domain1.NAPSS.pseudoscore
+
+	runBENCH har1 1
+
+	#./NAPSS har1.seq har1.con -c har1_mapping.con har1.NAPSS.mapping.ct -pp har1.NAPSS.mapping.pp -d 1
+	#./scorer -n 1 har1.NAPSS.mapping.ct har1_lit.ct har1.NAPSS.mapping.score
+	#./pseudoScorer har1.NAPSS.ct har1_lit.ct har1.NAPSS.pseudoscore
+
+	runBENCH hdv2 15
+	#./pseudoScorer hdv2.NAPSS.ct hdv2_lit.ct hdv2.NAPSS.pseudoscore
+
+	#runBENCH lactisTER 100
+
+	runBENCH mdCR45 29
+	#./pseudoScorer mdCR45.NAPSS.ct mdCR45_lit.ct mdCR45.NAPSS.pseudoscore
+
+	runBENCH mlv 1
+	#./pseudoScorer mlv.NAPSS.ct mlv_lit.ct mlv.NAPSS.pseudoscore
+
+	#runBENCH mlvPK 100
+
+	runBENCH pbuE 1
+	#./pseudoScorer pbuE.NAPSS.ct pbuE_lit.ct pbuE.NAPSS.pseudoscore
+
+	runBENCH pemv1 77
+	#./pseudoScorer pemv1.NAPSS.ct pemv1_lit.ct pemv1.NAPSS.pseudoscore
+
+	runBENCH pk1 8
+	#./pseudoScorer pk1.NAPSS.ct pk1_lit.ct pk1.NAPSS.pseudoscore
+
+	#runBENCH pk103 23
+	#./pseudoScorer pk103.NAPSS.ct pk103_lit.ct pk103.NAPSS.pseudoscore
+
+	#runBENCH quec 82
+	#./pseudoScorer quec.NAPSS.ct quec_lit.ct quec.NAPSS.pseudoscore
+
+	#runBENCH sarscov 28
+	#./pseudoScorer sarscov.NAPSS.ct sarscov_lit.ct sarscov.NAPSS.pseudoscore
+
+	runBENCH seg7mbl 3
+	#./pseudoScorer seg7mbl.NAPSS.ct seg7mbl_lit.ct seg7mbl.NAPSS.pseudoscore
+
+	runBENCH spn 48
+	#./pseudoScorer spn.NAPSS.ct spn_lit.ct spn.NAPSS.pseudoscore
+
+	runBENCH srv1mut 11
+	#./pseudoScorer srv1mut.NAPSS.ct srv1mut_lit.ct srv1mut.NAPSS.pseudoscore
+
+	runBENCH srv1wt 22
+	#./pseudoScorer srv1wt.NAPSS.ct srv1wt_lit.ct srv1wt.NAPSS.pseudoscore
+
+	runBENCH tRNATrpBacillus 1
+	#./pseudoScorer tRNATrpBacillus.NAPSS.ct tRNATrpBacillus_lit.ct tRNATrpBacillus.NAPSS.pseudoscore
+
+	runBENCH tRNATrpBovine 1
+	#./pseudoScorer tRNATrpBovine.NAPSS.ct tRNATrpBovine_lit.ct tRNATrpBovine.NAPSS.pseudoscore
+
+	runBENCH vpk 10
+	#./pseudoScorer vpk.NAPSS.ct vpk_lit.ct vpk.NAPSS.pseudoscore
+}
+
+parseCmd "$@"

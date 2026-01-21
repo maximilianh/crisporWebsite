@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: RemovePseudoknots</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>RemovePseudoknots</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>RemovePseudoknots takes a structure (or structures) and breaks pairs to generate a pseudoknot-free structure (or structures) with either lowest folding free energy change or with fewest removed pairs.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: RemovePseudoknots &lt;input ct file&gt; &lt;output ct file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;input ct file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> possibly containing structure(s) with pseudoknotted pairs.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;output ct file&gt;</td>
+								<td>The name of a pseudoknot-free <a href="File_Formats.html#CT">CT file</a> to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Default is to use RNA parameters.
+									(This has no effect if the -m, -M, --maximize option is chosen.)
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">-m, -M, --maximize</td>
+								<td>
+									Specify that remaining base pairs should be maximized in the pseudoknot-free structure.
+									<br>
+									Default is that the structure(s) should have minimum free energy.
+									Minimizing free energy change can result in fewer pairs in the pseudoknot free structure(s) than the maximum.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-t, -T, --temperature</td>
+								<td>
+									Specify the temperature at which calculation takes place in Kelvin.
+									<br>
+									Default is 310.15 K, which is 37 degrees C.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Smit, S., Rother, K., Heringa, J. and Knight, R.
+								<br>
+								&quot;From knotted to nested RNA structures: a variety of computational methods for pseudoknot removal.&quot;
+								<br>
+								<i>RNA</i>, 14:410-416. (2008).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

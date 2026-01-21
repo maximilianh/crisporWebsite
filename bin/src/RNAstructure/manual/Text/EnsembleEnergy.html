@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: EnsembleEnergy</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>EnsembleEnergy</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>EnsembleEnergy calculates the energy of a structure ensemble from either a partition function save file or a sequence file. This ensemble energy is -RT ln(Q), where Q is the partition function. It prints results on standard output, so no output file is generated.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: EnsembleEnergy &lt;input file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;input file&gt;</td>
+								<td>
+									The name of a file containing input data. This input data can be in one of two formats:
+									<ol class="noListTopMargin">
+										<li>Partition function save file (holds base pairing probability data for all pairs and can be generated using the <a href="partition.html">partition</a> interface).</li>
+										<li>
+											<a href="File_Formats.html#Sequence">Sequence file</a> (holds raw sequence: .seq or .fasta).
+											<br>
+											Note that lowercase nucleotides are forced single-stranded in structure prediction.
+											<br>
+											Note that in order to use a squence file, the &quot;sequence&quot; flag must be specified (see &quot;--sequence&quot; below).
+										</li>
+									</ol>
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options which don't require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									This flag only matters if the input file is a squence file and has been identified as such (see &quot;--sequence&quot; below).
+									<br>
+									Specify that the sequence is DNA, and DNA parameters are to be used.
+									<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">-s, -S, --silent</td>
+								<td>
+									Suppress all progress messages except the final ensemble energy result.
+									<br>
+									Note that this does NOT suppress errors, so errors will be shown even if this option is specified.
+								<td>
+							</tr>
+							<tr>
+								<td class="cell">--sequence</td>
+								<td>Identify the input file format as a sequence file.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options which require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li>
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

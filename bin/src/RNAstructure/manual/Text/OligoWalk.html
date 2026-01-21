@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: OligoWalk</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>OligoWalk</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>OligoWalk is used to predict the accessible regions in an RNA target to oligonucleotide hybridization. It calculates thermodynamic features of sense-antisense hybidization and predicts the free energy changes of oligonucleotides binding to a target RNA. The secondary structures of the oligomer and target mRNA are considered in the OligoWalk algorithm. It can be used to design efficient siRNA<strong> </strong>targeting a given mRNA sequence. </p>
+						<p><img src="oligowalk.png" width="750" height="407" alt="OligoWalk Schematic"></p>
+
+					 <a name="Usage" id="Usage"></a>
+              <h3>USAGE: OligoWalk &lt;sequence file&gt; &lt;report file&gt; [options] </h3>
+              <h3>Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;sequence file&gt;</td>
+                    <td> The name of a sequence file (<a href="File_Formats.html#SEQ">SEQ</a>, <a href="File_Formats.html#FASTA">FASTA</a>) or structure file (<a href="File_Formats.html#CT">CT</a>) containing the input sequence. The default is to load a sequence file. When a structure is loaded, the --structure option must be specified. A structure must be the input for --mode 1 (local structure).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;report file&gt;</td>
+                    <td><p>The name of an output file to which report results will be written.</p></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell"><span class="codeText">-d, --dna</span></td>
+                    <td> Specify that the oligomers are DNA. (The target sequence is still assumed to be RNA). This causes DNA<strong>:</strong>RNA hybridization energies to be used.<br>
+                    (In the absense of this flag, the default behavior is to assume both the oligomers and the target sequence are RNA)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-h, --help</span></td>
+                    <td>Display the usage details message.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-v, --version</span></td>
+                    <td>Display the RNAstructure package version information.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">--html</span></td>
+                    <td>Write the report in HTML format instead of plain text.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">--no-header</span></td>
+                    <td>The default behavior is to include a summary of the parameters and options used in the
+calulation directly in the output report file. This option DISABLES that  behavior. (I.e. the header information will <strong>not</strong> be included in the report file if this flag is present.)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-score</span></td>
+                    <td>Score the  siRNA prefilter.</td>
+                  </tr>
+                  <tr>
+                    <td class="codeText">--structure</td>
+                    <td>Specifies that the input is a structure, not a sequence.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-w, --webserver</span></td>
+                    <td> Use special output for running OligoWalk as a webserver. This implies HTML=true and it sends the header (which summarizes the parameters and options used in the calulation) to STDOUT instead of including them in the report. It also turns off progress updates.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-write</span></td>
+                    <td>Write sav files to save time in test mode.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell"><span class="codeText">-c, -co, --conc</span></td>
+                    <td> <p>Specify the m<span class="cell">olar concentration of oligos. e.g. <strong>&quot;</strong></span><span class="codeText">1.5E-6</span><span class="cell">&quot;, &quot;</span><span class="codeText">1.5uM</span><span class="cell">&quot;, or &quot;<strong class="codeText">0.0000015</strong>&quot; (<strong>1.5 micromolar</strong>).</span> </p>
+                      <p><span class="cell">This may be used in conjunction with the '</span><span class="codeText">--unit</span><span class="cell">' flag</span>. See <span class="cell">'</span><span class="codeText">--unit</span><span class="cell"></span> for more examples.<br>
+                      <strong>Unit Abbreviations</strong>:<strong> <span class="codeText">mM</span>=10<sup>-3</sup>, <span class="codeText">uM</span>=10<sup>-6</sup>, <span class="codeText">nM</span>=10<sup>-9</sup>, <span class="codeText">pM</span>=10<sup>-12</sup></strong></p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-u, --unit</span></td>
+                    <td><p>Specifies a power-of-ten factor to multiply the concentration by.<br>
+                      This parameter is not required, because it is entirely possible to specify the concentration directly in scientific notation (e.g. &quot;<span class="codeText">--conc 4.2E-3</span>&quot; &nbsp;or&nbsp; &quot;<span class="codeText">--conc 4.2mM</span>&quot;. However there may be some circumstances when it is convenient to separate the concentration from the units, e.g. &quot;<span class="codeText">--conc 4.2 --unit -3</span>&quot; &nbsp;or &nbsp;&quot;<span class="codeText">--conc 4.2 --unit mM</span>&quot;<br>
+                      This might be useful, for example, when the program is run as a backend to a graphical or web interface and the user has selected the units separately from the concentration (from a drop-down list etc).
+                      </p>
+                      <p>Examples:</p>
+                      <ul>
+                        <li><strong>2.5 millimolar</strong> can be specified in any of the following ways:
+                          <ul>
+                            <li><span class="codeText">--conc 2.5mM</span></li>
+                            <li><span class="codeText">--conc 2.5E-3</span></li>
+                            <li><span class="codeText">--conc 2.5 &nbsp;--unit -3</span></li>
+                            <li><span class="codeText">--conc 2.5&nbsp; --unit&nbsp;mM</span></li>
+                          </ul>
+                        </li>
+                        <li><strong>5x10<sup>-5</sup> M</strong> can be specified in any of the following ways:
+                          <ul>
+                            <li><span class="codeText">--conc 5E-5</span></li>
+                            <li><span class="codeText">--conc 50uM</span></li>
+                            <li><span class="codeText">--conc 5 &nbsp; &nbsp;--unit -5</span></li>
+                            <li><span class="codeText">--conc 50&nbsp; &nbsp;--unit uM</span></li>
+                            <li><span class="codeText">--conc 0.05 --unit mM</span>                        </li>
+                          </ul>
+                        </li>
+                      </ul>
+                      <p><strong>Unit Abbreviations</strong>:<strong> <span class="codeText">mM</span>=10<sup>-3</sup>, <span class="codeText">uM</span>=10<sup>-6</sup>, <span class="codeText">nM</span>=10<sup>-9</sup>, <span class="codeText">pM</span>=10<sup>-12</sup></strong></p></td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-l, --length</span></td>
+                    <td>Length of oligomers for hybridization.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-dist</span></td>
+                    <td>Limit the maximum distance between nucleotides that can pair.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-st, --start</span></td>
+                    <td><span class="cell">Truncate the target sequence to end at this nucleotide position. This can improve runtime since only a subset of the original sequence will be folded and scanned. Use this in conjunction with the </span><span class="codeText">--end</span><span class="cell"> parameter.</span></td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-en, --end</span></td>
+                    <td>Truncate the target sequence (see the <span class="codeText">--start</span> parameter).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-fi, --filter</span></td>
+                    <td> Whether to use the siRNA prefilter to prefill functional siRNA.<br>
+0=No Prefilter (default); 1=Use Prefilter</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-fold</span></td>
+                    <td>Only fold a fragment with the specified size (plus the length of the oligomer), which is centered on the binding region.<br>
+When FOLDSIZE &gt; 1, MODE (<span class="codeText">-m</span>) and SUBOPTIMAL (<span class="codeText">-s</span>) must both be 2.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText"> -ss, --from</span></td>
+                    <td>Start position of scanning on folded region of target.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText"> -se, --to</span></td>
+                    <td> End position of scanning on folded region of target.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-m, --mode</span></td>
+                    <td><p>                      Determines how target structure is used:</p>
+                      <blockquote>
+                        <p><strong>1</strong>=Break Local Structure. (Balance of computational cost vs. model accuracy.) (Works with --suboptimal 0, no suboptimals, and --suboptimal 3, the heuristic for suboptimals.)<br>
+                          <strong>2</strong>=Refold target RNA after oligo binding. (Slowest, but best consideration of target structure.)<br>
+                          <strong>3</strong>=No target structure considered. (Fastest, but does not consider the free energy of folding of target structure.)</p>
+                      </blockquote></td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-s, --suboptimal</span></td>
+                    <td><p>Determines suboptimal structure options for target structure:</p>
+                      <blockquote>
+                        <p>                        <strong>0</strong>=Do <strong>not</strong> consider suboptimal structures. (This option is fastest, but least accurate for targets such as mRNA that will fold to multiple structures in equilibrium.)<br>
+                          <strong>1</strong>=Use <strong>AllSub</strong> to generate all suboptimal structures. (This option is generally not recommended.)<br>
+                          <strong>2</strong>=Use <strong>Partition</strong> Function to generate all suboptimal structures. (This option is slowest, but most accurate.)<br>
+                          <strong>3</strong>=Use a <strong>heuristic</strong> method for both oligo-free and oligo-bound RNA. (The heuristic is that used by <a href="Fold.html">Fold</a> to generate suboptimal structures. This is second fastest.)<br>
+                          <strong>4</strong>=Use <strong>stochastic</strong> sampling to generate 1000 structures. (This option is almost as a good as 2, but slower than 0 and 3.)</p>
+                    </blockquote></td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-sh,  --shape</span></td>
+                    <td> Specify a <a href="File_Formats.html#SHAPE">SHAPE data
+                      file</a> to be used to generate restraints. These
+                      restraints specifically use SHAPE pseudoenergy restraints. <br>
+                      Default is no SHAPE data file specified. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell"><span class="codeText">-test</span></td>
+                    <td>Perform self-tests. The parameter should be a list of space-separated test numbers, e.g.: <span class="codeText">-test '1 2 5'</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes:</h3>
+              <p>When using --mode 1 (breaking local structure), a structure (ct file) must be read instead of a sequence. Use --structure and specify a ct file name as the first parameter. --suboptimal 0 or --suboptimal 3 must be used because other subpotimal approaches are not implemented. When using --suboptimal 3, the structure should be generated with <a href="Fold.html">Fold</a>, which uses a heuristic to generate suboptimal structures.</p>
+              <p>For --mode 2 and --mode 3, a structure file can be read, but only the sequence information will be used, i.e. the structure will be predicted again by OligoWalk.</p>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem">J. Lu and D.H. Mathews. (2008) "Efficient siRNA selection using hybridization thermodynamics"<br>
+                <em>Nucleic Acids Research, </em>36:640-647.</li>
+                <li class="gapListItem">Reynolds, A., Leake, D., Boese, Q., Scaringe, S., Marshall, W.S. and Khvorova, A. (2004) Rational siRNA design for RNA interference. <em>Nat Biotechnol.</em>, 22, 326-330.</li>
+                <li class="gapListItem">Lu, Z.J., Turner, D.H. and Mathews, D.H. (2006) A set of nearest neighbor parameters for predicting the enthalpy change of RNA secondary structure formation. <em>Nucleic Acids Res.</em>, 34, 4912-4924.</li>
+                <li class="gapListItem">D.H. Mathews, M.D. Disney, J.L. Childs, S.J. Schroeder, M. Zuker, and D.H. Turner. "Incorporating Chemical Modification Constraints into a Dynamic Programming Algorithm for Prediction of RNA Secondary Structure"<br>
+                <em>Proceedings of the National Academy of Sciences USA</em>, 101, 7287-7292, (2004).</li>
+                <li class="gapListItem">D.H. Mathews, J. Sabina, M. Zuker, and D. H. Turner "Expanded Sequence Dependence of Thermodynamic Parameters: Improves Prediction of RNA Secondary Structure" <em>Journal of Molecular Biology</em>, 288, 911-940, (1999).</li>
+                <li class="gapListItem">N. Sugimoto, S. Nakano, A. Katoh, H. Nakamura, T. Ohmichi, M. Yoneyama, and M. Sasaki<br>
+                  "Thermodynamic Parameters to Predict the Stability of RNA/DNA Hybrid Duplexes"<br>
+                <em>Biochemistry</em>, 34, 11211-11216, (1995).                </li>
+              </ol>
+            </td>
+          </tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

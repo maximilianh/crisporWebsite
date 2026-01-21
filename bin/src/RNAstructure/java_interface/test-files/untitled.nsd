@@ -1,0 +1,42 @@
+[
+  { Version:"1.0" Title:Untitled }
+  {
+    Title:Structure1
+    Strands:[
+      {
+        Title:Sequence1
+        Bases:[
+          { Base:"1" X:6.0 Y:182.0 }
+          { Base:"2" X:6.0 Y:159.0 }
+          { Base:"3" X:6.0 Y:137.0 }
+          { Base:"4" X:6.0 Y:115.0 }
+          { Base:"5" X:6.0 Y:92.0 }
+          { Base:"6" X:6.0 Y:70.0 }
+          { Base:"7" X:-6.0 Y:47.0 }
+          { Base:"8" X:-20.0 Y:31.0 }
+          { Base:"9" X:-23.0 Y:10.0 }
+          { Base:"10" X:-14.0 Y:-10.0 }
+          { Base:"11" X:5.0 Y:-22.0 }
+          { Base:"12" X:25.0 Y:-22.0 }
+          { Base:"13" X:44.0 Y:-10.0 }
+          { Base:"14" X:53.0 Y:10.0 }
+          { Base:"15" X:50.0 Y:31.0 }
+          { Base:"16" X:36.0 Y:47.0 }
+          { Base:"17" X:27.0 Y:70.0 }
+          { Base:"18" X:27.0 Y:92.0 }
+          { Base:"19" X:108.6 Y:96.3 }
+          { Base:"20" X:27.0 Y:137.0 }
+          { Base:"21" X:27.0 Y:159.0 }
+          { Base:"22" X:27.0 Y:182.0 }
+        ]
+      }
+    ]
+    Bonds:[
+      { Link:"2:19" Type:P }
+      { Link:"3:18" Type:P }
+      { Link:"4:17" Type:P }
+      { Link:"5:16" Type:P }
+    ]
+    Styles:[ ]
+  }
+]

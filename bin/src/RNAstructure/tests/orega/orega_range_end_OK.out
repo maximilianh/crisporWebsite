@@ -1,0 +1,23 @@
+Initializing mutant RNA sequences...		DONE
+Running OREGA calculations:
+	ITERATION 1
+Sequence 1:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 2:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 3:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 4:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+	ITERATION 2
+Sequence 1:	 Score = 0.9929 	Mean Basepair Probability = 0.7849	Complexity = 0.778 	 Basepair fraction: 0.80 	 Optimized Segment : CGCCUCCACC
+Sequence 2:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 3:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 4:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+	ITERATION 3
+Sequence 1:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 2:	 Score = 0.9940 	Mean Basepair Probability = 0.7838	Complexity = 0.778 	 Basepair fraction: 0.80 	 Optimized Segment : CGCCUCCACC
+Sequence 3:	 Score = 1.0486 	Mean Basepair Probability = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Sequence 4:	 Score = 0.9826 	Mean Basepair Probability = 0.7952	Complexity = 0.778 	 Basepair fraction: 0.80 	 Optimized Segment : CGCCUCCACC
+
+Output:   
+Final Sequence 1:	 Score = 1.0486 	Mean Basepair Probabilty = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Final Sequence 2:	 Score = 1.0486 	Mean Basepair Probabilty = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Final Sequence 3:	 Score = 1.0486 	Mean Basepair Probabilty = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC
+Final Sequence 4:	 Score = 1.0486 	Mean Basepair Probabilty = 0.7292	Complexity = 0.778 	 Basepair fraction: 0.70 	 Optimized Segment : CGCCUCCACC

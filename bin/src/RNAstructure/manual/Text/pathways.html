@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: Pathways</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					Pathways</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<a name="Overview" id="Overview"></a>
+							<h3 class="leftHeader">Overview</h3>
+                        	<p>This page provides information about how the programs in RNAstructure work together to provide sample pathways for solving common problems. In each pathway diagram, lines indicate files (annotated with file extensions) and programs are represented by boxes. </p>
+
+							
+						</div>
+
+						<br><hr>
+
+						<div>
+							<a name="SecondaryStructurePrediction" id="SecondaryStructurePrediction"></a>
+							<h3 class="leftHeader">Secondary Structure Prediction</h3>
+							<p>Secondary structure prediction can be accomplished in a number of ways. At this time, we recommend three approaches, free energy minimization, maximum expected accuracy, and ProbKnot. Often it would be best to try all three to provide alternative hypotheses for the secondary structure. Free energy minimization (<a href="Fold.html">Fold</a>) predicts the lowest free energy structure (the single most probable structure) and a set of low free energy structures. Maximum expected accuracy (<a href="MaxExpect.html">MaxExpect</a>) assembles a structure composed of probably base pairs, and the pairs in these structures are slightly more likely to be correctly predicted than those in minimum free energy structures. <a href="ProbKnot.html">ProbKnot</a> is capable of predicting structures with pseudoknots. For each approach, we recommend color annotating the predicted secondary structures with base pairing probabilties. Highly probably pairs are more likely to be correctly predicted than less probable pairs.</p>
+							<p><img src="mfe-prediction.svg" alt="mfe"></p>
+							<p><img src="mea-prediction.svg" alt="mea"></p>
+							<p><img src="pk-prediction.svg" alt="pseudoknot prediction"></p>
+
+							
+					  </div>
+
+						<br><hr>
+
+						<div>
+							<a name="Predict-conserved-structure" id="Predict-conserved-structure"></a>
+							<h3>Predicting a Conserved RNA Structure Common to Multiple Homologs.</h3>
+							<p>The accuracy of RNA secondary structure prediction can be dramatically improved by predicting a structure conserved by two or more homologs. RNAstructure has several programs that predict conserved structures. For two sequences, <a href="dynalign.html">dynalign_ii</a> or <a href="PARTS.html">PARTS</a> can be used for two sequences. For three or more sequences, <a href="TurboFold.html">TurboFold</a> or <a href="multilign.html">multilign</a> can be used. TurboFold is much faster and can predict base pairing probabilities. Multilign, however, is more suited if the set of sequences have low pairwise identity (roughly less than 60% identity).</p>
+						  <p><img src="dynalign_ii.svg" alt="dynalign_ii"></p>
+						  <p><img src="PARTS.svg" alt="PARTS"></p>
+						  <p><img src="multilign.svg" alt="multilign"></p>
+						  <p><img src="TurboFold.svg" alt="TurboFold"></p>
+						</div>
+
+						<hr>
+
+						<div>
+							<a name="bimolecular" id="bimolecular"></a>
+							<h3 class="leftHeader">Bimolecular structure prediction</h3>
+							<p>There are	three	major	applications	in	RNAstructure for predicing the structure of two interacting RNA strands. The first, <a href="bifold.html">bifold</a>, predicts the structure of two sequences, and allows for intermolecular and intramolecular base pairs. The second, <a href="DuplexFold.html">DuplexFold</a>, predicts the structure, but only allowing for intermolecular pairs. It is the fastest of the three applications. The third, <a href="accessfold.html">AccessFold</a> only alloes intermolecular pairs, but it accounts for the accessibility of each strand, given the competition with intramolecular pairs.</p>
+						  <p><img src="bifold.svg" alt="bifold"></p>
+							<p><img src="duplexfold.svg" alt="DuplexFold"></p>
+							<p><img src="accessfold.svg" alt="AccessFold"></p>
+		              </div></td>
+				</tr>
+				<tr>
+				  <td class="footer" colspan="3">
+					<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+				  </td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

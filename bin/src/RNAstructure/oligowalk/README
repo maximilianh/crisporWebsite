@@ -1,0 +1,84 @@
+Introduction:
+-------------------------------
+OligoWalk -  calculates themodynamic features of sense-antisense hybidization. 
+	It predicts the free energy changes of oligonucleotide binding to a target RNA.
+siRNAWalk.pl - is a perl script to run OligoWalk and predict siRNA automatically.
+	You need to install perl and libsvm to have siRNAWalk.pl running
+
+
+Prerequisite:
+-------------------------------
+LIBSVM: 
+	Download LIBSVM, compile it and copy svm-predict svm-scale to directory svm/.
+	LIBSVM is avilable at: http://www.csie.ntu.edu.tw/~cjlin/libsvm/
+	Its use should be cited as: Chih-Chung Chang and Chih-Jen Lin, 
+		LIBSVM : a library for support vector machines, 2001. 
+		Software available at http://www.csie.ntu.edu.tw/~cjlin/libsvm
+
+
+Installation:
+-------------------------------
+Go to directory src/, then type:
+	'make OligoWalk' to make the excutable OligoWalk in exe/
+
+	'make clean' can be used to remove the object files
+	'make realclean' can be used to removethe executables for rebuilding
+
+
+Usage:
+-------------------------------
+To predict efficient siRNA (using the siRNAWalk.pl script):
+	1. Go to the root directory of OligoWalk (oligowalk_src)
+	2. Please type in the name of your sequence file and an options file like
+ 		./siRNAWalk.pl example.seq [example.options]
+
+Sequence file format:
+-------------------------------
+Input sequences are in the .seq format.  example.seq provides an example.  At the start
+of the file, lines beginning with ";" denote comments.  There needs to be at least one comment line.
+The following line has a sequence title. 
+The following lines are the sequence, with whitespace ignored.  The sequence terminates with a '1' 
+character.  
+
+Options:
+-------------------------------
+See example.options for a list of available options.
+
+
+Outputs:
+-------------------------------
+example.siRNA:  siRNA candidates
+example.energy: free energy table of each binding site on the target, it includes:
+
+position:       5' end of the target site
+overall:        overall free energe change of the equilibrium 
+duplex:         free energy change of the sense-antisense hybrid duplex
+breaking:       the free energy cost to open the binding site's base pairs
+Tm:             melting temperature of sensen-antisense duplex
+intraoligo:     free energy change of intra-oligomer structure
+interoligo:     free energy change of inter-oligomer (antisense dimer) structure
+end_diff:       the difference of the free enegy change of the two ends of siRNA duplex (5' end - 3'
+ endwindow size: 2)
+sequence:       the sequence of antisense siRNA (5'-3')
+
+
+SVM for siRNA prediction:
+-------------------------------
+There two svm files for siRNA prediction:
+svm/svm_model:   used for folding size of 800nt (whole length if less than 800nt); folding method is partition function calculation
+svm/svm_scaler:   used for scale inputs for svm before running svm-predict
+
+
+REFERENCE:
+-------------------------------
+Zhi John Lu and David H. Mathews. 2008.  Efficient siRNA selection using hybridization thermodynamics. 
+	Nucleic Acids Research, 36: 640-647.
+
+QUESTIONS:
+-------------------------------
+Please send questions to David Mathews:
+	David_Mathews@urmc.rochester.edu .
+
+
+
+

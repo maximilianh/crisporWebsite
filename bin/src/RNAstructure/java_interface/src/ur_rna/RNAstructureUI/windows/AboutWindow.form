@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="ur_rna.RNAstructureUI.windows.AboutWindow">
+  <grid id="27dc6" binding="mainPanel" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="20" y="20" width="669" height="507"/>
+    </constraints>
+    <properties>
+      <font size="12"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <component id="dfd88" class="javax.swing.JButton" binding="btnExtract">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="0" bottom="10" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="extract-examples"/>
+          <font name="Arial" size="14"/>
+          <text value="Extract Example Files"/>
+        </properties>
+      </component>
+      <component id="ec692" class="javax.swing.JButton" binding="btnClose">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="close"/>
+          <font name="Arial" size="14"/>
+          <text value="OK"/>
+        </properties>
+      </component>
+      <component id="44df3" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="3" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="2" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="1.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <preferredSize width="500" height="80"/>
+          <text value="&lt;html&gt;&lt;span style=&quot;font-size:5pt&quot;&gt;&lt;br&gt;&lt;/span&gt;This application comes with a set of &lt;b&gt;example files&lt;/b&gt; that are useful when getting started with the program. If you are using the program for the first time, it is recommended that you click the button below to extract the example files to a location of your choosing."/>
+        </properties>
+      </component>
+      <component id="5621b" class="javax.swing.JLabel" binding="lblWebsite">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.4" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="&lt;html&gt;Lab Website &lt;a href=&quot;&quot;&gt;rna.urmc.rochester.edu&lt;/a&gt;"/>
+        </properties>
+      </component>
+      <component id="6cbcf" class="javax.swing.JLabel" binding="lblHelp">
+        <constraints>
+          <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.6" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="&lt;html&gt;RNAstructure &lt;a href=&quot;&quot;&gt;Online Help&lt;/a&gt;"/>
+        </properties>
+      </component>
+      <component id="803f6" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="10" left="0" bottom="10" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font name="Arial" size="14"/>
+          <text value="RNAstucture is developed by the David H. Mathews Lab at the University of Rochester."/>
+        </properties>
+      </component>
+      <component id="f9ede" class="javax.swing.JLabel" binding="lblLogo">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <icon value="ur_rna/RNAstructureUI/resources/images/logo.png"/>
+          <text value=""/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>

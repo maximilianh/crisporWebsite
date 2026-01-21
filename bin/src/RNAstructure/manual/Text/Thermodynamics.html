@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: Specifying Thermodynamics</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>Specifying Thermodynamics</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<h3 class="leftHeader">Specify the location of the thermodynamic parameters:</h3>
+
+						<p>RNAstructure uses a set of nearest neighbor thermodynamic parameters for predicting folding free energy changes of secondary structures. When an interface is invoked, these parameters are read from disk. The parameters come in the directory RNAstructure/data_tables/. To indicate the location of this directory, an environment variable, DATAPATH, needs to be set to this location.</p>
+
+						<p>
+							<strong>In BASH, this is accomplished with:</strong><br>
+							export DATAPATH=[directory in which RNAstructure resides]/RNAstructure/data_tables/<br><br>
+
+							<strong>In CSH, this is accomplished with:</strong><br>
+							setenv DATAPATH [directory in which RNAstructure resides]/RNAstructure/data_tables/<br><br>
+
+							<strong>In DOS (Microsoft Windows), this can be done on the command line with:</strong><br>
+							set DATAPATH=[driver letter on which RNAstructure resides]:\[directory in which RNAstructure resides]\RNAstructure\data_tables<br><br>
+
+							Note that, in Windows, environment variables can also be set using the graphical interface.  On Windows XP, for example, this can be done from &quot;System Properties&quot; in the Control Panel. Click the &quot;Advanced&quot; tab and then click the &quot;:Environment Variables&quot; button. After specifying DATAPATH in the graphical interface, a reboot is required.
+						</p>
+						<p>A description of the parameter files is available in <a href="../Overview/Parameters.html">manual/Overview/Parameters.html</a> .</p>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

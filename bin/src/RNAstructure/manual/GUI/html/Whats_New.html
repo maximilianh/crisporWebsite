@@ -1,0 +1,374 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure GUI Help -- What's New</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure GUI Help<br>
+                What's New</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>&nbsp;</p>
+              <p><strong>RNAstructure 6.1 (10/08/2018)</strong></p>
+              <ol>
+                <li>In <a href="StructureEditor.html">StructureEditor</a>, added ability to move number-labels on nucleobases by clicking and dragging with the mouse.</li>
+              </ol>
+              <p><strong>RNAstructure 6.0.1 Minor Update (02/12/2018)</strong></p>
+              <ol>
+                <li>Improved GUI regression testing.</li>
+                <li>Fixed a bug in the Java GUI that prevented the Stochastic and OligoWalk tools from running when START was clicked.</li>
+                <li>Fixed a minor bug in the energy calculation of flush coaxial stacking in exerior loops (ergexterior). The bug caused very small energy differences in rare circumstances.</li>
+              </ol>
+              <p><strong>RNAstructure 6.0 (</strong><strong><strong>09/21/2017</strong>)</strong></p>
+              <ol>
+                <li>Calculations are now performed in "parallel mode" -- i.e.
+                  using multiple
+                  threads. &nbsp;(This was also true of &nbsp;the previous
+                  native Windows Interface, but not the Java Interface.) </li>
+                <li>Improved Sequence "Speak" sound files (• Removed
+                  clicks and gaps at beginning and end of files • Increased
+                  tempo for
+                  shorter sounds • Added alert sound for invalid characters •
+                  softened
+                  beginning of "C" to sound less like "T")</li>
+                <li>Added new menu "Structure Prediction" that combines several
+                  structure analysis workflows for predicting single structures,
+                  bimolecular structures, and structures common to two or more
+                  sequences.</li>
+                <li><strong>StructureEditor </strong>added. This JAVA program
+                  edits structure drawings and outputs publication-quality
+                  drawings. This also can edit the underlying base pairing
+                  structure and sequence.</li>
+              </ol>
+              <p>Version 5.8.1 (Released 06/06/2016)</p>
+              <ol>
+                <li>Fixed a bug with the Java GUI on Mac OS X not begin able to
+                  set the DATAPATH variable.</li>
+                <li>Sequence Editor now allows copy/paste&nbsp;and does not
+                  restrict keystrokes as before.<br>
+                  Text is color-coded to show invalid bases (red) and lower-case
+                  bases (blue) to help highlight potential problems.</li>
+                <li>Users can now easily select&nbsp;Recent files
+                  or&nbsp;Example files in prediction dialogs</li>
+                <li>It is easier to run and monitor multiple concurrent
+                  calculations&nbsp;because the
+                  progress indicator is now displayed inside each parameter
+                  dialog (instead
+                  of as a separate window disjointed from the main application).</li>
+                <li>Some calculations (Fold, AllSub) can now be Canceled.</li>
+                <li>Improved "Draw &gt; Go to Structure.." dialog that allows
+                  quick an easy scanning through available structures.</li>
+                <li>Added new backbone rendering styles for structure drawing:
+                  "Render Circular Structure" and "Render Flat (Linear)
+                  Structure"</li>
+                <li>Improved About Window including&nbsp;function to extract
+                  Example files (mostly useful for Mac App Bundle)</li>
+                <li>Help menu can directly launch either local or online manual.</li>
+                <li>Java GUI now auto-detects the location of data_tables and
+                  the native RNAstructure_GUI library, so setting
+                  these on the command-line or environment are no longer
+                  necessary. The
+                  jar can be executed directly. The GUI now verifies the version
+                  of the
+                  native library to ensure compatibility.</li>
+                <li>Fixed detection of operating system to be compatible with
+                  newer OS and Java versions.</li>
+                <li>Deployment on Mac is now via DMG file for easier
+                  installation.</li>
+                <li>Fixed a bug that causes zooming issues in the structure
+                  drawing window.</li>
+                <li>Example sequences are now mostly&nbsp;FASTA files instead of
+                  SEQ.</li>
+                <li>Released a new&nbsp;testing system for the Java GUI.</li>
+              </ol>
+              <p>Version 5.8 (Released 12/01/2015)</p>
+              <ol>
+                <li>The
+                  Windows native version is now deprecated. From now on, only
+                  the JAVA
+                  version will be used on all platforms to reduce overhead.</li>
+                <li>Improved the Java GUI behavior when the
+                  native RNAstructure library is not found or cannot be loaded.
+                  Now an
+                  error message is shown and the application exits gracefully.
+                  Previously
+                  it would crash.</li>
+                <li>Improved the Java GUI behavior when the DATAPATH variable is
+                  either not set or it
+                  points to an invalid location. Now an informative message is
+                  shown at
+                  program startup. Previously no message was shown until the
+                  user tried
+                  to perform an action that required native access to the
+                  DATAPATH, at which time a less informative message was
+                  shown.</li>
+                <li>Fixed bugs in the Java GUI:</li>
+                <ul>
+                  <li>Printing structures and images did not work (only blank
+                    pages were produced).</li>
+                  <li>The
+                    GUI would crash on startup if the splash window (or any
+                    other program
+                    window) was still open when the main application window was
+                    created.</li>
+                  <li>Typing a non-existant file name in the Open Sequence
+                    window caused the program to freeze.</li>
+                  <li>Selecting a file with an upper- or mixed-case extension
+                    resulted in a "File Not Found" error.</li>
+                  <li>The main menu became unresponsive when the toolbar was
+                    moved to a floating window.</li>
+                  <li> The Java GUI DotPlotDialog window&nbsp;crashed when
+                    reading in
+                    postscript legend colors under some circumstances (such as
+                    when the
+                    colors were specified as doubles instead of ints (e.g. 10.0
+                    instead of
+                    10).</li>
+                </ul>
+              </ol>
+              <p>Version 5.7 (Released 12/4/2014)</p>
+              <ol>
+                <li>Fixed a bug in the Windows GUI for bimolecular folding where
+                  internal loops were intermittently being forbidden.</li>
+              </ol>
+              <p>Version 5.6 (Released 7/31/2013)</p>
+              <ol>
+                <li>The
+                  Windows GUI now runs in parallel on multicore computers for
+                  predicting
+                  lowest free energy structures, calculating partition
+                  functions,
+                  calculating free energy changes, oligoscreen calculations, and
+                  stochastic sampling. </li>
+                <li>Fixed a bug with reading HMM
+                  alignment parameters for Dynalign calculations in the Windows
+                  GUI. This
+                  was causing the program to crash for Dynalign calculations. </li>
+              </ol>
+              <p>Version 5.5 (Released 4/5/2013)</p>
+              <ol>
+                <li>Fixed bug in JAVA GUI where opening .seq files from disk
+                  would sometimes fail. </li>
+              </ol>
+              <p>Version 5.4 (Released 8/2/2012)</p>
+              <ol>
+                <li>Added TurboKnot function to TurboFold module.</li>
+                <li>JAVA GUI overhauled to appear more native-like on Mac and
+                  Linux.</li>
+                <li>Windows GUI updated to Windows 7 standards.</li>
+                <li>Breaking DNA pseudoknots added to JAVA GUI.</li>
+                <li>Removed "New Window" and "Arrange Icons" options, which did
+                  nothing, from the menus of the Windows GUI.</li>
+                <li>Corrected
+                  bug in JAVA GUI where the partition function bimolecular
+                  module
+                  sometimes overwrote its second input sequence file, rather
+                  than using
+                  the desired output name.</li>
+                <li>Corrected bug in JAVA GUI where file chooser extension
+                  sanity checks sometimes failed.</li>
+                <li>Fixed a bug in the Windows GUI, where pressing the F1 key
+                  resulted in a "Failed to Launch Help" window in Windows XP and
+                  later.</li>
+              </ol>
+              <p>Version 5.3 (Released 5/10/2011)</p>
+              <ol>
+                <li>Added TurboFold module for RNA folding.</li>
+                <li>Fixed bug in JAVA version that occassionally prevented
+                  drawing of suboptimal structures.</li>
+                <li>Fixed
+                  a bug where bimolecular partition functions were missing some
+                  states
+                  (single dangling ends and no dangling ends) at helix ends.</li>
+                <li>Fixed bug in JAVA version that caused OligoWalk energy
+                  values to sometimes be displayed incorrectly.</li>
+                <li>Fixed
+                  bug in partition function calculations when SHAPE data are
+                  used where
+                  the precision of the SHAPE pseudo free energy changes was
+                  truncated.</li>
+                <li>Corrected
+                  OligoWalk to show the correct temperature of folding free
+                  energy
+                  changes when user adjusts the temperature of the calculation.
+                  (Prior to
+                  this, free energy changes were always listed as being at 37
+                  degrees C.)</li>
+                <li>Corrected
+                  bug in JAVA version where the message bar at the bottom of the
+                  screen
+                  didn't always update when a temperature menu was clicked.</li>
+                <li>Corrected
+                  bug in JAVA version in OligoScreen where file names were being
+                  refreshed incorrectly. Also switched oligomer type default to
+                  DNA,
+                  rather than RNA. </li>
+                <li>Corrected bug in JAVA version of OligoWalk where
+                  oligonucleotides were always RNA, even when DNA was selected.</li>
+              </ol>
+              <br>
+              <p>Version 5.2 (Released 11/17/2010)</p>
+              <ol>
+                <li>Added Multilign to interface.</li>
+                <li>Added color annotation for single-stranded nucleotides. See
+                  the <a href="Draw.html">draw help page</a>.</li>
+                <li>Added support for writing ct files for long sequences
+                  (&gt;9,999 nucleotides).</li>
+                <li>Removed GAIL rule from dnamiscloop.dat and dnamiscloop.dh.</li>
+                <li>Made the internal loop asymmetry penalty a single constant
+                  for DNA folding.</li>
+                <li>On Windows only, changed the minimum helix length in
+                  ProbKnot from 2 to 3, which is the preferred value.</li>
+                <li>On Windows only, fixed the Dynalign "Alignment File" button
+                  to display .ALI files by default.</li>
+                <li>In
+                  Dynalign, revised the model for using alignment data to limit
+                  the
+                  extent of calculation. This can lead to a different set of
+                  suboptimal
+                  structures than previous versions. This also fixes a traceback
+                  error
+                  encountered in rare circumstances.</li>
+                <li>Improved the fonts in this online manual so that text
+                  appears better on Windows.</li>
+              </ol>
+              <br>
+              <p>Version 5.1 (Released 6/30/2010)</p>
+              <ol>
+                <li>The
+                  RNA free energy parameter for adding additional helices to a
+                  multibranch loop was changed from -0.9 to -0.6 kcal/mol. This
+                  value is
+                  that found by linear regression to experimental data. The -0.6
+                  kcal/mol
+                  value results in higher average accuracy when using the
+                  maximum
+                  expected accuracy methods, MEA and ProbKnot. Note that this
+                  means that
+                  predicted structures may not be identical to those predicted
+                  by earlier
+                  versions of the software.</li>
+                <li>Menu item names harmonized between Windows GUI and JAVA GUI.</li>
+                <li>Circular drawings for structures with pseudoknots added to
+                  Draw module.</li>
+                <li>Improved online help.</li>
+                <li>Fixed a glutch in JAVA version where SHAPE files could not
+                  be read from disk.</li>
+                <li>Added the ability to read FASTA-formatted sequence files.</li>
+              </ol>
+              <br>
+              <p>Version 5.03 (Released 3/22/2010)</p>
+              <ol>
+                <li>Fixed glitch where failure to enter a title in the New
+                  Sequence window resulted in invalid sequence files.</li>
+              </ol>
+              <br>
+              <p>Version 5.02 (Released 1/22/2010)</p>
+              <ol>
+                <li>No changes to the GUI.</li>
+              </ol>
+              <br>
+              <p>Version 5.01 (Released 12/30/2009)</p>
+              <ol>
+                <li>Changed the default parameters for SHAPE data pseudo free
+                  energy changes to match best practices.</li>
+              </ol>
+              <br>
+              <p>Version 5.0 (Released 9/30/2009)</p>
+              <ol>
+                <li>Program is now portable across multiple operating systems.</li>
+                <li>Created "RNA" and "DNA" menus to aim specific calculations
+                  at particular nucleic acid types.</li>
+                <li>The
+                  option box which allowed the user to write thermodynamic
+                  details files
+                  for Energy Function 2 (Efn2) was non-functional in version
+                  4.6. This
+                  has been corrected.</li>
+                <li>Standardized viewing options for drawing and zooming
+                  structures and dot plots.</li>
+              </ol>
+              <br>
+              <p>Version 4.6 (Released 5/5/2008)</p>
+              <ol>
+                <li>Added the ability to specify SHAPE data for RNA Fold Single
+                  Strand.</li>
+                <li>Added stochastic sampling.</li>
+              </ol>
+              <br>
+              <p>Version 4.5 (Released 4/9/2007)</p>
+              <ol>
+                <li>Added the capability to specify the maximum distance between
+                  paired nucleotides.</li>
+                <li>Added HMM alignment method to limit Dynalign's search space
+                  in the alignment domain.</li>
+              </ol>
+              <br>
+              <p>Version 4.4 (released 8/17/2006)</p>
+              <ol>
+                <li>Generate All Suboptimal Structures module added.</li>
+                <li>Secondary structures can now be predicted at temperatures
+                  other than 37 degrees Celsius.</li>
+                <li>Some menu options in force were grayed out and
+                  non-functional in 4.3. This has been corrected.</li>
+                <li>The
+                  free energy table for multibranch loops used by Dynalign
+                  (dynalignmiscloop.dat) incorrectly used an older set of
+                  parameters.
+                  This has been corrected. (Note that this was not the case for
+                  the Unix
+                  source code version of Dynalign, so the two versions are now
+                  synchronized.)</li>
+              </ol>
+              <br>
+              <p>Version 4.3 (released 3/16/2006)</p>
+              <ol>
+                <li>Base pair probabilities, as determined by the partition
+                  function calculation, can now be output to a text file.</li>
+                <li>Dynalign
+                  is greatly accelerated by not considering base pairs that are
+                  determined by single sequence secondary structure prediction
+                  to only
+                  occur in structures with relatively high folding free energy
+                  changes.
+                  Dynalign is also accelerated by redefining the M parameter
+                  that limits
+                  the alignments that are considered. A much smaller M can now
+                  be used.
+                  [Note that as of RNAstructure 4.5, the use of M is
+                  deprecated.]</li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

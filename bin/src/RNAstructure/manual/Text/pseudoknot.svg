@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" height="46.566667mm" version="1.1" viewBox="0 0 171 176" width="45.24375mm" x="0mm" y="0mm" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(-81 -87) ">
+    <line style="fill:none;stroke:rgb(0,0,255);stroke-width:2;stroke-miterlimit:10;stroke-linecap:square;" x1="123.300003" x2="153.699997" y1="253.800003" y2="253.300003"/>
+    <line style="fill:none;stroke:rgb(0,0,255);stroke-width:2;stroke-miterlimit:10;stroke-linecap:square;" x1="123.099998" x2="153.399994" y1="236.199997" y2="235.699997"/>
+    <line style="fill:none;stroke:rgb(0,0,255);stroke-width:2;stroke-miterlimit:10;stroke-linecap:square;" x1="122.800003" x2="153.199997" y1="218.600006" y2="218.100006"/>
+    <line style="fill:none;stroke:rgb(0,0,255);stroke-width:2;stroke-miterlimit:10;stroke-linecap:square;" x1="122.5" x2="152.899994" y1="201" y2="200.5"/>
+    <line style="fill:none;stroke:rgb(0,0,255);stroke-width:2;stroke-miterlimit:10;stroke-linecap:square;" x1="122.199997" x2="152.600006" y1="183.399994" y2="182.899994"/>
+    <line style="fill:none;stroke:rgb(255,175,175);stroke-width:2.5;stroke-miterlimit:10;stroke-linecap:square;" x1="136.600006" x2="147.800003" y1="131.199997" y2="98.199997"/>
+    <line style="fill:none;stroke:rgb(255,175,175);stroke-width:2.5;stroke-miterlimit:10;stroke-linecap:square;" x1="157.300003" x2="179" y1="141.100006" y2="110.800003"/>
+    <line style="fill:none;stroke:rgb(255,175,175);stroke-width:2.5;stroke-miterlimit:10;stroke-linecap:square;" x1="162.100006" x2="196.800003" y1="163.600006" y2="137.899994"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="117.943054" x2="116.256935" y1="175.470398" y2="172.32959"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="113.606522" x2="114.493477" y1="155.54454" y2="150.655457"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="124.094505" x2="128.605499" y1="137.66626" y2="135.33374"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="144.719208" x2="149.180801" y1="135.083099" y2="137.216904"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="159.17775" x2="160.22226" y1="149.901947" y2="154.798065"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="158.125366" x2="156.574646" y1="171.674789" y2="174.825211"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="162.166214" x2="169.633789" y1="250.246613" y2="247.553391"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="186.175934" x2="194.624069" y1="240.527679" y2="236.372299"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="206.042511" x2="208.757492" y1="224.043701" y2="217.256287"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="213.151581" x2="214.048431" y1="199.961639" y2="192.338348"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="212.685547" x2="210.914459" y1="174.729904" y2="168.370087"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="204.243958" x2="201.056046" y1="151.769928" y2="145.830063"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="191.859055" x2="183.940933" y1="130.377548" y2="118.322441"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="170.654831" x2="156.145187" y1="107.429832" y2="101.570168"/>
+    <line style="fill:none;stroke:rgb(128,128,128);stroke-miterlimit:10;stroke-linecap:square;" x1="138.823151" x2="123.376854" y1="97.554955" y2="96.445045"/>
+    <ellipse cx="123.300003" cy="253.800003" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="118.633011" y="257.799988">G</text>
+    <ellipse cx="123.300003" cy="253.800003" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="123.099998" cy="236.199997" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="118.766991" y="240.199997">A</text>
+    <ellipse cx="123.099998" cy="236.199997" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="122.800003" cy="218.600006" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="118.466995" y="222.600006">U</text>
+    <ellipse cx="122.800003" cy="218.600006" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="122.5" cy="201" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="117.833008" y="205">G</text>
+    <ellipse cx="122.5" cy="201" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="122.199997" cy="183.399994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="117.533005" y="187.399994">G</text>
+    <ellipse cx="122.199997" cy="183.399994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="112" cy="164.399994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="107.666992" y="168.399994">C</text>
+    <ellipse cx="112" cy="164.399994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="116.099998" cy="141.800003" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="111.766991" y="145.800003">A</text>
+    <ellipse cx="116.099998" cy="141.800003" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="136.600006" cy="131.199997" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="132.266998" y="135.199997">C</text>
+    <ellipse cx="136.600006" cy="131.199997" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="157.300003" cy="141.100006" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="152.966995" y="145.100006">U</text>
+    <ellipse cx="157.300003" cy="141.100006" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="162.100006" cy="163.600006" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="157.766998" y="167.600006">C</text>
+    <ellipse cx="162.100006" cy="163.600006" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="152.600006" cy="182.899994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="148.266998" y="186.899994">C</text>
+    <ellipse cx="152.600006" cy="182.899994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="152.899994" cy="200.5" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="148.566986" y="204.5">C</text>
+    <ellipse cx="152.899994" cy="200.5" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="153.199997" cy="218.100006" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="148.866989" y="222.100006">A</text>
+    <ellipse cx="153.199997" cy="218.100006" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="153.399994" cy="235.699997" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="149.066986" y="239.699997">U</text>
+    <ellipse cx="153.399994" cy="235.699997" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="153.699997" cy="253.300003" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="149.366989" y="257.299988">C</text>
+    <ellipse cx="153.699997" cy="253.300003" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="178.100006" cy="244.5" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="173.766998" y="248.5">A</text>
+    <ellipse cx="178.100006" cy="244.5" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="202.699997" cy="232.399994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="198.366989" y="236.399994">A</text>
+    <ellipse cx="202.699997" cy="232.399994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="212.100006" cy="208.899994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="207.766998" y="212.899994">U</text>
+    <ellipse cx="212.100006" cy="208.899994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="215.100006" cy="183.399994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="210.766998" y="187.399994">U</text>
+    <ellipse cx="215.100006" cy="183.399994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="208.5" cy="159.699997" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="203.833008" y="163.699997">G</text>
+    <ellipse cx="208.5" cy="159.699997" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="196.800003" cy="137.899994" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="192.133011" y="141.899994">G</text>
+    <ellipse cx="196.800003" cy="137.899994" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="179" cy="110.800003" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="174.666992" y="114.800003">A</text>
+    <ellipse cx="179" cy="110.800003" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="147.800003" cy="98.199997" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="143.133011" y="102.199997">G</text>
+    <ellipse cx="147.800003" cy="98.199997" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <ellipse cx="114.400002" cy="95.800003" rx="8" ry="8" style="fill:rgb(211,211,211);stroke:none;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:12px;font-weight:bold;" x="110.066994" y="99.800003">C</text>
+    <ellipse cx="114.400002" cy="95.800003" rx="8" ry="8" style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:14px;font-weight:bold;" x="81.412079" y="258.924927">1</text>
+    <line style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;" x1="113" x2="92" y1="253" y2="254"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:14px;font-weight:bold;" x="179.563995" y="196.497742">10</text>
+    <line style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;" x1="168" x2="176" y1="171" y2="180"/>
+    <text style="fill:rgb(0,0,0);stroke:none;font-family:&quot;Arial&quot;;font-size:14px;font-weight:bold;" x="235.973633" y="150.031433">20</text>
+    <line style="fill:none;stroke:rgb(0,0,0);stroke-miterlimit:10;stroke-linecap:square;" x1="217" x2="232" y1="155" y2="149"/>
+  </g>
+</svg>

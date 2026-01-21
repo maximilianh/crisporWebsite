@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" font-family="monospace" font-size="24" fill="rgb(255,255,255)" stroke="rgb(0,0,0)" viewBox="0 0 790 905">
+<g transform="scale(2.43077)">
+<g font-family="monospace" font-size="19">
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="74" x2="254" y2="74"/>
+<text x="259" y="81" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">1</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="40" y1="65" x2="40" y2="278"/>
+<text x="33" y="60" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">1</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="110" x2="254" y2="110"/>
+<text x="259" y="117" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">10</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="76" y1="65" x2="76" y2="278"/>
+<text x="61" y="60" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">10</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="150" x2="254" y2="150"/>
+<text x="259" y="157" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">20</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="116" y1="65" x2="116" y2="278"/>
+<text x="101" y="60" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">20</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="190" x2="254" y2="190"/>
+<text x="259" y="197" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">30</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="156" y1="65" x2="156" y2="278"/>
+<text x="141" y="60" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">30</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="230" x2="254" y2="230"/>
+<text x="259" y="237" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">40</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="196" y1="65" x2="196" y2="278"/>
+<text x="181" y="60" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">40</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="270" x2="254" y2="270"/>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="236" y1="65" x2="236" y2="278"/>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="36" y1="278" x2="254" y2="278"/>
+<text x="259" y="285" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">52</text>
+<line style="fill:none;stroke-width:1" stroke="rgb(0,0,0)" x1="244" y1="65" x2="244" y2="278"/>
+<text x="229" y="60" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">52</text>
+</g>
+<rect x="115" y="109" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="111" y="113" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="107" y="117" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="119" y="117" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="103" y="121" width="2" height="2" fill="rgb(0,255,0)" stroke="rgb(0,255,0)"/>
+<rect x="115" y="121" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="139" y="125" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="135" y="129" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="131" y="133" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="87" y="137" width="2" height="2" fill="rgb(0,255,0)" stroke="rgb(0,255,0)"/>
+<rect x="83" y="141" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="79" y="145" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="75" y="149" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="87" y="149" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="83" y="153" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="231" y="157" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="239" y="157" width="2" height="2" fill="rgb(0,255,0)" stroke="rgb(0,255,0)"/>
+<rect x="227" y="161" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="235" y="161" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="99" y="165" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="95" y="169" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="91" y="173" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="211" y="181" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="207" y="185" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="203" y="189" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="199" y="193" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="195" y="197" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="199" y="197" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="195" y="201" width="2" height="2" fill="rgb(0,255,0)" stroke="rgb(0,255,0)"/>
+<rect x="191" y="209" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="175" y="225" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="163" y="229" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="167" y="229" width="2" height="2" fill="rgb(0,255,0)" stroke="rgb(0,255,0)"/>
+<rect x="159" y="233" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="163" y="233" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="155" y="237" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="151" y="241" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="147" y="245" width="2" height="2" fill="rgb(255,0,0)" stroke="rgb(255,0,0)"/>
+<rect x="127" y="261" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="123" y="265" width="2" height="2" fill="rgb(0,128,128)" stroke="rgb(0,128,128)"/>
+<rect x="127" y="269" width="2" height="2" fill="rgb(0,0,255)" stroke="rgb(0,0,255)"/>
+<rect x="123" y="273" width="2" height="2" fill="rgb(0,255,0)" stroke="rgb(0,255,0)"/>
+</g>
+<g font-family="monospace" font-size="19">
+<text x="36" y="791" fill="rgb(255,0,0)" stroke="rgb(255,0,0)">0.000647581 &#60;= -log10(Probability) &#60;  1.00052</text>
+<text x="36" y="810" fill="rgb(128,128,0)" stroke="rgb(128,128,0)">1.00052 &#60;= -log10(Probability) &#60;  2.00039</text>
+<text x="36" y="829" fill="rgb(0,255,0)" stroke="rgb(0,255,0)">2.00039 &#60;= -log10(Probability) &#60;  3.00026</text>
+<text x="36" y="848" fill="rgb(0,128,128)" stroke="rgb(0,128,128)">3.00026 &#60;= -log10(Probability) &#60;  4.00013</text>
+<text x="36" y="867" fill="rgb(0,0,255)" stroke="rgb(0,0,255)">4.00013 &#60;= -log10(Probability) &#60;= 5</text>
+<text x="36" y="888" fill="rgb(0,0,0)" stroke="rgb(0,0,0)">testFiles/testFile_matrix.txt</text>
+</g>
+</svg>

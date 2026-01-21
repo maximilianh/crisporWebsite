@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5D0E8F0A-30F1-4E39-9A04-301A240EEFB9}</ProjectGuid>
+    <RootNamespace>OligoWalk_class</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>Intel C++ Compiler XE 12.0</PlatformToolset>
+    <InterproceduralOptimization>true</InterproceduralOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Intel C++ Compiler XE 12.0</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <StackReserveSize>10000000</StackReserveSize>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/NODEFAULTLIB:libmmd %(AdditionalOptions)</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\algorithm.cpp" />
+    <ClCompile Include="..\src\alltrace.cpp" />
+    <ClCompile Include="..\src\alltrace_intermolecular.cpp" />
+    <ClCompile Include="..\src\DynProgArray.cpp" />
+    <ClCompile Include="..\src\dotarray.cpp" />
+    <ClCompile Include="..\src\draw.cpp" />
+    <ClCompile Include="..\src\findpseudo.cpp" />
+    <ClCompile Include="..\src\forceclass.cpp" />
+    <ClCompile Include="..\src\gamma.cpp" />
+    <ClCompile Include="..\src\intermolecular.cpp" />
+    <ClCompile Include="..\src\MaxExpect.cpp" />
+    <ClCompile Include="..\src\MaxExpectStack.cpp" />
+    <ClCompile Include="..\src\OligoScreenCalc.cpp" />
+    <ClCompile Include="OligoWalk_class.cpp" />
+    <ClCompile Include="Oligowalk_object.cpp" />
+    <ClCompile Include="..\src\outputconstraints.cpp" />
+    <ClCompile Include="..\src\pclass.cpp" />
+    <ClCompile Include="..\src\pfunction.cpp" />
+    <ClCompile Include="..\src\probknot.cpp" />
+    <ClCompile Include="..\src\random.cpp" />
+    <ClCompile Include="RNA.cpp" />
+    <ClCompile Include="..\src\rna_library.cpp" />
+    <ClCompile Include="..\src\siRNAfilter.cpp" />
+    <ClCompile Include="..\src\stackclass.cpp" />
+    <ClCompile Include="..\src\stackstruct.cpp" />
+    <ClCompile Include="..\src\stochastic.cpp" />
+    <ClCompile Include="..\src\structure.cpp" />
+    <ClCompile Include="..\src\thermo.cpp" />
+    <ClCompile Include="thermodynamics.cpp" />
+    <ClCompile Include="..\src\TProgressDialog.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\algorithm.h" />
+    <ClInclude Include="..\src\alltrace.h" />
+    <ClInclude Include="..\src\alltrace_intermolecular.h" />
+    <ClInclude Include="..\src\DynProgArray.h" />
+    <ClInclude Include="..\src\defines.h" />
+    <ClInclude Include="..\src\dotarray.h" />
+    <ClInclude Include="..\src\draw.h" />
+    <ClInclude Include="..\src\findpseudo.h" />
+    <ClInclude Include="..\src\forceclass.h" />
+    <ClInclude Include="..\src\gamma.h" />
+    <ClInclude Include="..\src\intermolecular.h" />
+    <ClInclude Include="..\src\MaxExpect.h" />
+    <ClInclude Include="..\src\MaxExpectStack.h" />
+    <ClInclude Include="..\src\OligoScreenCalc.h" />
+    <ClInclude Include="Oligowalk_object.h" />
+    <ClInclude Include="..\src\outputconstraints.h" />
+    <ClInclude Include="..\src\pclass.h" />
+    <ClInclude Include="..\src\pfunction.h" />
+    <ClInclude Include="..\src\probknot.h" />
+    <ClInclude Include="..\src\random.h" />
+    <ClInclude Include="RNA.h" />
+    <ClInclude Include="..\src\rna_library.h" />
+    <ClInclude Include="..\src\siRNAfilter.h" />
+    <ClInclude Include="..\src\stackclass.h" />
+    <ClInclude Include="..\src\stackstruct.h" />
+    <ClInclude Include="..\src\stochastic.h" />
+    <ClInclude Include="..\src\structure.h" />
+    <ClInclude Include="..\src\thermo.h" />
+    <ClInclude Include="thermodynamics.h" />
+    <ClInclude Include="..\src\TProgressDialog.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

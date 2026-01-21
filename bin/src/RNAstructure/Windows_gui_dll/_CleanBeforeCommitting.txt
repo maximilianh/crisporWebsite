@@ -1,0 +1,12 @@
+Before committing changes to CVS, please do the following:
+
+1. In the solution folder remove* all bin, obj, ipch, debug and release directories.
+2. Remove* any .suo files
+3. Remove* any .user files
+4. Remove* any .ncb files
+5. Remove* any .sbr files
+6. Remove* any .*log files (created by VS, e.g. in bin/obj folder etc)
+
+*Files and folders can be removed by either deleting them or by adding them to the CVS ignore list. 
+This can be done using TortoiseCVS using the command "CVS Ignore". You may have to do CVS > Remove followed by Commit to save the changes.
+You can also edit the ".cvsignore" file in the directory (not in the CVS subfolder). Add each file/folder one per line.

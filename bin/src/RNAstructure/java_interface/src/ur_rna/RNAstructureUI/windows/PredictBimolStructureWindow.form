@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="ur_rna.RNAstructureUI.windows.PredictBimolStructureWindow">
+  <grid id="27dc6" binding="contentPanel" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="20" y="20" width="612" height="492"/>
+    </constraints>
+    <properties>
+      <autoscrolls value="false"/>
+      <name value="contentPanel"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <component id="55caf" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font size="14" style="1"/>
+          <opaque value="false"/>
+          <text value="Predict a Bimolecular Structure"/>
+        </properties>
+      </component>
+      <tabbedpane id="4ebba" binding="tabControls">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <preferred-size width="200" height="200"/>
+          </grid>
+          <gridbag top="5" left="0" bottom="5" right="0" weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <name value="tabbedPane1"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <grid id="da107" binding="pnlSequences" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Sequences"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="45cdc" class="javax.swing.JTextField" binding="txtSeqFile1">
+                <constraints>
+                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                    <preferred-size width="150" height="-1"/>
+                  </grid>
+                  <gridbag weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="txtSeqFile1"/>
+                </properties>
+              </component>
+              <component id="4e24e" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="browse-seq1"/>
+                  <text value="..."/>
+                </properties>
+              </component>
+              <component id="9f0ed" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="recent-seq1"/>
+                  <text value="Recent"/>
+                </properties>
+              </component>
+              <component id="35f5c" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="3" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="45cdc"/>
+                  <text value="Sequence File 1"/>
+                </properties>
+              </component>
+              <component id="e55b7" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="3" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="d87ad"/>
+                  <text value="Sequence File 2"/>
+                </properties>
+              </component>
+              <component id="d87ad" class="javax.swing.JTextField" binding="txtSeqFile2">
+                <constraints>
+                  <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                    <preferred-size width="150" height="-1"/>
+                  </grid>
+                  <gridbag weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="txtSeqFile2"/>
+                </properties>
+              </component>
+              <component id="945e5" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="2" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="browse-seq2"/>
+                  <text value="..."/>
+                </properties>
+              </component>
+              <component id="c1d90" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="2" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="recent-seq2"/>
+                  <text value="Recent"/>
+                </properties>
+              </component>
+              <vspacer id="85178">
+                <constraints>
+                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="1.0"/>
+                </constraints>
+              </vspacer>
+              <component id="65c6a" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="Nucleic Acid Type"/>
+                </properties>
+              </component>
+              <grid id="a0ebf" layout-manager="GridBagLayout">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <component id="b9e89" class="javax.swing.JRadioButton" binding="optRNA">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <selected value="true"/>
+                      <text value="RNA"/>
+                    </properties>
+                  </component>
+                  <component id="9134a" class="javax.swing.JRadioButton" binding="optDNA">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <text value="DNA"/>
+                    </properties>
+                  </component>
+                </children>
+              </grid>
+            </children>
+          </grid>
+          <grid id="63cca" binding="pnlOptions" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Options"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="926cf" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="0" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="13fd2"/>
+                  <text value="Maximum % Energy Difference"/>
+                </properties>
+              </component>
+              <component id="8f0c6" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="0" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="31899"/>
+                  <text value="Maximum Number of Structures"/>
+                </properties>
+              </component>
+              <component id="84c32" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="0" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="aedc5"/>
+                  <text value="Window Size"/>
+                </properties>
+              </component>
+              <component id="13fd2" class="javax.swing.JSpinner" binding="spnMaxEnergyDiff">
+                <constraints>
+                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="spnMaxEnergyDiff"/>
+                </properties>
+              </component>
+              <component id="31899" class="javax.swing.JSpinner" binding="spnMaxStructs">
+                <constraints>
+                  <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="spnMaxStructs"/>
+                </properties>
+              </component>
+              <component id="aedc5" class="javax.swing.JSpinner" binding="spnWindowSize">
+                <constraints>
+                  <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="spnWindowSize"/>
+                </properties>
+              </component>
+              <component id="65301" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="0" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="638cb"/>
+                  <text value="Temperature"/>
+                </properties>
+              </component>
+              <component id="ac76e" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="0" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="c37b6"/>
+                  <text value="Maximum Loop Size"/>
+                </properties>
+              </component>
+              <hspacer id="79175">
+                <constraints>
+                  <grid row="5" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="1.0" weighty="0.0"/>
+                </constraints>
+              </hspacer>
+              <component id="5de93" class="javax.swing.JButton" binding="btnResetOptions">
+                <constraints>
+                  <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="reset-options-general"/>
+                  <text value="Reset All to Defaults"/>
+                </properties>
+              </component>
+              <component id="bbf01" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="4" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="5" left="0" bottom="3" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <font size="14"/>
+                  <labelFor value="13fd2"/>
+                  <text value="These options apply to both bifold and DuplexFold"/>
+                </properties>
+              </component>
+              <component id="c37b6" class="javax.swing.JSpinner" binding="spnMaxLoopSize">
+                <constraints>
+                  <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="spnWindowSize"/>
+                </properties>
+              </component>
+              <component id="638cb" class="javax.swing.JSpinner" binding="spnTemperature">
+                <constraints>
+                  <grid row="5" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="spnWindowSize"/>
+                </properties>
+              </component>
+              <component id="837da" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="5" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="3" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="K"/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+          <grid id="ca9c" binding="pnlConstraints" layout-manager="GridBagLayout">
+            <constraints>
+              <tabbedpane title="Constraints"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="70c54" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="b4572"/>
+                  <text value="Folding Constraints (Seq 1)"/>
+                </properties>
+              </component>
+              <component id="b4572" class="javax.swing.JTextField" binding="txtConFile1">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                    <preferred-size width="150" height="-1"/>
+                  </grid>
+                  <gridbag top="0" left="2" bottom="0" right="3" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="txtConFile1"/>
+                </properties>
+              </component>
+              <component id="4d065" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="browse-con1"/>
+                  <text value="..."/>
+                </properties>
+              </component>
+              <component id="2f3c9" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <text value="SHAPE Slope"/>
+                  <visible value="false"/>
+                </properties>
+              </component>
+              <component id="6e828" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="recent-con1"/>
+                  <text value="Recent"/>
+                </properties>
+              </component>
+              <component id="a1a89" class="javax.swing.JLabel">
+                <constraints>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <labelFor value="98c44"/>
+                  <text value="Folding Constraints (Seq 2)"/>
+                </properties>
+              </component>
+              <component id="98c44" class="javax.swing.JTextField" binding="txtConFile2">
+                <constraints>
+                  <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                    <preferred-size width="150" height="-1"/>
+                  </grid>
+                  <gridbag top="0" left="2" bottom="0" right="3" weightx="1.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <name value="txtConFile2"/>
+                </properties>
+              </component>
+              <component id="e4f80" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="browse-con2"/>
+                  <text value="..."/>
+                </properties>
+              </component>
+              <component id="147ed" class="javax.swing.JButton">
+                <constraints>
+                  <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties>
+                  <actionCommand value="recent-con2"/>
+                  <text value="Recent"/>
+                </properties>
+              </component>
+              <vspacer id="a7e58">
+                <constraints>
+                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="1.0"/>
+                </constraints>
+              </vspacer>
+            </children>
+          </grid>
+        </children>
+      </tabbedpane>
+      <component id="1c579" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="&lt;html&gt;This calculation will produce multiple files in the same directory as the output file you choose below."/>
+        </properties>
+      </component>
+      <grid id="9d928" binding="pnlOutput" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="d04b" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <labelFor value="b61e8"/>
+              <text value="Output File 1"/>
+            </properties>
+          </component>
+          <component id="b61e8" class="javax.swing.JTextField" binding="txtOutputFile1">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                <preferred-size width="150" height="-1"/>
+              </grid>
+              <gridbag weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <name value="txtOutputFile"/>
+            </properties>
+          </component>
+          <component id="5ff9a" class="javax.swing.JLabel" binding="lblOptionWarning">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="3" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <background color="-2171392"/>
+              <foreground color="-16777216"/>
+              <horizontalAlignment value="0"/>
+              <horizontalTextPosition value="0"/>
+              <opaque value="true"/>
+              <text value="&lt;html&gt;&lt;center&gt;Warning: Some options have been set to non-default values.&lt;br&gt;---List---"/>
+            </properties>
+          </component>
+          <component id="2dcbb" class="javax.swing.JButton" binding="btnStartCalc">
+            <constraints>
+              <grid row="3" column="1" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="start"/>
+              <horizontalTextPosition value="0"/>
+              <minimumSize width="54" height="40"/>
+              <name value="btnStartCalc"/>
+              <opaque value="false"/>
+              <preferredSize width="54" height="40"/>
+              <text value="&amp;Start"/>
+            </properties>
+          </component>
+          <component id="186f5" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <labelFor value="1bed6"/>
+              <text value="Output File 2"/>
+            </properties>
+          </component>
+          <component id="1bed6" class="javax.swing.JTextField" binding="txtOutputFile2">
+            <constraints>
+              <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                <preferred-size width="150" height="-1"/>
+              </grid>
+              <gridbag weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <name value="txtOutputFile2"/>
+            </properties>
+          </component>
+          <component id="5cbea" class="javax.swing.JButton" binding="btnResetAll">
+            <constraints>
+              <grid row="2" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="reset-options-all"/>
+              <text value="Reset All Options"/>
+            </properties>
+          </component>
+          <component id="2339" class="javax.swing.JButton">
+            <constraints>
+              <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="recent-out2"/>
+              <text value="Recent"/>
+            </properties>
+          </component>
+          <component id="ef3f9" class="javax.swing.JButton">
+            <constraints>
+              <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="recent-out1"/>
+              <text value="Recent"/>
+            </properties>
+          </component>
+          <component id="47661" class="javax.swing.JButton">
+            <constraints>
+              <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="browse-out2"/>
+              <text value="..."/>
+            </properties>
+          </component>
+          <component id="bb9c9" class="javax.swing.JButton">
+            <constraints>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="0" left="2" bottom="0" right="2" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="browse-out1"/>
+              <text value="..."/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <grid id="dbb05" binding="pnlTaskStatus" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="6" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <visible value="true"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="23308" class="javax.swing.JButton" binding="btnCancelTask">
+            <constraints>
+              <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="cancel-task"/>
+              <text value="Cancel"/>
+            </properties>
+          </component>
+          <component id="2ec0e" class="javax.swing.JProgressBar" binding="prgTaskProgress">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <minimumSize width="10" height="40"/>
+              <preferredSize width="146" height="20"/>
+            </properties>
+          </component>
+          <component id="8762c" class="javax.swing.JLabel" binding="lblTaskStatus">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="Status of background Task"/>
+            </properties>
+          </component>
+          <component id="67328" class="javax.swing.JLabel" binding="lblProgressPercent">
+            <constraints>
+              <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <horizontalAlignment value="0"/>
+              <preferredSize width="40" height="16"/>
+              <text value="0%"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <component id="5e7d7" class="javax.swing.JCheckBox" binding="chkShowDescription">
+        <constraints>
+          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="5" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value=""/>
+          <selected value="true"/>
+          <text value="Show Description"/>
+        </properties>
+      </component>
+      <component id="efcce" class="javax.swing.JLabel" binding="lblToolDescription">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <name value="lblToolDescription"/>
+          <text value="&lt;html&gt;This tool folds two sequences into their lowest hybrid free energy conformation. This combines the capabilities of &lt;b&gt;bifold&lt;/b&gt; (which allows intramolecular pairs) and &lt;b&gt;DuplexFold&lt;/b&gt; (which does &lt;b&gt;not&lt;/b&gt; allow intramolecular pairs).&lt;br&gt;The result is two distinct sets of possible bimolecular structures."/>
+        </properties>
+      </component>
+      <component id="3c905" class="javax.swing.JSeparator">
+        <constraints>
+          <grid row="3" column="0" row-span="1" col-span="2" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <minimumSize width="1" height="3"/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+  <buttonGroups>
+    <group name="grpNucleicAcidType">
+      <member id="6e87c"/>
+      <member id="58128"/>
+    </group>
+    <group name="grpSequenceType">
+      <member id="33a48"/>
+      <member id="c36b7"/>
+    </group>
+    <group name="grpNucleicAcidType">
+      <member id="b9e89"/>
+      <member id="9134a"/>
+    </group>
+  </buttonGroups>
+</form>

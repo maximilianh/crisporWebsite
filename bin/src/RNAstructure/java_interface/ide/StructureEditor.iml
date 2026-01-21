@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/../../exe/java" />
+    <output-test url="file://$MODULE_DIR$/../../exe/java_test" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../resources">
+      <sourceFolder url="file://$MODULE_DIR$/../resources/StructureEditor" type="java-resource" relativeOutputPath="ur_rna/StructureEditor/resources" />
+      <excludeFolder url="file://$MODULE_DIR$/../resources/RNAstructureUI" />
+      <excludeFolder url="file://$MODULE_DIR$/../resources/StructureEditor/images/icon-src" />
+    </content>
+    <content url="file://$MODULE_DIR$/../src">
+      <sourceFolder url="file://$MODULE_DIR$/../src/ur_rna/StructureEditor" isTestSource="false" packagePrefix="ur_rna.StructureEditor" />
+      <sourceFolder url="file://$MODULE_DIR$/../src/ur_rna/RNAstructure" isTestSource="false" packagePrefix="ur_rna.RNAstructure" />
+      <excludeFolder url="file://$MODULE_DIR$/../src/ur_rna/GUITester" />
+      <excludeFolder url="file://$MODULE_DIR$/../src/ur_rna/RNAstructureUI" />
+      <excludeFolder url="file://$MODULE_DIR$/../src/ur_rna/Utilities" />
+    </content>
+    <content url="file://$MODULE_DIR$/../tests">
+      <sourceFolder url="file://$MODULE_DIR$/../tests/ur_rna/StructureEditor" isTestSource="true" packagePrefix="ur_rna.StructureEditor" />
+      <sourceFolder url="file://$MODULE_DIR$/../tests/ur_rna/RNAstructure" isTestSource="true" packagePrefix="ur_rna.StructureEditor" />
+      <excludeFolder url="file://$MODULE_DIR$/../tests/ur_rna/Utilities" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Utilities" />
+    <orderEntry type="module-library">
+      <library name="JUnit4">
+        <CLASSES>
+          <root url="jar://$APPLICATION_HOME_DIR$/lib/junit-4.12.jar!/" />
+          <root url="jar://$APPLICATION_HOME_DIR$/lib/hamcrest-core-1.3.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>

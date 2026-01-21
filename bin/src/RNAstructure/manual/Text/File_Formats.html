@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head><title>RNAstructure Command Line Help: File Formats</title>
+
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<link href="Stylesheet.css" rel="stylesheet" type="text/css"></head>
+<style>
+.seqEnd, .seqStart, .seqbase { font-weight: bold; font-family: Consolas, FreeMono, monospace; }
+.seqComment { color: seagreen; }
+.seqEnd { color: red; }
+.seqTitle { font-weight: bold; font-style: italic; }
+.subtleNote { color: dimgray; font-style: italic; }
+pre { margin: 4px;  font-family: Consolas, FreeMono, monospace; }
+p, h3 { margin-bottom: 4px; }
+ul { margin-bottom: 4px; margin-top: 0; }
+fieldset { padding: 4px 4px 4px 8px; margin-top: 10px; }
+.dbnchar, .file-ext { font-weight: bold; font-family: "Courier New", "Courier", monospace; }
+.dbn-text { display: inline-block; width: 22em; }
+.dbn-img  { vertical-align: middle; margin: 10px;  }
+</style>
+<body>
+<div class="bodydiv">
+<table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+<tbody>
+<tr class="headerRow">
+<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+<td class="headerLabel">
+<h2>RNAstructure Command Line Help<br>
+File Formats</h2>
+</td>
+<td class="headerBox2">
+<ul id="navigator">
+<li>
+<h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+</li>
+<li>
+<h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td class="mainContent" colspan="3">
+<div> 
+  <p>&nbsp;</p>
+  <p>This page summarizes input and ouput file formats for RNAstructure. Example files can be found in the examples/ directory.</p>
+  <p><a name="FASTA" id="FASTA"></a><a name="SEQ" id="Sequence"></a>
+  </p>
+  <h3 class="leftHeader">Sequence File Formats:
+  &nbsp;FASTA and SEQ</h3>
+<p>Nucleotide Sequences can be provided to RNAstructure in
+either FASTA or SEQ format.</p>
+<p>
+In <span style="font-weight: bold;">FASTA</span>
+files, each nucleotide sequence begins with a single-line description
+that&nbsp;must start with the greater-than symbol (<span style="font-weight: bold;">&gt;</span>).
+Subsequent lines should only contain the sequence itself. &nbsp;The
+sequence may be formatted with whitespace, which is ignored,
+however blank lines are not allowed in the middle of FASTA input. FASTA
+files should have a "<span style="font-weight: bold;">.fasta</span>"
+extension.</p>
+<fieldset> <legend>SAMPLE <span style="font-weight: bold;">FASTA</span> File</span></legend>
+<pre><b>&gt;</b><i>Title of Sequence</i><br>AAAGCGGUUUGUUCCACUCGCGUUCAGUUAGCGUUUGCAGUUCUGGGCUCGUCCAUGGAAGCG<br></pre>
+</fieldset>
+<a name="seqnotes" id="seqnotes"></a>
+<h3>Important notes regarding sequences in RNAstructure:</h3>
+    <ul>
+        <li>Sequences are <span style="font-weight: bold;">case-sensitive</span> and should generally be in CAPITAL letters.<br> 
+            <b>Lowercase letters indicate a base that cannot form basepairs</b> (i.e. is <i>constrained</i> 
+            to be single-stranded/unpaired) in the predicted structure.
+        </li>
+        <li>For RNA and DNA alphabets, nucleotide sequences can contain <span class="seqbase">U</span> or <span class="seqbase">T</span> interchangably.<br>
+            These will be interpreted based on the context of the desired operation
+            (i.e. as <span class="seqbase">U</span> in RNA calculations or as&nbsp;<span class="seqbase">T</span> in DNA calculations).
+        </li>
+        <li>Whitespace characters (spaces, tabs, and line-breaks) are allowed in sequences (for formatting), and will simply be ignored.</li>
+        <li>The special letters <span class="seqbase">X</span> and <span class="seqbase">N</span> can be used (interchangably) to represent an unknown base or a base that cannot interact with other bases (i.e. it can neither pair nor stack).</li>
+        <li>Placing at least three <span class="seqbase">X</span> or <span class="seqbase">N</span> bases next to each other allows them to act like an unstructured loop, which can represent a section of unknown identity or a section that has been purposely left out of the prediction.</li>
+    </ul>
+<fieldset> <legend>FASTA File showing special RNAstructure features.</legend>
+    <pre><span class="seqComment">; This FASTA file has (optional) spaces for formatting.</span>
+<span class="seqComment">; It also has <span class="seqUnpaired">unpaired</span> and <span class="seqUnkown">non-interacting</span> bases.</span>
+<b>&gt;</b><i>Title of Sequence</i><br>AAAGCGGU UUGUUCCA CUC<span class="seqUnpaired">a</span>GCGU <span class="seqUnkown">XXXX</span>UCAG<br>UUAGC<span class="seqUnpaired">uu</span>GU UUGCAGUU CUGGGCUC<br></pre>
+</fieldset>
+<p><span style="font-weight: bold;">SEQ</span> files have the following format:</p>
+<ul>
+<li>Comment lines must be at the beginning of the file
+and must each start with a semicolon. &nbsp;<span style="font-weight: bold;">At least one comment
+line is required.</span> Additional comment lines are allowed as
+long as each starts with a semicolon.</li>
+<li>The <span style="font-weight: bold;">title</span>
+of the sequence must be provided on a single line immediately following
+the comment line(s).</li>
+<li>The sequence must start on the line after the title.
+It should be&nbsp;entered from 5' to 3' and can include spaces
+and&nbsp;line breaks for formatting.</li>
+<li>Finally, the sequence must end in "<span class="seqEnd">1</span>" (the character representing the number one).</li>
+<li><b>The important <a href="#seqnotes">notes</a> about sequences in RNAstructure also pertain to SEQ files.</b></li>
+</ul>
+<fieldset> <legend>SAMPLE <span style="font-weight: bold;">SEQ</span> File</legend>
+<pre><span class="seqComment">; Comments must start with a semicolon.</span>
+<span class="seqComment">; There can be any number of comments, but at least one is required.</span>
+<span class="seqTitle">Sequence Title</span> <span class="subtleNote"> &mdash; A single-line title must immediately follow the comment(s).</span>
+AAAGCGGC UUAUUGUU UUCA<span class="seqUnpaired">uuu</span>G GUUCCACU
+CGCGUUCA AUCU<span class="seqUnkown">XXXX</span> UCAGGUUA GUUAGCGA <span class="seqEnd">1</span>
+</pre>
+</fieldset>
+</div>
+<div> <a name="MFASTA" id="MFASTA"></a>
+    <h3>Multi-Sequence FASTA File</h3>
+    <p>Some RNAstructure programs (e.g. <a href="TurboFold.html">TurboFold</a>) can accept a FASTA file 
+        that contains <em>multiple</em> sequences as input.<br>
+        These are similar to <a href="#FASTA">single-sequence FASTA files</a>, 
+        except that additional sequences can be listed, each preceeded
+        by a title-line starting with "<span class="seqStart">&gt;</span>" (the greater-than symbol).<br>
+        <b>The important <a href="#seqnotes">notes</a> about sequences in RNAstructure also pertain to multi-sequence FASTA files.</b>
+</p>
+<fieldset> <legend>SAMPLE <span style="font-weight: bold;">Multi-Sequence FASTA</span> File</span></legend>
+    <pre><span class="seqStart">&gt;</span><i>Title of Sequence 1</i>
+AAAGCGGUUUGUUCCACUCGCGUUCAGUUAGCGUUUGCAGUUCUGGGCUC
+<span class="seqStart">&gt;</span><i>Title of Sequence 2</i>
+UUGAUAUUGGAUGGAAAUGGGUGGGAAGAUGGAAAUUGAGAAUGGAGGGU
+<span class="seqStart">&gt;</span><i>Title of Sequence 3</i>
+AGUUAUGAAUUAGAUUUGUAGGAAAGUGUUAAGUGUAAAUAGGAUGUGUG
+(...)</pre>
+</fieldset>
+<p><a name="AFASTA" id="MFASTA2"></a></p>
+<h3>Alignment FASTA File</h3>
+<p>The AlignmentFold and AlignmentPartition programs require muliple sequence alignments.</p>
+<fieldset>
+  <legend>SAMPLE <span style="font-weight: bold;">Alignment FASTA</span> File</span></legend>
+  <pre>&gt;NZ_GG697986.1 44776 45325<br>TCGT-----------TCTTTCCCTTGAATCTCTATGATTAGAACACTATCGTCCAACTGG-------------------AAATGATAATTTAATAATGTACACTTTTTATTTTGTAAGAA<br>&gt;NC_002953.3 2279812 2280398<br>TTTTCGTCCCGTAG-TTCTTCCATTGAGCCTCTATGATTAGAACACAATCGTCCGGTTATCATACGGCCTCCGCAAGCTAAATGATAATTTAATAATGGACACTTTTGATTGTTTAAGCA<br>&gt;NC_017337.1 2316381 2316961<br>TCGT-----------TCTTTCCCTTGAATATCTATGATTAGAACACTATCGTGCGTTTATCGTCCAGCCTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAGCA<br>&gt;NC_003923.1 2300707 2301293<br>TTTTCGTCCCGTAG-TTCTTCCATTGAGCCTCTATGATTAGAACACAATCGTCCGGTTATCATACGGCCTCCGCAAGCTAAATGATAATTTAATAATGGACACTTTTGATTGTTTAAGCA<br>&gt;NC_017338.1 2290333 2290748<br>TCGT-----------TCTTTCCCTTGAATATCTATGATTAGAACAC-----------------------------------------------TAATGTACACTTTTGATTGTGTAAACA<br>&gt;NZ_JH806555.1 46083 46649<br>TCGT-----------TCTTTCCCTTGAACCACTATGATTAGAACACAATCGTCTGGTTATCGTCCACCCTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAACA<br>&gt;NC_002951.2 2282533 2283102<br>TTATCATCCGATAGCTCTTTCCCTTGAATATCTATTATTAGAACACTATCGTACGGT-----------CTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAGCA<br>&gt;NC_017340.1 2295263 2295829<br>TCGT-----------TCTTTCCCTTGAACCACTATGATTAGAACACAATCGTCTGGTTATCGTCCACCCTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAACA</pre>
+</fieldset>
+<p></p>
+<p><br>
+</p>
+<hr>
+<div> <a name="CT" id="CT"></a>
+<h3>CT File Format</h3>
+<p>A CT (Connectivity Table) file contains secondary
+structure information for a sequence. These files are saved with a CT
+extension. When entering a structure to calculate the free energy, the
+following format must be followed.</p>
+<ol>
+<li>Start of first line: number of bases in the sequence</li>
+<li>End of first line: title of the structure</li>
+<li> Each of the following lines provides information
+about a given base in the sequence. Each base has its own line, with
+these elements in order:
+<ul>
+<li>Base number: index n</li>
+<li>Base (A, C, G, T, U, X)</li>
+<li>Index n-1</li>
+<li>Index n+1</li>
+<li>Number of the base to which n is paired. No
+pairing is indicated by 0 (zero).</li>
+<li>Natural numbering. RNAstructure ignores the
+actual value given in natural numbering, so it is easiest to repeat n
+here.</li>
+</ul>
+</li>
+</ol>
+<p> The CT file may hold multiple structures for a single
+sequence. This is done by repeating the format for each structure
+without any blank lines between structures. <br>
+<br>
+The CT file format is such that files generated by RNAstructure are
+compatible with mfold/Unafold (available from Michael Zuker), and many
+other software packages. </p>
+<p>&nbsp;</p>
+<p><strong>Example File Content:</strong></p>
+<pre> 300  ENERGY = -89.7  bmori in vector
+  1 G       0    2   22    1
+  2 G       1    3   21    2
+  3 G       2    4   20    3
+  4 C       3    5   19    4
+  5 G       4    6    0    5
+  6 A       5    7    0    6
+  7 A       6    8    0    7
+  8 U       7    9   18    8
+  9 U       8   10   17    9
+ 10 G       9   11   16   10
+...290 additional lines...
+</pre>
+</div>
+<hr>
+<div> <a name="DotBracket" id="DotBracket"></a>
+<h3 class="leftHeader">Dot Bracket File Format</h3>
+<ul><li>Dot bracket files are plain text. They encode a sequence and secondary structure.</li>
+    <li>Common file extensions are <span class="file-ext">.dot</span>, <span class="file-ext">.bracket</span>, and <span class="file-ext">.dbn</span><li>
+    <li>The first line is a title and starts with a "<span class="seqTitle">&gt;</span>" character. 
+    <li>The second line contains the sequence.
+    <li>The third line contains structure information in dot-bracket notation: 
+        <ul>
+        <li>The dot/period "<span class="dbnchar">.</span>" represents an unpaired nucleotide.</li>
+        <li>An open-parenthesis "<span class="dbnchar">(</span>" represents the 5'-nucleotide in a pair, and the matching closing parenthesis "<span class="dbnchar">)</span>" represents the 3'-nucleotide in the pair.</li>
+        <li>Other "bracket"-type symbols can be used to represent basepairs, thereby allowing pseudo-knots to be encoded.<br>
+        Bracket Characters: <span class="dbnchar">()</span> &nbsp; <span class="dbnchar">&lt;&gt;</span> &nbsp; <span class="dbnchar">{}</span></li>
+        </ul>
+    </blockquote>
+</p>
+<fieldset> <legend>SAMPLE Dot-Bracket Files</legend>
+<pre class="dbn-text"><i>&gt;A stem-loop structure (with a bulge)</i>
+GGGCAAUCCUCUUCGGGCCC
+((((...((.....))))))
+</pre>
+<img class="dbn-img" src="stem-loop.svg">
+<hr>
+<pre class="dbn-text"><i>&gt;A pseudo-knot structure</i>
+GAUGGCACUCCCAUCAAUUGGAGC
+(((((..&lt;&lt;&lt;))))).....&gt;&gt;&gt;.
+</pre>
+<img class="dbn-img" src="pseudoknot.svg">
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="Constraint" id="Constraint"></a>
+<h3 class="leftHeader">Constraint File Format</h3>
+<p>Folding constraints are saved in plain text with a CON
+extension. These can be hand edited. For multiple entries of a specific
+type of constraint, entries are each listed on a separate line. Note
+that all specifiers, followed by "-1" or "-1 -1", are expected by
+RNAstructure. For all specifiers that take two arguments, it is assumed
+that the first argument is the 5' nucleotide. Nucleotides positions are
+specified from the 5' end, where the first nucleotide in the sequence
+is in position 1.The file format is as follows:</p>
+<pre><i><br>DS:<br>XA<br>-1<br>SS:<br>XB<br>-1<br>Mod:<br>XC<br>-1<br>Pairs:<br>XD1 XD2<br>-1 -1<br>FMN:<br>XE<br>-1<br>Forbids:<br>XF1 XF2<br>-1 -1<br></i></pre>
+<ul>
+<li>XA: Nucleotides that will be double-stranded</li>
+<li>XB: Nucleotides that will be single-stranded
+(unpaired)</li>
+<li>XC: Nucleotides accessible to chemical modification</li>
+<li>XD1, XD2: Forced base pairs</li>
+<li>XE: Nucleotides accessible to FMN cleavage (a U that
+must be in a GU pair)</li>
+<li>XF1, XF2: Prohibited base pairs</li>
+<li>Note that all the X* entries in this example text must be integer values (of nucleotide position starting at nucleotide 1 at the 5' end) or removed if a constraint type is absent.</li>
+</ul>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>DS:<br>15<br>25<br>76<br>-1<br>SS:<br>17<br>18<br>20<br>35<br>-1<br>Mod:<br>2<br>15<br>-1<br>Pairs:<br>16 26<br>-1 -1<br>FMN:<br>-1<br>Forbids:<br>15 27<br>-1 -1<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="SHAPE" id="SHAPE"></a>
+<h3 class="leftHeader">SHAPE Data File Format</h3>
+<p>The file format for SHAPE reactivity comprises two
+columns. The first column is the nucleotide number, and the second is
+the reactivity.</p>
+<p>Nucleotides for which there is no SHAPE data can either
+be left out of the file, or the reactivity can be entered as less than
+-500. Columns are separated by any white space.</p>
+<p>Note that there is no header information. Nucleotides 1
+through 10 have no reactivity information. Nucleotide 11 has a
+normalized SHAPE reactivity of 0.042816. Nucleotide 12 has a normalized
+SHAPE reactivity of 0, which is NOT the same as having no reactivity
+when using the pseudo-energy constraints.</p>
+<p>By default, RNAstructure looks for SHAPE data files to
+have the file extension SHAPE, but any plain text file can be read.</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>9 -999<br>10 -999<br>11 0.042816<br>12 0<br>13 0.15027<br>14 0.16201<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="List" id="List"></a>
+<h3 class="leftHeader">List File Format</h3>
+<p>List files have a LIS extension. This file contains any
+number of sequences of any length or nucleic acid, each on its own line.</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>CUGAGCCAAG<br>GGGCUCAACG<br>GGCGUGAGAAAC<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="Offset" id="Offset"></a>
+<h3 class="leftHeader">Offset File Format</h3>
+<p>Offset files are plain text. The files contain two
+colums: the nucleotide followed by the offset value in kcal.</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>1 -0.336512<br>2 -1.4448<br>3 -1.74126<br>4 -3.82745<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="Experimental" id="Experimental"></a>
+<h3 class="leftHeader">Experimental Pair Bonus File
+Format</h3>
+<p>Bonus files are plain text. They are formatted as an <em>n</em>x<em>n</em>
+matrix of bonus values, where <em>n</em> is the length of
+the sequence.</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>0.0 1.0 0.0 1.0 0.0<br>0.0 1.0 0.0 1.0 0.0<br>0.0 1.0 0.0 1.0 0.0<br>0.0 1.0 0.0 1.0 0.0<br>0.0 1.0 0.0 1.0 0.0<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="Alignment" id="Alignment"></a>
+<h3 class="leftHeader">Alignment File Format</h3>
+<p>Alignment files are plain text. They are formatted as a
+nucleotide in the first sequence immediately followed by the nucleotide
+in the second sequence it's aligned to, separated by a space. Only one
+alignment pair can be on each line, and the last line of the file must
+be "-1 -1".</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>10 12<br>11 13<br>-1 -1<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="NMR" id="NMR"></a>
+<h3 class="leftHeader">NMR File Format</h3>
+<p>NMR file provides experimantal NRM constraints to NAPSS.
+</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><i><br>666<br>66<br>665(+RAY)6<br>67<br>65(+YAR)7<br>665(-RAY)65(-RGY)5(+YGR)5(+YAY)6<br>57<br></i></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="FASTA Alignment Format" id="FASTA-Align"></a>
+<h3 class="leftHeader">FASTA Alignment Format</h3>
+<p>This is the expected format for sequence alignments used
+by <a href="Multifind.html">Multifind</a>.</p>
+<fieldset> <legend>SAMPLE</legend>
+<pre><em>&gt;NZ_GG697986.1 44776 45325<br>TCGT-----------TCTTTCCCTTGAATCTCTATGATTAGAACACTATCGTCCAACTGG-------------------AAATGATAATTTAATAATGTACACTTTTTATTTTGTAAGAA<br>&gt;NC_002953.3 2279812 2280398<br>TTTTCGTCCCGTAG-TTCTTCCATTGAGCCTCTATGATTAGAACACAATCGTCCGGTTATCATACGGCCTCCGCAAGCTAAATGATAATTTAATAATGGACACTTTTGATTGTTTAAGCA<br>&gt;NC_017337.1 2316381 2316961<br>TCGT-----------TCTTTCCCTTGAATATCTATGATTAGAACACTATCGTGCGTTTATCGTCCAGCCTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAGCA<br>&gt;NC_003923.1 2300707 2301293<br>TTTTCGTCCCGTAG-TTCTTCCATTGAGCCTCTATGATTAGAACACAATCGTCCGGTTATCATACGGCCTCCGCAAGCTAAATGATAATTTAATAATGGACACTTTTGATTGTTTAAGCA<br>&gt;NC_017338.1 2290333 2290748<br>TCGT-----------TCTTTCCCTTGAATATCTATGATTAGAACAC-----------------------------------------------TAATGTACACTTTTGATTGTGTAAACA<br>&gt;NZ_JH806555.1 46083 46649<br>TCGT-----------TCTTTCCCTTGAACCACTATGATTAGAACACAATCGTCTGGTTATCGTCCACCCTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAACA<br>&gt;NC_002951.2 2282533 2283102<br>TTATCATCCGATAGCTCTTTCCCTTGAATATCTATTATTAGAACACTATCGTACGGT-----------CTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAGCA<br>&gt;NC_017340.1 2295263 2295829<br>TCGT-----------TCTTTCCCTTGAACCACTATGATTAGAACACAATCGTCTGGTTATCGTCCACCCTCCGCAAGCTAAATGACAATTTAATAATGTACACTTTTGATTGTGTAAACA</em></pre>
+</fieldset>
+</div>
+<br>
+<hr>
+<div> <a name="Bias File Format" id="Bias"></a>
+<h3 class="leftHeader">Bias File Format for Sequence Design</h3>
+<p>This is the expected format for specifying a nucleotide and pair biases for the program design. Note that the file assumes that pairs have the same bias regardless of which nucleotide is 5' and which is 3'.<a href="Multifind.html"></a> Also, Bias-in-Leaf-Refinement can be set to &quot;Yes&quot; or &quot;No&quot;. Extended alphabets (those with additional nucleotides beyond A, C, G, U/T must use &quot;Yes&quot;.</p>
+<fieldset> <legend><a href="bias.txt">SAMPLE</a></legend>
+<pre><em>Singles<br>A .6<br>C .1<br>G .1<br>U .2<br>Pairs<br>A U .2<br>C G .6<br>G U .2</em>
+<em>Bias-in-Leaf-Refinement<br>Yes</em></pre>
+</fieldset>
+</div>
+</td>
+</tr>
+<tr>
+<td class="footer" colspan="3">
+<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+Mathews Lab RNAstructure Page</a> for updates and latest
+information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</body></html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: scorer</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>scorer</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>scorer is used to compare a predicted secondary structure to an accepted structure. It calculates two quality metrics, sensitivity and PPV (positive predictive value).</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE: scorer &lt;predicted ct&gt; &lt;accepted ct&gt; &lt;output file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;predicted ct&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> containing predicted structure data.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;accepted ct&gt;</td>
+								<td>The name of a <a href="File_Formats.html#CT">CT file</a> containing accepted structure data.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;output file&gt;</td>
+								<td>The name of a text file to which output will be written.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-e, -E, --exact</td>
+								<td>
+									Specify exact comparison when structure comparison is scored.
+									<br>
+									When exact comparison is specified, a known base pair between nucleotides <i>i</i> and <i>j</i> is considered to be correctly predicted only by the base pair <i>i</i>-<i>j</i>.
+									<br>
+									By contrast, when flexible pairings are allowed, base pairs are considered to be correctly predicted when one of the two indices is different by up to one nucleotide. This better accounts for RNA dynamics and uncertainty in the RNA structure. For a known base pair <i>i</i>-<i>j</i>, all of the following predicted pairs are considered correct with flexible pairings:
+
+									<ul class="noListTopMargin">
+										<li class="monoFont"><i>i</i> - <i>j</i></li>
+										<li class="monoFont"><i>i</i> - <i>j</i>-1</li>
+										<li class="monoFont"><i>i</i> - <i>j</i>+1</li>
+										<li class="monoFont"><i>i</i>-1 - <i>j</i></li>
+										<li class="monoFont"><i>i</i>+1 - <i>j</i></li>
+									</ul>
+
+									Default is to allow flexible pairings.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+								<td class="cell">-p, -P, --print</td>
+								<td>
+									Print the output file to standard output.
+									<br>
+									This won't override the default behavior of writing to a file.
+								</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H., Sabina, J., Zuker, M. and Turner, D.H.
+								<br>
+								&quot;Expanded sequence dependence of thermodynamic parameters provides improved prediction of RNA secondary structure.&quot;
+								<br>
+								<i>J. Mol. Biol.</i>, 288:911-940. (1999).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H.
+								<br>
+								&quot;Using an RNA secondary structure partition function to determine confidence in base pairs predicted by free energy minimization.&quot;
+								<br>
+								<i>RNA</i>, 10:1178-1190. (2004).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,3 @@
+# Gamma mixture parameters for RNAstructure. First set of parameters is for paired, second for unparied.            Order of parameters is: shape1, location1, scale1, shape2, location2, scale2, weight1, weight2
+3.521 0.000 0.001 0.421 0.000 0.424 0.000 1.000
+1.169 0.000 0.117 0.765 0.000 1.903 0.538 0.462

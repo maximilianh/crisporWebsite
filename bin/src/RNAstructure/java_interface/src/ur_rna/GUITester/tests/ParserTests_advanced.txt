@@ -1,0 +1,201 @@
+<--Script1: Blank-->
+<--Script2: Newline-->
+
+
+<--Script3: Semicolon-->
+;
+<--Script4: Semicolon and newlines-->
+
+;
+
+<--Script5: Directive-->
+#Title 'A new script'
+<--Script6: Directives with literals-->
+#Title 'A new script'
+#Desc "A very nice script,\nwith lots of \tescaped\\characters."
+#Description "A very \"nice\" script,\nwith lots of \'escaped\' characters\r\n. \xFF \x45 \x5A\x53. \u2345"
+#Chars "~!@#$%^&*()_+`1234567890-=[]{}\\|;'\':\",.<>/?"
+#CharsSingle '~!@#$%^&*()_+`1234567890-=[]{}\|;\':"h\",.<>/?abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+<--Script7: Variable assignments and references -->
+#Include '/path/to/my/file/$name/${names}'
+$j = 3
+$newvar = $j
+$newvar = ${j}
+$s=-3.5
+$var1=3;$var2=4;$var5=6;           $var7=8;
+$varx = 3.5E-6
+$varx += +42.5837e+17
+$varx %= -42.5837E-17
+$m_23 = 'hi';     $_x34 *= 89000;
+
+$newVarBlank
+
+$y683838383838 = 0xFF
+$y683838383838 = 071
+<--Script8: Single Comment -->
+//Here is a comment!
+<--Script8b: Single Comment + Newline-->
+//Here is a comment!
+
+<--Script8c: Single Comments with Newlines-->
+//Here is a comment!
+
+//Here is another comment!
+
+
+//Here is third comment!
+
+
+
+<--Script9: Multiline Comment -->
+/* Multiline comments are very nice to have!! */
+<--Script10: Comments -->
+/* Multiline 
+ comments 
+  asdfa sdfs0987
+  (*&(*^*(^*&^*&^B 
+  *((*&(*&^^
+  // / / / /// * * ** // * / ***** /////
+  ))))))are very nice to have!! */
+$var = 5 //if not for this comma, there'd be an error (*&(*&^*&^%^&%(*^&(*(*)(&*
+$potatoes =  /* here is a mid-line multiline comma 982398477(*&*^*^%^&%^$%^$$%#%$// 8*** */   'fred'
+/* start of line comma */#Title 'Bananas'//end-of line comment (*&^&%^%$%##$$%^&*()__)_*/*///**??**??*?
+//comment should not stop at semicolon; here )(&**&%&^% si ist acomman ; (*&Y*&^*))
+/**/$var = 5
+
+<--Script11a: Method def-->
+#Define MyMethod
+#EndDef
+<--Script11b: Method def-->
+#Define MyMethod
+	$var = 1
+#EndDef
+
+<--Script11c: Method def-->
+#Define MyMethod($var1, $var2, $var3)
+	$var = 1; $var = 2
+	$var = 3;
+	
+	
+	$var = 4
+#EndDef
+
+<--Script12: A real script -->
+/* C-Style multi-line comments  */
+#Title 'A real script'   //Single-line comment
+#Include 'some file/for me/to load/hello.scr'
+
+$var := 'hello there'; $myvar = 2
+
+$guiRef := Menu 'Coconut' inside Dialog
+
+CLICK() Panel(prop=$value, prop2='value2', +45+67) ->  Button 'Click Me'
+TYPE 'I am a very nice button to have' IN Text('File Save')
+DOFUNC($var1, $var2, $var3) TO $guiRef
+MOUSE('LEFT', 'DOWN') INTO $guiRef->GUI_OBJ('a', 'b', 45e+7)
+MOUSEDOWN ON GUI_OBJ('a', 'b', 45e+7) inside $guiRef
+CLICK ON MENU: 'RNA|RNA1|RNA2|New Partition Function'
+SELECT OPTION 'Option 1'
+
+!SELECT A, B, C OPTION 'Option 1'
+
+FUNC(args)
+
+
+GUI( name="banana", parent=GUI(GUI), szo=top, label='frog', type=button )
+
+@WARNING: 'Take heed of the upcoming disaster!', 56 
+
+@INFO: 'Here is some info.'
+
+@$myFunc
+
+@$myFunc: 'a', 'b', 4+26;
+
+@QUIT
+
+/*
+COMMENT (comments can be anywhere except inside strings)
+*/
+
+$myvar = "This scring contains a comment // inside it";
+<--Script13: Real-Script 2-->
+/* Script Language Allows C-Style comments. 
+	Code-lines end with 
+	semicolon or LF.  */
+
+// Directives
+#$'A real script'
+#Include 'path/file.scr'
+
+// Variables
+$var = 'hello there';   $num = 2
+
+// a GUI-object is a first-class language element -- { GuiType criteria }
+$myMenu  = { Menu 'RNA|Partition Function RNA' }
+$text    = { TextField label='File Save' }
+$custom  = { type:'CustomGUIType', parent:$myPanel, text:'/RNA .*/'  }
+
+$map = [ a:banana, 2:cotton, 3:pizza, orange, cantaloupe, zebra ];
+
+// GUI-object searches can be refined using relationships with other objects 
+$button = { Panel 'Settings' } -> { Button 'Save' 2 }
+$button = { Button 'Save' } inside { Panel 'Settings' }
+$button = $container -> { Panel $panelName }
+
+// Gui-Actions:   ACTION [(parameters �)] {GUI-Object}
+CLICK {$myMenu}
+TYPE 'bmorivector.fasta' INTO TextField 'File Save'
+SETTEXT { TextField 'File Save' }, 'bmorivector.fasta'
+SELECT $myOption
+RCLICK
+MCLICK
+
+ACTION (params) PREPOSITION GUI_ITEM
+GUI_ITEM:  GUI_REF (REL GUI_REF)
+GUI_REF:  	Class [ARG] [POS]
+ 
+
+$gui = GuiSearch( [class=TextField, anytext='File Save'] )
+DoGuiAction($gui, 'TYPE', ['bmorivector.fasta']);
+
+MOUSE (RIGHT, DOWN, 50, 50) ON { CustomGUIScreen title=�Alignment� } inside $dialog
+MOUSEMOVE (0, 25)  GUI ('a', 'b', 45e+7) inside $guiRef
+SELECT { Option 'RNA' }
+
+// Call built-in (global) methods
+@Warning: 'Could not locate Button!'
+@Info: 'Running Partition Function.'
+
+// Control structures
+#HadError: 
+
+if ( { TextField 'File Save' } == null )
+  @Warning: 'Could not locate File Save text field!'
+end
+
+for $var in [1 to 5]  
+	<statements�>
+	if ($test) break;
+loop
+
+do while($test)
+
+loop
+
+//Define and call custom methods
+@ShowSaveDialog: 'bmorivector.fasta'
+
+#define ShowSaveDialog($fileName)
+	CLICK { Menu �File|Save As� }
+	TYPE $fileName INTO { TextField 'File Name' }
+	CLICK { Button �Save� }
+#enddef
+
+//Function �pointers�
+$myFunc = �ShowSaveDialog�;
+@$myFunc: 'bmorivector.fasta'
+
+----------------------------  Command-line interface ------------------------------------------
+GuiTest �ScriptFile1� �ScriptFile2� �		 (prefix with @ for inline code)
+GuiTest @'#Include �design-test-script�; $param1=42; $out=�design-out1.txt�; @runtest;'

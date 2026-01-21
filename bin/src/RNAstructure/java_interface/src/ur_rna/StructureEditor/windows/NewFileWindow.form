@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="ur_rna.StructureEditor.windows.NewFileWindow">
+  <grid id="27dc6" binding="pnlMain" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="20" y="20" width="668" height="414"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <scrollpane id="a452b">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.3"/>
+        </constraints>
+        <properties>
+          <visible value="true"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="f8e54" class="javax.swing.JTextPane" binding="txtSequence" custom-create="true">
+            <constraints/>
+            <properties>
+              <font name="Monospaced"/>
+              <preferredSize width="6" height="60"/>
+            </properties>
+          </component>
+        </children>
+      </scrollpane>
+      <component id="13865" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="6" left="0" bottom="0" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <labelFor value="f8e54"/>
+          <text value="S&amp;equence:"/>
+        </properties>
+      </component>
+      <component id="13975" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="6" left="5" bottom="0" right="0" weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <foreground color="-12294257"/>
+          <text value="Spaces, tabs, and line-breaks can be used for formatting."/>
+        </properties>
+      </component>
+      <component id="65b77" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="3" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="0" bottom="10" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font size="14" style="1"/>
+          <text value="New Drawing from Sequence"/>
+        </properties>
+      </component>
+      <component id="8ead8" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="3" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="0" bottom="10" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font size="12" style="1"/>
+          <text value="Enter the sequence, and optionally, basepairing information for the new drawing."/>
+        </properties>
+      </component>
+      <component id="d616f" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="6" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="5" left="0" bottom="0" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <labelFor value="18621"/>
+          <text value="St&amp;ructure:"/>
+        </properties>
+      </component>
+      <scrollpane id="b73fb">
+        <constraints>
+          <grid row="7" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.3"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="18621" class="javax.swing.JTextPane" binding="txtStructure" custom-create="true">
+            <constraints/>
+            <properties>
+              <font name="Monospaced"/>
+              <preferredSize width="6" height="60"/>
+            </properties>
+          </component>
+        </children>
+      </scrollpane>
+      <grid id="72f82" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="8" column="0" row-span="1" col-span="5" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="edc3f" class="javax.swing.JButton" binding="btnCancel">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="cancel"/>
+              <preferredSize width="200" height="32"/>
+              <text value="&amp;Cancel"/>
+            </properties>
+          </component>
+          <component id="afb83" class="javax.swing.JButton" binding="btnOK">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="5" left="5" bottom="5" right="5" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <actionCommand value="ok"/>
+              <preferredSize width="200" height="32"/>
+              <text value="&amp;OK - Create Drawing"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <component id="151d7" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="6" column="1" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="5" left="5" bottom="0" right="0" weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <foreground color="-12294257"/>
+          <text value="(optional) Enter structure information in dot-bracket notation, or extended helix notation."/>
+        </properties>
+      </component>
+      <component id="46031" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="5" left="0" bottom="0" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <labelFor value="9b8da"/>
+          <text value="Title:"/>
+        </properties>
+      </component>
+      <component id="a19a" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="2" column="1" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="6" left="5" bottom="0" right="0" weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <foreground color="-12294257"/>
+          <text value="(optional) Title for this sequence/drawing"/>
+        </properties>
+      </component>
+      <component id="9b8da" class="javax.swing.JTextField" binding="txtTitle">
+        <constraints>
+          <grid row="3" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties/>
+      </component>
+      <component id="9a654" class="javax.swing.JCheckBox" binding="chkWrapStructure">
+        <constraints>
+          <grid row="6" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="5" bottom="0" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="wrap-str"/>
+          <selected value="true"/>
+          <text value="&amp;wrap"/>
+          <visible value="false"/>
+        </properties>
+      </component>
+      <component id="fdedb" class="javax.swing.JCheckBox" binding="chkWrapSequence">
+        <constraints>
+          <grid row="4" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="5" bottom="0" right="5" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="wrap-seq"/>
+          <selected value="true"/>
+          <text value="&amp;wrap"/>
+          <visible value="false"/>
+        </properties>
+      </component>
+      <component id="2533a" class="javax.swing.JButton" binding="btnStructureHelp">
+        <constraints>
+          <grid row="6" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="help-str"/>
+          <preferredSize width="200" height="32"/>
+          <text value="?"/>
+        </properties>
+      </component>
+      <component id="9d894" class="javax.swing.JButton" binding="btnSequenceHelp">
+        <constraints>
+          <grid row="4" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <actionCommand value="help-seq"/>
+          <preferredSize width="200" height="32"/>
+          <text value="?"/>
+        </properties>
+      </component>
+      <scrollpane id="9e8bf">
+        <constraints>
+          <grid row="9" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="1.0"/>
+        </constraints>
+        <properties>
+          <preferredSize width="6" height="200"/>
+          <visible value="false"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="becc1" class="javax.swing.JTextPane" binding="txtDebug">
+            <constraints/>
+            <properties>
+              <preferredSize width="6" height="23"/>
+              <visible value="true"/>
+            </properties>
+          </component>
+        </children>
+      </scrollpane>
+      <component id="68acd" class="javax.swing.JLabel" binding="lblLocation">
+        <constraints>
+          <grid row="4" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="3" bottom="0" right="3" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="(position)"/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>

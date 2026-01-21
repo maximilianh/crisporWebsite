@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: Multifind</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>Multifind</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>Multifind uses <a href="multilign.html">multilign,</a> which predicts common structures for multiple homologous sequences, and estimates the probability that the input sequences are a conserved non-coding RNA using a classification support vector machine. It has two distinct executables, a serial program called Multifind and a parallelized program called Multifind-smp for use in shared memory enviroments.</p>
+
+						<a name="Usage" id="Usage"></a>
+						<h3>USAGE 1: Multifind &lt;configuration file&gt;</h3>
+						<h3>USAGE 1: Multifind-smp &lt;configuration file&gt;</h3>
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;configuration file&gt;</td>
+								<td>The name of a file containing required configuration data.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<h4>NONE</h4>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<h4>NONE</h4>
+
+
+		                                <h3 class="leftHeader">Configuration file format:</h3>
+						<p>
+						  The following is a description of valid options allowed in the configuration file.
+						  <br>
+						  The example is based on Multifind_sample.conf, a standard example found in the examples directory of the RNAstructure repository.
+						</p>
+
+	<pre>
+################################################################
+# IMPORTANT CONFIG FILE FORMAT NOTES:
+#
+# Config file options described below are <b>not</b> case sensitive.
+#
+# Option lines may be specified by the option name followed by an equals sign and the option's desired value.
+# When specifying an option, there may be nothing else on the line.
+# If an option is specified more than once, the last specification is used.
+# &lt;option&gt; = &lt;value&gt;
+#
+# Specifying comment lines:
+# Comment lines must begin with "#" followed by a space.
+# There may not be more than one "#" in a comment line.
+# However, a comment line may be an unbroken string of "#", as in a divider between sets of options.
+#
+# Blank lines are skipped.
+# Any leading or trailing whitespace is ignored.
+# Variables may not contain internal whitespace.
+#
+# Syntax errors produce a warning to standard output and are then ignored.
+################################################################
+
+################################################################
+# Input options.
+# If an appropriate group of these values is not defined, the program will exit.
+################################################################
+
+#Specify the input sequences in a FASTA file.
+Fasta = alignment.FASTA
+
+#Specify the output Multifind file.
+Multifind = temp.Multifind
+
+#Specify the output structures in a group of CT files(optionally):
+#1. If OutCT option is inclued in the configuration file. There must be equal
+#   number of CT files as the number of sequences in the FASTA file.
+#2. If OutCT option is not included in the configuration file. The structures
+#   are not written out.
+OutCT = {1.ct;2.ct;3.ct;4.ct;5.ct;6.ct;7.ct;8.ct;}
+
+# Processors specifies the number of processors Multifind is run on.
+# Note that this flag only has an effect when Multifind-smp, the parallel version of Multifind, is run.
+# Its default value is 1.
+Processors = 1
+	                                        </pre>
+                                            
+                      <h3 class="leftHeader">Notes:</h3>
+						<p class="mainContent">Prebuilt executables are not provided for Multifind. Instructions for building can be found <a href="../Overview/Building.html">here</a>.</p>
+                        
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">Fu, Y., Xu, Z. Z., Lu, Z. J., Zhao, S., &amp; Mathews, D. H. <br>
+							  &quot;Discovery of Novel ncRNA Sequences in Multiple Genome Alignments on the Basis of Conserved and Stable Secondary Structures.&quot;<br>
+                          <em>PLoS One</em>. 10: e0130200. (2015). </li>
+							<li class="gapListItem">Reuter, J.S. and Mathews, D.H. <br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H., Disney, M.D., Childs, J.L., Schroeder, S.J., Zuker, M. and Turner, D.H.
+								<br>
+								&quot;Incorporating chemical modification constraints into a dynamic programming algorithm for prediction of RNA secondary structure.&quot;
+								<br>
+								<i>Proc. Natl. Acad. Sci. USA</i>, 101:7287-7292. (2004).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H., Sabina, J., Zuker, M. and Turner, D.H.
+								<br>
+								&quot;Expanded sequence dependence of thermodynamic parameters provides improved prediction of RNA secondary structure.&quot;
+								<br>
+								<i>J. Mol. Biol.</i>, 288:911-940. (1999).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

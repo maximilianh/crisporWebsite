@@ -1,0 +1,1235 @@
+package ur_rna.StructureEditor.windows;
+
+import ur_rna.StructureEditor.AppActions;
+import ur_rna.StructureEditor.Program;
+import ur_rna.StructureEditor.models.BondType;
+import ur_rna.StructureEditor.models.Nuc;
+import ur_rna.StructureEditor.models.RnaScene;
+import ur_rna.StructureEditor.models.RnaSceneGroup;
+import ur_rna.Utilities.ObjTools;
+import ur_rna.Utilities.swing.AcceleratorKey;
+import ur_rna.Utilities.swing.ActionHelper;
+import ur_rna.Utilities.swing.Dialogs;
+import ur_rna.Utilities.swing.TextDocListener;
+
+import javax.swing.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.text.*;
+import javax.swing.undo.UndoManager;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ItemEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.ListIterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Displays a dialog that allows a user to enter a sequence and structure information for a new drawing.
+ */
+public class NewFileWindow extends ChildFrame {
+    private JTextPane txtSequence;
+    private JButton btnCancel;
+    private JButton btnOK;
+    private JTextPane txtStructure;
+    private JTextField txtTitle;
+    private JPanel pnlMain;
+    private JCheckBox chkWrapSequence;
+    private JCheckBox chkWrapStructure;
+    private JButton btnStructureHelp;
+    private JButton btnSequenceHelp;
+    private JTextPane txtDebug;
+    private JLabel lblLocation;
+    private StyledDocument docSeq, docStr;
+    private Timer tmrUpdate = new Timer(100, this::updateTimerElapsed);
+    private Font defaultFont = new Font("Monospaced", 0, 12);
+    // private JRadioButton[] structureRadios;
+    // private ButtonGroup structureNotation = new ButtonGroup();
+    // private final static int ST_NONE = 0, ST_BRACKET = 1, ST_HELIX = 2;
+    // private int selectedStructureType = ST_NONE;
+    private int[] seqLookup = new int[1024]; // lookup[index in seq]  -> char index in txtSequence
+    private int[] revSeqLookup = new int[1024]; // lookup[index in seq]  -> char index in txtSequence
+    private int seqLen = 0;
+    private ArrayList<StructItem> structure = new ArrayList<>();
+    private StructItem selectedStructItem;
+    private int selectedPair = -1, selectedBase = -1, selectedHelixLen = 0;
+    private String seqText, strText; // cached calls to Document.getText()  (which might have to build the string)
+    private UndoManager undoSeq, undoStr;
+    private final TextDocListener docUpdateListener = new TextDocListener();
+
+    public NewFileWindow() {
+        super("New Drawing from Sequence", true);
+        // Create ButtonGroup for structure options
+        //structureRadios = new JRadioButton[]{optDotBracket, optHelix, optBaseToBase};
+//        for (JRadioButton opt : structureRadios) {
+//            structureNotation.add(opt);
+//            opt.addItemListener(this::structureOptionChanged);
+//        }
+        // optDotBracket.setSelected(true);
+
+        $$$setupUI$$$();
+        AbstractButton[] actionButtons = new AbstractButton[]{btnOK, btnCancel, btnStructureHelp, btnSequenceHelp};
+        AbstractButton[] actionChecks = new AbstractButton[]{chkWrapSequence, chkWrapStructure};
+        for (AbstractButton b : actionButtons) b.addActionListener(this::actionPerformed);
+        for (AbstractButton c : actionChecks) c.addItemListener(this::itemSelected);
+
+        StyleContext styles = createStyleContext();
+        txtSequence.setStyledDocument(docSeq = new DefaultStyledDocument(styles));
+        txtStructure.setStyledDocument(docStr = new DefaultStyledDocument(styles));
+        docSeq.addDocumentListener(docUpdateListener);
+        docStr.addDocumentListener(docUpdateListener);
+        txtSequence.addCaretListener(this::textCaretEvent);
+        txtStructure.addCaretListener(this::textCaretEvent);
+
+        // Undo/Redo
+        docSeq.addUndoableEditListener(undoSeq = new IgnoreStylesUndoManager());
+        docStr.addUndoableEditListener(undoStr = new IgnoreStylesUndoManager());
+
+        ActionHelper.addKeyAction(this, AcceleratorKey.getKey('Z'), "undo", this::doUndo);
+        ActionHelper.addKeyAction(this, AcceleratorKey.getKey('Y'), "redo", this::doRedo);
+
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets.set(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = gbc.weighty = 1;
+        add(pnlMain, gbc);
+
+//        JPanel outer = new JPanel();
+//        outer.setBorder(new EmptyBorder(5, 5, 5, 5));
+//        outer.add(pnlMain, BorderLayout.CENTER);
+//        add(outer, BorderLayout.CENTER);
+
+        pack();
+
+        setSize(new Dimension(600, getHeight()));
+
+        tmrUpdate.start();
+
+        txtTitle.requestFocusInWindow();
+    }
+    /**
+     * Method generated by IntelliJ IDEA GUI Designer
+     * DO NOT edit this method OR call it in your code!
+     *
+     * @noinspection ALL
+     */
+    private void $$$setupUI$$$() {
+        createUIComponents();
+        pnlMain = new JPanel();
+        pnlMain.setLayout(new GridBagLayout());
+        final JScrollPane scrollPane1 = new JScrollPane();
+        scrollPane1.setVisible(true);
+        GridBagConstraints gbc;
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 5;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.3;
+        gbc.fill = GridBagConstraints.BOTH;
+        pnlMain.add(scrollPane1, gbc);
+        txtSequence.setFont(new Font("Monospaced", txtSequence.getFont().getStyle(), txtSequence.getFont().getSize()));
+        txtSequence.setPreferredSize(new Dimension(6, 60));
+        scrollPane1.setViewportView(txtSequence);
+        final JLabel label1 = new JLabel();
+        label1.setText("Sequence:");
+        label1.setDisplayedMnemonic('E');
+        label1.setDisplayedMnemonicIndex(1);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(6, 0, 0, 5);
+        pnlMain.add(label1, gbc);
+        final JLabel label2 = new JLabel();
+        label2.setForeground(new Color(-12294257));
+        label2.setText("Spaces, tabs, and line-breaks can be used for formatting.");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 4;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(6, 5, 0, 0);
+        pnlMain.add(label2, gbc);
+        final JLabel label3 = new JLabel();
+        label3.setFont(new Font(label3.getFont().getName(), Font.BOLD, 14));
+        label3.setText("New Drawing from Sequence");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 3;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 10, 5);
+        pnlMain.add(label3, gbc);
+        final JLabel label4 = new JLabel();
+        label4.setFont(new Font(label4.getFont().getName(), Font.BOLD, 12));
+        label4.setText("Enter the sequence, and optionally, basepairing information for the new drawing.");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 3;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 10, 5);
+        pnlMain.add(label4, gbc);
+        final JLabel label5 = new JLabel();
+        label5.setText("Structure:");
+        label5.setDisplayedMnemonic('R');
+        label5.setDisplayedMnemonicIndex(2);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 0, 0, 5);
+        pnlMain.add(label5, gbc);
+        final JScrollPane scrollPane2 = new JScrollPane();
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.gridwidth = 5;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.3;
+        gbc.fill = GridBagConstraints.BOTH;
+        pnlMain.add(scrollPane2, gbc);
+        txtStructure.setFont(new Font("Monospaced", txtStructure.getFont().getStyle(), txtStructure.getFont().getSize()));
+        txtStructure.setPreferredSize(new Dimension(6, 60));
+        scrollPane2.setViewportView(txtStructure);
+        final JPanel panel1 = new JPanel();
+        panel1.setLayout(new GridBagLayout());
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        gbc.gridwidth = 5;
+        gbc.fill = GridBagConstraints.BOTH;
+        pnlMain.add(panel1, gbc);
+        btnCancel = new JButton();
+        btnCancel.setActionCommand("cancel");
+        btnCancel.setPreferredSize(new Dimension(200, 32));
+        btnCancel.setText("Cancel");
+        btnCancel.setMnemonic('C');
+        btnCancel.setDisplayedMnemonicIndex(0);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel1.add(btnCancel, gbc);
+        btnOK = new JButton();
+        btnOK.setActionCommand("ok");
+        btnOK.setPreferredSize(new Dimension(200, 32));
+        btnOK.setText("OK - Create Drawing");
+        btnOK.setMnemonic('O');
+        btnOK.setDisplayedMnemonicIndex(0);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel1.add(btnOK, gbc);
+        final JLabel label6 = new JLabel();
+        label6.setForeground(new Color(-12294257));
+        label6.setText("(optional) Enter structure information in dot-bracket notation, or extended helix notation.");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 6;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 0, 0);
+        pnlMain.add(label6, gbc);
+        final JLabel label7 = new JLabel();
+        label7.setText("Title:");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 0, 0, 5);
+        pnlMain.add(label7, gbc);
+        final JLabel label8 = new JLabel();
+        label8.setForeground(new Color(-12294257));
+        label8.setText("(optional) Title for this sequence/drawing");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(6, 5, 0, 0);
+        pnlMain.add(label8, gbc);
+        txtTitle = new JTextField();
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 5;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        pnlMain.add(txtTitle, gbc);
+        chkWrapStructure = new JCheckBox();
+        chkWrapStructure.setActionCommand("wrap-str");
+        chkWrapStructure.setSelected(true);
+        chkWrapStructure.setText("wrap");
+        chkWrapStructure.setMnemonic('W');
+        chkWrapStructure.setDisplayedMnemonicIndex(0);
+        chkWrapStructure.setVisible(false);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 4;
+        gbc.gridy = 6;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 5, 0, 5);
+        pnlMain.add(chkWrapStructure, gbc);
+        chkWrapSequence = new JCheckBox();
+        chkWrapSequence.setActionCommand("wrap-seq");
+        chkWrapSequence.setSelected(true);
+        chkWrapSequence.setText("wrap");
+        chkWrapSequence.setMnemonic('W');
+        chkWrapSequence.setDisplayedMnemonicIndex(0);
+        chkWrapSequence.setVisible(false);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 4;
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 5, 0, 5);
+        pnlMain.add(chkWrapSequence, gbc);
+        btnStructureHelp = new JButton();
+        btnStructureHelp.setActionCommand("help-str");
+        btnStructureHelp.setPreferredSize(new Dimension(200, 32));
+        btnStructureHelp.setText("?");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 3;
+        gbc.gridy = 6;
+        gbc.anchor = GridBagConstraints.EAST;
+        pnlMain.add(btnStructureHelp, gbc);
+        btnSequenceHelp = new JButton();
+        btnSequenceHelp.setActionCommand("help-seq");
+        btnSequenceHelp.setPreferredSize(new Dimension(200, 32));
+        btnSequenceHelp.setText("?");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 3;
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.EAST;
+        pnlMain.add(btnSequenceHelp, gbc);
+        final JScrollPane scrollPane3 = new JScrollPane();
+        scrollPane3.setPreferredSize(new Dimension(6, 200));
+        scrollPane3.setVisible(false);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        gbc.gridwidth = 5;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        pnlMain.add(scrollPane3, gbc);
+        txtDebug = new JTextPane();
+        txtDebug.setPreferredSize(new Dimension(6, 23));
+        txtDebug.setVisible(true);
+        scrollPane3.setViewportView(txtDebug);
+        lblLocation = new JLabel();
+        lblLocation.setText("(position)");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 2;
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 3, 0, 3);
+        pnlMain.add(lblLocation, gbc);
+        label1.setLabelFor(txtSequence);
+        label5.setLabelFor(txtStructure);
+        label7.setLabelFor(txtTitle);
+    }
+    /** @noinspection ALL */
+    public JComponent $$$getRootComponent$$$() { return pnlMain; }
+
+    private static class IgnoreStylesUndoManager extends UndoManager {
+        @Override
+        public void undoableEditHappened(UndoableEditEvent e) {
+            //  Check for an attribute change
+            AbstractDocument.DefaultDocumentEvent event = (AbstractDocument.DefaultDocumentEvent) e.getEdit();
+            if (!event.getType().equals(DocumentEvent.EventType.CHANGE))
+                super.undoableEditHappened(e);
+        }
+    }
+
+    private static class JWrapTextPane extends JTextPane {
+        private boolean nowrap;
+        public void setWrap(boolean wrap) {
+            nowrap = !wrap;
+        }
+        public boolean getWrap() {
+            return !nowrap;
+        }
+//        // Override getScrollableTracksViewportWidth
+//        // to preserve the full width of the text
+//        public boolean getScrollableTracksViewportWidth() {
+//            if (nowrap) {
+//                Component parent = getParent();
+//                ComponentUI ui = getUI();
+//                return parent == null || (ui.getPreferredSize(this).width <= parent
+//                        .getSize().width);
+//            }
+//            return super.getScrollableTracksViewportWidth();
+//        }
+    }
+
+    private static class StructItem {
+        // private static int[] _defaultRegions = new int[2];
+        public static final int ERROR = 0, HELIX = 1, BP = 2, DOT = 3;
+
+        private StructItem(final int type, final int pos1, final int pos2) {
+            this.type = type;
+            this.pos1 = pos1;
+            this.pos2 = pos2;
+        }
+        public static StructItem Helix(final int seq1, final int seq2, final int len, final int pos1, final int pos2) {
+            StructItem s = new StructItem(HELIX, pos1, pos2);
+            s.seq1 = seq1;
+            s.seq2 = seq2;
+            s.len = len;
+            return s;
+        }
+        public static StructItem Error(final int charPos1, final int charPos2) { return new StructItem(ERROR, charPos1, charPos2); }
+        public static StructItem Error(final int charPos) { return Error(charPos, charPos); }
+        public static StructItem Pair(final int seq1, final int seq2, final int pos1, final int pos2) {
+            StructItem s = new StructItem(BP, pos1, pos2);
+            s.seq1 = seq1;
+            s.seq2 = seq2;
+            s.len = 1;
+            return s;
+        }
+        public static StructItem Dot(final int seqPos, final int charPos) {
+            StructItem s = new StructItem(DOT, charPos, charPos);
+            s.seq1 = seqPos;
+            s.seq2 = seqPos;
+            s.len = 1;
+            return s;
+        }
+        int seq1 = -1, seq2 = -1, len; // sequence index. (use seqLookup to get char index)
+        final int pos1, pos2; // character indices in txtStructure
+        final int type;
+
+        /**
+         * Returns true if this helix element the nucleobase as the given index.
+         */
+        public boolean containsBase(final int baseIndex) {
+            return baseIndex >= seq1 && baseIndex < seq1 + len || baseIndex > seq2 - len && baseIndex <= seq2;
+        }
+
+        /**
+         * Returns -1 if the given index does not belong to this structure element or if it is not paired.
+         * Otherwise, returns the index of the base that is paired with the base at the given index.
+         */
+        public int getPair(final int baseIndex) {
+            if (baseIndex >= seq1 && baseIndex < seq1 + len)
+                return seq2 + seq1 - baseIndex;
+            else if (baseIndex > seq2 - len && baseIndex <= seq2)
+                return seq1 + seq2 - baseIndex;
+            return -1;
+        }
+
+        /**
+         * Returns true if the selection falls inside the element and NOT beyond it.
+         */
+        boolean isSelected(int selStart, int selEnd) {
+            if (type == BP)
+                return selStart == pos1 && selEnd <= pos1 + 1 ||
+                        selStart == pos2 && selEnd <= pos2 + 1;
+            return selStart >= pos1 && (selEnd <= pos2 || (selStart == pos1 | selStart < pos2) && selEnd <= pos2 + 1);
+        }
+
+        public int pairCount() {
+            switch (type) {
+                case BP:
+                    return 1;
+                case ERROR:
+                case DOT:
+                    return 0;
+                case HELIX:
+                default:
+                    return len;
+            }
+        }
+
+        /** Returns the sequence-index of the 5'-base at the 0-based position in this helix */
+        public int getBase(int positionInHelix) {
+            switch (type) {
+                case BP:
+                    return positionInHelix == 0 ? seq1 : -1;
+                case ERROR:
+                case DOT:
+                    return -1;
+                case HELIX:
+                default:
+                    return positionInHelix < len ? seq1 + positionInHelix : -1;
+            }
+        }
+        /**
+         * A client calls with with an already-created array of integers.
+         * The StructItem must fill it with a list of text regions from which the element was created.
+         * Each region occupies two elements in the array: the start and stop positions (inclusive) in the text.
+         *
+         * @param regions an already-instantiated array of integers to receive the text regions.
+         * @return The number of regions that were filled.
+         */
+        public int getTextRegion(int[] regions) {
+            if (type == BP) {
+                regions[0] = pos1;
+                regions[1] = pos1;
+                regions[2] = pos2;
+                regions[3] = pos2;
+                return 2;
+            }
+            regions[0] = pos1;
+            regions[1] = pos2;
+            return 1;
+        }
+
+        // for helix notation, this is the start and end positions of the helix
+        // for bracket notation, these are indices of the start and end brackets
+    }
+
+    private void doUndo(final ActionEvent event) {
+        System.out.println("Undo");
+        UndoManager m = getActiveUndoManager();
+        if (m != null && m.canUndo())
+            m.undo();
+    }
+    private void doRedo(final ActionEvent event) {
+        System.out.println("Redo");
+        UndoManager m = getActiveUndoManager();
+        if (m != null && m.canRedo())
+            m.redo();
+    }
+    public UndoManager getActiveUndoManager() {
+        if (txtSequence.hasFocus()) return undoSeq;
+        if (txtStructure.hasFocus()) return undoStr;
+        return null;
+    }
+
+    private void textCaretEvent(final CaretEvent e) {
+        docUpdateListener.markChanged();
+    }
+
+    private void updateTimerElapsed(final ActionEvent event) {
+        if (docUpdateListener.resetIfChanged())
+            updateTextUI();
+    }
+
+    private JTextPane _lastActivePane;
+    private void updateTextUI() {
+        try {
+            // Use Document#getText, NOT JTextPane#getText because the Document text leaves out '\r' characters
+            //   and corresponds to the Selection indices as well as setCharacterAttributes.
+            // To reiterate: \r exists in JTextPane#getText, but does NOT exist in Document#getText or
+            // the selection mechanics. I.e. if the text is "ABC\r\nDEF" and
+            // the letters ABC and D are visibly selected, getSelectionStart() returns 0
+            // and getSelectionEnd() returns 5 (as if \r is not present)
+            // 0 1 2 3  4 5
+            // |A|B|C|\n|D|
+            strText = docStr.getText(0, docStr.getLength());
+            seqText = docSeq.getText(0, docSeq.getLength());
+
+            parseSequence(seqText);
+            parseStructure(strText);
+
+            JTextPane txt = txtStructure.hasFocus() ? txtStructure : txtSequence.hasFocus() ? txtSequence : _lastActivePane;
+            _lastActivePane = txt;
+
+            if (txt != null)
+                handleTextSelection(txt);
+
+            restyleStructure();
+            restyleSequence();
+
+            if (txtDebug.isVisible())
+                showDebug();
+        } catch (Exception ex) {
+            System.err.println("Error in ");
+            ex.printStackTrace();
+        }
+    }
+
+    private void handleTextSelection(JTextPane txt) {
+        int p1 = txt.getSelectionStart(), p2 = txt.getSelectionEnd(), pL = p2 - p1;
+//        StyledDocument d = txt.getStyledDocument();
+//        try {
+//            System.out.printf("%s-%s T:\"%s\"  R:\"%s\"  S:\"%s\"  D:\"%s\"\n", p1, p2,
+//                    txt.getText().substring(p1, p2).replace('\r', '#').replace('\n', '$'),
+//                    txt.getText().replace("\r", "").substring(p1, p2).replace('\n', '$'),
+//                    toStr(txt.getSelectedText(), "NULL").replace('\r', '#').replace('\n', '$'),
+//                    d.getText(0, d.getLength()).replace('\r', '#').replace('\n', '$')
+//            );
+//        } catch (BadLocationException ex) {
+//            ex.printStackTrace();
+//        }
+
+        StructItem selStructItem = null;
+        int selBase = -1, selPair = -1, selLen = 0;
+
+        if (txt == txtSequence) {
+            int seqPos = -1; // position of chosen character. -1 = none
+            if (pL == 1)
+                // User has selected a character. always use it and not the char in front/behind of caret
+                seqPos = revSeqLookup[p1];
+            else if (pL == 0) {
+                // Selection is empty, p1==p2, text may be empty (i.e. no characters)
+                //if (p1 != 0 && revSeqLookup[p1 - 1] != -1)
+                //    seqPos = revSeqLookup[p1 - 1];
+                //else
+                if (p1 < seqText.length())
+                    seqPos = revSeqLookup[p1];
+                else if (p1 > 0)
+                    seqPos = revSeqLookup[p1 - 1];
+            }
+
+            if (seqPos != -1) {
+                for (StructItem h : structure) {
+                    if (h.containsBase(seqPos)) {
+                        selStructItem = h;
+                        selPair = h.getPair(seqPos);
+                        selBase = seqPos;
+                        selLen = 1;
+                        break;
+                    }
+                }
+            }
+
+            // get location information to show to user.
+            int s1 = -1, s2 = -1;
+            for (int i = p1; i < Math.max(p1 + 1, p2); i++) {
+                if (i == seqText.length())
+                    break;
+                if (revSeqLookup[i] != -1) {
+                    if (s1 == -1)
+                        s1 = revSeqLookup[i];
+                    else
+                        s2 = revSeqLookup[i];
+                }
+            }
+            if (s1 == -1) {
+                for (int i = p1; i < seqText.length(); i++) {
+                    s1 = revSeqLookup[i];
+                    if (s1 != -1)
+                        break;
+                }
+                lblLocation.setText("next base: " + (s1 == -1 ? seqLen + 1 : s1 + 1));
+            } else if (s2 == -1)
+                lblLocation.setText("base: " + (s1 + 1));
+            else
+                lblLocation.setText(String.format("bases: %s to %s (%s selected)", s1 + 1, s2 + 1, s2 - s1 + 1));
+        } else if (txt == txtStructure) {
+            lblLocation.setText("");
+            if (p1 > 0 && (p1 == strText.length() || strText.charAt(p1) == '\n')) {
+                p1--; // if we are at the end, use the preceding character
+                p2--;
+            }
+            for (StructItem h : structure) {
+                if (h.isSelected(p1, p2)) {
+                    selStructItem = h;
+                    selBase = h.seq1;
+                    selPair = h.seq2;
+                    selLen = h.len;
+                    break;
+                }
+            }
+        }
+
+        //if (selStructItem != selectedStructItem) {
+        selectedStructItem = selStructItem;
+        //restyleStructure();
+        //}
+
+        //if (selPair != selectedPair || selBase != selectedBase || selLen != selectedHelixLen) {
+        selectedPair = selPair;
+        selectedBase = selBase;
+        selectedHelixLen = selLen;
+        //restyleSequence();
+        //}
+    }
+    private void restyleSequence() {
+        int len = docSeq.getLength();
+        setCharStyle(docSeq, 0, len, styleSeqDefault);
+        if (selectedBase != -1) {
+            int end = bounded(selectedBase + selectedHelixLen, 0, seqLookup.length);
+            for (int i = bounded(selectedBase, 0, seqLookup.length - 1); i < end; i++)
+                if (i <= seqLookup.length && seqLookup[i] > -1 && seqLookup[i] < len)
+                    setCharStyle(docSeq, seqLookup[i], 1, styleSeqPaired);
+        }
+        if (selectedPair != -1) {
+            int end = bounded(selectedPair - selectedHelixLen, -1, seqLookup.length - 1);
+            for (int i = bounded(selectedPair, 0, seqLookup.length - 1); i > end; i--)
+                if (seqLookup[i] > -1 && seqLookup[i] < len)
+                    setCharStyle(docSeq, seqLookup[i], 1, styleSeqPaired);
+        }
+    }
+    private int bounded(final int value, final int min, final int max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+    private void restyleStructure() {
+        setCharStyle(docStr, 0, docStr.getLength(), styleStrDefault);
+        if (selectedStructItem != null)
+            applyStyleToStructure(selectedStructItem, styleStrSel);
+        for (StructItem h : structure)
+            if (isStructureError(h))
+                applyStyleToStructure(h, styleStrInvalid);
+    }
+
+    private boolean isStructureError(StructItem h) {
+        return h.type == StructItem.ERROR ||
+                h.seq1 < 0 ||
+                h.seq2 - h.len + 1 < 0 ||
+                h.seq1 + h.len - 1 > seqLen ||
+                h.seq2 >= seqLen;
+    }
+
+    private static int[] _textRegions = new int[4];
+    private void applyStyleToStructure(StructItem si, Style style) {
+        int count = si.getTextRegion(_textRegions);
+        int p1 = _textRegions[0], p2 = _textRegions[1];
+        setCharStyle(docStr, p1, p2 - p1 + 1, style);
+        if (count == 2) {
+            p1 = _textRegions[2];
+            p2 = _textRegions[3];
+            setCharStyle(docStr, p1, p2 - p1 + 1, style);
+        }
+    }
+
+    private void itemSelected(final ItemEvent e) {
+        AbstractButton b = (AbstractButton) e.getSource();
+        switch (b.getActionCommand()) {
+            case "wrap-seq":
+                ((JWrapTextPane) txtSequence).setWrap(b.isSelected());
+                break;
+            case "wrap-str":
+                ((JWrapTextPane) txtStructure).setWrap(b.isSelected());
+                break;
+            default:
+                new Exception("Unknown ActionCommand in itemSelected: " + b.getActionCommand()).printStackTrace();
+                break;
+        }
+    }
+
+    private final static char[] bracketChars = "{}[]()<>«»".toCharArray();
+
+    private void parseStructure(final String text) {
+        char[] chars = text.toCharArray();
+        structure.clear();
+        if (isDotBracket(text)) {
+            int[] brackets = new int[3 * chars.length]; // stores 3 pieces of information for each bracket: 0-character, 1-seqPos, 2-textPos
+            int bracketCount = 0;
+            int pos = 0; // position in sequence
+            for (int i = 0; i < chars.length; i++) {
+                char c = chars[i];
+                switch (c) {
+                    case '\r':
+                        throw new AssertionError("Document text should not contain CR.");
+                    case ' ':
+                    case '\t':
+                    case '\n':
+                        break; // ignore whitespace
+                    case '.':
+                    case '-':
+                    case ',':
+                    case '_':
+                    case ':':
+                        // unpaired base
+                        structure.add(StructItem.Dot(pos, i));
+                        pos++;  //increment position in sequence
+                        break;
+                    case '{':
+                    case '<':
+                    case '[':
+                    case '(':
+                    case '«':
+                        // opening bracket. Add it to the list
+                        brackets[3 * bracketCount] = c; // store the character
+                        brackets[3 * bracketCount + 1] = pos++; // store the position in the sequence
+                        brackets[3 * bracketCount + 2] = i; // store the position in the text
+                        bracketCount++;
+                        break;
+                    case '}':
+                    case '>':
+                    case ']':
+                    case ')':
+                    case '»': {
+                        // it is a right-side (closing) bracket.
+                        // find its match and add the pair.
+                        for (int j = 1; j < bracketChars.length; j += 2) {
+                            if (bracketChars[j] == c) {
+                                c = bracketChars[j - 1]; // get the opening bracket character
+                            }
+                        }
+                        int found = -1;
+                        for (int j = bracketCount - 1; j > -1; j--) { // look backwards through the pairs vector, searching for the matching bracket.
+                            if (brackets[3 * j] == c) {
+                                found = j;
+                                break;
+                            }
+                        }
+                        if (found == -1) {
+                            structure.add(StructItem.Error(i)); // add an error to indicate an unmatched bracket
+                            //SetErrorDetails(sfmt("Unmatched bracket in dot-bracket file: '%c' at line %li column %i.", c, linenumber, i+1));
+                            //return 29;
+                        } else {
+                            // Register the pair that was found.
+                            structure.add(StructItem.Pair(brackets[3 * found + 1], pos, brackets[3 * found + 2], i));
+
+                            // If we are at the end of the array, decrement the count
+                            if (found == bracketCount - 1) {
+                                bracketCount--;
+                                while (bracketCount > 0 && brackets[3 * bracketCount] == -1) // this loop removes all invalidated brackets that might have been introduced by a pseudoknot (i.e. when pairs of different-typed-brackets cross each other).
+                                    bracketCount--;
+                            } else
+                                // this bracket is NOT at the end. It must be part of a pseudoknot. Just invalidate it for now.
+                                brackets[3 * found] = -1;
+                        }
+                        pos++;
+                    }
+                    break;
+                    default:
+                        if (!Character.isWhitespace(c))
+                            structure.add(StructItem.Error(i)); // add an error to indicate an invalid character
+                        break;
+                }
+            } // end of parsing brackets
+            // add an error for any unmatched opening brackets
+            while (bracketCount > 0) {
+                if (brackets[3 * (bracketCount - 1)] != -1)
+                    structure.add(StructItem.Error(brackets[3 * (bracketCount - 1) + 2]));
+                bracketCount--;
+            }
+        } else {
+            int pos = 0;
+            while (pos < chars.length) {
+                for (int exp = 0; exp < helixParsePatterns.length; exp++) {
+                    Matcher m = helixParsePatterns[exp].matcher(text).region(pos, chars.length);
+                    if (m.lookingAt()) {
+                        if (exp == 2) {
+                            pos = m.end();
+                            break;
+                        } // whitespace/separator
+                        int p1, p2, len;
+                        if (exp == 0) {
+                            p1 = toInt(m.group(1));
+                            p2 = toInt(m.group(2));
+                            len = toInt(m.group(3));
+                        } else if (exp == 1) {   // e.g.  5:32  or  5:22-32 or 5-15:32 or 5-15:32-22 etc
+                            // A(-B):C(-D)
+                            int a, b, c, d;
+                            a = toInt(m.group(1));
+                            b = toInt(m.group(2), -1);
+                            c = toInt(m.group(3));
+                            d = toInt(m.group(4), -1);
+                            if (b != -1 && d != -1) {  // e.g.  5-15:22-32 or 5-15:32-22 etc
+                                len = Math.abs(b - a) + 1;
+                                p1 = Math.min(a, b);
+                                p2 = Math.max(c, d);
+                                if (Math.abs(c - d) + 1 != len)
+                                    p1 = -1; //mark as error
+                            } else if (b != -1) {          // e.g.  5-15:32  or  15-5:32
+                                len = Math.abs(b - a) + 1;
+                                p1 = Math.min(a, b);
+                                p2 = c;
+                            } else if (d != -1) {          // e.g.  5:22-32  or  5:32-22
+                                len = Math.abs(d - c) + 1;
+                                p1 = a;
+                                p2 = Math.max(c, d);
+                            } else {
+                                p1 = a;
+                                p2 = c;
+                                len = 1;
+                            }
+                        } else { // exp == 3 (unmatched text, i.e. an error)
+                            p1 = p2 = len = -1;
+                        }
+                        if (p1 == -1)
+                            structure.add(StructItem.Error(pos, m.end()));
+                        else
+                            // p1 and p2 are 1-based from user's perspective, but must be 0-based with regard to seqLookup etc. So decrement p1 and p2
+                            structure.add(StructItem.Helix(p1 - 1, p2 - 1, len, pos, m.end()));
+                        pos = m.end();
+                        break; // quit testing this position for patterns. move on to the next position.
+                    }
+                }
+            }
+        }
+    }
+
+    private static int toInt(String s) { return Integer.parseInt(s); }
+    private static int toInt(String s, int valueIfEmpty) { return s == null || s.isEmpty() ? valueIfEmpty : Integer.parseInt(s); }
+
+    private static final Pattern helixH3 = Pattern.compile("(\\d+)[ \t]+(\\d+)[ \t]+(\\d+)\\b"),
+            helixPair = Pattern.compile("(\\d+)(?:-(\\d+))?:(\\d+)(?:-(\\d+))?\\b"),
+            helixSep = Pattern.compile("[,\\s]+"), helixInvalid = Pattern.compile("[^,\\s]+");
+    private static final Pattern[] helixParsePatterns = new Pattern[]{helixH3, helixPair, helixSep, helixInvalid};
+
+    private boolean isDotBracket(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            switch (c) {
+                case '<':
+                case '>':
+                case '[':
+                case ']':
+                case '{':
+                case '}':
+                case '(':
+                case ')':
+                case '«':
+                case '»':
+                case '.':
+                    return true;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    return false;
+            }
+        }
+        return false;
+    }
+
+    private void parseSequence(String text) {
+        int len = 0;
+        char[] chars = text.toCharArray();
+        if (revSeqLookup.length < chars.length)
+            revSeqLookup = Arrays.copyOf(revSeqLookup, chars.length * 3 / 2);
+        for (int i = 0; i < chars.length; i++) {
+            if (Character.isWhitespace(chars[i]))
+                revSeqLookup[i] = -1;
+            else {
+                if (len >= seqLookup.length)
+                    seqLookup = Arrays.copyOf(seqLookup, 2 * len);
+                revSeqLookup[i] = len;
+                seqLookup[len++] = i;
+            }
+        }
+        seqLen = len;
+    }
+
+    private void showDebug() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sequence: ");
+        for (int i = 0; i < seqLen; i++)
+            sb.append(" ").append(seqLookup[i]);
+
+        sb.append('\n');
+        sb.append("Structure:\n");
+        for (StructItem h : structure) {
+            sb.append("\t").append(h.seq1).append(':').append(h.seq2).append('@').append(h.len)
+                    .append(" (").append(h.pos1).append(',').append(h.pos2).append(")\n");
+        }
+        txtDebug.setText(sb.toString());
+    }
+
+    public void actionPerformed(final ActionEvent e) {
+        switch (e.getActionCommand()) {
+            case "ok":
+                if (checkErrors() && createDrawing())
+                    this.close();
+                break;
+            case "cancel":
+                this.close();
+                break;
+            case "help-seq":
+                Dialogs.showMessage(Program.getResourceText("new-drawing-help", "sequence"), "Sequence Entry Help", Dialogs.INFO);
+                break;
+            case "help-str":
+                Dialogs.showMessage(Program.getResourceText("new-drawing-help", "structure"), "Structure Entry Help", Dialogs.INFO, true);
+                break;
+            default:
+                Dialogs.showWarning("Unknown action: " + e.getActionCommand());
+                break;
+        }
+    }
+    private boolean createDrawing() {
+        try {
+            updateTextUI();
+            RnaScene s = new RnaScene();
+            s.title = txtTitle.getText().trim();
+            StringBuilder sb = new StringBuilder(seqLen);
+            for (int i = 0; i < seqLen; i++)
+                sb.append(seqText.charAt(seqLookup[i]));
+            s.strands.first().addAll(sb);
+            for (StructItem si : structure)
+                if (!isStructureError(si))
+                    for (int i = 0; i < si.pairCount(); i++) {
+                        int base = si.getBase(i);
+                        int pair = si.getPair(base);
+                        if (base != -1 && pair != -1) {
+                            s.breakBonds(base, pair);
+                            s.addBond(base, pair, BondType.Default);
+                        }
+                    }
+            ListIterator<Nuc> nucs = s.strands.first().listIterator();
+            while (nucs.hasNext()) {
+                if ("-".equals(nucs.next().symbol))
+                    nucs.remove();
+            }
+            DrawWindow f = AppActions.createEditorWindow(RnaSceneGroup.from(s));
+            f.redrawScene();
+            return true;
+        } catch (Exception ex) {
+            Dialogs.showWarning("Failed to create the drawing due to the following error: " + ex.toString(), "Error Creating Drawing");
+            return false;
+        }
+    }
+    private boolean checkErrors() {
+        if (!ObjTools.any(structure, this::isStructureError))
+            return true;
+        String[] options = new String[]{"Cancel (Continue Editing)", "Create Drawing (Ignore Errors)"};
+        int result = Dialogs.prompt("Errors exist in the structure notation. If you create the drawing now, only the valid structure elements will be used.\nYou can also click Cancel to continue editing the structure and attempt to correct the errors.\n\nPlease choose an action:", "Create Drawing, Despite Structure Errors?", options, options[0]);
+        return result == 1;
+    }
+
+    private void createUIComponents() {
+        // TODO: place custom component creation code here
+        txtSequence = new JWrapTextPane();
+        txtStructure = new JWrapTextPane();
+    }
+
+    private Style styleSeqDefault, styleStrDefault, styleStrInvalid, styleSeqPaired, styleStrSel;
+    private StyleContext createStyleContext() {
+        final Color colorErrorBG = new Color(0xFFCCCC), colorErrorFG = new Color(0x990000),
+                colorStrSelBG = new Color(0xCCCCFF), colorSeqPairedFG = new Color(0x0000FF),
+                colorStrFG = new Color(0x000066);
+
+        StyleContext sc = new StyleContext();
+
+        styleSeqDefault = sc.getStyle(StyleContext.DEFAULT_STYLE);
+        styleSeqDefault.addAttribute(StyleConstants.FontFamily, defaultFont.getFamily());
+        styleSeqDefault.addAttribute(StyleConstants.FontSize, defaultFont.getSize());
+
+        styleStrDefault = sc.addStyle("strDefault", styleSeqDefault);
+        styleStrDefault.addAttribute(StyleConstants.Foreground, colorStrFG);
+
+        styleStrInvalid = sc.addStyle("strError", styleStrDefault);
+        styleStrInvalid.addAttribute(StyleConstants.Background, colorErrorBG);
+        styleStrInvalid.addAttribute(StyleConstants.Foreground, colorErrorFG);
+
+        styleSeqPaired = sc.addStyle("seqPaired", styleSeqDefault);
+        styleSeqPaired.addAttribute(StyleConstants.Bold, true);
+        //styleSeqPaired.addAttribute(StyleConstants.Foreground, colorSeqPairedFG);
+        styleSeqPaired.addAttribute(StyleConstants.Background, colorStrSelBG);
+
+        styleStrSel = sc.addStyle("strSel", styleStrDefault);
+        styleStrSel.addAttribute(StyleConstants.Bold, true);
+        styleStrSel.addAttribute(StyleConstants.Background, colorStrSelBG);
+
+        return sc;
+    }
+
+//    private void UpdateSyntaxStyles() {
+//        UpdateSyntaxStyles(0, sequenceDoc.getLength());
+//    }
+//    private void UpdateSyntaxStyles(int offset, int length) {
+//        final boolean wasEdited = edited;
+//        try {
+//            length = Math.min(sequenceDoc.getLength(), length);
+//            offset = Math.max(offset, 0);
+//            char[] text = sequenceDoc.getText(offset, length).toCharArray();
+//            for (int i = 0; i < length; i++)
+//                setCharStyle(offset+i,getCharStyle(text[i]));
+//        } catch (Exception ex) {
+//            AppLog.getDefault().error("Error updating styles in sequence file.", ex);
+//        }
+//        if (!wasEdited) markEdited(false);
+//    }
+
+    private void setCharStyle(StyledDocument doc, int offset, int len, Style s) {
+//        if (len == 1) {
+//            if (!s.getName().equals(doc.getCharacterElement(offset).getAttributes().getAttribute(StyleConstants.NameAttribute)))
+//                doc.setCharacterAttributes(offset, len, s, true);
+//        } else
+        docUpdateListener.suspendUpdates();
+        try {
+            doc.setCharacterAttributes(offset, len, s, true);
+        } finally {
+            docUpdateListener.resumeUpdates();
+        }
+    }
+
+//    private Style getCharStyle(char c) {
+//        if (isInvalidSeqChar(c))
+//            return styleInvalidChar;
+//        else if (isUnpairedSeqChar(c))
+//            return styleUnpairedBase;
+//        else if (isUnspecifiedSeqChar(c))
+//            return styleUnspecifiedBase;
+//        else if (isIgnoredSeqChar(c))
+//            return styleIgnoredChar;
+//        return styleStandardBase;
+//    }
+
+
+    /*
+    import javax.swing.text.*;
+
+public class NoWrapParagraphView extends ParagraphView {
+    public NoWrapParagraphView(Element elem) {
+        super(elem);
+    }
+
+    public void layout(int width, int height) {
+        super.layout(Short.MAX_VALUE, height);
+    }
+
+    public float getMinimumSpan(int axis) {
+        return super.getPreferredSpan(axis);
+    }
+}
+
+package articles.wrap;
+
+import javax.swing.text.*;
+
+public class WrapLabelView extends LabelView {
+    public WrapLabelView(Element elem) {
+        super(elem);
+    }
+
+    public int getBreakWeight(int axis, float pos, float len) {
+        if (axis == View.X_AXIS) {
+            checkPainter();
+            int p0 = getStartOffset();
+            int p1 = getGlyphPainter().getBoundedPosition(this, p0, pos, len);
+            if (p1 == p0) {
+                // can't even fit a single character
+                return View.BadBreakWeight;
+            }
+            try {
+                //if the view contains line break char return forced break
+                if (getDocument().getText(p0, p1 - p0).indexOf("\r") >= 0) {
+                    return View.ForcedBreakWeight;
+                }
+            }
+            catch (BadLocationException ex) {
+                //should never happen
+            }
+        }
+        return super.getBreakWeight(axis, pos, len);
+    }
+
+    public View breakView(int axis, int p0, float pos, float len) {
+        if (axis == View.X_AXIS) {
+            checkPainter();
+            int p1 = getGlyphPainter().getBoundedPosition(this, p0, pos, len);
+            try {
+                //if the view contains line break char break the view
+                int index = getDocument().getText(p0, p1 - p0).indexOf("\r");
+                if (index >= 0) {
+                    GlyphView v = (GlyphView) createFragment(p0, p0 + index + 1);
+                    return v;
+                }
+            }
+            catch (BadLocationException ex) {
+                //should never happen
+            }
+        }
+        return super.breakView(axis, p0, pos, len);
+    }
+}
+
+package articles.wrap;
+
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.text.*;
+import java.awt.BorderLayout;
+
+public class WrapApp extends JFrame {
+    public static final String LINE_BREAK_ATTRIBUTE_NAME="line_break_attribute";
+    JEditorPane edit=new JEditorPane();
+    public WrapApp() {
+        super("Forsed wrap/no wrap example");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        edit.setEditorKit(new WrapEditorKit());
+        initKeyMap();
+
+        getContentPane().add(new JScrollPane(edit));
+        getContentPane().add(new JLabel("Press SHIFT+ENTER to insert line break."), BorderLayout.SOUTH);
+        setSize(300,200);
+        setLocationRelativeTo(null);
+    }
+
+    public static void main(String[] args) {
+        WrapApp m = new WrapApp();
+        m.setVisible(true);
+    }
+
+    protected void insertLineBreak() {
+        try {
+            int offs = edit.getCaretPosition();
+            Document doc = edit.getDocument();
+            SimpleAttributeSet attrs;
+            if (doc instanceof StyledDocument) {
+                attrs = new SimpleAttributeSet( ( (StyledDocument) doc).getCharacterElement(offs).getAttributes());
+            }
+            else {
+                attrs = new SimpleAttributeSet();
+            }
+            attrs.addAttribute(LINE_BREAK_ATTRIBUTE_NAME,Boolean.TRUE);
+            doc.insertString(offs, "\r", attrs);
+            edit.setCaretPosition(offs+1);
+        }
+        catch (BadLocationException ex) {
+            //should never happens
+            ex.printStackTrace();
+        }
+    }
+
+    protected void initKeyMap() {
+        Keymap kMap=edit.getKeymap();
+        Action a=new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                insertLineBreak();
+            }
+        };
+        kMap.addActionForKeyStroke(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,KeyEvent.SHIFT_MASK),a);
+    }
+}
+
+class WrapEditorKit extends StyledEditorKit {
+    ViewFactory defaultFactory=new WrapColumnFactory();
+    public ViewFactory getViewFactory() {
+        return defaultFactory;
+    }
+
+    public MutableAttributeSet getInputAttributes() {
+        MutableAttributeSet mAttrs=super.getInputAttributes();
+        mAttrs.removeAttribute(WrapApp.LINE_BREAK_ATTRIBUTE_NAME);
+        return mAttrs;
+    }
+}
+
+class WrapColumnFactory implements ViewFactory {
+    public View create(Element elem) {
+        String kind = elem.getName();
+        if (kind != null) {
+            if (kind.equals(AbstractDocument.ContentElementName)) {
+                return new WrapLabelView(elem);
+            } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
+                return new NoWrapParagraphView(elem);
+            } else if (kind.equals(AbstractDocument.SectionElementName)) {
+                return new BoxView(elem, View.Y_AXIS);
+            } else if (kind.equals(StyleConstants.ComponentElementName)) {
+                return new ComponentView(elem);
+            } else if (kind.equals(StyleConstants.IconElementName)) {
+                return new IconView(elem);
+            }
+        }
+
+        // default to text display
+        return new LabelView(elem);
+    }
+}
+     */
+}

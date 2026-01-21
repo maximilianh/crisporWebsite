@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Installation and Overview: Object Files</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Installation and Overview<br>Object Files</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<h2 class="leftHeader">A special note on object files</h2>
+						<p>When building the RNAstructure text interfaces and then the RNAstructure GUI back to back, incorrect object files may be incorporated in the second interface that is built.</p>
+						<p>That is, if the RNAstructure text interfaces are built first, an immediate build of the RNAstructure GUI may incorporate incorrect object files, and if the RNAstructure GUI is built first, an immediate build of the text interfaces may incorporate incorrect object files.</p>
+						<p>To eliminate any possible build or runtime errors stemming from this, use the Makefile in the RNAstructure/ directory and execute the command &quot;make clean&quot; after the first build is complete, so resources are made anew for the second build.</p>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,228 @@
+/*
+ * (c) 2009 Mathews Lab, University of Rochester Medical Center.
+ *
+ * This software is part of a group specifically designed for the RNAstructure
+ * secondary structure prediction program.
+ */
+
+package ur_rna.RNAstructureUI.windows;
+
+import ur_rna.RNAstructureUI.ui.ProgressPanel;
+import ur_rna.RNAstructureUI.ui.Dialogs;
+import ur_rna.RNAstructureUI.utilities.*;
+import ur_rna.Utilities.AppLog;
+import ur_rna.Utilities.ObjTools;
+
+import javax.swing.*;
+import javax.swing.Timer;
+import javax.swing.event.InternalFrameEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.*;
+
+/**
+ *
+ * @author Richard M. Watson
+ */
+public abstract class CalculationWindow
+	extends ChildWindow {
+	private static final long serialVersionUID = 20160122;
+	private static AppLog Log = AppLog.getDefault();
+
+	private final ArrayList<CalcInfo> runningCalcs = new ArrayList<>();
+
+	/**
+	 * Holds all information relevant for a calculation,
+	 * including UI (e.g. ProgressBar instances), calculation parameters/input,
+	 * and backend resources.
+	 */
+	protected static class CalcInfo {
+		public ProgressPanel progress;
+		public BackgroundWorker worker;
+		public CalcParams params;
+		protected boolean cleanupComplete; // only set to true once all work and cleanup tasks have been performed.
+		public void setCleanupComplete() {
+			cleanupComplete = true;
+//			if (backend != null)
+//				backend = null;
+//			if (worker != null && !worker.isDone())
+//				worker.cancel(false);
+//			progress = null;
+//			disposed = true;
+		}
+		public boolean isCleanupComplete() { return cleanupComplete; }
+
+		/**
+		 * Set to true if the calculation status is updated by the worker.
+		 * False if status is simply the default values (i.e. pending, started, done).
+		 */
+		public boolean isCustomStatus;
+		public CalcInfo(final BackgroundWorker worker) {
+			this.worker = worker;
+		}
+		public CalcInfo(final BackgroundWorker worker, final ProgressPanel pi) {
+			this.worker = worker; this.progress = pi;
+		}
+	}
+
+	/**
+	 * Constructor.
+	 */
+	public CalculationWindow() {}
+
+	/**
+	 * Constructor.
+	 *
+	 * @param title   The nucleic acid type.
+	 */
+	public CalculationWindow(String title) {
+		if (title != null) setTitle(title);
+	}
+
+//	/**
+//	 * Set the title of both this window and the main window.
+//	 *
+//	 * @param title   The new title.
+//	 */
+//	protected void setTitle( String title ) {
+//		setTitle(title);
+//		getMainWindow().setTitle("RNAstructure -- " + title);
+//	}
+
+	protected String defaultStatusMessage(SwingWorker.StateValue state) {
+		switch(state) {
+			case DONE: return "complete.";
+			case PENDING: return "pending...";
+			case STARTED: return "calculating...";
+		}
+		return "";
+	}
+
+	protected void updateCalcStatus(CalcInfo ci, String propertyName, Object old, Object current) {
+		if (this.isClosed) return;
+
+		BackgroundWorker worker = ci.worker;
+		ProgressPanel pi = ci.progress;
+
+		String status;
+		switch (propertyName) {
+			case "init":
+				status = worker.getStatus();
+				pi.setStatus(!ObjTools.isEmpty(status) ? status : defaultStatusMessage(worker.getState()),
+						ProgressPanel.StatusType.NORMAL);
+				if (worker.isProgressIndeterminate())
+					pi.setProgress(-1);
+				else
+					pi.setProgress(worker.getProgress());
+			case "status":
+				pi.setStatus(worker.getStatus());
+				break;
+			case "state":
+				status = worker.getStatus();
+				//Update the status, but only if it is not already set to a custom status message
+				//  (i.e. from within the BackgroundWorker)
+				//  Determine if the status is custom by comparing it with the
+				//  default status value for the previous state.
+				if (ObjTools.isEmpty(status) || status.equals(defaultStatusMessage((SwingWorker.StateValue)old)))
+					status = defaultStatusMessage((SwingWorker.StateValue)current);
+				pi.setStatus(status, ProgressPanel.StatusType.NORMAL);
+				break;
+			case "progress":
+				if (worker.isProgressIndeterminate())
+					pi.setProgress(-1);
+				else
+					pi.setProgress(worker.getProgress());
+				break;
+		}
+	}
+
+	public void startCalc(final String title, final BackgroundWorker worker) {
+		try {
+			final ProgressPanel pi = new ProgressPanel(title);
+			final CalcInfo ci = new CalcInfo(worker, pi);
+
+			updateCalcStatus(ci, "init", null, null);
+			worker.addPropertyChangeListener(
+					new PropertyChangeListener() {
+						@Override
+						public void propertyChange(final PropertyChangeEvent evt) {
+							String prop = evt.getPropertyName();
+							updateCalcStatus(ci, prop, evt.getOldValue(), evt.getNewValue());
+							if ("state".equals(prop) && evt.getNewValue() == SwingWorker.StateValue.DONE)
+								calcCompleted(ci);
+						}
+					}
+			);
+
+			runningCalcs.add(ci);
+			if (worker.getState() == SwingWorker.StateValue.PENDING)
+				worker.execute();
+		} catch (Exception ex) {
+			Log.error("Error in startCalc.", ex);
+			Dialogs.showError("Error in startCalc: " +  ex.getMessage());
+		}
+	}
+	protected void calcCompleted(final CalcInfo ci) {
+		if (ci.isCleanupComplete()) return;
+		runningCalcs.remove(ci);
+		BackgroundWorker w = ci.worker;
+		if (w != null) {
+			if (w.isCancelled())
+				ci.progress.setStatus("(Cancelled)", ProgressPanel.StatusType.WARN);
+			else if (w.hadErrors()) {
+				ci.progress.setStatusType(ProgressPanel.StatusType.ERROR);
+				handleCalculationError(ci);
+			} else
+				ci.progress.setStatusType(ProgressPanel.StatusType.SUCCESS);
+		}
+		if (ci.progress != null)
+			scheduleRemoveProgressPanel(ci.progress);
+		ci.setCleanupComplete();
+	}
+	private void scheduleRemoveProgressPanel(final ProgressPanel progress) {
+		Timer timer = new Timer(4000, new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				removeProgressPanel(progress);
+			}
+		});
+		timer.setRepeats(false);
+		timer.start();
+	}
+
+	protected void handleCalculationError(final CalcInfo ci) {
+		Dialogs.showError(ci.worker.getErrorMessages());
+	}
+
+	protected void addProgressPanel(final ProgressPanel progress) {
+
+	}
+	protected void removeProgressPanel(final ProgressPanel progress) {
+
+	}
+
+	/**
+	 * Invoked when an internal frame is in the process of being closed.
+	 * The close operation can be overridden at this point.
+	 *
+	 * @param e
+	 * @see JInternalFrame#setDefaultCloseOperation
+	 */
+	@Override
+	public void frameClosed(final InternalFrameEvent e) {
+		cancelRunningCalculations();
+		super.frameClosed(e);
+	}
+	protected void cancelRunningCalculations() {
+		CalcInfo[] calcs = runningCalcs.toArray(new CalcInfo[runningCalcs.size()]);
+		runningCalcs.clear();
+		for(CalcInfo ci : calcs)
+			cancelCalc(ci);
+	}
+	protected void cancelCalc(final CalcInfo ci) {
+		ci.worker.cancel(false);
+		calcCompleted(ci); //possibly called twice.
+	}
+}

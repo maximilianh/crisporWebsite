@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: oligoscreen</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					oligoscreen and oligoscreen-smp</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>oligoscreen is used to calculate folding free energy changes for formation of unimolecular, bimolecular, and duplex structures for a set of oligonucleotides. The duplex folding is always fro the oligonucleotide (either RNA or DNA) binding to an RNA target. oligoscreen-smp is a parallel processing version for use on multi-core computers, built using OpenMP.</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: oligoscreen &lt;list file&gt; &lt;report file&gt; [options]</h3>
+					  <h3>OR: oligoscreen-smp &lt;list file&gt; &lt;report file&gt; [options]</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;list file&gt;</td>
+								<td>The name of a <a href="File_Formats.html#List">list file</a> containing the oligos.</td>
+							</tr>
+							<tr>
+								<td class="cell">&lt;report file&gt;</td>
+								<td>The name of a report file to which output will be written. The report is tab-delimited and provides columns for the input sequence (Sequence), the bimolecular folding free energy change for two identical oligonucleotides interacting (DGbimolecular), the folding free energy change for unimolecular self-structure (DGunimolecular), the folding free energy change for duplex formation with the complementary sequence (DGduplex; where the complement is RNA), the cost of opening the two base pairs at the 5' end of the oligonucleotide in a duplex with the complementary sequence (DG2BPat5'), and the cost of opening the two base pairs at the 3' end of the oligonucleotide in a duplex with the complementary sequence (DG2BPat3'). Folding free energy changes are in kcal/mol.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-d, -D, --DNA</td>
+								<td>
+									Specify that the oligonucleotide sequences are DNA, and DNA parameters are to be used.
+									(Note that the target is always RNA.)<br>
+									Default is to use RNA parameters.
+								</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-t, -T, --temperature</td>
+								<td>
+									Specify the temperature at which calculation takes place in Kelvin.
+									<br>
+									Default is 310.15 K, which is 37 degrees C.
+								</td>
+							</tr>
+						</table>
+<h3 class="leftHeader">Notes for smp:</h3>
+      <p>oligoscreen-smp, by default, will use all available compute cores for processing. The number of cores used can be controlled by setting the OMP_NUM_THREADS environment variable.</p>
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Reuter, J.S. and Mathews, D.H.
+								<br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Matveeva, O.V., Mathews, D.H., Tsodikov, A.D., Shabalina, S.A., Gesteland, R.F., Atkins, J.F. and Freier, S.M.
+								<br>
+								&quot;Thermodynamic criteria for high hit rate antisense oligonucleotide design.&quot;
+								<br>
+								<i>Nucleic Acids Res.</i>, 31:4989-4994.(2003).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

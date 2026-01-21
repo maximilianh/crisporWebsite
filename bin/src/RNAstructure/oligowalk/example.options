@@ -1,0 +1,45 @@
+#Set the output files
+#########################################################
+#output file storing free energy table
+energy = example.energy
+#output file storing siRNA candidates' positions and sequences
+siRNA = example.siRNA
+
+
+
+#Folding size of the target
+########################################################## 
+#recommend 800 if the sequence lengh is larger than 800; 0 means whole length of target
+foldsize = 0
+
+
+#The following options influence the type of calculation being performed
+#These are optimized for siRNA design and should only be changed for experimentation
+##########################################################
+#oligonucleotide's type -- r(default): RNA; d: DNA
+type = r    
+#Folding mode -- 
+#	1: break local target structure to bind oligo; 
+#	2(default): refold target RNA after oligo binding; 
+#	3: no target structure considered
+mode = 2	
+#Folding method -- 
+#	0: only consider optimal structure; 
+#	1: (deprecated);
+#	2(default): using partition funcion considering every possible structure  of target, can only used with mode 2; 
+#	3: using suboptimal structures (suboptimal structures generared with heuristic) 
+option = 2  
+#start position of scanning on target
+scanstart = 1 
+#stop position of scanning on target (0 means scanning until the end of the sequence)
+scanstop = 0  
+# length of siRNA , default is 19
+length = 19  
+# concentration of oligonucleotide is concentration*10^unit Molar
+concentration 1
+unit = -7
+#prefilter the unfunctional siRNA candidates
+prefilter = 1
+#score threshhold for prefiltering
+score = 6   #cannot be re-defined yet
+

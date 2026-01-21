@@ -1,0 +1,88 @@
+RNAstructure OligoWalk calculation:
+--------------------------------------------------------------------------------
+Target sequence: RA7680
+Total size of the target: 76 nucleotides
+Scanned position on target: 1 to 67 (nt)
+
+Oligonucleotides:
+    Type:  RNA
+    Length: 10
+    Concentration: 1e-05 M
+
+Method options:
+    Mode: Refold target structure after oligo binding.
+    Folding region size: (Global Target Region)
+    Suboptimal: None -- Only one (optimal) structure was considered.
+--------------------------------------------------------------------------------
+
+Energy table:
+
+Pos.	Oligo(5'->3')	Overall (kcal/mol)	Duplex (kcal/mol)	Tm-Dup (degC)	Break-Target (kcal/mol)	Intra-oligo (kcal/mol)	Inter-oligo (kcal/mol)	
+1	CUACGCCCCC	-14.2	-20.5	82	-6.3	0	-1.5	
+2	GCUACGCCCC	-14.3	-20.6	82	-6.3	0	-2.3	
+3	AGCUACGCCC	-12.6	-18.9	78.9	-6.3	0	-3.9	
+4	GAGCUACGCC	-11.4	-18.5	75.8	-7.1	0	-4.7	
+5	UGAGCUACGC	-9.7	-16.8	72.2	-7.1	0	-4.7	
+6	CUGAGCUACG	-8.9	-16	68.8	-7.1	0	-4.7	
+7	UCUGAGCUAC	-9.1	-15.5	67.7	-6.4	0	-4.7	
+8	AUCUGAGCUA	-8	-13.9	63.2	-5.9	0	-4.7	
+9	CAUCUGAGCU	-9.9	-15.2	65.8	-5.3	0	-3.3	
+10	CCAUCUGAGC	-11.6	-16.9	69.7	-5.3	0	-1.8	
+11	ACCAUCUGAG	-9.9	-15.2	65.8	-5.3	0	-1	
+12	UACCAUCUGA	-8.7	-13.9	63.1	-5.2	0	-0.7	
+13	CUACCAUCUG	-9.9	-14.6	64	-4.7	0	0	
+14	UCUACCAUCU	-9.7	-13.9	63.3	-4.2	0	0	
+15	CUCUACCAUC	-10.7	-14.9	64.4	-4.2	0	0	
+16	GCUCUACCAU	-10.2	-15.4	67.6	-5.2	0	-1.7	
+17	CGCUCUACCA	-10.1	-16.7	72	-6.6	0	-2.1	
+18	GCGCUCUACC	-11.2	-18.5	75.8	-6.6	0	-7.5	
+19	AGCGCUCUAC	-9.7	-16.8	72.3	-6.1	0	-8.5	
+20	GAGCGCUCUA	-6	-17	72.1	-6.1	0	-16.5	
+21	CGAGCGCUCU	-6.9	-18.1	74.8	-6.1	0	-16.9	
+22	GCGAGCGCUC	-11	-19.9	78.1	-4.9	-0.5	-14.7	
+23	AGCGAGCGCU	-11.1	-18.6	78.1	-4.9	-0.9	-12	
+24	AAGCGAGCGC	-10.5	-17.9	75.1	-6.1	0	-9.2	
+25	CAAGCGAGCG	-10.5	-17.1	71.7	-6.1	0	-6.8	
+26	CCAAGCGAGC	-11.9	-18	74.2	-6.1	0	-3.8	
+27	GCCAAGCGAG	-11.1	-18	74.2	-6.9	0	-4.1	
+28	CGCCAAGCGA	-9.3	-17.8	74.8	-6.9	-1.5	-7.7	
+29	ACGCCAAGCG	-10.5	-17.6	75	-6.1	-0.9	-6.5	
+30	CACGCCAAGC	-13.3	-17.8	74.2	-4.5	0	-1.5	
+31	ACACGCCAAG	-11.6	-16.1	70.6	-4.5	0	-1.5	
+32	CACACGCCAA	-11.6	-16.1	70.4	-4.5	0	-1.5	
+33	UCACACGCCA	-12.6	-17.1	73.6	-4.5	0	-1.5	
+34	CUCACACGCC	-12.2	-18.1	74.1	-5.9	0	-1.5	
+35	UCUCACACGC	-9.7	-16.7	70.7	-7	0	-0.5	
+36	CUCUCACACG	-8.9	-15.9	67.3	-7	0	0	
+37	CCUCUCACAC	-10.9	-16.8	70	-5.9	0	0	
+38	ACCUCUCACA	-10.5	-15.8	69.2	-5.3	0	0	
+39	UACCUCUCAC	-10.2	-15.5	67.8	-5.3	0	0	
+40	GUACCUCUCA	-8.8	-15.5	67.8	-6.7	0	-3.2	
+41	GGUACCUCUC	-8	-17.2	71.7	-7.3	0	-10.6	
+42	CGGUACCUCU	-5.2	-16.7	72.2	-9.4	0	-11	
+43	CCGGUACCUC	-6.9	-18.4	75.8	-9.4	0	-11	
+44	CCCGGUACCU	-9.1	-18.8	79	-7.6	0	-11	
+45	UCCCGGUACC	-10.4	-19.1	79	-7.6	0	-8.8	
+46	AUCCCGGUAC	-8.8	-16.9	72.2	-7.6	0	-6.9	
+47	GAUCCCGGUA	-9	-17.1	72	-7.6	0	-6.9	
+48	CGAUCCCGGU	-11.3	-18.2	74.7	-6.4	0	-6.9	
+49	UCGAUCCCGG	-13.3	-18.4	74.5	-5.1	0	-5.5	
+50	AUCGAUCCCG	-9.8	-16.2	67.8	-6.4	0	-4.5	
+51	UAUCGAUCCC	-7.5	-15.1	65	-7.6	0	-5.3	
+52	GUAUCGAUCC	-7.7	-14.5	62.3	-6.8	0	-5.3	
+53	GGUAUCGAUC	-7.2	-14.5	62.3	-6.8	0	-6.4	
+54	GGGUAUCGAU	-6.8	-14.9	65	-7.6	0	-6.4	
+55	CGGGUAUCGA	-8.1	-16.2	69.4	-7.6	0	-6.4	
+56	CCGGGUAUCG	-6.6	-17.6	73	-10.3	0	-7.5	
+57	GCCGGGUAUC	-6	-18.6	75.6	-11.2	0	-9.3	
+58	CGCCGGGUAU	-2.2	-18.1	76.3	-14.4	0	-9.5	
+59	GCGCCGGGUA	-2.7	-20.4	83	-16.2	0	-9.5	
+60	GGCGCCGGGU	-2	-22.4	87.5	-16.2	0	-15.1	
+61	AGGCGCCGGG	-0.7	-22.3	87.4	-17.4	0	-15.1	
+62	GAGGCGCCGG	-0.3	-21.9	84.1	-17.4	0	-15.1	
+63	GGAGGCGCCG	-2.8	-21.9	84.1	-14.9	-0.6	-15.1	
+64	UGGAGGCGCC	-3.5	-21.1	83.3	-14.9	0	-12.1	
+65	GUGGAGGCGC	-5.4	-20.5	80.4	-14.4	-0.5	-5.1	
+66	GGUGGAGGCG	-9.4	-20.4	80.4	-11	0	-2.7	
+67	UGGUGGAGGC	-8.6	-19.6	79.5	-11	0	0	
+

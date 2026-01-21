@@ -1,0 +1,11 @@
+You can safely delete the .sdf file and the ipch folder.
+
+More information:
+The sdf stores intellisense information. Visual Studio will rebuild it the next time the solution is opened.
+The ipch folder stores precompiled headers, which are created when building the project. (They are removed and rebuilt during a clean build).
+
+You can also stop VS from putting sdf files in the project folder in the first place. 
+(Useful if you are using source control, or if you store your project on a small volume like a USB and you don't want those large files stored in the same folder)
+
+Go to Tools -> Options -> Text Editor -> C/C++ -> Advanced
+In the "Fallback Location", set "Always Use Fallback Location" to True and "Do Not Warn If Fallback Location Used" to True. In "Fallback Location" you can either put a path like C:\Temp or if you leave it blank then VS will use the temporary directory in your AppData folder.

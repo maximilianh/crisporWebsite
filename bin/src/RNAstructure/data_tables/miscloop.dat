@@ -1,0 +1,62 @@
+Miscellaneous free energy rules
+-------------------------------
+
+Extrapolation for large loops based on polymer theory
+internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30)
+--> 
+1.079
+
+asymmetric internal loops: the ninio equation
+the maximum correction
+--> 
+3.0
+
+the f(m) array (see Ninio for details)
+-->
+ .6  .6  .6  .6
+
+multibranched loops
+  offset,  per nuc penalty,  helix penalty
+--> 
+    9.3          -.0                 -0.6
+
+efn2 multibranched loops
+   offset,  per nuc penalty,  helix penalty
+-->
+     9.3         0.0              -0.6
+
+multiloop asym
+-->
+0.9
+
+multiloop strain
+--> 
+3.1
+
+terminal AU penalty
+--> 
+ 0.5
+
+bonus for GGG hairpin
+--> 
+-2.2
+
+c hairpin slope
+--> 
+0.3
+
+c hairpin intercept
+--> 
+1.6
+
+c hairpin of 3
+--> 
+1.5
+
+Intermolecular initiation free energy
+--> 
+4.1
+
+Bonus for Single C bulges adjacent to C
+-->
+-0.9

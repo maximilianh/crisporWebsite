@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="ur_rna.RNAstructureUI.windows.PredictionResultsWindow">
+  <grid id="27dc6" binding="pnlContent" layout-manager="GridBagLayout">
+    <constraints>
+      <xy x="20" y="20" width="661" height="309"/>
+    </constraints>
+    <properties>
+      <preferredSize width="700" height="500"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <component id="ae625" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <font size="14" style="1"/>
+          <text value="Results of Structure Prediction Calculation"/>
+        </properties>
+      </component>
+      <component id="612e6" class="javax.swing.JLabel" binding="lblResults">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="10" left="0" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="Structure Prediction completed successfully and the following files were produced:"/>
+        </properties>
+      </component>
+      <component id="a541f" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="3" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag top="10" left="0" bottom="0" right="0" weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="&lt;html&gt;Additionally, the following &lt;b&gt;drawings and plots&lt;/b&gt; can be produced with the results:"/>
+        </properties>
+      </component>
+      <grid id="df95c" binding="pnlDrawings" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="4" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <gridbag top="0" left="10" bottom="0" right="0" weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <autoscrolls value="true"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="6d4b0" class="javax.swing.JButton">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="MFE (Fold) Structure + Probabilities"/>
+            </properties>
+          </component>
+          <component id="55ecc" class="javax.swing.JButton">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="MFE (Fold) Structure + Probabilities"/>
+            </properties>
+          </component>
+          <component id="3460b" class="javax.swing.JButton">
+            <constraints>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="MFE (Fold) Structure + Probabilities"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <component id="499c2" class="javax.swing.JButton" binding="btnClose">
+        <constraints>
+          <grid row="7" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag top="5" left="0" bottom="5" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="Close    (Done Generating Drawings)"/>
+        </properties>
+      </component>
+      <component id="8f18b" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="5" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag top="10" left="0" bottom="0" right="0" weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="The drawings listed above can only be automatically generated while this window is open."/>
+        </properties>
+      </component>
+      <component id="cdff5" class="javax.swing.JLabel">
+        <constraints>
+          <grid row="6" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="&lt;html&gt;Once you close it, you can make similar drawings using the &lt;b&gt; Draw &lt;/b&gt; and &lt;b&gt; Draw Dot Plot &lt;/b&gt; commands on the &lt;b&gt; File &lt;/b&gt; menu. SHAPE or Probability colorization can be added to structures using the &lt;b&gt; Annotations &lt;/b&gt; menu."/>
+        </properties>
+      </component>
+      <component id="e35f3" class="javax.swing.JButton" binding="btnShowAbbreviations">
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="0.0" weighty="0.0"/>
+        </constraints>
+        <properties>
+          <text value="Abbreviations..."/>
+        </properties>
+      </component>
+      <grid id="6de46" binding="pnlFiles" layout-manager="GridBagLayout">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <gridbag weightx="1.0" weighty="0.0"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="70840" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag top="2" left="3" bottom="2" right="4" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="&lt;FILE&gt;"/>
+            </properties>
+          </component>
+          <component id="13d53" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="2" left="3" bottom="2" right="4" weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="&lt;DESCRIPTION&gt;"/>
+            </properties>
+          </component>
+          <component id="1d1fa" class="javax.swing.JLabel" binding="lblFile">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag top="2" left="3" bottom="2" right="4" weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <font style="1"/>
+              <foreground color="-14667710"/>
+              <text value="p450_MaxExpect.ct"/>
+            </properties>
+          </component>
+          <component id="dc0d4" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag top="2" left="3" bottom="2" right="4" weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="MEA structure prediction"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>

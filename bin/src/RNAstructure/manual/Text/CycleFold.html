@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: Fold</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td width="173" class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td width="460" class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					CycleFold</h2></td>
+					<td width="279" class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>CycleFold predicts both canonical and non-canonical base pairs using nucleotide cyclic motifs (Parisien &amp; Major, 2008). It predicts either lowest free energy structures or base pairing probabilities.</p>
+						<p>By default, the minimum free energy structure is predicted. The options, below, can change the behavior to predicting base pair probabilities or using predicted base pair probabilities to predict the maximum expected accuracy structure. If multiple sequences are entered, the TurboFold mode can also be specified. All output is to standard out.</p>
+						<p>CycleFold requires the environment variable, CYCLEFOLD_DATAPATH, be set to the location of the datatables, which reside in RNAstructure/CycleFold/datafiles.</p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: CycleFold &lt;seq file&gt; [options] </h3>
+						<h3>&nbsp;</h3>
+
+						<h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;seq file&gt;</td>
+								<td>
+									The name of a fasta file that contains the sequence.
+									<br></td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+							  <td class="cell">-b, -B, --bigloops</td>
+							  <td>Allow large internal  loops or hairpin loops, whose energies are not tabulated in the NCM model. This  is sometimes necessary for structure calculations with constraints (-c or -ct  opions).</td>
+						  </tr>
+							<tr>
+								<td class="cell">-fc, -FC, --fastaConstraints</td>
+								<td> Specify that the input fasta file contains secondary structure constraints (in dot-bracket format) to be applied to each structure.<br>
+Default: off.</td>
+							</tr>
+							<tr>
+								<td class="cell">-h, -H, --help</td>
+								<td>Display the usage details message.</td>
+							</tr>
+							<tr>
+							  <td class="cell">-m, -M, --maxExpect</td>
+							  <td>Specify that a MaxExpect calculation should be performed. (This predicts a structure composed of probable base pairs.)</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-p, -P, --partitionfunction</td>
+							  <td>Specify that pair probabilities should be printed.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-s, -S, --seqFormat</td>
+							  <td>Switch the expected input from FASTA to <a href="File_Formats.html#Sequence">.seq format.</a><br></td>
+						  </tr>
+							<tr>
+							  <td class="cell">-t, -T, --turbo</td>
+							  <td>Specify that a TurboFold calculation should be performed.  TurboFold writes all  of the structures or pair probability tables, with their labels, in the order  that they were provided.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-u, -U, --unpairingConstraints</td>
+							  <td>Toggle whether restraints should be treated as unpairing constraints.<br>
+Default: off.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-v, -V, --version</td>
+							  <td>Display the version and copyright information.</td>
+						  </tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-c, -C, --constraintFile</td>
+								<td>
+									<p>Specify a constraint file to be applied (in <a href="File_Formats.html#Constraint">constraint file format</a>).<br>
+								Default is to have no constraints applied.						        </p></td>
+							</tr>
+							<tr>
+							  <td class="cell">-ct, -CT, --constrainCt</td>
+							  <td> Specify a constraint file to be applied (in ct format).<br></td>
+						  </tr>
+							<tr>
+							  <td class="cell">-g, -G, --gamma</td>
+							  <td> Set gamma, the weighting parameter for extrinsic information in the<br>
+turbo calculation. The default is 0.6.<br></td>
+						  </tr>
+							<tr>
+							  <td class="cell">-i, -I, --iterations</td>
+							  <td> Set the number of iterations for the turbo calculation. The default is 2.<br></td>
+						  </tr>
+						</table>
+				      <p>&nbsp;</p>
+				      <h3>Note: </h3>
+				      <p>Unlike most other programs in RNAstructure, lowercase nucleotides are allowed to base pair.</p>
+				      <p>In the default mode, which predicts the lowest free energy structure, the text output is in the <a href="File_Formats.html#CT">CT format</a>.</p>
+				      <p>For MaxExpect predictions of structure (-m, -M, --maxExpect), the text output is in the <a href="File_Formats.html#CT">CT format</a>.</p>
+				      <p>For base pair probability predictions (-p, -P, --partitionfunction), the text output is a tab-delimited matrix of pair probabilities.</p>
+				      <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">
+								Sloma, M.F. and Mathews, D.H.
+                                  <br>
+&quot;Base pair probability estimates improve the prediction accuracy of RNA non-canonical base pairs.&quot; <br>
+<em>PLoS Computational Biology</em>, 13: e1005827. (2017).</li>
+							<li class="gapListItem">Reuter, J.S. and Mathews, D.H. <br>
+&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot; <br>
+<i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+							<li class="gapListItem">Parisien, M. and Major, F.
+                            <br>
+                            &quot;The MC-Fold and MC-Sym pipeline infers RNA structure from sequence data.&quot;
+                            <br>
+                            <em>Nature</em>, 452: 51-55.  (2008). </li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

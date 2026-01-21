@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>RNAstructure Command Line Help: efn2</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure Command Line Help<br>
+					probscan</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<p>ProbScan calculates the exact probability of features in a structure. Output is written to standard out. </p>
+
+						<a name="Usage" id="Usage"></a>
+					  <h3>USAGE: ProbScan &lt;input file&gt; [options]					  </h3>
+					  <h3 class="leftHeader">Required parameters:</h3>
+						<table>
+							<tr>
+								<td class="cell">&lt;input file&gt;</td>
+								<td>This is a sequence file (<a href="File_Formats.html">.seq or FASTA format</a>) or <a href="partition.html">partition function save file</a>. The default is a partition function save file, the -s flag (below) is used to specify a sequence. The partition function will need to be calculated, so it is faster to use the partition function save file.</td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that do not require added values:</h3>
+						<table>
+							<tr>
+								<td class="cell">-a -A --hairpin</td>
+								<td>Print probabilities for all possible hairpin loops.<br></td>
+							</tr>
+							<tr>
+								<td class="cell">-b -B --bulge<br></td>
+								<td>Print probabilities for all possible bulge loops.</td>
+							</tr>
+							<tr>
+								<td class="cell">-d -D --DNA<br></td>
+								<td><p>Specify that the sequence is DNA, and DNA parameters are to be used.  Default is to use RNA parameters. This only has any effect if a sequence is read and -s is specified.</p>
+							    <p></p></td>
+							</tr>
+							<tr>
+							  <td class="cell">-h -H --help</td>
+							  <td>Display the usage details message.<br></td>
+						  </tr>
+							<tr>
+							  <td class="cell">--i -I --internal</td>
+							  <td>Print probabilities for all possible internal loops.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">--scientific</td>
+							  <td>Display probabilities in scientific notation rather than the default of three digits to the right of the decimal point. This is helpful when the threshold is lowered (see --threshold).</td>
+						  </tr>
+							<tr>
+							  <td class="cell">-s -S --sequence<br></td>
+							  <td>Provide a sequence file. Partition function will be calculated (may take a while); if you're going to query the same sequence repeatedly, you could save a lot of time by running from a partition function save file produced by the <a href="partition.html">'partition</a>' program.<br></td>
+						  </tr>
+							<tr>
+								<td class="cell">-v -V --version<br>								  <br></td>
+								<td>Display version and copyright information for this interface.<br></td>
+							</tr>
+						</table>
+
+						<h3 class="leftHeader">Options that require added values:</h3>
+						<table>
+							<tr>
+							  <td class="cell">--alphabet</td>
+							  <td> Specify the name of a folding alphabet and associated nearest neighbor parameters. The alphabet is the prefix for the thermodynamic parameter files, e.g. &quot;rna&quot; for RNA parameters or &quot;dna&quot; for DNA parameters or a custom extended/modified alphabet. The thermodynamic parameters need to reside in the at the location indicated by environment variable DATAPATH. The default is &quot;rna&quot; (i.e. use RNA parameters). This option overrides the --DNA flag.</td>
+						  </tr>
+							<tr>
+								<td class="cell">-e -E --helix<br></td>
+								<td>Print probabilities for all possible helices with this number of base pair stacks. To get single base pair stacks, use -e 1.<br></td>
+							</tr>
+							<tr>
+								<td class="cell">-m -M --multibranch<br></td>
+								<td>Provide a file with a list multibranch loops, one multibranch loop per line. Each line should contain a tag followed by a list of pairs where the indices of the pair are separated by a dash and each pair is separated by a tab character; e.g. &quot;loop1	20-40	22-30	32-39&quot; These multibranch loops' probabilities will be checked.<br></td>
+							</tr>
+							<tr>
+							  <td class="cell">-p -P --pairs</td>
+							  <td>Calculate probability for a user-specified loop.  The loop must be provided as a set of pairs of nucleotide indices (1-indexed), where the nucs in the pair are delimited by dashes and each pair is delimited by a comma; eg '-e 5-20' will show the probability of a hairpin loop closed by a pair between nucleotides 5 and 20, and '-e 10-120,15-70,75-110' will give the probability of a three-way junction where the exiting helices are closed by pairs at 10-120, 15-70, and 75-110.</td>
+						  </tr>
+							<tr>
+							  <td class="cell">--stemloop</td>
+							  <td>Calculate the probability of a stem-loop. The closing pair and the first pair of the stem are specified. All pairs will be required between the closing pair and the first pair of the stem loop. For example '--stemloop 100-108,96-112' will calculate the probability of a hairpin loop closed by the pairs 100-108, 99-109, 98-110, 97-111, and 96-112, i.e. a stem loop with 6 pairs and 7 unpaired nucleotides.</td>
+						  </tr>
+							<tr>
+								<td class="cell">-t -T --threshold</td>
+								<td>The modes that find all possible loops of a given type (-a, -b, -i; above) require a loop to exceed a probability threshold to be included in the output. By default, the threshold is 0.01. This parameters is used to override this value. If this threshold is lowered, it is helpful to change the output probability notation to scientific with --scientific.</td>
+							</tr>
+						</table>
+<h3 class="leftHeader">&nbsp;</h3>
+						<h3 class="leftHeader"><a name="Refs" id="Refs">References:</a></h3>
+						<ol class="noListTopMargin">
+							<li class="gapListItem">Sloma, M.F. and Mathews, D.H. <br>
+						    &quot;Exact calculation of loop formation probability identifies folding motifs in RNA secondary structures.&quot;<br>
+                          <em>RNA</em>. 22:1808-1818. (2016). </li>
+							<li class="gapListItem">Reuter, J.S. and Mathews, D.H. <br>
+								&quot;RNAstructure: software for RNA secondary structure prediction and analysis.&quot;
+								<br>
+								<i>BMC Bioinformatics</i>, 11:129. (2010).
+							</li>
+							<li class="gapListItem">
+								Mathews, D.H., Sabina, J., Zuker, M. and Turner, D.H.
+								<br>
+								&quot;Expanded sequence dependence of thermodynamic parameters provides improved prediction of RNA secondary structure.&quot;
+								<br>
+								<i>J. Mol. Biol.</i>, 288:911-940. (1999).
+							</li>
+						</ol>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

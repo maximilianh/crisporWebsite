@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: partition</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                SymmetryTester</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>SymmetryTester tests the symmetries in the helical stack parameters, the 1×1 internal loop parameters, and the 2×2 internal loop parameters. These symmetries ensure that a motif has the same folding free energy change when the top and bottom strands are switched (and the correct 5' to 3' strand orientation is respected). The programs <a href="Fold.html">Fold</a>, <a href="partition.html">partition</a>, <a href="dynalign.html">Dynalign</a>, and <a href="multilign.html">Multilign</a>, for example, require that these symmetries are correct. They do not check the symmetries.</p>
+              <p>The output is to stdout and stderr.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: SymmetryTester [options]              </h3>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-a, -A, --alphabet</td>
+                    <td>Specify the name of a folding alphabet and
+                      associated nearest neighbor parameters. The alphabet is
+                      the prefix for the thermodynamic parameter files, e.g.
+                      "rna" for RNA parameters or "dna" for DNA parameters or a
+                      custom extended/modified alphabet. The thermodynamic
+                      parameters need to reside in the at the location indicated
+                      by environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes:</h3>
+              <p>The tables that are checked are alphabet.stack.dg, alphabet.int11.dg, and alphabet.int22.dg. The output indicates motifs that have different free energy values for the symmetric motif and the energies that appear for the motif (multiplied by a factor of ten to make them integer values).</p>
+              <h3 class="leftHeader"><a name="Refs" id="Refs">References</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

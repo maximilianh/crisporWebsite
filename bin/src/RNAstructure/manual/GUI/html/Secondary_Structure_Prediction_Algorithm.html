@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<title>RNAstructure GUI Help -- Secondary Structure Prediction Algorithm</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<link href="Stylesheet.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="bodydiv">
+			<table cellpadding="0" cellspacing="0" border="0" class="mainTable">
+				<tr class="headerRow">
+					<td class="headerBox"><img src="../images/icon.jpg" alt="RNAstructure logo"></td>
+					<td class="headerLabel"><h2>RNAstructure GUI Help<br>Secondary Structure Prediction Algorithm</h2></td>
+					<td class="headerBox2">
+						<ul id="navigator">
+							<li><h3 class="noMarginOrPad"><a href="Contents.html">Contents</a></h3></li>
+							<li><h3 class="noMarginOrPad"><a href="Index.html">Index</a></h3></li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="mainContent" colspan="3">
+						<div>
+							<h3>Description of the Secondary Structure Prediction Algorithm</h3>
+							<p>The &quot;Fold RNA/DNA Single Strand&quot; prediction of a secondary structure is based on Zuker's algorithm for free energy minimization, using the <a href="http://rna.urmc.rochester.edu/NNDB/">nearest neighbor parameters</a> of Doug Turner and co-workers. A recursive algorithm is used that generates an optimal structure and a series of alternate structures.</p>
+							<p>These alternate structures are called suboptimal structures, defined as structures with free energy similar to the lowest free energy (optimal) structure. The number of suboptimal structures generated is controlled by two parameters: the maximum number of structures to be generated and % sort.</p>
+							<p>A third parameter, window size, may also be used. This controls how different the suboptimal structures must be from each other. A small window size allows generation of very similar structures, while a larger window size generates relatively more diverse structures.</p>
+							<p>For more details, see the description of the module &quot;<a href="Fold.html">Fold</a>.&quot;</p>
+							<p>Several alternative methods are also available for predicting secondary structures, including <a href="Maximum_Expected_Accuracy.html">maximum expected accuracy (MEA)</a> structure prediction, <a href="ProbKnot.html">ProbKnot</a>, which can predict pseudoknotted pairs, and <a href="Stochastic_Sampling.html">stochastic sampling</a>.</p>
+							<hr>
+						</div>
+
+						<div>
+							<h3><b><a name="Accuracy" id="Accuracy">Accuracy</a></b></h3>
+							<p>A recent report (Mathews et al, see <a href="References.html">References</a>) examined the accuracy of this method by comparing predictions to structures determined by comparative sequence analysis. When domains of less than 700 nucleotides were used, the algorithm was able to correctly predict 73% of base pairs from a database of 151,503 nucleotides containing small subunit rRNAs, large subunit rRNAs, group I introns, group II introns, RNase P RNA, SRP RNA, and tRNAs.</p>
+							<p>Accuracy can be dramatically improved by using constraints or restraints determined using experimental data. Alternatively, predicting a secondary structure common to multiple sequences improves the accuracy. For two sequences, this is done with <a href="Dynalign.html">Dynalign</a>. For more than two sequences, this is done with <a href="Multilign.html">Multilign</a>.</p>
+							<hr>
+						</div>
+
+						<div>
+							<h3><b><a name="Precision" id="Precision">Precision</a></b></h3>
+							<p>Within a small increment of free energy of the lowest structure, there can be many alternative structures for a helix appearing in the suboptimal structures. A dot plot can show how well defined a region of structure is. (See &quot;<a href="Dot_Plot.html">Dot Plot</a>.&quot;) <a href="Partition_Function.html">Partition function</a> predictions of base pairing probabilities provide specific details and structures can be color-annotated using pairing probabilities.</p>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td class="footer" colspan="3">
+						<p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The Mathews Lab RNAstructure Page</a> for updates and latest information.</p>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

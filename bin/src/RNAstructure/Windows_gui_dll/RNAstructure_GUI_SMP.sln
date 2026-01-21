@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RNAstructure_GUI_SMP", "RNAstructure_GUI_SMP.vcxproj", "{F1A53758-78D1-423A-93F2-E10FA7A78370}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Debug|Win32.Build.0 = Debug|Win32
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Debug|x64.ActiveCfg = Debug|x64
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Debug|x64.Build.0 = Debug|x64
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Release|Win32.ActiveCfg = Release|Win32
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Release|Win32.Build.0 = Release|Win32
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Release|x64.ActiveCfg = Release|x64
+		{F1A53758-78D1-423A-93F2-E10FA7A78370}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: efn2</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                ETEcalculator</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>ETEcalculator is used to estimate the end-to-end distance of a sequence. By default, tt generates a <a href="stochastic.html">stochastic</a> sample for an input sequence and then uses polymer physics to estimate the end-to-end distance in nanometers.  The program can alternatively read a set of structures in ct format for which to estimate the end-to-end distance. ETEcalculator-smp is the parallel version built using OpenMP.
+                <a name="Usage" id="Usage"></a>              </p>
+              <h3>USAGE: ETEcalculator &lt;sequence file&gt; [options]              </h3>
+              <h3>OR</h3>
+              <h3>ETEcalculator-smp &lt;sequence file&gt; [options] </h3>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;seq file&gt; or &lt;ct file&gt;</td>
+                    <td><p>Default: The name of a <a href="File_Formats.html#Sequence">sequence
+                        file</a> containing input data. Note that lowercase nucleotides are forced single-stranded
+                    in structure prediction. </p>
+                    <p>The default can be changed to the name of a <a href="File_Formats.html#CT">ct file</a> by means of the --ct parameter.</p></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">--ct</td>
+                    <td>Specify that the input file name is the name of a ct file that contains structures. The default is to expect the name of a sequence.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-h, -H, --help</td>
+                    <td>Display the usage details message.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-r, --raw</td>
+                    <td>Output just the mean end-to-end distamce in nanometers. The default is to make output that is more verbose.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v -V --version</td>
+                    <td>Display version and copyright information for this
+                      interface.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-a, -A, --alphabet</td>
+                    <td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-c -C --constraint</td>
+                    <td>Specify a folding <a href="File_Formats.html">constraints file</a> to be applied.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-f, --file</td>
+                    <td>Specify a filename to which the results will be written. The default is to write the output to STDOUT.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-n, --number</td>
+                    <td>Specify the size of the stochastic sample. The default is to use 1000 structures.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-s, -S, --seed</td>
+                    <td>Specify the random number seed. The default seed is 1234.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes for smp:</h3>
+              <p>ETEcalculator-smp, by default, will use all available compute cores for
+                processing. The number of cores used can be controlled by
+                setting the OMP_NUM_THREADS environment variable.</p>
+              <p>&nbsp;</p>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem">Lai, W.C., Kayedkhordeh, M., Cornell, E.V., Farah, E., Bellaousov, S., Rietmeijer, R., Mathews, D.H., and Ermolenko, D.N.<br>
+  &quot;mRNAs and lncRNAs intrinsically form secondary structures with short end-to-end distances.&quot;<br>
+  <em>Nature Communications</em>. 9: 4328.(2018). </li>
+                <li class="gapListItem">Aalberts, D.P.and Nandagopa, N.<br>
+                  &quot;A two length scale polymer theory for RNA loop free energies and helix stacking.&quot;<br>
+                  <em>RNA</em>, 16: 1350–1355 (2010).</li>
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+              </ol>
+              <ol class="noListTopMargin">
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

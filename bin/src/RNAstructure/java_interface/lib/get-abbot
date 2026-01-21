@@ -1,0 +1,115 @@
+################################################################################
+# The RNAstructure GUI test program (GUITester) uses the Abbot Java GUI Test 
+# Framework written by Timothy Wall. Abbot is provided under the Eclipse Public 
+# License (EPL) and can be obtained from its SourceForge project page: 
+# http://abbot.sourceforge.net/doc/overview.shtml
+# The RNAstructure program uses the Abbot 1.3.0 distribution that can be 
+# downloaded from sourceforge: 
+# http://downloads.sourceforge.net/project/abbot/abbot/1.3/Abbot-1.3.0.zip
+# 
+# This script `get-abbot` download the zip and extracts Abbot.jar as well 
+# its dependencies (JDom, JUnit, and GUI-RegExp) from the zip.
+#
+#
+# Usage: get-abbot [--nocheck]  [--force]
+# Flags:
+#    --force   - Force re-download of Abbot archive, even if it already exists.
+#    --nocheck - Skip zip file verification after download
+#
+################################################################################
+
+ABBOT_VER=1.3.0
+ABBOT_DIR=abbot-$ABBOT_VER
+ABBOT_ZIP=abbot-$ABBOT_VER.zip
+ABBOT_CKSUM="1275047772 11582902 $ABBOT_ZIP"
+ZIP_MIN_SIZE=10000000  #Expected size is 11582902 (11MB)
+ABBOT_URL="http://downloads.sourceforge.net/project/abbot/abbot/1.3/$ABBOT_ZIP"
+SCRIPT_NAME=$(basename "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+
+function isCmd() { type -p "$1" > /dev/null; } # Test whether a command exists
+function fsize() { [[ -f $1 ]] || return 1; local list=( $( ls -Lon "$1" ) ); echo ${list[3]}; } #show file size in a portable (linux, Mac, Windows) way
+
+# Parse arguments to this script.
+for arg; do
+	case "$arg" in
+		--nocheck) SKIP_CKSUM=1    ;; # Skip zip file verification.
+		--force)  rm -f $ABBOT_ZIP ;; # Force re-download.
+		*) echo >&2 "Invalid argument to $SCRIPT_NAME: $arg"
+	esac
+done
+
+cd "$SCRIPT_DIR" # cd to the directory containing THIS script
+
+if [[ -f $ABBOT_ZIP && ! $SKIP_CKSUM ]]; then
+	CKSUM=$(cksum $ABBOT_ZIP)
+	if [[ $CKSUM != $ABBOT_CKSUM ]]; then
+		echo "Removing $ABBOT_ZIP (corrupt -- possibly from failed download)."
+		rm $ABBOT_ZIP
+	fi
+fi
+
+if [[ ! -f $ABBOT_ZIP ]]; then
+	#Download the Abbot distribution from SourceForge (if it doesn't already exist)
+	echo "Downloading Abbot $ABBOT_VER."
+	if isCmd wget; then
+		wget -O "$ABBOT_ZIP"   "$ABBOT_URL"
+	elif isCmd curl; then
+		curl -L "$ABBOT_URL" > "$ABBOT_ZIP"
+	else 
+		printf >&2 "Neither 'wget' nor 'curl' were found.\nPlease download %s and place it in %s.\nURL: %s\n" \
+			"$ABBOT_ZIP" "$SCRIPT_DIR"  "$ABBOT_URL"
+		exit 1
+	fi
+	[[ -f $ABBOT_ZIP ]] || exit 1
+	
+	if [[ $SKIP_CKSUM ]]; then
+		# Skip checksum verification, but do check that the size is large enough to not be simply an HTML error message.
+		sz=$(fsize $ABBOT_ZIP)
+		if [[ $sz < $ZIP_MIN_SIZE ]]; then
+			printf >&2 "Download failed! (Downloaded file too small). Please verify the file and/or URL.\n"
+			rm $ABBOT_ZIP
+		fi
+	else			
+		CKSUM=$(cksum $ABBOT_ZIP)
+		if [[ $CKSUM != $ABBOT_CKSUM ]]; then
+			printf >&2 "Download failed! (Checksum of downloaded file does not match expected value).\n" \
+			           "Please verify the file and/or URL. If the file was downloaded correctly, you \n" \
+			           "can skip checksum verification by passing the --nocheck flag to this script.\n"
+			rm $ABBOT_ZIP
+		fi
+	fi
+fi
+
+TMP_DIR="~$ABBOT_DIR.tmp~"
+# Extract abbot.jar and dependencies (requires `unzip` or `7za` )
+echo "Extracting Abbot Package."
+if isCmd unzip; then
+	echo "unzip -uo $ABBOT_ZIP $ABBOT_DIR/lib/*.jar -d $TMP_DIR"
+	unzip -uo $ABBOT_ZIP "$ABBOT_DIR/lib/*.jar" -d "$TMP_DIR"
+elif isCmd 7za; then
+	echo "7za x -aos -y -o"$TMP_DIR"  $ABBOT_ZIP  $ABBOT_DIR/lib/*.jar"
+	7za x -aos -y -o"$TMP_DIR" $ABBOT_ZIP "$ABBOT_DIR/lib/*.jar"
+else
+	printf >&2 "Neither 'unzip' nor '7za' were found.\nPlease extract %s into %s.\n" \
+		"$ABBOT_ZIP" "$SCRIPT_DIR"
+	exit 1
+fi
+
+
+TMP_LIB="$TMP_DIR/$ABBOT_DIR/lib"
+if [[ -f $TMP_LIB/abbot.jar ]]; then
+	# Copy abbot.jar and dependencies into java_interface/lib
+	echo "Copying Abbot and dependencies."
+	cp -f $TMP_LIB/abbot.jar  ./ || { printf >&2 "Failed to copy Abbot.\n"; exit 1; }
+	for file in gnu-regexp jdom junit; do
+		cp -f $TMP_LIB/$file-*.jar  ./ || printf >&2 "Failed to copy %s.\n"  $file
+	done	
+else
+	printf >&2 "The extracted files could not be located.\nPlease extract %s into %s and verify that %s exists.\n" \
+		"$ABBOT_ZIP" "$SCRIPT_DIR/$TMP_DIR" "$SCRIPT_DIR/$TMP_DIR/$ABBOT_DIR/lib/abbot.jar"
+	exit 1
+fi
+
+# Remove temporary folder
+rm -rf "$TMP_DIR"

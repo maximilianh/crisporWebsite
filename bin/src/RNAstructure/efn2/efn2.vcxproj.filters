@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\algorithm.cpp" />
+    <ClCompile Include="..\src\alltrace.cpp" />
+    <ClCompile Include="..\src\DynProgArray.cpp" />
+    <ClCompile Include="..\src\dotarray.cpp" />
+    <ClCompile Include="..\src\draw.cpp" />
+    <ClCompile Include="..\src\gamma.cpp" />
+    <ClCompile Include="efn2.cpp" />
+    <ClCompile Include="..\src\forceclass.cpp" />
+    <ClCompile Include="..\src\MaxExpect.cpp" />
+    <ClCompile Include="..\src\MaxExpectStack.cpp" />
+    <ClCompile Include="..\src\outputconstraints.cpp" />
+    <ClCompile Include="..\src\ParseCommandLine.cpp" />
+    <ClCompile Include="..\src\pfunction.cpp" />
+    <ClCompile Include="..\src\probknot.cpp" />
+    <ClCompile Include="..\src\random.cpp" />
+    <ClCompile Include="..\RNA_class\RNA.cpp" />
+    <ClCompile Include="..\src\rna_library.cpp" />
+    <ClCompile Include="..\src\stackclass.cpp" />
+    <ClCompile Include="..\src\stackstruct.cpp" />
+    <ClCompile Include="..\src\stochastic.cpp" />
+    <ClCompile Include="..\src\structure.cpp" />
+    <ClCompile Include="..\RNA_class\thermodynamics.cpp" />
+    <ClCompile Include="..\src\TProgressDialog.cpp" />
+    <ClCompile Include="..\src\common_utils.cpp" />
+    <ClCompile Include="..\src\substructure.cpp" />
+    <ClCompile Include="..\src\Pseudoknot.cpp" />
+    <ClCompile Include="..\src\PseudoParser.cpp" />
+    <ClCompile Include="..\src\basepair.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\RNA_class\RNA.h" />
+    <ClInclude Include="..\src\algorithm.h" />
+    <ClInclude Include="..\src\alltrace.h" />
+    <ClInclude Include="..\src\DynProgArray.h" />
+    <ClInclude Include="..\src\bimol.h" />
+    <ClInclude Include="..\src\defines.h" />
+    <ClInclude Include="..\src\dotarray.h" />
+    <ClInclude Include="..\src\draw.h" />
+    <ClInclude Include="..\src\gamma.h" />
+    <ClInclude Include="Efn2.h" />
+    <ClInclude Include="..\src\ErrorChecker.h" />
+    <ClInclude Include="..\src\forceclass.h" />
+    <ClInclude Include="..\src\MaxExpect.h" />
+    <ClInclude Include="..\src\MaxExpectStack.h" />
+    <ClInclude Include="..\src\outputconstraints.h" />
+    <ClInclude Include="..\src\ParseCommandLine.h" />
+    <ClInclude Include="..\src\pfunction.h" />
+    <ClInclude Include="..\src\probknot.h" />
+    <ClInclude Include="..\src\random.h" />
+    <ClInclude Include="..\src\rna_library.h" />
+    <ClInclude Include="..\src\stackclass.h" />
+    <ClInclude Include="..\src\stackstruct.h" />
+    <ClInclude Include="..\src\stochastic.h" />
+    <ClInclude Include="..\src\structure.h" />
+    <ClInclude Include="..\RNA_class\thermodynamics.h" />
+    <ClInclude Include="..\src\TProgressDialog.h" />
+    <ClInclude Include="..\src\common_utils.h" />
+    <ClInclude Include="..\src\substructure.h" />
+    <ClInclude Include="..\src\Pseudoknot.h" />
+    <ClInclude Include="..\src\PseudoParser.h" />
+    <ClInclude Include="..\src\basepair.h" />
+  </ItemGroup>
+</Project>

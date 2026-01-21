@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title>RNAstructure Command Line Help: Fold</title>
+    <link href="Stylesheet.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="bodydiv">
+      <table class="mainTable" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr class="headerRow">
+            <td class="headerBox"><img src="icon.jpg" alt="RNAstructure logo"></td>
+            <td class="headerLabel">
+              <h2>RNAstructure Command Line Help<br>
+                Fold and Fold-smp</h2>
+            </td>
+            <td class="headerBox2">
+              <ul id="navigator">
+                <li>
+                  <h3 class="noMarginOrPad"><a href="index.html">Contents</a></h3>
+                </li>
+                <li>
+                  <h3 class="noMarginOrPad"><a href="AlphabeticalIndex.html">Index</a></h3>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td class="mainContent" colspan="3">
+              <p>Fold is used to predict the lowest free energy structure and a
+                set of suboptimal structures, i.e. low free energy structures,
+                using a variety of constraints. Fold-smp is a parallel
+                processing version for use on multi-core computers, built using
+                OpenMP.</p>
+              <a name="Usage" id="Usage"></a>
+              <h3>USAGE: Fold &lt;seq file&gt; &lt;ct file&gt; [options] </h3>
+              <h3>OR: Fold-smp &lt;seq file&gt; &lt;ct file&gt; [options]</h3>
+              <h3 class="leftHeader">Required parameters:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">&lt;seq file&gt;</td>
+                    <td> The name of a <a href="File_Formats.html#Sequence">sequence
+                        file</a> containing input data. <br>
+                      Note that lowercase nucleotides are forced single-stranded
+                      in structure prediction. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">&lt;ct file&gt;</td>
+                    <td>The name of a <a href="File_Formats.html#CT">CT file</a>
+                      to which output will be written.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that do not require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-d, -D, --DNA</td>
+                    <td> Specify that the sequence is DNA, and DNA parameters
+                      are to be used. <br>
+                      Default is to use RNA parameters. (Note that this is superseded by --alphabet and that --alphabet DNA also invoked DNA parameters.)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--disablecoax</td>
+                    <td>Specify that coaxial stacking recusions should not be used. This option uses a less realistic energy function in exchange for a faster calculation.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-h, -H, --help</td>
+                    <td>Display the usage details message.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-i, -I, --isolated</td>
+                    <td>Allow isolated base pairs. The default is to use a heuristic to forbid isolated base pairs. The heuristic prevents pairs (i-j) if (i+1 - j-1) and (i-1 - j+1) pairs are non-canonical pairs.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-k, --bracket </td>
+                    <td> Write the predicted structure in dot-bracket notation (DBN) instead of CT<br>
+format.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-mfe, -MFE, --MFE</td>
+                    <td>Specify that only the minimum free energy structure is needed. No savefiles can be generated. The -p and -m options
+                    are ignored. This saves nearly half the calculation time, but provides less information.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-q, --quiet</td>
+                    <td>Suppress unnecessary output. This option is implied when the output file is '-' (STDOUT).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-v, --version</td>
+                    <td>Display version and copyright information for this interface.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-y, -Y, --simple_iloops </td>
+                    <td>Specify that the O(N^3) internal loop search should be used. This speeds up the calculation if large internal loops are allowed using the -l option.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Options that require added values:</h3>
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="cell">-a, -A, --alphabet</td>
+                    <td>Specify the name of a folding alphabet and associated
+                      nearest neighbor parameters. The alphabet is the prefix
+                      for the thermodynamic parameter files, e.g. "rna" for RNA
+                      parameters or "dna" for DNA parameters or a custom
+                      extended/modified alphabet. The thermodynamic parameters
+                      need to reside in the at the location indicated by
+                      environment variable DATAPATH.<br>
+                      The default is "rna" (i.e. use RNA parameters). This
+                      option overrides the --DNA flag.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-boot, -B, --bootstrap</td>
+                    <td>Specify the number of bootstrap iterations to be done to retrieve base pair confidence.<br>
+Defaults to no bootstrapping.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-c, -C, --constraint</td>
+                    <td> Specify a <a href="File_Formats.html#Constraint">folding
+                        constraints file</a> to be applied. For Fold, current
+                      supported constraints are force pairs, force a nucleotide
+                      to be single stranded, and force a nucleotide to be double
+                      stranded. <br>
+                      Default is to have no constraints applied. <br>
+                      <em>Note: Constraints should be added with caution. The current folding algorithm does not allow  base pairs that cannot stack on adjacent pairs. So constraining a pair effectively also requires that at least one adjacent pair can be formed.</em></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-cmct, -CMC, --CMCT</td>
+                    <td> Specify a CMCT constraints file to be applied. These constraints are pseudoenergy constraints.<br>
+Default is to have no constraints applied.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-dms, -DMS, --DMS</td>
+                    <td>Specify a file with normalized DMS reactivity data.
+                      These data will be applied as a pseudoenergy restraint.
+                      The data are specified in a file using the <a href="File_Formats.html#SHAPE">SHAPE
+                        data file</a> format.</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-dsh, -DSH, --DSHAPE</td>
+                    <td>Specify a differential <a href="File_Formats.html#SHAPE">SHAPE
+                        data file</a> to be used to generate restraints in
+                      addition to SHAPE restraints specified by --SHAPE. These
+                      restraints specifically use SHAPE pseudoenergy restraints
+                      where the offset is zero. Also, the function for
+                      calculating the pseudo free energy for nucleotide i is =
+                      (differential slope) * (differential SHAPE for nucleotide
+                      i). These pseudoenergies are added to those generated with
+                      the --SHAPE option.<br>
+                      Default is no differential SHAPE data file specified. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-dsm, -DSM, --DSHAPEslope</td>
+                    <td>Specify a slope used with differential SHAPE restraints.
+                      <br>
+                      Default is 2.11 kcal/mol. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-dso, -DSO, --doubleOffset</td>
+                    <td> Specify a double-stranded <a href="File_Formats.html#Offset">offset
+                        file</a>, which adds energy bonuses to particular
+                      double-stranded nucleotides. <br>
+                      Default is to have no double-stranded offset specified. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-l, -L, --loop</td>
+                    <td>
+                      Specify the maximum number of unpaired nucleotides in
+                        an internal or bulge loop. <br>
+                        Default is 30 unpaired nucleotides. 
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-m, -M, --maximum</td>
+                    <td> Specify a maximum number of structures. Note that
+                      suboptimal structures are generated until either the
+                      maximum number of structures are reached or the maximum
+                      percent difference is reached (below). <br>
+                      Default is 20 structures. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-md, -MD, --maxdistance</td>
+                    <td> Specify a maximum pairing distance; that is, the
+                      maximum number of bases between the two nucleotides in a
+                      pair. <br>
+                      Default is no restriction on the distance between pairs. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--name</td>
+                    <td>Specify a name for the sequence. This will override the name in the sequence file.<br></td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-p, -P, --percent</td>
+                    <td> Specify a maximum percent difference in folding free
+                      energy change for generating suboptimal structures. For
+                      example, 20 would indicate 20%. <br>
+                      Default is determined by the length of the sequence. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-s, -S, --save</td>
+                    <td> Specify the name of a save file, needed for dot plots
+                      and refolding. <br>
+                      Default is not to generate a save file. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-sh, -SH, --SHAPE</td>
+                    <td> Specify a <a href="File_Formats.html#SHAPE">SHAPE data
+                        file</a> to be used to generate restraints. These
+                      restraints specifically use SHAPE pseudoenergy restraints.
+                      <br>
+                      Default is no SHAPE data file specified. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-si, -SI, --SHAPEintercept</td>
+                    <td> Specify an intercept used with SHAPE restraints. <br>
+                      Default is -0.6 kcal/mol. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-sm, -SM, --SHAPEslope</td>
+                    <td> Specify a slope used with SHAPE restraints. <br>
+                      Default is 1.8 kcal/mol. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-sso, -SSO, --singleOffset</td>
+                    <td> Specify a single-stranded <a href="File_Formats.html#Offset">offset
+                        file</a>, which adds energy bonuses to particular
+                      single-stranded nucleotides. <br>
+                      Default is to have no single-stranded offset specified. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-t, -T, --temperature</td>
+                    <td> Specify the temperature at which calculation takes
+                      place in Kelvin. <br>
+                      Default is 310.15 K, which is 37 degrees C. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-usi, -USI, --unpairedSHAPEintercept</td>
+                    <td> Specify an intercept used with single-stranded SHAPE
+                      constraints. <br>
+                      Default is 0 kcal/mol. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-usm, -USM, --unpairedSHAPEslope</td>
+                    <td> Specify a slope used with single-stranded SHAPE
+                      constraints. <br>
+                      Default is 0 kcal/mol. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-w, -W, --window</td>
+                    <td> Specify a window size. <br>
+                      Default is determined by the length of the sequence. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">--warnings, --warn </td>
+                    <td>Set the behavior for non-critical warnings (e.g. related to invalid nucleotide positions or duplicate data points in SHAPE data). Valid values are: <br>
+* on  -- Warnings are written to standard output. (default)<br>
+* err -- Warnings are sent to STDERR. This can be used in automated scripts, etc., to detect problems.<br>
+* off -- Do not display warnings at all (not recommended).</td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-x, -X, --experimentalPairBonus</td>
+                    <td> Specify a <a href="File_Formats.html#Experimental">text
+                        file with a two-dimensional matrix of bonuses</a> (in
+                      kcal/mol) to apply to each residue pair, as might be
+                      obtained from a mutate/map measurement. The matrix must
+                      have the same number of rows and columns as the target
+                      RNA. Bonus is applied once to edge base pairs, twice to
+                      internal base pairs. <br>
+                      Default is no experimental pair bonus file specified. </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-xo</td>
+                    <td> Specify an intercept (overall offset) to use with the
+                      2D experimental pair bonus file. <br>
+                      Default is 0.0 (no change to input bonuses). </td>
+                  </tr>
+                  <tr>
+                    <td class="cell">-xs</td>
+                    <td> Specify a number to multiply the 2D experimental pair
+                      bonus matrix. <br>
+                      Default is 1.0 (no change to input bonuses). </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3 class="leftHeader">Notes about using DMS data:</h3>
+              <p class="leftHeader">There are two ways to use DMS reactivity to
+              improve the accuracy of secondary structure prediction: </p>
+              <ol>
+                <li>The
+                  first approach, explained in reference 3, is better when the DMS
+                  data are analyzed qualitatively. In this approach, the
+                  DMS-reactive nucleotides are specified as nucleotides accessible
+                  to chemical modification in a <a href="File_Formats.html#Constraint">constraint
+                    file</a>. The constraint file is then read using the -c
+                  option.</li>
+                <li> The second approach is better when the DMS
+                  reactivities are quantified. This approach requires
+                  specification of normalized reactvities, using a<a href="File_Formats.html#SHAPE">
+                    SHAPE data file format</a>. This file is then read using the
+                  -dms option. This approach is explained in reference 5.</li>
+              </ol>
+              <h3 class="leftHeader">Notes for smp:</h3>
+              <p>Fold-smp, by default, will use all available compute cores for
+                processing. The number of cores used can be controlled by
+                setting the OMP_NUM_THREADS environment variable.</p>
+              <h3 class="leftHeader"><a name="Refs">References:</a></h3>
+              <ol class="noListTopMargin">
+                <li class="gapListItem"> Reuter, J.S. and Mathews, D.H. <br>
+                  "RNAstructure: software for RNA secondary structure prediction
+                  and analysis." <br>
+                  <i>BMC Bioinformatics</i>, 11:129. (2010). </li>
+                <li class="gapListItem"> Deigan, K.E., Li, T.W., Mathews, D.H.
+                  and Weeks, K.M. <br>
+                  "Accurate SHAPE-directed RNA structure determination." <br>
+                  <i>Proc. Natl. Acad. Sci. U.S.A.</i>, 106:97-102. (2009). </li>
+                <li class="gapListItem"> Mathews, D.H., Disney, M.D., Childs,
+                  J.L., Schroeder, S.J., Zuker, M. and Turner, D.H. <br>
+                  "Incorporating chemical modification constraints into a
+                  dynamic programming algorithm for prediction of RNA secondary
+                  structure." <br>
+                  <i>Proc. Natl. Acad. Sci. USA</i>, 101:7287-7292. (2004). </li>
+                <li class="gapListItem"> Mathews, D.H., Sabina, J., Zuker, M.
+                  and Turner, D.H. <br>
+                  "Expanded sequence dependence of thermodynamic parameters
+                  provides improved prediction of RNA secondary structure." <br>
+                  <i>J. Mol. Biol.</i>, 288:911-940. (1999). </li>
+                <li class="gapListItem">Cordero, P., Kladwang, W., VanLang,
+                  C.C., and Das, R.<br>
+                  "Quantitative dimethyl sulfate mapping for automated RNA
+                  secondary structure inference."<br>
+                  Biochemistry, 51: 7037-7039. (2012). </li>
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="footer" colspan="3">
+              <p>Visit <a href="http://rna.urmc.rochester.edu/RNAstructure.html">The
+                  Mathews Lab RNAstructure Page</a> for updates and latest
+                information.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

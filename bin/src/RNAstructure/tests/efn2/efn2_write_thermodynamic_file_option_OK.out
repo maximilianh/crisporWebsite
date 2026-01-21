@@ -1,0 +1,141 @@
+Thermodynamic details for structure # 1
+	Exterior loop = -1.7
+		Stack = -3.3  for stack of 1-72
+		Stack = -1.5  for stack of 2-71
+		Stack = -2.1  for stack of 3-70
+		Stack = -3.3  for stack of 4-69
+		Stack = -3.4  for stack of 5-68
+		Stack = -2.4  for stack of 6-67
+	Helix total = -16.0
+	Multiloop = 1.7  for closure of 7-66
+		Stack = -3.3  for stack of 49-65
+		Stack = -2.4  for stack of 50-64
+		Stack = -3.3  for stack of 51-63
+		Stack = -3.3  for stack of 52-62
+	Helix total = -12.3
+	Hairpin = 4.9  for closure of 53-61
+		Stack = -2.1  for stack of 27-43
+		Stack = -2.4  for stack of 28-42
+		Stack = -1.4  for stack of 29-41
+		Stack = -2.5  for stack of 30-40
+	Helix total = -8.4
+	Hairpin = 3.9  for closure of 31-39
+		Stack = -3.4  for stack of 10-25
+		Stack = -2.1  for stack of 11-24
+		Stack = -2.4  for stack of 12-23
+	Helix total = -7.9
+	Hairpin = 4.0  for closure of 13-22
+
+
+	Total energy = -31.8
+
+
+
+Thermodynamic details for structure # 2
+	Exterior loop = -1.1
+		Stack = -2.2  for stack of 39-74
+		Stack = -2.1  for stack of 40-73
+	Helix total = -4.3
+	Internal/bulge = 0.5  for closure of 41-72	Size = 1 BP stack across bulge = -3.3
+		Stack = -2.4  for stack of 43-71
+		Stack = -2.1  for stack of 44-70
+		Stack = -3.3  for stack of 45-69
+		Stack = -2.5  for stack of 46-68
+	Helix total = -10.3
+	Internal/bulge = 1.2  for closure of 47-67	Size = 2
+		Stack = -3.3  for stack of 49-65
+		Stack = -2.4  for stack of 50-64
+		Stack = -3.3  for stack of 51-63
+		Stack = -3.3  for stack of 52-62
+	Helix total = -12.3
+	Hairpin = 4.9  for closure of 53-61
+		Stack = -0.5  for stack of 3-33
+		Stack = -2.1  for stack of 4-32
+		Stack = -3.4  for stack of 5-31
+		Stack = -2.4  for stack of 6-30
+	Helix total = -8.4
+	Internal/bulge = 1.2  for closure of 7-29	Size = 5
+		Stack = -3.4  for stack of 10-25
+		Stack = -2.1  for stack of 11-24
+		Stack = -2.4  for stack of 12-23
+	Helix total = -7.9
+	Hairpin = 4.0  for closure of 13-22
+
+
+	Total energy = -32.5
+
+
+
+Thermodynamic details for structure # 3
+	Exterior loop = -1.7
+		Stack = -3.3  for stack of 1-72
+		Stack = -1.5  for stack of 2-71
+		Stack = -2.1  for stack of 3-70
+		Stack = -3.3  for stack of 4-69
+		Stack = -3.4  for stack of 5-68
+		Stack = -2.4  for stack of 6-67
+		Stack = -2.5  for stack of 7-66
+	Helix total = -18.5
+	Multiloop = 1.1  for closure of 8-65
+		Stack = -3.3  for stack of 45-62
+		Stack = -2.2  for stack of 46-61
+		Stack = -1.3  for stack of 47-60
+	Helix total = -6.8
+	Internal/bulge = 1.2  for closure of 48-59	Size = 2
+		Stack = -2.4  for stack of 50-57
+	Helix total = -2.4
+	Hairpin = 4.1  for closure of 51-56
+		Stack = -2.1  for stack of 27-43
+		Stack = -2.4  for stack of 28-42
+		Stack = -1.4  for stack of 29-41
+		Stack = -2.5  for stack of 30-40
+	Helix total = -8.4
+	Hairpin = 3.9  for closure of 31-39
+		Stack = -3.4  for stack of 10-25
+		Stack = -2.1  for stack of 11-24
+		Stack = -2.4  for stack of 12-23
+	Helix total = -7.9
+	Hairpin = 4.0  for closure of 13-22
+
+
+	Total energy = -31.4
+
+
+
+Thermodynamic details for structure # 4
+	Exterior loop = -1.7
+		Stack = -3.3  for stack of 1-72
+		Stack = -1.5  for stack of 2-71
+		Stack = -2.1  for stack of 3-70
+		Stack = -3.3  for stack of 4-69
+		Stack = -3.4  for stack of 5-68
+		Stack = -2.4  for stack of 6-67
+	Helix total = -16.0
+	Multiloop = 4.6  for closure of 7-66
+		Stack = -3.3  for stack of 49-65
+		Stack = -2.4  for stack of 50-64
+		Stack = -3.3  for stack of 51-63
+		Stack = -3.3  for stack of 52-62
+	Helix total = -12.3
+	Hairpin = 4.9  for closure of 53-61
+		Stack = -2.1  for stack of 11-43
+		Stack = -2.4  for stack of 12-42
+		Stack = -2.1  for stack of 13-41
+	Helix total = -6.6
+	Internal/bulge = -0.7  for closure of 14-40	Size = 2
+	Helix total = 0.0
+	Internal/bulge = 1.9  for closure of 16-38	Size = 3
+		Stack = -2.5  for stack of 19-36
+	Helix total = -2.5
+	Internal/bulge = 1.9  for closure of 20-35	Size = 2
+		Stack = -1.3  for stack of 22-33
+		Stack = -2.1  for stack of 23-32
+		Stack = -3.4  for stack of 24-31
+	Helix total = -6.8
+	Hairpin = 4.1  for closure of 25-30
+
+
+	Total energy = -29.2
+
+
+
