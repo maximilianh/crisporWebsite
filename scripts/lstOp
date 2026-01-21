@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # jit compiler for python, remove these lines if you get an error here, it is not needed
 try:
