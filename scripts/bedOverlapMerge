@@ -25,7 +25,7 @@ def coordOverlap(start1, end1, start2, end2):
 
 def printLine(chrom, start, end, names):
     row = [lastChrom, str(start), str(end), "/".join(names)]
-    print "\t".join(row)
+    print( "\t".join(row))
 
 # ==== MAIN ====
 infname = args[0]
