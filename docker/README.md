@@ -20,6 +20,15 @@ To add a new genome to the container, either via NCBI accession or from a FASTA/
      docker exec -it crispor-container /data/www/crispor/tools/crisporAddGenome ncbi GCA_052724335.1
      docker exec -it crispor-container /data/www/crispor/tools/crisporAddGenome fasta GWHBOWM00000000.genome.fasta.gz --gff GWHBOWM00000000.gff.gz --desc 'faAtrBel|Atropa belladonna|Belladonna deadly nightshade|CNCB GWHBOWM00000000'
 
+A few more examples
+
+     crisporAddGenome ucsc sacCer3
+     crisporAddGenome ncbi 
+
+     wget https://hgdownload.soe.ucsc.edu/goldenPath/sacCer2/bigZips/sacCer2.fa.gz
+     wget https://hgdownload.soe.ucsc.edu/goldenPath/sacCer2/bigZips/genes/sacCer2.ensGene.gtf.gz
+     crisporAddGenome fasta --fasta sacCer2.fa.gz --desc 'faSacCer2|Saccharomyces cerevisiae|yeast|sacCer2 from UCSC' --gff sacCer2.ensGene.gtf.gz
+
 You can make fasta files from the host available for adding by including a bind mount when you execute docker run.
 For example, you can run
 
@@ -44,3 +53,4 @@ Then I tag the container with the version. Since it's a multi-arch container, I 
      docker buildx imagetools create --tag maximilianh/crispor:v5.2 maximilianh/crispor:latest
 
 The last command automatically pushes the new tag to Docker hub.          
+
