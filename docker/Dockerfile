@@ -25,7 +25,7 @@ RUN mkdir -p /data/www \
     && cd /data/www/crispor \
     && python3.9 -m venv venv \
     && venv/bin/pip install --upgrade pip setuptools wheel \
-    && venv/bin/pip install biopython numpy scikit-learn pandas twobitreader xlwt keras tensorflow h5py rs3 pytabix matplotlib lmdbm \
+    && venv/bin/pip install biopython numpy scikit-learn pandas twobitreader xlwt keras tensorflow h5py rs3 pytabix matplotlib lmdbm PyMySQL \
     && echo 'JOBQUEUEDB = "/data/temp/crisporJobs.db"' > /data/www/crispor/crispor.conf \
     && mkdir -p /data/genomes/ \
     && ln -s /data/genomes /data/www/crispor/genomes \
