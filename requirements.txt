@@ -4,7 +4,7 @@ astunparse==1.6.3
 berkeleydb==18.1.5
 biopython==1.79
 cachetools==5.2.0
-certifi==2022.6.15
+certifi==2022.12.7
 charset-normalizer==2.0.12
 cycler==0.11.0
 dill==0.3.6
