@@ -118,7 +118,7 @@ def slurpdict(fname):
     for l in open(fname, "r"):
         l = l.strip("\n")
         fs = l.split("\t")
-	if not len(fs)>1:
+        if not len(fs)>1:
             continue
         key = fs[0]
         val = int(fs[1])
@@ -147,7 +147,7 @@ def hasOverlap(f1, f2):
 
 def parseBedFilename(fname, reqSorted=False, quiet=False):
     if not quiet:
-	sys.stderr.write("Reading %s...\n" % fname)
+        sys.stderr.write("Reading %s...\n" % fname)
     if fname=="stdin":
         return parseBedFile(sys.stdin, reqSorted)
     else:
