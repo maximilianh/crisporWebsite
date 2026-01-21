@@ -68,7 +68,7 @@ def output(fh, left, right, upstream, limit, type, chromSizes=None):
         start = left.end
         end = chromSizes[left.chrom]
         if start > end:
-            print "Error: start position %d beyond chromSize" % start
+            print("Error: start position %d beyond chromSize" % start)
             sys.exit(1)
         leftname = left.name
         rightname = "Gap"
