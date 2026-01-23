@@ -341,7 +341,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - lorsque un batch multiseq est relancé, perte du paramètre "exonSeqs".
 - ajouter / finir les descriptions des fonctions
 
-## 21/01/26
+# 21/01/26
 
 ## divers
 
@@ -352,9 +352,46 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 ## KO / multiseq mode
 
 - modification de primerDetailsPage() -> obtention de la séquence / exonId depuis les données du batch.
-
-
-
-## à faire / bugs
-
+- ajout d'options pour le type de knock-out : frameshift dans la séquence codante ou excision du locus : 
+	- si excision du locus -> sélection de la taille de la région target n bp upstream/downstream du TSS/TES
+	
+## à faire
+- limiter la recherche upstream / downstream dans les limites des coordonnées chromosomiques.
+- ajouter target promoteur ?
+- ajouter liens ucsc exons
 - internal server error sur lien téléchargement données guides.
+
+# 22/01/26
+
+## mode knock-out
+
+- ajout de liens vers le browser, par exon.
+- modification de parseMultiSearchInfo : retourne optionellement les données des guides (pour call dans downloadFile() )
+- correction d'un bug dans getFirstThird() (allongement le dernier exon) 
+- affichage du gene model : 
+	- ajout de getGeneModel (call dans getExonsFromId() ) : retourne geneModel : liste de la longueur des exons / introns (uniquement entre CDS start / end)
+	- ajout de geneModel dans params de newMultiBatch()
+	- ajout de printGeneModel() affiche les exons sous forme de bloc, et introns sous forme de lignes
+		- coloration des exons target
+		- si dernier exon tronqué, coloration de la partie target
+## à faire
+
+- option : masquer l'affichage seq / PAM des exons
+- cliquer sun un exon du gene model affiche la seq / pams de l'exon
+- rechercher guides dans seq exon étendue (exon=uppercase, intron=lowercase) : pam 6+ bp splice site
+- dans tableau effscores :
+	- filtrer et trier par exon / prio ++
+	- ajouter linder / oof dans global score ? / prio -
+	- supprimer doench 2016 et scores optionneles / prio ++
+	- sélection du effscore pour calcul du score global (formulaire avec dropdown menu sous header score global) / prio +
+	- ajouter titres (indiquer expType / geneID, etc..) / prio ++
+	- vérifier la page clonage (warning si pam =/= spCas9 -> tracr diff.) et ajouter champ input seq / prio -
+
+# 23/01/26
+
+## à faire
+
+- ajouter option production du guide (transcrit / synthétique ..) -> effscore par défault / prio +
+- recherche .gp par altname (symbol) afficher tous les transcrits correspondant (et la taille de la prot.) / prio ++
+- pour l'homme : surligner MANE vs Basic + lien vers browser gtex (fq utilisation des exons / tissu) / prio -
+- ajouter mode CRISPRa : recherche autour du TxStart -> retrouver guides dans données Broad Institue (Pooled lib) (stockage dans database) / prio --

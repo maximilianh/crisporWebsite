@@ -1597,7 +1597,8 @@ def printJson(name, obj):
     print((json.dumps(obj)))
     print("</script>")
 
-def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, position, pamIdToSeq, exonId):
+def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, \
+    position, pamIdToSeq, exonId, koMethod, browserlink):
     
     pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId))
     
@@ -1616,7 +1617,13 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
 
     print("<div class='substep'>")
     print('<a id="seqStart"></a>')
-    print("Exon %s is %d bp long. It contains %d possible guide sequences.<br>" % (exonId+1, len(seq), len(guideScores)))
+    if koMethod == "frameshift":
+        print("Exon %s (%s) is %d bp long. It contains %d possible guide sequences.<br>" % (exonId+1, browserlink, len(seq), len(guideScores)))
+    elif koMethod == "excision":
+        if exonId == 0:
+            print(" the region %s bp upstream of the TSS contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
+        else:
+            print(" the region %s bp downstream of the TES contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
 
 
     print("</div>")
@@ -3090,7 +3097,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     if chrom!="":
         if chrom[0].isdigit():
             chrom = "chrom "+chrom
-        print('''<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only''' % chrom)
+        print('''<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only (chromosome of target sequence)''' % chrom)
     else:
         print('<small style="color:grey">&nbsp;No match, no chrom filter</small>')
 
@@ -3548,6 +3555,7 @@ def printHeader(batchId, title):
 
     linkLocalFiles("includes.txt")
 
+    print('<link ref=stylesheet type="text/css href="%sstyle/exon-box.css" />' % HTMLPREFIX)
     print('<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster.css" />' % HTMLPREFIX)
     print('<link rel="stylesheet" type="text/css" href="%sstyle/tooltipster-shadow.css" />' % HTMLPREFIX)
     print('<link rel="stylesheet"  href="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.6.2/chosen.css" />')
@@ -4678,21 +4686,22 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
 
     return bedFname
 
-def processMultiSeqSubmission(multiseq, genome, pam, batchBase, batchId, queue):
+def processMultiSeqSubmission(multiseq, genome, pam, batchBase, batchId, queue, koMethod):
 
     pam = setupPamInfo(pam)
     
-    global maxMMs
-    maxMMs=4
+    #global maxMMs
+    #maxMMs=4
+    
+    # if otBedFname and effScores exists -> use these files
 
     batchInfo = readBatchAsDict(batchId)
+    batchInfo["koMethod"] = koMethod
     batchInfo["exonSeqs"] = []
     batchInfo["extSeqList"] = []
     batchInfo["exonPosStr"] = []
 
     logging.info("%s exons will be processed" % len(multiseq))
-    for exonId, seq in multiseq:
-        logging.info("Exon %s is %s bp long" % (exonId, len(seq)))
 
     bedFname = batchBase+".bed.gz"
     effScoresFname = (batchBase + '.effScores.tab')
@@ -4719,10 +4728,11 @@ def processMultiSeqSubmission(multiseq, genome, pam, batchBase, batchId, queue):
         # get the sequence of the current exon
         seq = getSeq(genome, exonPosStr)
         batchInfo["exonSeqs"].append((exonId, seq))
-
+        logging.info("Exon %s is %s bp long" % (exonId, len(seq)))
+        
         # get a 100bp-extended version of the input seq
         chrom, start, end, strand = parsePos(exonPosStr)
-        extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq)
+        extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq) # doesn't work 
         #extSeq = None
 
         if extSeq is None:
@@ -4775,7 +4785,7 @@ def processMultiPamSubmission(seq, genome, batchBase, batchId, queue):
 
     # allow up to 3 mismatches for offtarget search
     global maxMMs
-    maxMMs=2 # only for testing
+    maxMMs=3 # only for testing
 
     allPams = [pamDesc[0] for pamDesc in multiPamDesc]
     
@@ -5182,7 +5192,6 @@ def printForm(params):
     <summary>Click here to enter a gene ID instead</summary>
           """ % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq))
     
-    geneSelPlaceholder = "Search for an ID here"
     printGeneSelection()
 
     print("""<div style="margin-top:12px; margin-bottom:12px">""")
@@ -5366,7 +5375,8 @@ def readBatchParams(batchId):
     Returns None for pos if not found. """
     params = readBatchAsDict(batchId)
     if params != None:
-            return params.get("seq"), params["org"], params["pam"], params.get("posStr"), params.get("extSeq"), params.get("multiseq")
+            return params.get("seq"), params["org"], params["pam"], params.get("posStr"), params.get("extSeq"), \
+                params.get("multiseq"), params.get("koMethod"), params.get("geneModel"), params.get("koGeneId")
 
     # FROM HERE UP TO END OF FUNCTION: legacy cold for old batches pre-end-2016 (no json files back then)
     # remove in 2017
@@ -5515,7 +5525,7 @@ def newBatch(batchName, seq, org, pam):
     writeBatchAsDict(batchData, batchId)
     return batchId
 
-def newMultiBatch(batchName, multiseq, org, pam):
+def newMultiBatch(batchName, multiseq, org, pam, koMethod = None, geneModel = None, koGeneId = None):
     """ obtain a batch ID and write seq/org/pam to their files.
     Return batchId.
     """
@@ -5530,6 +5540,9 @@ def newMultiBatch(batchName, multiseq, org, pam):
     #batchData["seq"] = seq
     batchData["posStr"] = ""
     batchData["multiseq"] = multiseq
+    batchData["koMethod"] = koMethod
+    batchData["geneModel"] = geneModel
+    batchData["koGeneId"] = koGeneId
 
     writeBatchAsDict(batchData, batchId)
     return batchId
@@ -6187,9 +6200,10 @@ def crisprSearch(params):
         # if we're getting only the batchId, extract the parameters from the batch
         # this allows a stable link to a batch that is done
         batchId = params["batchId"]
-        seq, org, pamDesc, _, _, multiseq = readBatchParams(batchId)
+        seq, org, pamDesc, _, _, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
         if multiseq:
             params["multiseq"] = multiseq
+
         # pamDesc can include additional options, like guidelen and base editor
         # added after the pam, e.g. "NGG-BE1". setupPamInfo(pam) will set the globals
         # based on it
@@ -6223,10 +6237,12 @@ def crisprSearch(params):
         newBatchName = params.get("name", "")
 
         org = params["org"]
-
+        koMethod = params.get("koMethod")
         multiseq = params.get("multiseq")
+        koGeneId = params.get("ko_geneid")
         if multiseq:
-            batchId = newMultiBatch(newBatchName, multiseq, org, pamDesc)
+            geneModel = params.get("geneModel")
+            batchId = newMultiBatch(newBatchName, multiseq, org, pamDesc, koMethod, geneModel, koGeneId)
 
         else:
 
@@ -6258,7 +6274,7 @@ def crisprSearch(params):
         print ("</script>")
 
     multiseq = params.get("multiseq")
-    multipam = params.get("multipam")
+    #multipam = params.get("multipam")
 
     if multiseq:
         mode = "multiseq"
@@ -6268,9 +6284,9 @@ def crisprSearch(params):
         if multiSearchDone is None:
             printStatus(batchId, "")
             return
-        parseMultiSearchInfo(params, batchId, org)
+        parseMultiSearchInfo(params, batchId, koGeneId)
 
-    else:    
+    else:
         pam = setupPamInfo(pamDesc)
         assert("-" not in pam)
         minFreq, varDb = checkOtherArgs(params)
@@ -6405,31 +6421,34 @@ def crisprSearch(params):
 
         #makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
 
-def parseMultiSearchInfo(params, batchId, org):
+def parseMultiSearchInfo(params, batchId, koGeneId, download = False):
     """ read offtargets and effcores files generated by the multisearch job,
-    and aggregates the data """
+    aggregates the data and display it. optionally returns guide data to prepare for downloadFile() """
 
-    dbInfo = readDbInfo(org)
     batchInfo = readBatchAsDict(batchId)
-    pam = batchInfo['pam']
+    org = batchInfo["org"]
+    dbInfo = readDbInfo(org)
+    pam = batchInfo["pam"]
     pam = setupPamInfo(pam)
-
+    
+    koMethod = batchInfo["koMethod"]
+    geneModel = batchInfo["geneModel"]
+    koGeneId = batchInfo["koGeneId"]
+    exonSeqs = batchInfo['exonSeqs']
+    exonPosStr = batchInfo['exonPosStr']
+    sortBy = (params.get("sortBy", "main"))
+    
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId)
 
-    # debug info
-    #otPamIds = [key  for key in otMatches]
-    #effPamIds = [key  for key in effScores]
-    #print(f"<p>off targets : {len(otPamIds)} pams, {len(set(otPamIds))} unique pams</p>")
-    #print(f"<p>eff scores : {len(effPamIds)} pams, {len(set(effPamIds))} unique pams</p>")
-
-    # or make a readMultiBatchAndGuides() function ?
-    sortBy = (params.get("sortBy", "main"))
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
-
-    for exonSeqInfo, posStr in zip(batchInfo['exonSeqs'], batchInfo['exonPosStr']):
+    
+    if koMethod == "frameshift":
+        printGeneModel(geneModel, exonSeqs, koGeneId)
+    
+    for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
         
         exonId, seq = exonSeqInfo
         uppSeq = seq.upper()
@@ -6438,16 +6457,140 @@ def parseMultiSearchInfo(params, batchId, org):
         guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, \
             posStr, effScores, sortBy, org=org, exonId=exonId)
 
-        allGuideData.extend(guideData)
-        allGuideScores.update(guideScores.copy())
-        allPamIdToSeq.update(pamIdToSeq.copy())
+        if download == False:
+            allGuideData.extend(guideData)
+            allGuideScores.update(guideScores.copy())
+            allPamIdToSeq.update(pamIdToSeq.copy())
 
-        showExonAndPams(org, seq, startDict, pam, guideScores, None, None, None, 0.0, None, pamIdToSeq, exonId)
+            chrom, start, end, strand = parsePos(posStr)
+            start = str(int(start)+1)
+            chrom = applyChromAlias(org, chrom)
+            oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
+            
+            browserLink = makeBrowserLink(dbInfo, posStr, oneBasedPosition, None, ["tooltipster"])
+            showExonAndPams(org, seq, startDict, pam, guideScores, None, None, None, 0.0, \
+                None, pamIdToSeq, exonId, koMethod, browserLink)
 
-    sortGuideData(allGuideData, sortBy)
-    chrom,_ ,_ ,_  = parsePos(batchInfo['exonPosStr'][0])
+    if download == False:
+        sortGuideData(allGuideData, sortBy)
+        showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None)
+    else:
+        return exonSeqs, org, pam, exonPosStr, guideData
+
+def printGeneModel(geneModel, exonSeqs, koGeneId):
+    " displays the gene model, from CDS start to CDS end "
     
-    showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None)
+    
+    thirdLen = 0
+    for feature in geneModel:
+        if feature[0] == "exon":
+            length = feature[2]
+            thirdLen += length
+    thirdLen = math.ceil(thirdLen / 3)
+    
+    lastseq = str(exonSeqs[-1][1])
+    lastLen = len(lastseq)
+    
+    print(""""<p> below is the gene model for transcript %s. The exons corresponding to the target region are colored. click on an exon to show the corresponding guides.</p>""" % koGeneId)
+    
+    print(""" <div style="
+          overflow-x:scroll; 
+          display:flex;
+          align-items:center;
+          padding:5px;
+          white-space: nowrap;
+          height: 100px;
+          border: 0.5px solid lightgray;
+          border-radius: 8px;"> """)
+    
+    currentLen = 0
+    exonCount = 0
+    for i, feature in enumerate(geneModel):
+        featureType = feature[0]
+        id = feature[1]
+        length = int(feature[2])
+
+        if currentLen <= thirdLen:
+            exonColor = "#ff7700a8"
+        else:
+            exonColor = "#eeeeee"
+        
+        if i == 0:
+            print("<small>CDS start&nbsp&nbsp</small>")
+            
+        if featureType == "exon":
+            exonCount += 1
+            currentLen += length
+            if i == 0:
+                borderRadius = "0 8px 8px 0"
+            elif i == len(geneModel)-1:
+                borderRadius = "8px 0 0 8px"
+            else:
+                borderRadius = "8px"
+            
+            if exonCount == len(exonSeqs) and lastLen < length:
+                print("""<div style="
+                    width:%spx; 
+                    height: 25px;
+                    border: 0.5px solid gray;
+                    border-right: 0px;
+                    border-radius: 8px 0 0 8px;
+                    background-color: #ff7700a8;
+                    text-align:center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    "><small>exon %s</small></div> """ % (lastLen, id+1))
+                print("""<div style="
+                    width:%spx; 
+                    height: 25px;
+                    border: 0.5px solid gray;
+                    border-left: 0px;
+                    border-radius: 0 8px 8px 0;
+                    background-color: #eeeeee;
+                    text-align:center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    "></div> """ % (length - lastLen))
+            else:
+                print("""<div style="
+                  width:%spx;
+                  height: 25px;
+                  border: 0.5px solid gray;
+                  border-radius: %s;
+                  background-color: %s;
+                  text-align:center;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-shrink: 0;
+                  "><small>exon %s</small></div> """ % (length, borderRadius, exonColor, id+1))
+                
+            
+        elif featureType == "intron":
+            
+            print(""" <div class="block_1" style="
+                  height: 1px;
+                  border: 1px solid #C4C4C4;
+                  width: 25px;
+                  text-align:center;
+                  flex-shrink: 0;
+                  "></div> """)
+            print("<small>/ %s bp /</small>" % length)
+            print(""" <div class="block_1" style="
+                  height: 1px;
+                  border: 1px solid #C4C4C4;
+                  width: 25px;
+                  text-align:center;
+                  flex-shrink: 0;
+                  "></div> """)
+        if i == len(geneModel)-1:
+            print("<small>&nbsp&nbspCDS end</small>")
+            
+    print("</div><br>")
 
 def printFile(fname):
     if "/" in fname:
@@ -7095,7 +7238,7 @@ def writeSatMutFile(barcodeId, ampLen, tm, batchId, minSpec, minFusi, fileFormat
 
 def readBatchAndGuides(batchId):
     " parse the input file, the batchId-json file and the offtargets and link everything together "
-    seq, org, pam, position, extSeq, multiseq  = readBatchParams(batchId)
+    seq, org, pam, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
     chrom, _, _, _ = parsePos(position)
     pam = setupPamInfo(pam)
     uppSeq = seq.upper()
@@ -7113,7 +7256,7 @@ def writeOntargetAmpliconFile(outType, batchId, ampLen, tm, ofh, fileFormat="tsv
     """ design primers with approx ampLen and tm around each guide's target.
     outType can be "primers" or "amplicons"
     """
-    inSeq, db, pamPat, position, extSeq, multiseq = readBatchParams(batchId)
+    inSeq, db, pamPat, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
     chrom, _, _, _ = parsePos(position)
     otMatches = parseOfftargets(db, batchId, chrom)
 
@@ -7226,7 +7369,10 @@ def downloadFile(params):
     global scoreNames
 
     batchId = params["batchId"]
-    seq, org, pam, position, guideData = readBatchAndGuides(batchId)
+    if "multiseq" in params:
+        exonSeqs, org, pam, exonPos, guideData = parseMultiSearchInfo(params, batchId, _, download = True)
+    else:
+        seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
     if batchName!="":
         queryDesc = batchName+"_"
@@ -7426,7 +7572,7 @@ def writeAmpliconFile(params, batchId, pamId, outFh):
     ampLen = cgiGetNum(params, "ampLen", 140)
     tm = cgiGetNum(params, "tm", 60)
 
-    inSeq, db, pam, position, extSeq, multiseq = readBatchParams(batchId)
+    inSeq, db, pam, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
 
     pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
@@ -7446,7 +7592,7 @@ def otPrimerPage(params):
     ampLen = cgiGetNum(params, "ampLen", 140)
     tm = cgiGetNum(params, "tm", 60)
 
-    inSeq, db, pam, position, extSeq, multiseq = readBatchParams(batchId)
+    inSeq, db, pam, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
     pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
 
@@ -7562,7 +7708,7 @@ def microHomPage(params):
     " show the Bae et al microhomology sequences "
     printBackLink()
     batchId, pamId = params["batchId"], params["pamId"]
-    inSeq, db, pam, position, extSeq, multiseq = readBatchParams(batchId)
+    inSeq, db, pam, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
     pam = setupPamInfo(pam)
 
     if multiseq:
@@ -8051,6 +8197,25 @@ def printKoForm(params):
     scriptName = basename(__file__)
     lastpam = DEFAULTPAM
 
+    print("""
+    <script>
+    function toggleFlankLen() {
+    const koMethods = document.getElementsByName('koMethod')
+    const flankLen = document.getElementById('flankLen')
+
+    for (const method of koMethods){
+        if (method.checked) {
+            selectedValue = method.value;
+            break; }
+        }
+        if (selectedValue === 'excision') {
+            flankLen.style.display = 'block';
+        } else {
+            flankLen.style.display = 'none'}
+        }
+    </script>
+          """)
+    
     print(
     """
     <form id="KoForm", method="get">
@@ -8093,12 +8258,21 @@ def printKoForm(params):
                 <div style="margin-top:20px;">
                     <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, paste a sequence below.</small><br>
                 </div>
-                <details style = "margin-top:12px;">
-                    <summary>Click here to input a sequence instead</summary>
-                    <textarea tabindex="1" style="width:95%%" name="seq" rows="10"
-                    placeholder="Paste here the genomic - not a cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp. If you only have a cDNA, please BLAST or BLAT the cDNA first to find the right exon sequence for CRISPOR.">%s</textarea>
-                </details>
+            <p>Select one of the following approaches to inactivate your gene</p>
+            
+            <input type="radio" checked name="koMethod" id="frameshift" value="frameshift" onchange="toggleFlankLen()"/> Frameshift mutation in the first third of the coding sequence<br>
+            <input type="radio" name="koMethod" id="excision" value="excision" onchange="toggleFlankLen()"/> Excision of the gene locus<br>
+            
+            <small id="flankLen" style="text-align:center; display:none;"> 
+            <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
+            target <output style="text-align:center;">500</output> bp uptream/downstream of the TSS/TES
+            </small>
+            
+            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Intron retention by edition of a splicing site<br>
             </div>
+            """ % (len(annGenomes), len(genomes)) )
+            
+    print("""
             <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:50%%; height:350px; padding:px;">
                 <div style="margin-bottom:35px; margin-top:12px;">
                     Select a Protospacer Adjacent Motif (PAM)
@@ -8107,7 +8281,7 @@ def printKoForm(params):
                 </div>
                 <div style="margin-bottom:15px;">
 
-    """ % (len(annGenomes), len(genomes), MAXSEQLEN, HTMLPREFIX, HTMLPREFIX) )
+    """ % HTMLPREFIX)
 
     printPamDropDown(lastpam)
 
@@ -8137,7 +8311,7 @@ def printTagsAndLinkers():
     </script>
     """)
 
-    # move dicts at the top of the program ?
+    # move these at the top of the program ?
     tags = {
         'eGFP' : 'GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG',
         'Streptavidin' : 'TGGAGCCACCCGCAGTTCGAAAAA'
@@ -8394,11 +8568,10 @@ def printBody(params):
             else:
                 errAbort("Unrecognized CGI parameters.")
         else:
-            crisprSearch(params)
-            #try:
-            #    crisprSearch(params)
-            #except ValueError:
-                #print(customPamErr)
+            try:
+                crisprSearch(params)
+            except ValueError:
+                print(customPamErr)
 
     elif "satMut" in params:
         printCrisporBodyStart()
@@ -8407,9 +8580,10 @@ def printBody(params):
     elif "ko_geneid" in params and "org" and "exonSelect" in params:
         ko_geneid = params.get("ko_geneid")
         exonSelect = int(params["exonSelect"])
-        params.pop('seq')
+        if "seq" in params:
+            params.pop("seq")
         try:
-            multiseq = getExonsFromID(ko_geneid, org, pam)
+            multiseq, _ = getExonsFromID(ko_geneid, org, pam, method = "allExons")
             exonIds = [seqInfo[0] for seqInfo in multiseq]
             if exonSelect in exonIds:
                 for seqInfo in multiseq: # seqInfo is (exonId, posStr)
@@ -8449,30 +8623,29 @@ def assistantDispatcher(params):
 
     org = params.get("org")
     ko_geneid = params.get("ko_geneid", None)
-
+    expType = params.get("expType")
+    
     printTeforBodyStart()
     printCrisporBodyStart()
     printAssistant(params)
-    if params.get("expType") == "ko":
-        
+    
+    if expType == "ko":
         printKoForm(params)
 
-        if "seq" in params and org is not None:
-            printCrisporBodyStart()
-            crisprSearch(params)
-
-        elif ko_geneid is not None and org is not None: #and pam is not None?
+        if ko_geneid is not None:
             
             pam = params.get("pam")
-            multiseq = getExonsFromID(ko_geneid, org, pam, getFirst="getFirst")
-            params['multiseq'] = multiseq
-
-            if "seq" in params or "multiseq" in params:
-                #pass
+            koMethod = params.get("koMethod")
+            flankLen = params.get("flankLen")
+            multiseq, geneModel = getExonsFromID(ko_geneid, org, pam, koMethod, int(flankLen) )
+            params["multiseq"] = multiseq
+            if geneModel:
+                params["geneModel"] = geneModel
+            if "multiseq" in params:
                 printCrisporBodyStart()
                 crisprSearch(params)
 
-    elif params.get("expType") == "ki":
+    elif expType == "ki":
         printKiForm(params)
         insertpos = params.get("insertpos")
         if ((insertpos == "Nter" or insertpos == "Cter") and ko_geneid is not None) or (insertpos == "custom" and "customseq" in params) and org is not None:
@@ -8488,12 +8661,18 @@ def assistantDispatcher(params):
                         print("""<p>The insert sequence you entered is not in frame. Note that any charater other than "ATGCN" (case insensitive) is automatically removed.</p>""")
                     if error == "insertErr":
                         print("""<p>The target sequence you entered contains multiple insertion sites "//". Please use only one.</p>""")
-                pass
+    else:
+        printKoForm(params)
 
     printTeforBodyEnd()
 
-def getExonsFromID(geneId, org, pam, getFirst = None):
-
+def getExonsFromID(geneId, org, pam, method, flankLen = None):
+    """ from a geneId, returns a list of tuples [(exonId, exonPosStr)]
+    and the gene model (only whithin the cds)"""
+    
+    if flankLen is None and (method == "excision" or method == "promoter"):
+        raise ValueError("flankLen needs to be set for this method")
+    
     # set pam-dependent variables
     pam = setupPamInfo(pam)
     if (pam in verySlowPams):
@@ -8503,13 +8682,36 @@ def getExonsFromID(geneId, org, pam, getFirst = None):
     else:
         maxLen = MAXSEQLEN
 
-    chrom, strand, exons = getGenePos(geneId, org, 'codingExons')
-    if getFirst:
+    chrom, strand, exons = getGenePos(geneId, org, method, flankLen)
+    if method == "frameshift":
+        allExons = exons
         exons = getFirstThird(exons, strand, GUIDELEN, maxLen)
+        geneModel = getGeneModel(allExons, strand)
+    else:
+        geneModel = None
+    
+    return formatExonPos(exons, chrom, strand, GUIDELEN), geneModel
 
-    return formatExonPos(exons, chrom, strand, GUIDELEN)
+def getGeneModel(allExons, strand):
+    " returns a list of tuples (type, exonId, length) to display the gene model "
 
-def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
+    geneModel = []
+    
+    for i, (start, end) in enumerate(allExons):
+        exonLen = end-start
+        if i+1 < len(allExons):
+            nextStart, nextEnd = allExons[i+1]
+            if strand == '+':
+                intronLen = nextStart - end
+            else:
+                intronLen = start - nextEnd
+            geneModel.append( ('exon', i, exonLen) )
+            geneModel.append( ('intron', i, intronLen) )
+        else:
+            geneModel.append( ('exon', i, exonLen) )
+    return geneModel
+
+def getGenePos(geneID, org, method, flankLen):
 
     genomeDir = genomesDir
     twoBitFname = getTwoBitFname(org)
@@ -8528,8 +8730,8 @@ def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
                         'name': geneLine[0],
                         'chrom': geneLine[1],
                         'strand': geneLine[2],
-                        'txStart': geneLine[3],
-                        'txEnd': geneLine[4],
+                        'txStart': int(geneLine[3]),
+                        'txEnd': int(geneLine[4]),
                         'exonStarts': [int(start) for start in geneLine[8].rstrip(',').split(',')],
                         'exonEnds': [int(end) for end in geneLine[9].rstrip(',').split(',')],
                         'cdsStart': int(geneLine[5]),
@@ -8546,7 +8748,7 @@ def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
     strand = geneInfo['strand']
 
     # Get flankLen bases upstream and downstream around the TSS
-    if feature == 'promoter':
+    if method == "promoter":
         if strand == '+':
             tss = geneInfo['txStart']
         else:
@@ -8555,20 +8757,19 @@ def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
         featureList.append(promoterPos)
     
     # Get flankLen bases upstream of the TSS and downstream of the TES
-    # to get guides for knocking-out a gene by the excision of its locus
     # returns (upstreampos, downstreampos)
-    if feature == 'flanking':
+    if method == "excision":
         tss = geneInfo['txStart']
         tes = geneInfo['txEnd']
         upstreamPos = (tss - flankLen, tss)
         downstreamPos = (tes, tes + flankLen)
         if strand == '+':
-            featureList.append(upstreamPos, downstreamPos)
+            featureList = [upstreamPos, downstreamPos]
         else:
-            featureList.append(downstreamPos, upstreamPos)
+            featureList = [downstreamPos, upstreamPos]
 
-    # may add other features
-    elif feature == 'codingExons':
+    # get the positions of the coding exons (5' and 3' UTRs removed)
+    elif method == "frameshift" or method == "allExons":
 
         cdsStart = geneInfo['cdsStart']
         cdsEnd = geneInfo['cdsEnd']
@@ -8576,7 +8777,6 @@ def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
         exonEnds = geneInfo['exonEnds']
 
         if cdsStart == cdsEnd:
-            print("noncoding")
             featureList = [(start, end) for start, end in zip(exonStarts, exonEnds)]
 
         for start, end in zip(exonStarts, exonEnds):
@@ -8588,6 +8788,7 @@ def getGenePos(geneID, org, feature = 'codingExons', flankLen = None):
         
         if strand == '-':
             featureList = featureList[::-1]
+        
 
     return chrom, strand, featureList
     
@@ -8613,7 +8814,7 @@ def getFirstThird(exons, strand, pamlen, maxLen, minLen = 100):
             currentLen += exonLen
         # the exon can be cropped to fit the first third of the coding sequence
         else:
-            remaining = totalLen - currentLen
+            remaining = thirdLen - currentLen
             if remaining > pamlen:
                 if strand == '+':
                     firstThirdExons.append((start, start+remaining))
@@ -9930,7 +10131,7 @@ def primerDetailsPage(params):
     batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
     pam = setupPamInfo(pam)
 
-    inSeq, genome, pamSeq, position, extSeq, multiseq = readBatchParams(batchId)
+    inSeq, genome, pamSeq, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
     batchInfo = readBatchAsDict(batchId)
     exonSeqs = batchInfo.get("exonSeqs")
 
@@ -10036,7 +10237,7 @@ def primerDetailsPage(params):
     doDonorGuide = cgiGetStr(params, "donorGuide", "off")
     if doDonorGuide=="on":
         #print("Guide sequence without PAM is: <tt>%s</tt><p>" % guideSeq)
-        #inSeq, genome, pamSeq, position, extSeq, multiseq = readBatchParams(batchId)
+        #inSeq, genome, pamSeq, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
         seq, org, pam, position, guideData = readBatchAndGuides(batchId)
         for guideRow in guideData:
             guideScore, guideCfdScore, effScores, startPos, guideStart, \
@@ -10298,7 +10499,7 @@ def runQueueWorker(noFork):
             print("found job - single sequence mode")
             jobError = False
             try:
-                seq, org, pamDesc, position, extSeq, _ = readBatchParams(batchId)
+                seq, org, pamDesc, position, extSeq, _, _, _, koGeneId = readBatchParams(batchId)
                 pam = setupPamInfo(pamDesc) # pamDesc includes info on guidelen, etc
                 assert('-' not in pam)
                 uppSeq = seq.upper()
@@ -10321,7 +10522,7 @@ def runQueueWorker(noFork):
             print("found job - multi sequence mode")
             logging.info("executed multisearch job")
             jobError = False
-            seq, org, pam, position, extSeq, multiseq = readBatchParams(batchId)
+            seq, org, pam, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
             batchBase = join(batchDir, batchId)
             if jobType == 'multipam':
                 try:
@@ -10336,7 +10537,7 @@ def runQueueWorker(noFork):
                     jobError = True
             elif jobType == 'multiseq':
                 try:
-                    processMultiSeqSubmission(multiseq, org, pam, batchBase, batchId, q)
+                    processMultiSeqSubmission(multiseq, org, pam, batchBase, batchId, q, koMethod)
                     logging.info("executed processMultiSeqSubmission()")
                 except:
                     exStr = traceback.format_exc()
@@ -10538,7 +10739,7 @@ def mainCommandLine():
                 ampLen = options.ampLen
                 tm = options.tm
 
-                seq, org, pam, position, extSeq, multiseq = readBatchParams(batchId)
+                seq, org, pam, position, extSeq, multiseq, koMethod, geneModel, koGeneId = readBatchParams(batchId)
                 scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = \
                     designOfftargetPrimers(seq, org, pamPat, position, extSeq, pamId, ampLen, tm, otMatches[pamId])
 
@@ -10644,7 +10845,7 @@ def printAssistant(params):
     print('<input type=radio checked name="expType" value="ko">Knock-out of a gene<p>')
     print('<input type=radio name="expType" value="ki">Knock-in of a sequence at a genome position<p>')
     print('<input type=hidden name="assist" value="1">')
-    print('<input type=submit name="submit" value="submit">')
+    print('<input type=submit name="submit" value="change">')
     print('</form>')
 
 def mainCgi():
