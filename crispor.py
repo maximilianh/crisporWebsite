@@ -3324,6 +3324,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             text = "This sequence can form one or several secondary structures (minimum free energy = %(freeEnergy)s kcal/mol). This is of importance for synthetic gRNAs. For more information, read <a target=blank href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al, Nat. Commun. 2025</a>."  % locals()
             htmlWarn(text)
             print('secondary structure' % locals())
+            print("<br>")
 
         if gcFrac>0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had almost as many off-targets as all other sequences combined. We do not recommend using guide sequences with such a high GC content."
@@ -6480,7 +6481,6 @@ def parseMultiSearchInfo(params, batchId, koGeneId, download = False):
 def printGeneModel(geneModel, exonSeqs, koGeneId):
     " displays the gene model, from CDS start to CDS end "
     
-    
     thirdLen = 0
     for feature in geneModel:
         if feature[0] == "exon":
@@ -6491,7 +6491,7 @@ def printGeneModel(geneModel, exonSeqs, koGeneId):
     lastseq = str(exonSeqs[-1][1])
     lastLen = len(lastseq)
     
-    print(""""<p> below is the gene model for transcript %s. The exons corresponding to the target region are colored. click on an exon to show the corresponding guides.</p>""" % koGeneId)
+    print("""<p> below is the gene model for transcript <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="_blank">%s</a>. The exons corresponding to the target region are colored. click on an exon to show the corresponding guides.</p>""" % (koGeneId, koGeneId))
     
     print(""" <div style="
           overflow-x:scroll; 

@@ -395,3 +395,4 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - recherche .gp par altname (symbol) afficher tous les transcrits correspondant (et la taille de la prot.) / prio ++
 - pour l'homme : surligner MANE vs Basic + lien vers browser gtex (fq utilisation des exons / tissu) / prio -
 - ajouter mode CRISPRa : recherche autour du TxStart -> retrouver guides dans données Broad Institue (Pooled lib) (stockage dans database) / prio --
+- dans processmultiseqsubmission() -> retoruner Fname si Fname existe, pour éviter crash lors du rechargement de la page.
