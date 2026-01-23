@@ -17,6 +17,7 @@ else
 
 curl -s https://crispor.gi.ucsc.edu/genomes/$db/ | grep -oP 'href="\K[^"]+' | grep -v '^\?' | grep -v '/$' | while read f; do
 echo Downloading $f
-curl --progress-bar --output-dir $outDir/$db -O "https://crispor.gi.ucsc.edu/genomes/sacCer3/$f"
+curl --progress-bar --output-dir $outDir/$db -O "https://crispor.gi.ucsc.edu/genomes/$db/$f"
 done
 fi
+/data/www/crispor/makeGenomeInfo

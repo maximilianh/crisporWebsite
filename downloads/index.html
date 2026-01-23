@@ -5,20 +5,13 @@ Files available:
 <li><a href="https://github.com/maximilianh/crisporPaper">Github repo crisporPaper</a> with all code for the analysis paper</li>
 <li><a href="https://github.com/maximilianh/crisporWebsite">Github repo crisporWebsite</a> with all code used by the website. Since Version 4.0, non-academic users have to obtain a license for local installations, see <a href="../LICENSE.txt">usage license</a></li>.
 <li><a href="http://crispor.tefor.net/genomes/">Directory with all indexed and annotated genomes from this website for download. See the README file on crisporWebsite Repo for an example wget mirror command.</a>
-<li>A virtualBox virtual machine image for Windows/OSX/Linux that includes CRISPOR. You can use this to run CRISPOR on your own computer, on Windows, OSX or Linux</li>
+<li>A docker container image for Windows/OSX/Linux that includes CRISPOR and all dependencies. You can use this to run CRISPOR on your own computer, on Windows, OSX or Linux</li>
   <ul>
-  <li>Install <a href="http://virtualbox.org">VirtualBox</a> for your operating system first, Windows, OSX or Linux</li>
-  <li><a href="crisporVm.zip">Download the virtual machine image</a> (~1GB, free for non-commercial use)
-  <li>If you already use another VM software (e.g. VMWare), <a href="crispor.ova">download the virtual machine in OVA format</a> (we have not tested all environments, let us know if you cannot import the OVA in your software)</li>
-  <li>Extract the virtual machine image, double-click it or "Machine &gt; Add" the file crispor.vbox file in VirtualBox</li>
-  <li>Boot the virtual machine by clicking the "Start" button
-  <li>When the virtual machine is running, point your internet browser to <a href="http://127.0.0.1:4444">http://127.0.0.1:4444</a>. You should be using your own copy of crispor.org</li>
-  <li>If you need to look at the VM, you can use the console. Username is "crispor", password, "crispor". The user "crispor" has sudo rights on the machine</li>
-  <li>Run the command "crisprUpdate" to update CRISPOR to the most current version (=git pull).</li>
-  <li>Run the command "crisprDownload [genomeCode]" to download a genome, e.g. "crisprDownload hg38anset" or "crisprDownload hg19"</li>
-  <li>To run the command line version, go to the directory /var/www/html/ and run crispor.py in the built-in terminal</li>
-  <li>It's a bit easier to run the command line version from a terminal where you can copy/paste. For this, ssh to port 2222 on localhost, e.g. <tt>ssh crispor@localhost -p 2222</tt>, password "crispor"</li>
-  <li>To add your own genome which is not yet on Crispor.org, the easiest way forward may be to email us and ask us to add it to our site, then use crisprDownload. Otherwise, look at the script to add genomes, crisprAddGenome, in the <a href="https://github.com/maximilianh/crisporWebsite/tree/master/tools">tools directory</a>. This script is using various external tools. You can find binary 64Bit static versions in the directory usrLocalBin/ under the tools directory.</li>
+  <li>Install <a href="http://docker.com">Docker</a> for your operating system first, Windows, OSX or Linux</li>
+  <li><a href="https://github.com/maximilianh/crisporWebsite/blob/master/docker/README.md">Follow the instructions</a>, which boil down to running this command "docker run -d -p 8080:80 --name crispor-container maximilianh/crispor /sbin/my_ini" then going to http://localhost:8080
+  <li>If you need a VM image, e.g. for <a href="https://vmware.com">Vmware</a>, please let me know. Usually the docker container can be run there.</li>
+  <li>To run the command line version, get a shell into the container (see documention linked above) /var/www/crispor/ and run crispor.py in the terminal</li>
+  <li>To add your own genome which is not yet on Crispor.org, the easiest way forward may be to email us and ask us to add it to our site, then run /data/www/crispor/tools/crisporDownloadGenome (see docs page above).</li>
   </ul>
 </li>
 </ul>

@@ -10,6 +10,13 @@ try:
 except:
     from urllib.request import urlopen
 
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+    import MySQLdb
+except ImportError:
+    print("No mysql driver is installed, if you want to add UCSC genomes, run 'python3 -m pip install PyMySQL'")
+
 # copied from crispor.py:
 # directory for helper binaries (e.g. BWA)
 # system() is one of 'Linux', 'Darwin', 'Windows', machine() is one of 'x86_64', 'arm64', 'aarch64'
@@ -17,17 +24,10 @@ baseDir = dirname(__file__)
 os_name = platform.system()        # 'Linux', 'Darwin', 'Windows'
 arch = platform.machine()          # 'x86_64', 'arm64', 'aarch64'
 binDir = abspath(join(baseDir, "..", "bin", platform.system()+"-"+platform.machine()))
+scriptDir = abspath(join(baseDir, "..", "scripts"))
 
 from collections import namedtuple
 from os.path import *
-
-#import MySQLdb # install with "sudo apt-get install python-mysqldb"
-try:
-    import pymysql
-    pymysql.install_as_MySQLdb()
-    import MySQLdb
-except ImportError:
-    pass
 
 # Todo to make this CGIable:
 # - run mac2unix and dos2unix onto the input file, remove newlines, refuse files that still contain a newline
@@ -250,6 +250,15 @@ def selectUcscGenomesByDb(db):
 
 def selectUcscGenomes(taxIds, quiet):
     " given a list of taxIds, let the user select an assembly and return a list of dbDb rows for them "
+    try:
+        import pymysql
+        pymysql.install_as_MySQLdb()
+        import MySQLdb
+    except ImportError:
+        print("No mysql driver is installed, if you want to add UCSC genomes, run 'python3 -m pip install PyMySQL'")
+        sys.exit(1)
+
+
     conn = sqlConnect("hgcentral")
     data = {}
     dbRows = []
@@ -411,7 +420,7 @@ def geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp):
     " convert genes to segments "
     printMsg("Downloading gene models to segments")
     # the awk command translates spaces to underscores. genePredToBed cannot deal with these.
-    cmd = """cat %(geneTmp)s | cut -f2- | awk 'BEGIN {FS=OFS="\t";} // { gsub(" " , "_", $1); gsub(" ", "_", $12); print }' | genePredToBed stdin stdout | bedToExons stdin stdout | lstOp replace stdin %(accToSymTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s""" % locals()
+    cmd = f"""cat {geneTmp} | cut -f2- | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | {scriptDir}/lstOp replace stdin {accToSymTmp} | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {sizesTmp} | {binDir}/bedSort stdin {segTmp}"""
     runCmd(cmd)
     assert(getsize(segTmp)!=0) # no segments - email Max!
 
@@ -749,7 +758,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
             cmd = "bedToBigBed -type=bed12+ -as=/usr/local/bin/bigGenePred.as %(bgPred)s %(sizesTmp)s %(bbTmp)s -tab" % locals()
             runCmd(cmd)
 
-            cmd    = "genePredToBed %(gpTmp)s stdout | bedToExons stdin stdout | lstOp replace stdin %(ensToGeneTmp)s | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(sizesTmp)s | bedSort stdin %(segTmp)s" % locals()
+            cmd    = f"{binDir}/genePredToBed %(gpTmp)s stdout | {binDir}/bedToExons stdin stdout | {scriptDir}/lstOp replace stdin {ensToGeneTmp} | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {sizesTmp} | {binDir}/bedSort stdin {segTmp}"
             runCmd(cmd)
 
             cmd = "rm %s" % ensToGeneTmp
@@ -785,6 +794,7 @@ def selectManualGenome(taxIds, options):
 
 def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
     " convert gff3 to genePred and segments "
+    global binDir
     if gff3Fname.endswith(".gz"):
         catCmd = "zcat"
     else:
@@ -793,10 +803,9 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
     if useAltProg:
         # UCSC's program is optimized for NCBI RefSeq GFFs
         # cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -geneNameAttr=gene -rnaNameAttr=transcript_id" % \
-        cmd = "gff3ToGenePred %(gff3Fname)s %(gpFname)s -refseqHacks -maxConvertErrors=10000000" % \
-            locals()
+        cmd = f"{binDir}/gff3ToGenePred {gff3Fname} {gpFname} -refseqHacks -maxConvertErrors=10000000"
     else:
-        cmd = "%(catCmd)s %(gff3Fname)s | gffread /dev/stdin -T -o /dev/stdout | gtfToGenePred -allErrors stdin %(gpFname)s" % locals()
+        cmd = f"{catCmd} {gff3Fname} | {binDir}/gffread /dev/stdin -T -o /dev/stdout | {binDir}/gtfToGenePred -allErrors stdin {gpFname}"
 
     logging.info("converting gff3 to genePred: %s" % cmd)
     runCmd(cmd, mustRun=False)
@@ -809,7 +818,7 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
 
     # genePredTo cannot deal with spaces, so replace these with underscores. 
     # No idea why NCBI has spaces in gene identifiers, in some obscure cases
-    cmd = """cat %(gpFname)s | awk 'BEGIN {FS=OFS="\t";} // { gsub(" " , "_", $1); gsub(" ", "_", $12); print }' | genePredToBed stdin stdout | bedToExons stdin stdout | sort -u | bedSort stdin stdout | bedOverlapMerge /dev/stdin /dev/stdout | bedBetween stdin /dev/stdout -a -s %(chromSizesFname)s | bedSort stdin %(segFname)s""" % locals()
+    cmd = f"""cat {gpFname} | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {chromSizesFname} | {binDir}/bedSort stdin {segFname}"""
     logging.info("converting genePred to segment names: %s" % cmd)
     runCmd(cmd)
 
@@ -1019,9 +1028,9 @@ def makeChrUn(fname):
     runCmd(cmd)
     cmd = "faCat /tmp/smallSeqs.fa /tmp/chrUn /tmp/chrUnLft -gapSize=100 -maxOutputSize=99999999999"
     runCmd(cmd)
-    cmd = "sed -i s/chrUn\.1/chrUn/ /tmp/chrUn.1.fa"
+    cmd = "sed -i s/chrUn\\.1/chrUn/ /tmp/chrUn.1.fa"
     runCmd(cmd)
-    cmd = "sed -i s/chrUn\.1/chrUn/ /tmp/chrUnLft.1.lft"
+    cmd = "sed -i s/chrUn\\.1/chrUn/ /tmp/chrUnLft.1.lft"
     runCmd(cmd)
 
     newFname = fname+".new"

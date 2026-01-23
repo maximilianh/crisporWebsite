@@ -1,0 +1,2 @@
+#!/bin/bash
+exec /data/www/crispor/crispor.py --noFork --worker >> /data/www/crispor/log/worker1.log 2>&1

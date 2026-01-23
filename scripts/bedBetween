@@ -1,11 +1,10 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 # Max Haeussler, 6/2007, 6/2014
 
 from sys import *
 import sys
 from optparse import OptionParser
-import bed
 import logging
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -68,8 +67,9 @@ def output(fh, left, right, upstream, limit, type, chromSizes=None):
         start = left.end
         end = chromSizes[left.chrom]
         if start > end:
-            print "Error: start position %d beyond chromSize" % start
-            sys.exit(1)
+            print("Error: %s - start position %d beyond chromSize" % (repr(left), start))
+            #sys.exit(1)
+            return
         leftname = left.name
         rightname = "Gap"
     else:
@@ -118,7 +118,7 @@ def slurpdict(fname):
     for l in open(fname, "r"):
         l = l.strip("\n")
         fs = l.split("\t")
-	if not len(fs)>1:
+        if not len(fs)>1:
             continue
         key = fs[0]
         val = int(fs[1])
@@ -147,7 +147,7 @@ def hasOverlap(f1, f2):
 
 def parseBedFilename(fname, reqSorted=False, quiet=False):
     if not quiet:
-	sys.stderr.write("Reading %s...\n" % fname)
+        sys.stderr.write("Reading %s...\n" % fname)
     if fname=="stdin":
         return parseBedFile(sys.stdin, reqSorted)
     else:
