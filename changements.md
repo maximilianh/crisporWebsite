@@ -375,9 +375,9 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 		- coloration des exons target
 		- si dernier exon tronqué, coloration de la partie target
 ## à faire
-
+(suggestions JP)
 - option : masquer l'affichage seq / PAM des exons
-- cliquer sun un exon du gene model affiche la seq / pams de l'exon
+- cliquer sur un exon du gene model affiche la seq / pams de l'exon
 - rechercher guides dans seq exon étendue (exon=uppercase, intron=lowercase) : pam 6+ bp splice site
 - dans tableau effscores :
 	- filtrer et trier par exon / prio ++
@@ -389,10 +389,23 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 
 # 23/01/26
 
-## à faire
+## knock-out mode 
 
+- Correction de l'affichage des exons target dans le gene model
+- sur le gene model : cliquer sur un des exons target affiche  la séquence / pams de l'exon correspondant (+ bouton permettant d'afficher tous les exons)
+- ajout d'un titre à la page de résultats correspondant au type d'expérience, avec un lien NCBI vers le transcript id.
+- correction erreur lorsque la page est rechargée:
+	- si le json est déjà présent, newMultiBatch() ne l'overwrite pas
+	- si le fichier offtarget et effscores et déjà présent, processMultiSeqSubmission ne l'overwrite pas et retourne le nom des fichiers
+
+## à faire
+(visio JP / Max)
 - ajouter option production du guide (transcrit / synthétique ..) -> effscore par défault / prio +
 - recherche .gp par altname (symbol) afficher tous les transcrits correspondant (et la taille de la prot.) / prio ++
 - pour l'homme : surligner MANE vs Basic + lien vers browser gtex (fq utilisation des exons / tissu) / prio -
 - ajouter mode CRISPRa : recherche autour du TxStart -> retrouver guides dans données Broad Institue (Pooled lib) (stockage dans database) / prio --
-- dans processmultiseqsubmission() -> retoruner Fname si Fname existe, pour éviter crash lors du rechargement de la page.
+- dans processmultiseqsubmission() -> retoruner Fname si Fname existe, pour éviter crash lors du rechargement de la page. DONE
+
+(bugs)
+- la numérotation des exons ne prend pas en compte les exons situés entièrement en 5' et 3' UTR
+- sur le formulaire knock-out, cliquer sur "submit" ne redirige pas vers une nouvelle page 

@@ -1434,7 +1434,6 @@ def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
         logging.debug("lindel scores")
         mutSeqDict = calcLindelScore(seqIds, seqs)
         scores["lindel"] = mutSeqDict
-    logging.debug(f"lindel : {mutSeqDict} <br>")
     return scores
 
 # ----------- MAIN --------------
