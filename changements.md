@@ -376,15 +376,15 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 		- si dernier exon tronqué, coloration de la partie target
 ## à faire
 (suggestions JP)
-- option : masquer l'affichage seq / PAM des exons
-- cliquer sur un exon du gene model affiche la seq / pams de l'exon
-- rechercher guides dans seq exon étendue (exon=uppercase, intron=lowercase) : pam 6+ bp splice site
+- option : masquer l'affichage seq / PAM des exons DONE
+- cliquer sur un exon du gene model affiche la seq / pams de l'exon DONE
+- rechercher guides dans seq exon étendue (exon=uppercase, intron=lowercase) : pam 6+ bp splice site prio ++ ~DONE 
 - dans tableau effscores :
-	- filtrer et trier par exon / prio ++
-	- ajouter linder / oof dans global score ? / prio -
-	- supprimer doench 2016 et scores optionneles / prio ++
-	- sélection du effscore pour calcul du score global (formulaire avec dropdown menu sous header score global) / prio +
-	- ajouter titres (indiquer expType / geneID, etc..) / prio ++
+	- filtrer et trier par exon / prio ++ DONE
+	- ajouter lindel / oof dans global score ? / prio -
+	- supprimer doench 2016 et scores optionneles / prio ++ DONE
+	- sélection du effscore pour calcul du score global (formulaire avec dropdown menu sous header score global) / prio + DONE
+	- ajouter titres (indiquer expType / geneID, etc..) / prio ++ DONE
 	- vérifier la page clonage (warning si pam =/= spCas9 -> tracr diff.) et ajouter champ input seq / prio -
 
 # 23/01/26
@@ -409,3 +409,32 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 (bugs)
 - la numérotation des exons ne prend pas en compte les exons situés entièrement en 5' et 3' UTR
 - sur le formulaire knock-out, cliquer sur "submit" ne redirige pas vers une nouvelle page 
+
+# 26/01/26
+
+## knock-out mode 
+
+- extension de la séquence des exons à GUIDELEN - 6bp (pour que le site de coupure soit à +6bp du site d'épissage)
+- modification de findPams() afin d'éviter de rechercher des pams en dehors (dans l'extension) de l'exon. 
+- lorsqu'un exon est sélectionné, la fenêtre affichant la séquence et les pams correspndant est agrandie.
+- suppression des scores optionnels et changement de l'ordre (rs3 / EVA / Mor-Mateos)
+- Possibilité de sélectionner le score d'efficacité utilisé pour le calcul du global score (modifications dans printTableHead() )
+
+## à faire
+- ajouter variants dans parseAndPrintMultiSearchInfo() DONE
+- certains transcrits (ex ENST00000591702.1_1 ne sont pas présents sur ucsc / ENSEMBL database)
+- rediriger vers une nouvelle page après submit formulaire knock-out 
+
+# 27/01/26
+
+## knock-out mode
+
+- affichage des variants : déplacement de l'obtention de l'information des variants dans une fontion dédiée (getVariants() )
+- correction de printGeneModel() : les exons pour lesquels aucun guide n'a été trouvé ne sont pas sélectionables.
+
+##  faire
+
+- MANE : ucsc tools / tableBrowser -> gencode (track allGENCODE V49 (comprehensive + MANE) + ncbiRefSeq (all +  select) -> classer ordre (ou surligne / annoter)
+- afficher "coding exons" au lieu de "exon"
+- afficher dropdown variants (en dehors de la bouche exons)
+- dans printKoForm() : empêcher la ré-impression du formulaire lorsque submit=submit

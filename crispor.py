@@ -373,6 +373,7 @@ pamPlusLen = 5
 commandLineMode = False
 
 # names/order of efficiency scores to show in UI
+koCas9ScoreNames = ["rs3", "EVA", "crisprScan"]
 cas9ScoreNames = ["fusi", "crisprScan", "rs3", "EVA"]
 allScoreNames = ["fusi", "chariRank", "ssc", "wuCrispr", "doench", "wang", "crisprScan", "ccTop", "rs3", "EVA"]
 
@@ -940,7 +941,7 @@ def cgiGetParams():
         if val!=None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            if key not in ["seq", "name", "customseq", "insertseq"]:
+            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore"]:
                 checkVal(key, val)
             cgiParams[key] = val
 
@@ -1187,7 +1188,7 @@ def docTestInit(isCpf1, guideLen):
     pamIsFirst=isCpf1
     GUIDELEN=guideLen
 
-def findPams (seq, pam, strand, startDict, endSet):
+def findPams (seq, pam, strand, startDict, endSet, exonId = None):
     """ return two values: dict with pos -> strand of PAM and set of end positions of PAMs
     Makes sure to return only values with at least GUIDELEN bp left (if strand "+") or to the
     right of the match (if strand "-")
@@ -1226,6 +1227,12 @@ def findPams (seq, pam, strand, startDict, endSet):
         # OKOKOKOKOK
         maxPosMinus = len(seq)-(GUIDELEN+len(pam))
 
+        # search for guides (but not PAMs) in the flanking sequences (if it exists)
+        # exonId contains no information, only checks if the function is called in multiseq mode
+        if exonId is not None:
+                minPosMinus = GUIDELEN+6 # distance to cut site + splice site (= flank sequence)
+                maxPosPlus = len(seq) - minPosMinus
+
     #print "new search", seq, pam, "minPosPlus=",minPosPlus, "guideLen=", GUIDELEN, "<br>"
     for start in findPat(seq, pam):
         if pamIsFirst:
@@ -1237,10 +1244,18 @@ def findPams (seq, pam, strand, startDict, endSet):
                 continue
         else:
             # return("non-Cpf1 mode found", start,"<br>")
-            if strand=="+" and start < minPosPlus:
-                continue
-            if strand=="-" and start > maxPosMinus:
-                continue
+            if strand=="+":
+                if start < minPosPlus:
+                    continue
+                # prevent searching for PAMs in the flanking sequences
+                if exonId is not None and start > maxPosPlus:
+                    continue
+
+            if strand=="-":
+                if start > maxPosMinus:
+                    continue
+                if exonId is not None and start < minPosMinus:
+                    continue
 
         #print "match", strand, start, end, "<br>"
         startDict[start] = strand
@@ -1609,16 +1624,46 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
     lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam, exonId)
     posLabel = "Position"
     seqLabel = "Sequence"
+    varLabel = "Variants"
 
     #pamLines is empty
     #print(lines, maxY, pamIdToSeq, guideScores)
     pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores))
     labelLen = max(len(seqLabel), len(posLabel), getMaxLen(pamLines))
+
+    if baseEditor or varDb:
+        print(("""<form style="display:inline" id="paramForm" action="%s" method="GET">""" % basename(__file__)))
+
+    if varDb is not None:
+        print("Variant database:")
+        varDbList = [(b,c) for a,b,c,d in varDbs] # only keep fname+label
+        printDropDown("varDb", varDbList, varDb)
+
+        if minFreq==0.0:
+            minFreq="0.0"
+        else:
+            minFreq = str(minFreq)
+
+        # pull out the hasAF field for this varDb
+        varDbHasAF = False
+        for shortLabel, fname, desc, hasAF in varDbs:
+            if fname==varDb:
+                varDbHasAF = hasAF
+                break
+
+        if varDbHasAF:
+            print("""&nbsp; Min. frequency: """)
+            print(("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq))
+        print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
+        print(("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can add it.</a></small>" % contactEmail))
+
+
     print(""" <div name="exonDisplay" id="exon%s" style="display:block;"> """ % exonId )
     print(""" <div class="substep" """)
     print('<a id="seqStart"></a>')
     if koMethod == "frameshift":
-        print("Exon %s (%s) is %d bp long. It contains %d possible guide sequences.<br>" % (exonId+1, browserlink, len(seq), len(guideScores)))
+        exonLen = len(''.join(base for base in seq if base.isupper()))
+        print("Exon %s (%s) is %d bp long (non extented). It contains %d possible guide sequences.<br>" % (exonId+1, browserlink, exonLen, len(guideScores)))
     elif koMethod == "excision":
         if exonId == 0:
             print(" the region %s bp upstream of the TSS contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
@@ -1626,11 +1671,15 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
             print(" the region %s bp downstream of the TES contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
 
     print("</div>")
-    print('''<div class="blueHighlight" style="text-align: left; overflow-x:scroll; width:85vw; height:3vw; background:#DDDDDD; border-style: solid; border-width: 1px">''')
+    print('''<div class="blueHighlight" name="exonPamSeq" id="exonPamSeq%s" style="text-align: left; overflow-x:scroll; width:85vw; height:4vw; background:#DDDDDD; border-style: solid; border-width: 1px">''' % exonId)
 
     print('''<pre style="font-family: Source Code Pro; font-size: 80%; display:inline; line-height: 0.95em; text-align:left">''')
     print(('{:'+str(labelLen)+'s} ').format(posLabel), end=' ')
     print(rulerString(len(seq)))
+
+    if varHtmls is not None:
+        print(('{:'+str(labelLen)+'s} ').format(varLabel), end=' ')
+        print("".join(varHtmls))
 
     print(('{:'+str(labelLen)+'s} ').format(seqLabel), end=' ')
     print (seq)
@@ -1831,7 +1880,7 @@ def flankSeqIter(seq, startDict, pamLen, doFilterNs, exonId = None):
 
         if "N" in flankSeq and doFilterNs:
             continue
-        if exonId or exonId == 0:
+        if exonId is not None:
             pamId = "%d.s%d%s" % (exonId, pamStart, strand)
         else:
             pamId = "s%d%s" % (pamStart, strand)
@@ -2655,17 +2704,22 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq, pamPat):
                 matches.setdefault((name, restrSite, suppliers), set()).update(posList)
     return matches
 
-def calcGlobScore(guideSeq, MitScore, CfdScore, effs, GC, freeE):
-    " Calculate a global score for a sgRNA based of Specificity, Efficientcy, GC content and free-energy"
-    #Values will need to be adjusted
+def calcGlobScore(guideSeq, MitScore, CfdScore, effs, GC, freeE, globEffScore):
+    " Calculate a global score for a sgRNA based of Specificity, Efficientcy, GC content and free-energy "
  
     MitScaled = MitScore/100
     #CfdScaled = CfdScore/100
-    rs3Scaled = (effs["rs3"]+200)/400
-    
-    mainScore = 100*(0.60*MitScaled + 0.40*rs3Scaled)
 
-    #Penalities
+    effScore = effs[globEffScore]
+    if globEffScore == 'rs3':
+        effScore = (effScore+200)/400
+    else:
+        effScore = effScore/100
+    
+    mainScore = 100*(0.60*MitScaled + 0.40*effScore) # coefficients will need to be adjusted
+
+    # penalties
+
     grafType = crisporEffScores.getGrafType(guideSeq)
 
     if grafType:
@@ -2690,7 +2744,7 @@ def calcEVAscore(EVAlike, MIT):
     EVAfull = EVAlike + 0.1784*MIT
     return EVAfull
 
-def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None, org=None, exonId=None):
+def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None, org=None, exonId=None, globEffScore=None):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
     creates rows with too many fields. needs refactoring.
@@ -2740,7 +2794,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         EVAscore = calcEVAscore(EVAlike, guideScore)
         effScoring['EVA'] = EVAscore
 
-        mainScore = calcGlobScore(guideSeq, guideScore, guideCfdScore, effScoring, gcFrac, freeEnergy)
+        mainScore = calcGlobScore(guideSeq, guideScore, guideCfdScore, effScoring, gcFrac, freeEnergy, globEffScore)
 
         guideRow = [guideScore, guideCfdScore, effScoring, pamStart, guideStart, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount, gcFrac, freeEnergy, mainScore]
         guideData.append( guideRow )
@@ -2748,7 +2802,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         pamIdToSeq[pamId] = guideSeq
 
     # when the function is not called in a loop, sort now
-    if exonId is None and exonId != 0:
+    if exonId is None:
         sortGuideData(guideData, sortBy)
 
     return guideData, guideScores, hasNotFound, pamIdToSeq
@@ -2759,7 +2813,7 @@ def sortGuideData(guideData, sortBy):
     if sortBy == "main":
         sortFunc = (lambda row: row[-1])
         reverse = True
-    elif sortBy == "pos": 
+    elif sortBy == "pos":
         sortFunc = (lambda row: row[3])
         reverse = False
     elif sortBy == "offCount":
@@ -2802,7 +2856,7 @@ def hasGeneModels(org):
     geneFname = join(genomesDir, org, org+".segments.bed")
     return isfile(geneFname)
 
-def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
+def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId):
     " print guide score table description and columns "
     # one row per guide sequence
     if not pamIsCpf1(pam):
@@ -2995,6 +3049,13 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
         $("#"+classId+"MoreLink").show();
         $("#"+classId+"LessLink").hide();
     }
+
+    function changeGlobEffScore() {
+        var newScore = $('input[name="globEffScore"]:checked').val();
+        var searchParams = new URLSearchParams(window.location.search);
+        searchParams.set('globEffScore', newScore);
+        window.location.search = searchParams.toString();
+    }
     </script>
     """)
 
@@ -3025,9 +3086,17 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
     htmlHelp("The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
     print('''</small>''')
 
-    print('<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score (default). Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a>' % batchId)
-    htmlHelp("This global score ranges from 0 to 100 and is comprised of 60% CFD specificity score and 40% Doench-RuleSet3 efficiency score.<br>Each score is min-max scaled before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25% or >75%) and a free energy < 3 kcal/mol, respectively.")
-    
+    print('<th style="width:80px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score (default). Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a><br>' % batchId)
+    htmlHelp("This global score ranges from 0 to 100 and is comprised of 60% CFD specificity score and 40% of the chosed efficiency score (select below).<br>Each score is min-max scaled before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25% or >75%) and a minimum free energy < -3 kcal/mol, respectively.")
+    print(""" <br><small style="margin-top:20px;"> """)
+
+    globEffScore = cgiParams.get("globEffScore", "rs3")
+    scores = [("rs3", "rs3"), ("EVA", "EVA"), ("crisprScan", "MM")]
+    for scoreVal, scoreLabel in scores:
+        checked = "checked" if scoreVal == globEffScore else ""
+        print(""" <input type=radio name="globEffScore" value="%s" %s onchange="changeGlobEffScore()"> %s </input><br> """ % (scoreVal, checked, scoreLabel))
+    print("</small>")
+
     if not pamIsCpf1(pam):
         print('<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>' % batchId)
         if pamIsSaCas9(pam):
@@ -3048,7 +3117,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns):
 
     htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
 
-    if not pamIsCpf1(pam) and not pamIsSaCas9(pam):
+    if not pamIsCpf1(pam) and not pamIsSaCas9(pam) and not geneId:
         if cgiParams.get("showAllScores", "0")=="0":
             print(("""<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>""" % cgiGetSelfUrl({"showAllScores":"1"}, anchor="otTable")))
             scoreDescs["crisprScan"][0] = "Mor.-Mateos"
@@ -3220,12 +3289,18 @@ def printNoEffScoreFoundWarn(effScoresCount, pam):
         note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it or if there is simply not guide socring method. In the first case, please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence. For the second case, you can contact me and suggest an efficiency scoring method, send me the published paper in this case."
         printNote(note)
 
-def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls):
+def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls, geneId = None):
     " shows table of all PAM motif matches "
-    print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
+    if geneId:
+        print("<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>" % (geneId, pam))
+    else:
+        print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
 
     global scoreNames
-    if (cgiParams.get("showAllScores", "0")=="1"):
+    if geneId:
+        scoreNames = koCas9ScoreNames
+
+    elif (cgiParams.get("showAllScores", "0")=="1"):
         scoreNames = allScoreNames
 
     showColumns = set()
@@ -3236,7 +3311,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
     showPamWarning(pam)
     showNoGenomeWarning(dbInfo)
-    printTableHead(pam, batchId, chrom, org, varHtmls, showColumns)
+    printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId)
 
     count = 0
     effScoresCount = 0
@@ -3249,6 +3324,10 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         color = scoreToColor(guideScore)[0]
 
         classStr = cssClassesFromSeq(guideSeq)
+        if geneId is not None:
+            exonId = pamId.split('.')[0]
+            classStr += " exonRow exon-" + exonId
+
         print('<tr id="%s" class="%s" style="border-left: 5px solid %s">' % (pamId, classStr, color))
 
         # position and strand
@@ -3796,7 +3875,7 @@ def distrOnLines(seq, startDict, featLen, pam, exonId = None):
 
         maxY = max(y, maxY)
 
-        if exonId is not None or exonId == 0:
+        if exonId is not None:
             pamId = "%d.s%d%s" % (exonId, start, strand)
         else:
             pamId = "s%d%s" % (start, strand)
@@ -3831,7 +3910,7 @@ def writeMultiFasta(multiseq, faFname, pam):
     faFh = open(faFname, "w")
     for exonId, seq in multiseq:
         uppSeq = seq.upper()
-        startDict, endSet = findAllPams(uppSeq, pam)
+        startDict, endSet = findAllPams(uppSeq, pam, exonId)
         appendMultiPamFlank(seq, startDict, pam, faFh, exonId)
     faFh.close()
 
@@ -4015,7 +4094,7 @@ def annotateBedWithPos(inBed, outBed, genome):
     ofh.close()
 
 def findAllGuides(seq, pam, exonId = None):
-    startDict, endSet = findAllPams(seq, pam)
+    startDict, endSet = findAllPams(seq, pam, exonId)
     pamInfo = list(flankSeqIter(seq, startDict, len(pam), False, exonId))
     return pamInfo
 
@@ -4065,7 +4144,10 @@ def calcSaveEffScores(batchId, seq, extSeq, pam, queue, seqNumber = None, exonId
         # for spcas9, we use the extended list for the calculation
         global scoreNames
         if enz is None:
-            scoreNames = allScoreNames
+            if exonId is None:
+                scoreNames = allScoreNames
+            else:
+                scoreNames = koCas9ScoreNames
 
         effScores = crisporEffScores.calcAllScores(longSeqs, enzyme=enz, scoreNames=scoreNames)
 
@@ -4720,17 +4802,31 @@ def processMultiSeqSubmission(multiseq, genome, pam, batchBase, batchId, queue, 
         guideFh = open(effScoresFnameTmp, 'w')
         # write temp eff scores per sequence
         for seqNumber, (exonId, exonPosStr) in enumerate(multiseq):
+            
+            chrom, start, end, strand = parsePos(exonPosStr)
 
-            # get the sequence of the current exon
-            seq = getSeq(genome, exonPosStr)
+            # extend the exon sequence to find PAMs that result in a cut max 6bp of a splice site
+            if not pamIsFirst:
+                flank = GUIDELEN - 6
+                extStart = start - flank
+                extEnd = end + flank
+                extPosStr = "%s:%s-%s:%s" % (chrom, extStart, extEnd, strand)
+                
+                extSeq = getSeq(genome, extPosStr)
+                # make intron seq lowercase
+                seq = extSeq[0:flank].lower() + extSeq[flank:-flank].upper() + extSeq[-flank:].lower()
+                extSeq = extendAndGetSeq(genome, chrom, extStart, extEnd, strand, seq)
+
+            else:
+                # get the sequence of the current exon
+                seq = getSeq(genome, exonPosStr)
+                seq = seq.upper()
+                # get a 100bp-extended version of the input seq          
+                extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq)
+
             batchInfo["exonSeqs"].append((exonId, seq))
             logging.info("Exon %s is %s bp long" % (exonId, len(seq)))
             
-            # get a 100bp-extended version of the input seq
-            chrom, start, end, strand = parsePos(exonPosStr)
-            extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq) # doesn't work 
-            #extSeq = None
-
             if extSeq is None:
                 batchInfo["exonPosStr"] = '?'
                 # this can only happen if there is a 100%-M match but small SNPs in it compared to the input sequence
@@ -5002,14 +5098,18 @@ def dbsearchGene(params):
         with open(join(genomePath, gpFile), 'r') as genePred:
             for line in genePred:
                 cols = line.strip().split('\t')
-                mainID = cols[0]
-                if term in mainID.lower():
+                mainId = cols[0]
+                isAltName = len(cols) > 11
+                if isAltName:
+                    altId = cols[11]
+                else:
+                    altId = ''
+                if term in mainId.lower() or term in altId.lower():
                     exonCount = cols[7]
-                    if len(cols) > 11:
-                        altID = cols[11]
-                        matches.append({"id": mainID, "text": f"{mainID} ({altID})", "exonCount": exonCount })
+                    if isAltName:
+                        matches.append({"id": mainId, "text": f"{mainId} ({altId}) - {exonCount} exons", "exonCount": exonCount })
                     else:
-                        matches.append({"id": mainID, "text": mainID, "exonCount": exonCount})
+                        matches.append({"id": mainId, "text": mainId, "exonCount": exonCount})
     
     seen = set()
     unique_matches = []
@@ -5490,19 +5590,19 @@ def readOutcomeData(batchId, scoreName):
     db.close()
     return data
 
-def findAllPams(seq, pam):
+def findAllPams(seq, pam, exonId = None):
     """ find all matches for PAM and return as dict startPos -> strand and a set
     of end positions. The start positions for the negative strand are for the
     rev-complemented PAM
     """
     seq = seq.upper()
-    startDict, endSet = findPams(seq, pam, "+", {}, set())
-    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet)
+    startDict, endSet = findPams(seq, pam, "+", {}, set(), exonId)
+    startDict, endSet = findPams(seq, revComp(pam), "-", startDict, endSet, exonId)
 
     if pam in multiPams:
         for pam2 in multiPams[pam]:
-            startDict, endSet = findPams(seq, pam2, "+", startDict, endSet)
-            startDict, endSet = findPams(seq, revComp(pam2), "-", startDict, endSet)
+            startDict, endSet = findPams(seq, pam2, "+", startDict, endSet, exonId)
+            startDict, endSet = findPams(seq, revComp(pam2), "-", startDict, endSet, exonId)
 
     return startDict, endSet
 
@@ -6355,9 +6455,10 @@ def crisprSearch(params):
 
             otMatches = parseOfftargets(org, batchId, chrom)
             effScores = readEffScores(batchId)
-            sortBy = (params.get("sortBy", "main"))
+            sortBy = params.get("sortBy", "main")
+            globEffScore = params.get("globEffScore", "rs3")
             guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, \
-                position, effScores, sortBy, org=org)
+                position, effScores, sortBy, org=org, globEffScore=globEffScore)
 
 
         if len(guideScores)==0:
@@ -6387,33 +6488,8 @@ def crisprSearch(params):
         if parNum!=None:
             print(("<div style='text-align:left; background-color: aliceblue; padding:5px; border: 1px solid black'><strong>Note</strong>: The target sequence is in the PAR%s region. The off-targets on chrY's PAR copy have been removed from the off-target search. We treat the PAR regions as a single region, as all guides are assumed to modify both copies.</div>" % parNum))
 
-        # get list of variant databases
-        varLabel = None
-        varDbs = readVarDbs(org)
+        varHtmls, varDbs = getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq)
 
-        if len(varDbs)>0 and not position=="?":
-            if varDb is None:
-                varDb = varDbs[0][1]
-
-            # pull out label of the variant database
-            varLabel = None
-            for shortLabel, varKey, lab, hasAF in varDbs:
-                if varKey==varDb:
-                    varLabel = lab
-                    break
-            if varLabel is None:
-                errAbort("variant DB %s was not found in vcfDescs.txt" % varDb)
-
-            vcfFname = join(genomesDir, org, varDb)
-            varDict = findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq)
-            varDict["label"] = varLabel
-            varShortLabel = shortLabel
-        else:
-            varDict = None
-            varLabel = None
-            varShortLabel = None
-
-        varHtmls = varDictToHtml(varDict, seq, varShortLabel)
         showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, position, pamIdToSeq)
 
         showSeqDownloadMenu(batchId)
@@ -6440,10 +6516,14 @@ def parseAndPrintMultiSearchInfo(params, batchId, koGeneId, download = False):
     koGeneId = batchInfo["koGeneId"]
     exonSeqs = batchInfo['exonSeqs']
     exonPosStr = batchInfo['exonPosStr']
-    sortBy = (params.get("sortBy", "main"))
+
+    sortBy = params.get("sortBy", "main")
+    globEffScore = params.get("globEffScore", "rs3") 
     
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId)
+
+    minFreq, varDb = checkOtherArgs(params)
 
     allGuideData = []
     allGuideScores = {}
@@ -6451,25 +6531,27 @@ def parseAndPrintMultiSearchInfo(params, batchId, koGeneId, download = False):
     
     if not download:
         
-        print("""<div class="title" style="text-align:center;">""")
-        print('<span style="text-decoration:underline">')
+        print("""<div class="title" style="text-align:center; margin-bottom: 50px;">""")
         print("%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name))
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
+        print('<span style="text-decoration:underline">')
         print("""Knock-out of <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="_blank">%s</a> by %s""" % (koGeneId, koGeneId, titleText))
         print("""</div>""")
         
         if koMethod == "frameshift":
-            printGeneModel(geneModel, exonSeqs)
-    
+            printGeneModel(geneModel, exonSeqs, pam)
+
+        print("""<p>Below are the exon and PAM sequences. lowercase bases corresponds to an extension of the target.</p>""")
+
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
         
         exonId, seq = exonSeqInfo
         uppSeq = seq.upper()
-        startDict, endSet = findAllPams(uppSeq, pam)
+        startDict, endSet = findAllPams(uppSeq, pam, exonId)
 
         guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, \
-            posStr, effScores, sortBy, org=org, exonId=exonId)
+            posStr, effScores, sortBy, org=org, exonId=exonId, globEffScore=globEffScore)
 
         if not download:
             allGuideData.extend(guideData)
@@ -6482,16 +6564,54 @@ def parseAndPrintMultiSearchInfo(params, batchId, koGeneId, download = False):
             oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
             
             browserLink = makeBrowserLink(dbInfo, posStr, oneBasedPosition, None, ["tooltipster"])
-            showExonAndPams(org, seq, startDict, pam, guideScores, None, None, None, 0.0, \
-                None, pamIdToSeq, exonId, koMethod, browserLink)
+
+            varHtmls, varDbs = getVariants(seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq)
+
+            showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, \
+                posStr, pamIdToSeq, exonId, koMethod, browserLink)
     
     if download == False:
         sortGuideData(allGuideData, sortBy)
-        showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None)
+        showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None, koGeneId)
     else:
         return exonSeqs, org, pam, exonPosStr, guideData
 
-def printGeneModel(geneModel, exonSeqs):
+
+def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
+    " returns the variant information to be displayed in showSeqAndPams() "
+
+    # get list of variant databases
+    varLabel = None
+    varDbs = readVarDbs(org)
+
+    if len(varDbs)>0 and not position=="?":
+        if varDb is None:
+            varDb = varDbs[0][1]
+
+        # pull out label of the variant database
+        varLabel = None
+        for shortLabel, varKey, lab, hasAF in varDbs:
+            if varKey==varDb:
+                varLabel = lab
+                break
+        if varLabel is None:
+            errAbort("variant DB %s was not found in vcfDescs.txt" % varDb)
+
+        vcfFname = join(genomesDir, org, varDb)
+        varDict = findVariantsInRange(vcfFname, chrom, start, end, strand, minFreq)
+        varDict["label"] = varLabel
+        varShortLabel = shortLabel
+    else:
+        varDict = None
+        varLabel = None
+        varShortLabel = None
+
+    varHtmls = varDictToHtml(varDict, seq, varShortLabel)
+    
+    return varHtmls, varDbs
+
+    
+def printGeneModel(geneModel, exonSeqs, pam):
     " displays the gene model, from CDS start to CDS end "
 
     thirdLen = 0
@@ -6500,37 +6620,56 @@ def printGeneModel(geneModel, exonSeqs):
             length = feature[2]
             thirdLen += length
     thirdLen = math.ceil(thirdLen / 3)
-    
+
     lastseq = str(exonSeqs[-1][1])
+
+    # remove flanking sequences 
+    lastseq = ''.join(base for base in lastseq if base.isupper())
     lastLen = len(lastseq)
+    
+    exonSeqs = dict(exonSeqs)
     
     print("""
         <script>
 function toggleExonSeq(selectedValue) {
     const exonDisplay = document.getElementsByName('exonDisplay');
+    const exonHeights = document.getElementsByName('exonPamSeq');
     
     if (selectedValue === 'all') {
         for (exonSeq of exonDisplay) {
             exonSeq.style.display = 'block';
         }
+        for (exonHeight of exonHeights) {
+            exonHeight.style.height = '4vw';
+        }
+        $('#otTable tr.guideRow').show();
+          
     } else {
         // hide all exons
         for (const displayElement of exonDisplay) {
             displayElement.style.display = 'none';
+        }
+        for (exonHeight of exonHeights) {
+            exonHeight.style.height = '7vw';
         }
         // show matching exon
         const targetElement = document.getElementById(selectedValue);
         if (targetElement) {
             targetElement.style.display = 'block';
         }
+
+        // Filter guide table
+        var exonClass = selectedValue.replace('exon', 'exon-');
+        $('#otTable tr.guideRow').hide();
+        $('#otTable tr.' + exonClass).show();
     }
 }
         </script>
             """ )
     
-    print("""<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides.
-          <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
-            style="width:125px; height:25px"> show all exons </button> </div>""")
+    print("""<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides, or
+            <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
+            style="width:110spx; height:25px"><small>show all exons</small></button> </div>""")
     
     print(""" <div style="
           overflow-x:scroll; 
@@ -6541,19 +6680,17 @@ function toggleExonSeq(selectedValue) {
           height: 100px;
           border: 0.5px solid lightgray;
           border-radius: 8px;"> """)
-    
     currentLen = 0
-    exonCount = 0
     for i, feature in enumerate(geneModel):
+
         featureType = feature[0]
-        id = feature[1]
+        featureId = int(feature[1])
         length = int(feature[2])
-        
+
         if i == 0:
             print("<small>CDS start&nbsp&nbsp</small>")
             
         if featureType == "exon":
-            exonCount += 1
             currentLen += length
             if i == 0:
                 borderRadius = "0 8px 8px 0"
@@ -6561,60 +6698,77 @@ function toggleExonSeq(selectedValue) {
                 borderRadius = "8px 0 0 8px"
             else:
                 borderRadius = "8px"
+
+            if length >= 50:
+                exonText = "<small>exon %d</small>" % (featureId+1)
+            elif length >= 25:
+                exonText = "<small>ex.%d</small>" % (featureId+1)
+            else:
+                exonText = ""
             
-            if exonCount == len(exonSeqs) and lastLen < length:
-                print("""<button name="exonSelect" value="exon%s" onclick=toggleExonSeq(this.value)
-                    style="
-                    padding:0;
-                    margin:0;
-                    box-sizing: border-box;
-                    width:%spx; 
-                    height: 27px;
-                    border: 0.5px solid gray;
-                    border-right: 0px;
-                    border-radius: 8px 0 0 8px;
-                    background-color: #ff7700a8;
-                    text-align:center;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                    ">
-                    <small>exon %s</small></button> """ % (exonCount-1, lastLen, id+1))
-                print("""<div style="
-                    width:%spx; 
-                    height: 25px;
-                    border: 0.5px solid gray;
-                    border-left: 0px;
-                    border-radius: 0 8px 8px 0;
-                    background-color: #eeeeee;
-                    text-align:center;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                    "></div> """ % (length - lastLen))
-            elif currentLen <= thirdLen:
-                print("""<button name="exonSelect" value="exon%s" onclick=toggleExonSeq(this.value)
-                    style="
-                    padding:0;
-                    margin:0;
-                    box-sizing: border-box;
-                    width:%spx;
-                    height: 27px;
-                    border: 0.5px solid gray;
-                    border-radius: %s;
-                    background-color: "#ff7700a8";
-                    text-align:center;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                    ">
-                    <small>exon %s</small></button> """ % (exonCount-1, length, borderRadius, id+1))
+            isSplittedExon = featureId+1 == len(exonSeqs) and lastLen < length
+            isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
+
+            if (isSplittedExon or isTargetExon) and featureId in exonSeqs:
+
+            # don't make a button for exons in which no guide sequences were found
+                if isSplittedExon:
+                    if lastLen <= 50:
+                        exonText = "<small>ex.%d</small>" % featureId+1
+                    print("""<button name="exonSelect" value="exon%d" onclick=toggleExonSeq(this.value)
+                        style="
+                        padding:0;
+                        margin:0;
+                        box-sizing: border-box;
+                        width:%dpx; 
+                        height: 27px;
+                        border: 0.5px solid gray;
+                        border-right: 0px;
+                        border-radius: 8px 0 0 8px;
+                        text-align:center;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        ">
+                        %s
+                        </button> """ % (featureId, lastLen, exonText))
+                    print("""<div style="
+                        width:%dpx; 
+                        height: 25px;
+                        border: 0.5px solid gray;
+                        border-left: 0px;
+                        border-radius: 0 8px 8px 0;
+                        background-color: #eeeeee;
+                        text-align:center;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        "></div> """ % (length - lastLen))
+            
+                elif isTargetExon:
+
+                    print("""<button name="exonSelect" value="exon%d" onclick=toggleExonSeq(this.value)
+                        style="
+                        padding:0;
+                        margin:0;
+                        box-sizing: border-box;
+                        width:%dpx;
+                        height: 27px;
+                        border: 0.5px solid gray;
+                        border-radius: %s;
+                        text-align:center;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        ">
+                        %s
+                        </button> """ % (featureId, length, borderRadius, exonText))
             else:
                 print("""<div style="
-                    width:%spx;
+                    width:%dpx;
                     height: 25px;
                     border: 0.5px solid gray;
                     border-radius: %s;
@@ -6625,10 +6779,8 @@ function toggleExonSeq(selectedValue) {
                     justify-content: center;
                     flex-shrink: 0;
                     ">
-                    <small ">exon %s</small></div> """ % (length, borderRadius, id+1))
-                
-                
-                
+                    %s
+                    </div> """ % (length, borderRadius, exonText))
             
         elif featureType == "intron":
             
@@ -6639,7 +6791,7 @@ function toggleExonSeq(selectedValue) {
                   text-align:center;
                   flex-shrink: 0;
                   "></div> """)
-            print("<small>/ %s bp /</small>" % length)
+            print("<small>/ %d bp /</small>" % length)
             print(""" <div class="block_1" style="
                   height: 1px;
                   border: 1px solid #C4C4C4;
@@ -8279,6 +8431,7 @@ def printKoForm(params):
     print(
     """
     <form id="KoForm", method="get">
+
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ko">
         <div class="windowstep subpanel" style="width:50%; position:fixed; top:100px; right:105px; width:1000px;">
@@ -8703,7 +8856,7 @@ def assistantDispatcher(params):
                 params["geneModel"] = geneModel
             if "multiseq" in params:
                 printCrisporBodyStart()
-                crisprSearch(params)
+                crisprSearch(params)            
 
     elif expType == "ki":
         printKiForm(params)
