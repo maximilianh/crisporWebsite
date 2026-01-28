@@ -401,13 +401,13 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 ## à faire
 (visio JP / Max)
 - ajouter option production du guide (transcrit / synthétique ..) -> effscore par défault / prio +
-- recherche .gp par altname (symbol) afficher tous les transcrits correspondant (et la taille de la prot.) / prio ++
+- recherche .gp par altname (symbol) afficher tous les transcrits correspondant (et la taille de la prot.)  DONE
 - pour l'homme : surligner MANE vs Basic + lien vers browser gtex (fq utilisation des exons / tissu) / prio -
 - ajouter mode CRISPRa : recherche autour du TxStart -> retrouver guides dans données Broad Institue (Pooled lib) (stockage dans database) / prio --
 - dans processmultiseqsubmission() -> retoruner Fname si Fname existe, pour éviter crash lors du rechargement de la page. DONE
 
 (bugs)
-- la numérotation des exons ne prend pas en compte les exons situés entièrement en 5' et 3' UTR
+- la numérotation des exons ne prend pas en compte les exons situés entièrement en 5' et 3' UTR (OK)
 - sur le formulaire knock-out, cliquer sur "submit" ne redirige pas vers une nouvelle page 
 
 # 26/01/26
@@ -423,7 +423,6 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 ## à faire
 - ajouter variants dans parseAndPrintMultiSearchInfo() DONE
 - certains transcrits (ex ENST00000591702.1_1 ne sont pas présents sur ucsc / ENSEMBL database)
-- rediriger vers une nouvelle page après submit formulaire knock-out 
 
 # 27/01/26
 

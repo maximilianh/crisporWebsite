@@ -6536,14 +6536,18 @@ def parseAndPrintMultiSearchInfo(params, batchId, koGeneId, download = False):
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
         print('<span style="text-decoration:underline">')
-        print("""Knock-out of <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="_blank">%s</a> by %s""" % (koGeneId, koGeneId, titleText))
+        if 'ENST' in koGeneId:
+            transcriptUrl = "https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" % koGeneId.split('_')[0]
+        else:
+            transcriptUrl = "https://www.ncbi.nlm.nih.gov/nuccore/%s/" % koGeneId
+        print("""Knock-out of <a href="%s" target="_blank">%s</a> by %s""" % (transcriptUrl, koGeneId, titleText))
         print("""</div>""")
         
         if koMethod == "frameshift":
-            printGeneModel(geneModel, exonSeqs, pam)
+            printGeneModel(geneModel, exonSeqs, pam, koMethod)
 
         print("""<p>Below are the exon and PAM sequences. lowercase bases corresponds to an extension of the target.</p>""")
-
+    print(batchInfo)
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
         
         exonId, seq = exonSeqInfo
@@ -6611,22 +6615,23 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
     return varHtmls, varDbs
 
     
-def printGeneModel(geneModel, exonSeqs, pam):
+def printGeneModel(geneModel, exonSeqs, pam, koMethod):
     " displays the gene model, from CDS start to CDS end "
 
-    thirdLen = 0
-    for feature in geneModel:
-        if feature[0] == "exon":
-            length = feature[2]
-            thirdLen += length
-    thirdLen = math.ceil(thirdLen / 3)
+    if koMethod == "frameshift":
+        thirdLen = 0
+        for feature in geneModel:
+            if feature[0] == "exon":
+                length = feature[2]
+                thirdLen += length
+        thirdLen = math.ceil(thirdLen / 3)
 
-    lastseq = str(exonSeqs[-1][1])
+        lastseq = str(exonSeqs[-1][1])
 
-    # remove flanking sequences 
-    lastseq = ''.join(base for base in lastseq if base.isupper())
-    lastLen = len(lastseq)
-    
+        # remove flanking sequences 
+        lastseq = ''.join(base for base in lastseq if base.isupper())
+        lastLen = len(lastseq)
+        
     exonSeqs = dict(exonSeqs)
     
     print("""
@@ -6685,6 +6690,7 @@ function toggleExonSeq(selectedValue) {
 
         featureType = feature[0]
         featureId = int(feature[1])
+        featureIdOneBased = featureId+1
         length = int(feature[2])
 
         if i == 0:
@@ -6700,9 +6706,9 @@ function toggleExonSeq(selectedValue) {
                 borderRadius = "8px"
 
             if length >= 50:
-                exonText = "<small>exon %d</small>" % (featureId+1)
+                exonText = "<small>exon %d</small>" % featureIdOneBased 
             elif length >= 25:
-                exonText = "<small>ex.%d</small>" % (featureId+1)
+                exonText = "<small>ex.%d</small>" % featureIdOneBased
             else:
                 exonText = ""
             
@@ -6714,7 +6720,7 @@ function toggleExonSeq(selectedValue) {
             # don't make a button for exons in which no guide sequences were found
                 if isSplittedExon:
                     if lastLen <= 50:
-                        exonText = "<small>ex.%d</small>" % featureId+1
+                        exonText = "<small>ex.%d</small>" % featureIdOneBased
                     print("""<button name="exonSelect" value="exon%d" onclick=toggleExonSeq(this.value)
                         style="
                         padding:0;
@@ -8837,13 +8843,16 @@ def assistantDispatcher(params):
     org = params.get("org")
     ko_geneid = params.get("ko_geneid", None)
     expType = params.get("expType")
+    submit = params.get("submit")
     
     printTeforBodyStart()
-    printCrisporBodyStart()
-    printAssistant(params)
+    if not submit:
+        printCrisporBodyStart()
+        printAssistant(params)
     
     if expType == "ko":
-        printKoForm(params)
+        if not submit:
+            printKoForm(params)
 
         if ko_geneid is not None:
             
@@ -8854,9 +8863,11 @@ def assistantDispatcher(params):
             params["multiseq"] = multiseq
             if geneModel:
                 params["geneModel"] = geneModel
-            if "multiseq" in params:
-                printCrisporBodyStart()
-                crisprSearch(params)            
+            if multiseq:
+                    printCrisporBodyStart()
+                    crisprSearch(params)
+            else:
+                print("this is a non-coding transcript. Please choose another method to perform a knock-out on it")
 
     elif expType == "ki":
         printKiForm(params)
@@ -8897,6 +8908,8 @@ def getExonsFromID(geneId, org, pam, method, flankLen = None):
 
     chrom, strand, exons = getGenePos(geneId, org, method, flankLen)
     if method == "frameshift":
+        if len(exons) == 0:
+            return None 
         allExons = exons
         exons = getFirstThird(exons, strand, GUIDELEN, maxLen)
         geneModel = getGeneModel(allExons, strand)
