@@ -431,9 +431,67 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - affichage des variants : déplacement de l'obtention de l'information des variants dans une fontion dédiée (getVariants() )
 - correction de printGeneModel() : les exons pour lesquels aucun guide n'a été trouvé ne sont pas sélectionables.
 
-##  faire
+## à faire
 
 - MANE : ucsc tools / tableBrowser -> gencode (track allGENCODE V49 (comprehensive + MANE) + ncbiRefSeq (all +  select) -> classer ordre (ou surligne / annoter)
 - afficher "coding exons" au lieu de "exon"
 - afficher dropdown variants (en dehors de la bouche exons)
 - dans printKoForm() : empêcher la ré-impression du formulaire lorsque submit=submit
+
+# 28/01/26
+
+## divers
+
+- les formulaires knock-out / knock-in ne sont plus réimprimés après soumission
+
+## knock-out mode
+
+- ajout d'un message affichant sur quel exon les données sont filtrés
+- ajout d'un mouseover affichant le n° de l'exon si celui-ci est trop petit pour l'afficher directement 
+
+## knock-in mode
+
+- correction de getDonorSeq
+- ajout de la variable globale pamLists (dict) : contient les listes de PAMs à utiliser pour multipam job. key = params["multipam"]
+- création de processmultiPamSubmission() : dans une boucle, écrit les effscores / offtargets pour plusieurs PAMs (1 effscore / pam pour l'instant)
+- ajout de newMultiPamBatch : sauvegarde les paramètres nécéssaires au job "multipam" dans json
+- modification de crisprSearch(), readBatchParams() 
+- ajout de parseAndPrintMultiPamInfo() : récupère données offtargets / effscores -> affichage (à compléter)
+
+## à faire
+
+- données OK -> corriger l'affichage (tableau + seq)
+- ajouter la distance PAM / site d'insertion (sauvegarder insertpos dans params)
+
+# 29/01/26
+
+## divers
+
+- correction d'un bug dans crisprSearch() (execution du bloc dédié au mode signle seq / pam après affichage des résultats)
+
+## knock-in mode
+
+- corrections de bugs dans processMultiPamSubmission() et parseAndPrintMultiPamInfo() : les varables globales n'étaient pas redéfinies correctement pour chaque PAM.
+
+## bugs
+
+- GUIDELEN = 20 pour tous les PAMs dans le fichier offtarget, ce qui casse annotateOffTargets() ensuite. Pourtant, GUIDELEN est normalement redéfinie juste avant findOffTargetsBwa().
+
+# 30/21/26
+
+## divers
+
+- corrections d'erreurs de syntaxe (à terminer)
+- correction de writePamFlank() -> pass de pamFullName dans flankSeqIter() pour redifinir GUIDELEN
+
+## mode kock-in
+
+- modification de createMultiBatchEfffScoresTable() et calcMultiSaveEffScores() : sauvegarde de tous les scores disponibles,
+si un score ne correspond pas au PAM traité -> 0 (si le score est un string, impossible de trier le tableau)
+
+## à faire
+
+- implémenter staggered cut pour eSpOT-ON (pam NGG-22) 
+- travailler sur l'affichage knock-in
+- modifier le formulaire knock-in (input seq -> desired seq)
+
