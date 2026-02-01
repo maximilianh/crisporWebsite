@@ -1,6 +1,7 @@
 FROM phusion/baseimage:noble-1.0.2
 
-RUN apt-get update && apt-get upgrade -y
+# thanks to Fei Liu for debugging certificate problems on certain ubuntu images
+RUN apt-get update && apt-get upgrade -y && apt-get install -y ca-certificates && update-ca-certificates
 
 # Install Apache
 RUN apt-get install -y apache2 git python3-venv gcc libz-dev python3-dev wget sqlite3
