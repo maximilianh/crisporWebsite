@@ -494,4 +494,41 @@ si un score ne correspond pas au PAM traité -> 0 (si le score est un string, im
 - implémenter staggered cut pour eSpOT-ON (pam NGG-22) 
 - travailler sur l'affichage knock-in
 - modifier le formulaire knock-in (input seq -> desired seq)
+- corriger geneModel
 
+# 02/02/26
+
+## mode knock-in
+
+- modification de parseAndPrintMultiPamInfo() : aggrège les données offtargets / effscores dans une boucle -> showSeqAndPams / showGuideTable avec données aggrégées
+- modification de showSeqAndPams() : mode "multipam" optionnel : crée les pamLines dans une boucle, pour chaque pam
+- modification de flankSeqIter() : séparation en deux fonctions
+    - getPamLines() : génère les motifs à afficher sur la ligne, pour un PAM (exécuté dans un boucle)
+    - layoutPamLines : place des motifs sur la séquence
+    - conservation de flankSeqIter(), qui exécute les deux fonctions ci-dessus
+ 
+- modification de showGuideTable() : ajout du PAM correspondant au guide + description PAM / enzyme (en mouseover) dans la première colonne, changement des '0' en '--' pour les scores non calculés
+- ajout de showDonor() : affiche la séquence de l'ADN donneur (non modifié) + bouton copy to clipboard
+(format des résultats OK, reste à ajuster l'affichage)
+
+## à faire
+
+- améliorer l'affichage (titre de la page, etc..)
+- établir la liste des scores à utiliser
+- créer une fonction pour obtenir la distance site de coupure <-> site d'insertion et afficher les distance dans le tableau (+ prendre en compte pour global score)
+- en mode knock-in, le choix de l'effscore pour la calcul du global score ne fonctionne plus
+
+# 03/02/26
+
+## mode knock-in
+
+réécriture de getDonorSeq() : séparation en deux fonctions
+    - getTargetSeq : retourne les coordonnées (si user input = geneID) ou séquence target + position d'insertion (exécution avant crisprSearch()
+    - writeDonorSeq : retourne séquence + coordonnées et écrit la séquence de l'ADN donneur dans les batch params (éxécution par le worker)
+- getSeq() et findPerfectMatch() sont désormais exécutés par le worker (dans writeDonorSeq() )
+- écriture de la position du site d'insertion, de la longueur des bras d'homologie et de la séquence d'insert dans les batch params
+- dans newMultiPamBatch() : batchId unique en fonction de la position du site d'insertion et de la longueur des bras d'homologie
+
+- affichage du site d'insertion +- 23bp sur la fenêtre séquence / PAMs
+- affichage de la distance entre le site d'insertion et le site de coupure dans le tableau des guides
+- prise en compte de cette distance dans le calcul du score global (-40 si distance > longueur du guide + PAM)

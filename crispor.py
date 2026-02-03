@@ -1053,6 +1053,7 @@ def getFreeEnergy(seq, temperature = 37):
     else:
         return float(deltaG.strip().replace(')', '').replace('(', ''))
 
+
 def findHomopolymers(seq, basesCount):
     """
     find homopolymers of a given length for the specified bases, in the input sequence
@@ -1526,7 +1527,7 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores):
 
     return ret, jsonData
 
-def makePamLines(lines, maxY, pamIdToSeq, guideScores):
+def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True):
     for y in range(0, maxY+1):
         texts = []
         lastEnd = 0
@@ -1547,9 +1548,16 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores):
                 continue
             color = scoreToColor(score)[0]
 
-            texts.append('''<a class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (classStr, color, pamId,pamId))
+            if linkToTable:
+                texts.append('''<a class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">''' % (classStr, color, pamId,pamId))
+            else:
+                texts.append('''<span class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s">''' % (classStr, color, pamId))
+
             texts.append(name)
-            texts.append("</a>")
+            if linkToTable:
+                texts.append("</a>")
+            else:
+                texts.append("</span>")
         yield ("", None, ''.join(texts))
 
 def getBeWin(winVal):
@@ -1672,13 +1680,40 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
     print('''</div>''')
     print('''</div>''')
 
-def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, position, pamIdToSeq):
+def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, position, pamIdToSeq, multiPamInfo=None, linkToTable=True):
     " show the sequence and the PAM sites underneath in a sequence viewer "
-    pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True))
 
-    lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam)
+    if multiPamInfo is None:
+        pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True))
+        lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam)
+        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable))
+    else:
+        pamList = multiPamInfo[0]
+        insertIdx = multiPamInfo[1]
+        pamSeqs = []
+        allPamLines = []
+        for pamFullName in pamList:
+            pam = setupPamInfo(pamFullName)
+            startDict, endSet = findAllPams(seq.upper(), pam)
+
+            singlePamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName))
+            pamSeqs.extend(singlePamSeqs)
+            
+            # get lines for the current pam
+            currentPamLines = getPamLines(seq.upper(), startDict, len(pam), pam, pamFullName=pamFullName)
+            allPamLines.extend(currentPamLines)
+            
+        # layout all lines
+        lines, maxY = layoutPamLines(allPamLines, len(seq))
+        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable))
+        
+    
     posLabel = "Position"
     varLabel = "Variants"
+    if multiPamInfo:
+        insertLabel = "Insertion site"
+    else:
+        insertLabel = ""
     seqLabel = "Sequence"
     exonLabelLen = 0
     editLines = []
@@ -1693,8 +1728,7 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
         editLines, jsonData = makeEditLines(seq, pamSeqs, beWinStart, beWinEnd, guideScores)
         printJson("editData", jsonData)
 
-    pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores))
-    labelLen = max(len(varLabel), len(seqLabel), len(posLabel), getMaxLen(pamLines))
+    labelLen = max(len(varLabel), len(insertLabel), len(seqLabel), len(posLabel), getMaxLen(pamLines))
 
     if selGeneModel!=None:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, position)
@@ -1781,6 +1815,17 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
         print(('{:'+str(labelLen)+'s} ').format(varLabel), end=' ')
         print("".join(varHtmls))
 
+    if multiPamInfo:
+        leftRange = (23 if insertIdx > 23 else insertIdx)
+        leftOptRange = ''.join(['-' for i in range(leftRange)])
+
+        rightRange = (23 if len(seq) - insertIdx > 23 else len(seq) - insertIdx)
+        rightOptRange = ''.join(['-' for i in range(rightRange)])
+
+        insertPos = ''.join([' ' for i in range(insertIdx - len(leftOptRange) - 1)])
+        print(('{:'+str(labelLen)+'s} ').format(insertLabel), end=' ')
+        print(insertPos + leftOptRange + '\/' + rightOptRange)
+
     print(('{:'+str(labelLen)+'s} ').format(seqLabel), end=' ')
     print (seq)
 
@@ -1788,7 +1833,6 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
 
     if baseEditor:
         printLines(editLines, labelLen)
-
     printLines(pamLines, labelLen)
 
 
@@ -2693,7 +2737,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq, pamPat):
     return matches
 
 
-def calcGlobScore(guideSeq, MitScore, CfdScore, effs, GC, freeE, globEffScore):
+def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, GC, freeE, globEffScore, insertDistance = None):
     " Calculate a global score for a sgRNA based of Specificity, Efficientcy, GC content and free-energy "
 
     MitScaled = MitScore/100
@@ -2722,6 +2766,9 @@ def calcGlobScore(guideSeq, MitScore, CfdScore, effs, GC, freeE, globEffScore):
     if freeE < -3:
         mainScore -= 15
 
+    if insertDistance >= len(guideSeq)+len(pamSeq):
+        mainScore -= 40
+
     return mainScore
 
 
@@ -2735,7 +2782,26 @@ def calcEVAscore(EVAlike, MIT):
     return EVAfull
 
 
-def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None, org=None, exonId=None, globEffScore=None, pamFullName=None):
+def calcInsertDistance(insertIdx, pamStart, guideStart, strand):
+    """ returns the distance between the cut site and the insertion site
+    (for knock-in mode)
+    """
+
+    if pamIsFirst:
+        if strand is "+":
+            cutPos = guideStart + 18
+        else:
+            cutPos = pamStart - 18
+    else:
+        if strand is "+":
+            cutPos = guideStart - 3
+        else:
+            cutPos = guideStart + 3
+
+    return abs(insertIdx - cutPos)
+
+def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None,\
+                    org=None, exonId=None, globEffScore=None, pamFullName=None, insertIdx=None):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
     creates rows with too many fields. needs refactoring.
@@ -2758,24 +2824,6 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
         # one desc in last column per OT seq
         if pamId in otMatches:
             pamMatches = otMatches[pamId]
-            """
-            if pamFullName:  # debug info
-                print("<p>")
-                print(pamId)
-                print(pamPat)
-                print(len(guideSeq))
-                print(pamFullName)
-                allguidelen = []
-                for key in pamMatches:
-                    otInfo = pamMatches[key]
-                    for row in otInfo:
-                        guidelen = len(row[3])
-                        pamlen = len(pamPat)
-                        guidelen = guidelen - pamlen
-                        allguidelen.append(guidelen)
-                print(allguidelen)
-                print("</p>")
-            """
             guideSeqFull = concatGuideAndPam(guideSeq, pamSeq)
             mutEnzymes = matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq, pamPat)
             posList, otDesc, guideScore, guideCfdScore, last12Desc, ontargetDesc, \
@@ -2797,17 +2845,28 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             seq34Mer = None
 
         gcFrac = gcContent(guideSeq)
-        freeEnergy = getFreeEnergy(guideSeq, temperature)
+        freeEnergy = getFreeEnergy(guideSeq, temperature) 
+        # freeEnergy = crisporEffScores.calcFreeEnergyRNAStructure(guideSeq) # slower!
+
         effScoring = effScores.get(pamId, {})
         if "EVA" in effScoring:
             EVAlike = effScoring['EVA']
             if EVAlike == 'NA' or EVAlike == 0:
-                EVAscore = calcEVAscore(EVAlike, guideScore)
-            else:
                 EVAscore = 0
+            else:
+                EVAscore = calcEVAscore(EVAlike, guideScore)
             effScoring['EVA'] = EVAscore
+
+        # in knock-in mode, get the distance between cut site and insertion site
+        if insertIdx:
+            insertDistance = calcInsertDistance(insertIdx, pamStart, guideStart, strand)
+            effScoring['insertDistance'] = insertDistance
+
+        else:
+            insertDistance = None
+
         if effScoring:
-            mainScore = calcGlobScore(guideSeq, guideScore, guideCfdScore, effScoring, gcFrac, freeEnergy, globEffScore)
+            mainScore = calcGlobScore(guideSeq, pamSeq, guideScore, guideCfdScore, effScoring, gcFrac, freeEnergy, globEffScore, insertDistance)
         else:
             mainScore = 'NA'
 
@@ -2871,7 +2930,7 @@ def hasGeneModels(org):
     geneFname = join(genomesDir, org, org+".segments.bed")
     return isfile(geneFname)
 
-def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId):
+def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamFullName=None):
     " print guide score table description and columns "
     # one row per guide sequence
     if not pamIsCpf1(pam):
@@ -3101,8 +3160,16 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId):
     htmlHelp("The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
     print('''</small>''')
 
+    # in knock-in mode, show the distance between the cut site and the insertion site
+    if pamFullName:
+        print(""" <th style="width:110px; border-bottom:none;">Distance between cut site and insertion site</th>""")
+        helpAddText = "<br>A penalty of -40 is given if the cut site is further from the insertion site than the length of the guide + PAM."
+    else:
+        helpAddText = ""
+
     print('<th style="width:80px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score (default). Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a><br>' % batchId)
-    htmlHelp("This global score ranges from 0 to 100 and is comprised of 60% CFD specificity score and 40% of the chosed efficiency score (select below).<br>Each score is min-max scaled before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25% or >75%) and a minimum free energy < -3 kcal/mol, respectively.")
+    globScoreHelpText = "This global score ranges from 0 to 100 and is comprised of 60%% CFD specificity score and 40%% of the chosed efficiency score (select below).<br>Each score is min-max scaled before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25%% or >75%%) and a minimum free energy < -3 kcal/mol, respectively.%s" % helpAddText
+    htmlHelp(globScoreHelpText)
     print(""" <br><small style="margin-top:20px;"> """)
 
     globEffScore = cgiParams.get("globEffScore", "rs3")
@@ -3116,6 +3183,8 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId):
         print('<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>' % batchId)
         if pamIsSaCas9(pam):
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>This specificity score has been adapted for SaCas9 and based on the off-target scores shown on mouse-over. The algorithm was provided by Josh Tycko. Like the MIT score for spCas9, it is aggregated from all off-target scores and ranges 0-100. See <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6063963/'>Tycko et al. Nat Comm 2018</a> for details.")
+        elif pamFullName == "multipam":
+            htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         else:
             htmlHelp("The higher the specificity score, the lower are off-target effects in the genome.<br>The specificity score ranges from 0-100 and measures the uniqueness of a guide in the genome. See <a href='http://dx.doi.org/10.1038/nbt.2647'>Hsu et al. Nat Biotech 2013</a>. We recommend values &gt;50, where possible. See <a target=_blank href='manual/#offs'>the CRISPOR manual</a>")
         print("</th>")
@@ -3193,6 +3262,8 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId):
     print('<tr style="border-top:none; border-left: solid black 5px; background-color:#F0F0F0">')
 
     #offset subheaders
+    if pamFullName:
+        print('<th style="border-top:none"></th>')
     print('<th style="border-top:none"></th>')
     print('<th style="border-top:none"></th>')
     print('<th style="border-top:none"></th>')
@@ -3304,9 +3375,10 @@ def printNoEffScoreFoundWarn(effScoresCount, pam):
         note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it or if there is simply not guide socring method. In the first case, please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence. For the second case, you can contact me and suggest an efficiency scoring method, send me the published paper in this case."
         printNote(note)
 
-def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls, geneId=None):
+def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls, geneId=None, pamFullName=None):
     " shows table of all PAM motif matches "
-    if geneId:
+
+    if geneId and pamFullName is None:
         print("<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>" % (geneId, pam))
     else:
         print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
@@ -3324,7 +3396,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
     showPamWarning(pam)
     showNoGenomeWarning(dbInfo)
-    printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId)
+    printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamFullName=pamFullName)
 
     count = 0
     effScoresCount = 0
@@ -3353,12 +3425,26 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         else:
             print('rev')
         
-        # in multiseq mode, the exon number (0 based) is prepended to pamId
-        if pamId[0] != 's' and pamId.split('.')[0].isdigit():
-            print('<br>')
-            exonId = int(pamId.split('.')[0])+1
-            print('in exon %s' % exonId)
-        print('</a>')
+        # in multiseq / multipam mode, the exon number (0 based) or PAM name is prepended to pamId
+        if pamId[0] != 's':
+            print("<br>")
+            pamPrefix = pamId.split('.')[0]
+            if pamPrefix.isdigit():
+                exonId = int(pamPrefix)+1
+                print('in exon %s' % exonId)
+            else:
+                for desc in pamDesc:
+                    if desc[0] == pamPrefix:
+                        pamText = desc[1]
+                        break
+                print("</a>")
+                print("""<div class="tooltipster" title="%s">with PAM %s</div>""" % (pamText, pamPrefix) )
+        else:
+            pamPrefix = None
+
+        if pamPrefix.isdigit() or pamPrefix is None:
+            print("</a>")
+
         print("</td>")
 
         # sequence with variants and PCR primer link
@@ -3443,6 +3529,14 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         print("</small>")
         print("</td>")
 
+        # in knock-in mode, show the distance between the cut site and insertion site
+        if pamFullName:
+            insertDistance = effScores.get("insertDistance")
+
+            print("<td>")
+            print("%d bp" % insertDistance)
+            print("</td>")
+
         # Global Score
         if not pamIsCpf1(pam):
             print("<td>")
@@ -3482,7 +3576,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 score = effScores.get(scoreName, None)
                 if score!=None:
                     effScoresCount += 1
-                if score==None:
+                # in multipam mode, all scores for all enzymes are displayed, and non available scores are 0.
+                if score==None or (score==0 and pamFullName is not None):
                     print('''<td>--</td>''')
                 elif scoreName=="ssc":
                     # save some space
@@ -3805,36 +3900,63 @@ def firstFreeLine(lineMasks, y, start, end):
     return y
     #return None
 
-def distrOnLines(seq, startDict, featLen, pam, exonId = None):
-    """ given a dict with start -> (start,end,name,strand) and a motif len, create lines of annotations such that
-        the motifs don't overlap on the lines
-    """
+def layoutPamLines(pamLines, seqLen):
+    """ place pam motifs on lines so they don't overlap """
     # max number of lines in y direction to draw
-    MAXLINES = 18
+    MAXLINES = 60
     # amount of free space around each feature
     SLOP = 2
 
     # bitmask, one per line, 1 = we have a feature here, 0 = no feature here
     lineMasks = []
     for i in range(0, MAXLINES):
-        lineMasks.append( [0]* (len(seq)+10) )
+        lineMasks.append( [0]* (seqLen+10) )
 
     # dict with lineCount (0...MAXLINES) -> list of (start, strand) tuples
     ftsByLine = defaultdict(list)
     maxY = 0
+    
+    # sort by start position to pack them nicely
+    pamLines.sort(key=lambda x: x[0])
+
+    for startFt, endFt, label, strand, pamId in pamLines:
+        y = firstFreeLine(lineMasks, 0, startFt, endFt)
+        if y==None:
+            # errAbort("not enough space to plot features")
+            continue
+
+        # fill the current mask
+        mask = lineMasks[y]
+        maskStart = max(startFt-SLOP, 0)
+        maskEnd = min(endFt+SLOP, seqLen)
+        for i in range(maskStart, maskEnd):
+            mask[i]=1
+
+        maxY = max(y, maxY)
+        ft = (startFt, endFt, label, strand, pamId)
+        ftsByLine[y].append(ft)
+    return ftsByLine, maxY
+
+def distrOnLines(seq, startDict, featLen, pam, exonId = None):
+    """ given a dict with start -> (start,end,name,strand) and a motif len, create lines of annotations such that
+        the motifs don't overlap on the lines
+    """
+    pamLines = getPamLines(seq, startDict, featLen, pam, exonId)
+    return layoutPamLines(pamLines, len(seq))
+
+def getPamLines(seq, startDict, featLen, pam, exonId=None, pamFullName=None):
+    """ generate motif tuples for a single PAM type """
+    pamLines = []
+    # Cannot use Unicode here: these symbols are not part of the
+    # monospace font on some platforms and therefore their width
+    # is not the same as the other characters
+    arrNE = '/'
+    arrSE = '\\'
+    
     for start in sorted(startDict):
         end = start+featLen
         strand = startDict[start]
 
-        # Cannot use Unicode here: these symbols are not part of the
-        # monospace font on some platforms and therefore their width
-        # is not the same as the other characters
-        #arrNE = u'\u2197'
-        #arrSE = u'\u2198'
-        arrNE = '/'
-        arrSE = '\\'
-        #arrNE = u'\u2a3c' # hebrew
-        #arrSE = u'\ufb27' # math
         ftSeq = seq[start:end]
         if strand=="+":
             if pamIsFirst:
@@ -3871,33 +3993,14 @@ def distrOnLines(seq, startDict, featLen, pam, exonId = None):
                 startFt = start
                 endFt = end + 3
 
-        #print "feature", strand, start, startFt, endFt, SLOP,"<br>"
-        #print "mask", lineMasks[0][startFt:endFt], "<br>"
-        y = firstFreeLine(lineMasks, 0, startFt, endFt)
-        #print "free line: %s<br>" % y
-        if y==None:
-            errAbort("not enough space to plot features")
-
-        # fill the current mask
-        mask = lineMasks[y]
-        maskStart = max(startFt-SLOP, 0)
-        maskEnd = min(endFt+SLOP, len(seq))
-        #print "mask:", maskStart, maskEnd
-        for i in range(maskStart, maskEnd):
-            mask[i]=1
-
-        maxY = max(y, maxY)
-
         if exonId is not None:
             pamId = "%d.s%d%s" % (exonId, start, strand)
+        elif pamFullName is not None:
+            pamId = "%s.s%d%s" % (pamFullName, start, strand)
         else:
             pamId = "s%d%s" % (start, strand)
-        ft = (startFt, endFt, label, strand, pamId)
-        #print "labelLen: %d<br>" % len(label)
-        #print "ft: %s<br>" % repr(ft)
-        ftsByLine[y].append(ft )
-    return ftsByLine, maxY
-
+        pamLines.append((startFt, endFt, label, strand, pamId))
+    return pamLines
 
 def writePamFlank(seq, startDict, pam, faFname, pamFullName=None):
     " write pam flanking sequences to fasta file, optionally with versions where each nucl is removed "
@@ -4243,6 +4346,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
         logging.debug("PAM ID: %s - guideSeq %s" % (pamId, guideSeq))
         gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
 
+        # longSeq is only found in the middle of the target sequence
         longSeq = getExtSeq(seq, gStart, gEnd, strand, 50-GUIDELEN, 50, extSeq) # +-50 bp from the end of the guide
         # Always append, even if longSeq is None (to keep track of all guides)
         longSeqs.append(longSeq)
@@ -4265,7 +4369,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
             scoreNames = allScoreNames
 
         global mutScoreNames
-        mutScoreNames = ['oof']
+        mutScoreNames = ["oof"]
 
         # Filter valid sequences for scoring (cannot score None)
         validIndices = [i for i, s in enumerate(longSeqs) if s is not None]
@@ -4896,7 +5000,7 @@ def processMultiSeqSubmission(multiseq, genome, pam, batchBase, batchId, queue, 
         return bedFname, effScoresFname
 
 
-def processMultiPamSubmission(seq, genome, multipam, batchBase, batchId, queue):
+def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId, queue):
     """ For each PAM in multiPamDesc, creates a fasta file containing guides for each sequence in multiseq.
     Then, search these files against genome, filter for pam matches and append to bedFName.
     optionally write status updates to work queue. Remove faFname.
@@ -4904,12 +5008,14 @@ def processMultiPamSubmission(seq, genome, multipam, batchBase, batchId, queue):
 
     # allow up to 3 mismatches for offtarget search
     global maxMMs
-    maxMMs = 3  # only for testing
-
+    maxMMs = 3
     batchInfo = readBatchAsDict(batchId)
-    posStr = batchInfo["posStr"]
-    pamList = pamLists[multipam]
+    insertIdx = batchInfo["insertIdx"]
 
+    if seq is None and posStr is None:
+        return None, None
+    
+    pamList = pamLists[multipam]
     logging.info("PAMs are : %s" % ', '.join(pamList))
 
     bedFname = batchBase+".bed.gz"
@@ -4934,6 +5040,7 @@ def processMultiPamSubmission(seq, genome, multipam, batchBase, batchId, queue):
     if extSeq is None:
         batchInfo["extSeq"] = "?"
 
+    writeBatchAsDict(batchInfo, batchId)
     # do eff scoring and off target search for each pam
     for i, pamFullName in enumerate(pamList):
 
@@ -5664,7 +5771,7 @@ def newMultiSeqBatch(batchName, multiseq, org, pam, koMethod=None, geneModel=Non
         batchData["org"] = org
         batchData["pam"] = pam
         batchData["batchName"] = batchName
-        #batchData["seq"] = seq
+        # batchData["seq"] = seq
         batchData["posStr"] = ""
         batchData["multiseq"] = multiseq
         batchData["koMethod"] = koMethod
@@ -5676,30 +5783,41 @@ def newMultiSeqBatch(batchName, multiseq, org, pam, koMethod=None, geneModel=Non
         
         return batchId
 
-def newMultiPamBatch(batchName, seq, posStr, org, multipam, donorSeq, koGeneId=None, assist=None):
-    batchId = makeTempBase(seq, org, multipam, batchName)
+def newMultiPamBatch(batchName, seq, posStr, org, multipam, insertSeq, insertIdx, armLen, assist=None, koGeneId=None, insertPos=None):
+
+    donorStr = str(armLen + insertIdx)
+    if seq:
+        concatSeq = seq + donorStr
+    else:
+        concatSeq = posStr + donorStr
+
+    batchId = makeTempBase(concatSeq, org, multipam, batchName)
     batchBase = join(batchDir, batchId)
     jsonFname = batchBase+'.json'
 
     if isfile(jsonFname):
         return batchId
-    
+
     else:
         batchData = {}
         batchData["seq"] = seq
         batchData["posStr"] = posStr
         batchData["org"] = org
         batchData["multipam"] = multipam
-        batchData["donorSeq"] = donorSeq
+        batchData["insertseq"] = insertSeq
+        batchData["insertIdx"] = insertIdx
+        batchData["armLen"] = armLen
         batchData["batchName"] = batchName
         batchData["assist"] = assist
         if koGeneId:
             batchData["koGeneId"] = koGeneId
+        if insertPos:
+            batchData["insertpos"] = insertPos
 
         writeBatchAsDict(batchData, batchId)
         
         return batchId
-        
+
 
 def readDbInfo(org):
     " return a dbInfo object with the columsn in the genomeInfo.tab file "
@@ -6375,7 +6493,7 @@ def crisprSearch(params):
             if len(pamSeq) < 3 or len(pamSeq) > 8:
                 raise ValueError("pamLen")
             
-            legalChars = ['N','A','T','G','C'] # add Y / R / V ? 
+            legalChars = ['N','A','T','G','C'] # add Y / R / V ?
             ncount = 0
             for char in pamSeq:
                 if char not in legalChars:
@@ -6403,7 +6521,11 @@ def crisprSearch(params):
                 assist = params["assist"]
                 seq = params["seq"]
                 posStr = params["pos"]
-                batchId = newMultiPamBatch(newBatchName, seq, posStr, org, multipam, donorSeq, koGeneId, assist)
+                insertPos = params.get("insertpos")
+                insertSeq, warnMsg = cleanSeq(params["insertseq"], org)
+                insertIdx = int(params["insertIdx"])
+                armLen = int(params["armLen"])
+                batchId = newMultiPamBatch(newBatchName, seq, posStr, org, multipam, insertSeq, insertIdx, armLen, assist, koGeneId, insertPos)
             else:
                 assist = params["assist"]
                 pamDesc = params["pam"]
@@ -6576,7 +6698,8 @@ def parseAndPrintMultiPamInfo(params, batchId):
     uppSeq = seq.upper()
     dbInfo = readDbInfo(org)
     multipam = batchInfo["multipam"]
-    # donorSeq = batchInfo["donorSeq"]
+    donorSeq = batchInfo["donorSeq"]
+    insertIdx = batchInfo["insertIdx"]
     geneId = batchInfo.get("koGeneId")
 
     sortBy = params.get("sortBy", "main")
@@ -6590,20 +6713,64 @@ def parseAndPrintMultiPamInfo(params, batchId):
     allGuideScores = {}
     allPamIdToSeq = {}
 
+    showDonor(donorSeq)
+
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
         startDict, endSet = findAllPams(uppSeq, pam)
 
         guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(uppSeq, startDict, pam, otMatches, \
-                        None, effScores, sortBy, org=org, exonId=None, globEffScore='rs3', pamFullName=pamFullName)
+                        None, effScores, sortBy, org=org, exonId=None, globEffScore='rs3', pamFullName=pamFullName, insertIdx=insertIdx)
 
         allGuideData.extend(guideData)
         allGuideScores.update(guideScores.copy())
         allPamIdToSeq.update(pamIdToSeq.copy())
-        
-        showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, None)
-        showSeqAndPams(org, seq, startDict, pam, guideScores, None, None, None, 0.0, posStr, pamIdToSeq)
 
+    showSeqAndPams(org, seq, None, None, allGuideScores, None, None, None, 0.0, posStr, allPamIdToSeq, multiPamInfo=(pamList, insertIdx))
+    sortGuideData(allGuideData, sortBy)
+    showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None, geneId=None, pamFullName="multipam")
+
+def showDonor(donorSeq):
+    """ Dispays the unmodified donor DNA sequence """
+
+    print("""
+    <script>
+    // from https://www.w3schools.com/howto/howto_js_copy_clipboard.asp
+          function copyDonor() {
+
+          var donorSeq = document.getElementById("donorSeq");
+
+          navigator.clipboard.writeText(donorSeq.value).then(function() {
+
+            // alert("Copied the donor DNA sequence");
+          
+          }).catch(function(err) {
+
+          console.error("failed to copy: ", err);
+          document.execCommand("copy");
+
+          })
+        }
+    </script>
+          """)
+
+    print("Below is the unmodified donor DNA sequence to be used as a HDR template")
+    print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
+    print("""<button onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>""")
+    print("<small>lowercase = homology arms. Uppercase = insert sequence</small>")
+
+    print("""<div style="
+          overflow-x:scroll; 
+          font-family: Source Code Pro;
+          font-size: 80%;
+          padding:5px;
+          white-space: nowrap;
+          height: 35px;
+          background: #DDDDDD;
+          border: 0.5px solid lightgray;
+          border-radius: 8px;"> """)
+    print(donorSeq)
+    print("</div>")
 
 def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
     """ read offtargets and effcores files generated by the multiseq job,
@@ -6618,8 +6785,8 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
     koMethod = batchInfo["koMethod"]
     geneModel = batchInfo["geneModel"]
     koGeneId = batchInfo["koGeneId"]
-    exonSeqs = batchInfo['exonSeqs']
-    exonPosStr = batchInfo['exonPosStr']
+    exonSeqs = batchInfo["exonSeqs"]
+    exonPosStr = batchInfo["exonPosStr"]
 
     sortBy = params.get("sortBy", "main")
     globEffScore = params.get("globEffScore", "rs3")
@@ -7717,7 +7884,7 @@ def downloadFile(params):
 
     batchId = params["batchId"]
     if "multiseq" in params:
-        exonSeqs, org, pam, exonPos, guideData = parseAndPrintMultiSeqInfo(params, batchId, _, download = True)
+        exonSeqs, org, pam, exonPos, guideData = parseAndPrintMultiSeqInfo(params, batchId, None, download = True)
     else:
         seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
@@ -9007,13 +9174,16 @@ def assistantDispatcher(params):
         elif expType == "ki":
             insertpos = params.get('insertpos')
             if ((insertpos == "Nter" or insertpos == "Cter") and ko_geneid is not None) or (insertpos == "custom" and "customseq" in params) and org is not None:
-                if ("tagseq" in params and "linkerseq" in params) or "insertseq" in params:
+                if ("tagseq" in params and "linkerseq" in params and "tagorder" in params) or "insertseq" in params:
                     try : 
-                        targetPos, targetSeq, donorSeq = getDonorSeq(params)
-                        #donorInfo = processDonor(donorSeq)
+                        targetSeq, targetPos, insertIdx = getTargetSeq(params)
+                        if "tagseq" in params and "linkerseq" in params:
+                            insertseq = getInsertSeq(params)
+                            params["insertseq"] = insertseq
+                            
                         params["seq"] = targetSeq
                         params["pos"] = targetPos
-                        params["donorSeq"] = donorSeq
+                        params["insertIdx"] = insertIdx
                     except ValueError as err:
                         error = str(err)
                         if error == "frameErr":
@@ -9023,7 +9193,6 @@ def assistantDispatcher(params):
                     if "donorSeq":
                         printCrisporBodyStart()
                         crisprSearch(params)
-
     else:
         printCrisporBodyStart()
         printAssistant(params)
@@ -9035,6 +9204,20 @@ def assistantDispatcher(params):
             printKoForm(params)
 
     printTeforBodyEnd()
+
+def getInsertSeq(params):
+    " from a tag and a linker sequence, return the insert sequence to be used for the HDR donor "
+
+    tagOrder = params["tagorder"]
+    tagSeq = params["tagseq"]
+    linkerSeq = params["linkerseq"]
+
+    if tagOrder == "tagFirst":
+        insertSeq = tagSeq + linkerSeq
+    else:
+        insertSeq = linkerSeq + tagSeq
+
+    return insertSeq
 
 def getExonsFromID(geneId, org, pam, method, flankLen = None):
     """ from a geneId, returns a list of tuples [(exonId, exonPosStr)]
@@ -9208,138 +9391,112 @@ def formatExonPos(exons, chrom, strand, pamlen):
 
     return multiseq
 
-def getDonorSeq(params):
-    """ from a geneID or a sequence, outputs the sequence of the donor DNA """
+def writeDonorSeq(org, seq, posStr, batchId):
+    """ from an insert position, writes the sequence of the donor DNA in the batch params.
+    additionnaly, returns the formatted sequence and coordinates of the target region
+    """
 
-    codonTable = buildCodonTable("aa")
+    batchInfo = readBatchAsDict(batchId)
+    insertSeq = batchInfo["insertseq"]
+    insertPos = batchInfo.get("insertpos")
+    insertIdx = batchInfo["insertIdx"]
+    armLen = batchInfo["armLen"]
+    codonTable = buildCodonTable(key="aa")
+
+    # input is a sequence
+    if posStr is None and seq:
+        posStr = findPerfectMatch(batchId, seq, org)
+        batchInfo["posStr"] = posStr
+
+    # input is a geneID
+    elif seq is None and posStr:
+        seq = getSeq(org, posStr)
+
+        # Annotation of START and STOP codons (uppercase)
+        if len(seq) == 2*insertIdx:
+            if insertPos == "Nter" and seq[insertIdx-3:insertIdx].upper() in codonTable["M"]:
+                targetSeq = seq[0:insertIdx-3].lower() + seq[insertIdx-3:insertIdx].upper() + seq[insertIdx:].lower()
+            elif insertPos == "Cter" and seq[insertIdx:insertIdx+3].upper() in codonTable["*"]:
+                targetSeq = seq[0:insertIdx].lower() + seq[insertIdx:insertIdx+3].upper() + seq[insertIdx+3:].lower()
+            else:
+                return None, None
+            seq = targetSeq
+
+        batchInfo["seq"] = seq
+
+    chrom, start, end, strand = parsePos(posStr)
+
+    if strand == "+":
+        insertCoord = int(start + insertIdx)
+    else:
+        insertCoord = int(end - insertIdx)
+
+    HAstart, HAend = checkCoords(insertCoord - armLen, insertCoord + armLen, org, chrom)
+    HAseqs = getSeq(org, "%s:%s-%s:%s" % (chrom, HAstart, HAend, strand))
+
+    donorSeq = HAseqs[0:armLen].lower() + insertSeq.upper() + HAseqs[armLen:].lower()
+    batchInfo["donorSeq"] = donorSeq
+
+    writeBatchAsDict(batchInfo, batchId)
+
+    return seq, posStr
+
+
+def getTargetSeq(params):
+    """ Used in knock-in mode : from a geneID or a sequence, 
+    returns the target sequence or coordinates (str),
+    and the insert position index on the target sequence (int, 0 based)
+    """
+
     insertpos = params.get('insertpos')
     org = params.get("org")
-    chromSizes = parseChromSizes(org)
-    pam = params.get("pam")
-    armLen = int(params.get("armLen"))
-    targetHalflen = 60 # extend N bp in 5' and 3' from the insert site to get the target sequence
-    
-    if "insertseq" in params:
-        insertseq, warnMsgInsert = cleanSeq(params.get("insertseq"), org)
-        if len(insertseq) % 3 != 0:
-            print(warnMsgInsert)
-            raise ValueError("frameErr")
-        
-    elif "tagseq" and "linkerseq" and "tagorder" in params:
-        order = params.get("tagorder")
-        tag = params.get("tagseq")
-        linker = params.get("linkerseq")
-        
-        if order == "tagFirst":
-            insertseq = tag + linker
-        else:
-            insertseq = linker + tag
-            
+    geneId = params.get("ko_geneid")
+    targetHalfLen = 60 # extend N bp in 5' and 3' from the insert site to get the target sequence
+
     if insertpos == "custom":
         #Custom sequence template
-        #Will need to map this to the reference genome and get pos
         
         customseq, warnMsgCustomPos = cleanSeq(params.get("customseq"), org, "split")
         splitSeq = customseq.split('//')
         if len(splitSeq) == 2:
             preseq = splitSeq[0].lower()
             postseq = splitSeq[1].lower()
-            
         else: 
             raise ValueError("insertErr")
-        template = preseq + postseq
-        batchName = org+insertpos+template[0:5]+str(random.randint(0,99))
-        batchId = newBatch(batchName, template, org, pam)
-        posStr = findPerfectMatch(batchId)
-        strand = posStr.split(':')[2]
-        if strand == '-':
-        #invert seq order if the sequence is on the negative strand
-            prelen = len( customseq[1].lower() )
-            postlen = len( customseq[0].lower() )
-
-    else:
-        geneid = params.get("ko_geneid")
-        org = params.get("org")
-        chrom, strand, exons = getGenePos(geneid, org, method="allExons", flankLen=0)
-
-        if insertpos == "Nter":
-            start, end = exons[0]
-        elif insertpos == "Cter":
-            start, end = exons[-1]
-
-        chromSize = chromSizes[chrom]
-
-        if insertpos == "custom":
-            #extend from the cut site
-            insertPoint = start + prelen
         
-        elif insertpos == "Nter":
-            if strand == "+":
-                insertPoint = start + 3 # after START
-            else:
-                insertPoint = end - 3
-        elif insertpos == "Cter": #for some genes, the last exon "ends" before the STOP codon! (X instead of on aa on UCSC genome track)
-            if strand == "+":
-                insertPoint = end - 3 # before STOP
-            else:
-                insertPoint = start + 3
+        targetSeq = preseq + postseq
+        targetPos = None
+        insertIdx = len(preseq)
 
-        if strand == "+":
-            
-            targetStart = insertPoint - targetHalflen
-            if targetStart < 0:
-                targetStart = 0
-            targetEnd = insertPoint + targetHalflen
-            if targetEnd > chromSize :
-                targetEnd = chromSize
+    elif geneId:
+        chrom, strand, exons = getGenePos(geneId, org, method="allExons", flankLen=0)
+        start, end = (exons[0] if insertpos == "Nter" else exons[-1])
+        isStart = (insertpos == "Nter" and strand == "+") or (insertpos == "Cter" and strand == "-")
 
-            endHA5p = insertPoint
-            startHA5p = endHA5p - armLen
-            if startHA5p < 0:
-                startHA5p = 0
-
-            startHA3p = insertPoint
-            endHA3p = startHA3p + armLen
-            if endHA3p > chromSize:
-                endHA3p = chromSize
+        if isStart:
+                insertPoint = start + 3 # after START (strand +) or before STOP (strand -)
         else:
-        #coordinates of the + strand, getSeq will output the reverse complement
-            targetStart = insertPoint + targetHalflen
-            if targetStart > chromSize:
-                targetStart = chromSize
-            targetEnd = insertPoint - targetHalflen
-            if targetEnd < 0:
-                targetEnd = 0
+            insertPoint = end - 3 # before STOP or after START
+        targetStart, targetEnd = checkCoords(insertPoint - targetHalfLen, insertPoint + targetHalfLen, org, chrom)
 
-            endHA5p = insertPoint
-            startHA5p = endHA5p + armLen
-            if startHA5p > chromSize:
-                startHA5p = chromSize
-
-            startHA3p = insertPoint
-            endHA3p = startHA3p - armLen
-            if endHA3p < 0:
-                endHA3p = 0
-
-        HA5p = "%s:%s-%s:%s" % (chrom, startHA5p, endHA5p, strand)
-        HA3p = "%s:%s-%s:%s" % (chrom, startHA3p, endHA3p, strand)
-
-        donorSeq = getSeq(org, HA5p).lower() + insertseq.upper() + getSeq(org, HA3p).lower()
         targetPos = "%s:%s-%s:%s" % (chrom, targetStart, targetEnd, strand)
-        targetSeq = getSeq(org, targetPos)
+        targetSeq = None
+        insertIdx = targetHalfLen
 
-        # Annotation of START and STOP codons (uppercase)
-        if len(targetSeq) == 2*targetHalflen:
-            if insertpos == "Nter" and targetSeq[targetHalflen-3:targetHalflen].upper() in codonTable["M"]:
-                targetSeq = targetSeq[0:targetHalflen-3].lower() + targetSeq[targetHalflen-3:targetHalflen].upper() + targetSeq [targetHalflen:].lower()
-            elif insertpos == "Cter":
-                if targetSeq[targetHalflen:targetHalflen+3].upper() in codonTable["*"]:
-                    targetSeq = targetSeq[0:targetHalflen].lower() + targetSeq[targetHalflen:targetHalflen+3].upper() + targetSeq [targetHalflen+3:].lower()
-                elif targetSeq[targetHalflen+3:targetHalflen+6].upper() in codonTable["*"]: 
-                # Sometimes the CDS "ends" one codon before STOP (why ?)
-                    targetSeq = targetSeq[0:targetHalflen+3].lower() + targetSeq[targetHalflen+3:targetHalflen+6].upper() + targetSeq [targetHalflen+6:].lower()
+    return targetSeq, targetPos, insertIdx
 
-        return targetPos, targetSeq, donorSeq
+
+def checkCoords(start, end, org, chrom):
+    " clip coordinates to chromosome boundaries "
+
+    chromSize = parseChromSizes(org)[chrom]
+    if start < 0:
+        start = 0
+    if end > chromSize:
+        end = chromSize
+
+    return start, end
+
 
 def processDonor(DonorSeq):
     """
@@ -10879,7 +11036,8 @@ def runQueueWorker(noFork):
             batchBase = join(batchDir, batchId)
             if jobType == 'multipam':
                 try:
-                    processMultiPamSubmission(seq, org, multipam, batchBase, batchId, q)
+                    seq, posStr = writeDonorSeq(org, seq, position, batchId)
+                    processMultiPamSubmission(org, seq, posStr, multipam, batchBase, batchId, q)
                     logging.info("executed processMultiPamSubmission()")
                     q.jobDone(batchId)
                 except:
