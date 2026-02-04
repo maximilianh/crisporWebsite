@@ -1738,19 +1738,24 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
         labelLen = max(labelLen, getMaxLen(editLines))
     if selGeneModel:
             labelLen = max(labelLen, exonLabelLen)
+    
+    if pamFullName is None:
+        print("<div class='substep'>")
+        print('<a id="seqStart"></a>')
+        print("Your input sequence is %d bp long. It contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
 
-    print("<div class='substep'>")
-    print('<a id="seqStart"></a>')
-    print("Your input sequence is %d bp long. It contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
+        if not pamIsFirst:
+            print("Shown below are their PAM sites and the expected cleavage position located -3bp 5' of the PAM site.<br>")
+            print("Click on a match for the PAM %s below to show its %d bp-long guide sequence. " % (pam, GUIDELEN))
+            print("(Need help? Look at the <a target=_blank href='manual/#annotseq'>CRISPOR manual</a>)<br>")
+            print('''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>''')
+        else:
+             print("Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>" % (pam, GUIDELEN))
 
-    if not pamIsFirst:
-        print("Shown below are their PAM sites and the expected cleavage position located -3bp 5' of the PAM site.<br>")
-        print("Click on a match for the PAM %s below to show its %d bp-long guide sequence. " % (pam, GUIDELEN))
-        print("(Need help? Look at the <a target=_blank href='manual/#annotseq'>CRISPOR manual</a>)<br>")
-        print('''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>''')
     else:
-        print("Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>" % (pam, GUIDELEN))
-
+        print(""" The target region is %d bp long. It contains %d possible guide sequences.<br>""" % (len(seq), len(guideScores)) )
+        print(""" shown below are the possible guide sequences for the following PAMs : %s <br>""" % ', '.join(pamList) ) 
+        print("Click on a match for a PAM below to show guide sequence.<br>") 
     if baseEditor or varDb or selGeneModel:
         print(("""<form style="display:inline" id="paramForm" action="%s" method="GET">""" % basename(__file__)))
 
@@ -2788,12 +2793,12 @@ def calcInsertDistance(insertIdx, pamStart, guideStart, strand):
     """
 
     if pamIsFirst:
-        if strand is "+":
+        if strand == "+":
             cutPos = guideStart + 18
         else:
             cutPos = pamStart - 18
     else:
-        if strand is "+":
+        if strand == "+":
             cutPos = guideStart - 3
         else:
             cutPos = guideStart + 3
@@ -2933,8 +2938,11 @@ def hasGeneModels(org):
 def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamFullName=None):
     " print guide score table description and columns "
     # one row per guide sequence
+    
     if not pamIsCpf1(pam):
         print('''<div class='substep'>Ranked by default from highest to lowest Global Score. Click on a column title to rank by a specific score.<br>''')
+    if pamFullName:
+        print("""Hover on the PAM in the first column of the table to show information about its corresponding enzyme<br> """)
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
         print('''If you use this website, please cite our <a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">paper in NAR 2018</a>.''')
         print("Too much information? Look at the <a target=_blank href='manual/'>CRISPOR manual</a>.<p>")
@@ -3382,10 +3390,15 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         print("<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>" % (geneId, pam))
     else:
         print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
+
+    if pamFullName:
+        print(""" <br> <div class="title">Guide sequences for all PAMs</div>""")
+
     global scoreNames
     if geneId:
         scoreNames = koCas9ScoreNames
-
+    elif pamFullName: 
+       scoreNames =  ["rs3", "EVA", "crisprScan", "seqDeepCpf1", "najm"]
     elif (cgiParams.get("showAllScores", "0")=="1"):
         scoreNames = allScoreNames
 
@@ -4343,10 +4356,9 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
     longSeqs = []
 
     for pamId, startPos, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamInfo:
-        logging.debug("PAM ID: %s - guideSeq %s" % (pamId, guideSeq))
+        logging.info("PAM ID: %s - guideSeq %s" % (pamId, guideSeq))
         gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
 
-        # longSeq is only found in the middle of the target sequence
         longSeq = getExtSeq(seq, gStart, gEnd, strand, 50-GUIDELEN, 50, extSeq) # +-50 bp from the end of the guide
         # Always append, even if longSeq is None (to keep track of all guides)
         longSeqs.append(longSeq)
@@ -4354,8 +4366,8 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
         guides.append(guideSeq+pamSeq)
 
     # Define consistent output columns for all PAMs
-    outputScoreNames = list(allScoreNames) + ["seqDeepCpf1", "najm", "oof"]
 
+    outputScoreNames = list(allScoreNames) + ["seqDeepCpf1", "najm", "oof", "lindel"]
     if len(longSeqs)>0 and doEffScoring:
         enz = None
         if pamIsCpf1(pam) and not pam=="NGTN":
@@ -4363,13 +4375,17 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
         elif pamIsSaCas9(pam):
             enz = "sacas9"
 
-        # use only one score per enzyme type
         global scoreNames
-        if enz is None:
+       
+        if enz == "cpf1":
+            scoreNames = cpf1ScoreNames
+        elif enz == "sacas9":
+            scoreNames = saCas9ScoreNames
+        else:
             scoreNames = allScoreNames
 
         global mutScoreNames
-        mutScoreNames = ["oof"]
+        mutScoreNames = ["oof"] # may remove this ?
 
         # Filter valid sequences for scoring (cannot score None)
         validIndices = [i for i, s in enumerate(longSeqs) if s is not None]
@@ -4381,9 +4397,10 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
         for score in outputScoreNames:
             effScores[score] = [0] * len(longSeqs)
 
-        if len(validLongSeqs) > 0:
+        if len(validLongSeqs) > 0: # doesn't execute for saCas9 PAMS!
             validEffScores = crisporEffScores.calcAllScores(validLongSeqs, enzyme=enz, scoreNames=scoreNames)
-            
+            logging.info("the valid effscores are")
+            logging.info(validEffScores)
             # these are slow algorithms, so store the results for later
             queue.startStep(batchId, "outcome", "Calculating editing outcomes")
             mutScores = crisporEffScores.calcMutSeqs(validPamIds, validLongSeqs, enz, scoreNames=mutScoreNames)
@@ -6700,6 +6717,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
     multipam = batchInfo["multipam"]
     donorSeq = batchInfo["donorSeq"]
     insertIdx = batchInfo["insertIdx"]
+    insertPos = batchInfo["insertpos"]
     geneId = batchInfo.get("koGeneId")
 
     sortBy = params.get("sortBy", "main")
@@ -6709,9 +6727,22 @@ def parseAndPrintMultiPamInfo(params, batchId):
 
     pamList = pamLists[multipam]
     chrom, start, end, strand = parsePos(posStr)
+      
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
+
+    seqMsg = "of a %s bp sequence" % len(seq)
+    
+    if geneId:
+        if 'ENST' in geneId:
+            transcriptUrl = """in %s of <a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a> """ % (insertPos, geneId.split('_')[0], geneId.split('_')[0])
+        else:
+            transcriptUrl = """in %s of <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="blank">%s</a> """ % (insertPos, geneId, geneId)
+    else:
+        transcriptUrl = "at coordinates %s " % len(seq)
+
+    print("""<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : knock-in of %s %s </div><br> """ % (dbInfo.scientificName, seqMsg, transcriptUrl) )
 
     showDonor(donorSeq)
 
@@ -6768,7 +6799,9 @@ def showDonor(donorSeq):
           height: 35px;
           background: #DDDDDD;
           border: 0.5px solid lightgray;
-          border-radius: 8px;"> """)
+          border-radius: 8px;
+          margin-top:12px;
+          margin-bottom: 50px;"> """)
     print(donorSeq)
     print("</div>")
 

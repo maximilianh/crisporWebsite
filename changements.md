@@ -513,9 +513,9 @@ si un score ne correspond pas au PAM traité -> 0 (si le score est un string, im
 
 ## à faire
 
-- améliorer l'affichage (titre de la page, etc..)
+- améliorer l'affichage (titre de la page, etc..) ~ DONE
 - établir la liste des scores à utiliser
-- créer une fonction pour obtenir la distance site de coupure <-> site d'insertion et afficher les distance dans le tableau (+ prendre en compte pour global score)
+- créer une fonction pour obtenir la distance site de coupure <-> site d'insertion et afficher ces distances dans le tableau (+ prendre en compte pour global score) DONE
 - en mode knock-in, le choix de l'effscore pour la calcul du global score ne fonctionne plus
 
 # 03/02/26
@@ -532,3 +532,18 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - affichage du site d'insertion +- 23bp sur la fenêtre séquence / PAMs
 - affichage de la distance entre le site d'insertion et le site de coupure dans le tableau des guides
 - prise en compte de cette distance dans le calcul du score global (-40 si distance > longueur du guide + PAM)
+
+# 04/02/26
+
+## mode knock-in
+
+- correction de l'affichage: ajout titre avec lien vers NCBI/ENSEMBL si geneID, + autres détails
+- ajout de la liste de PAMs + message indiquant où trouver l'info sur l'enzyme correspondante
+- tri des scores affichés : rs3 / EVA / crisprScan / deepCpf1 / Najm (saCas9)
+
+## à faire : 
+
+- le score SaCas9 n'est jamais calculé
+ 
+
+
