@@ -1,18 +1,18 @@
 # changes in CRISPOR - assistant mode
 
-## 17/12/25 ;
+# 17/12/25 ;
 
 ajout du mode "assistant"
 
-## 22/12/25 :
+# 22/12/25 :
 
-### corrections dans getGeneSeq():
+## corrections dans getGeneSeq():
  
 cette fonction retourne deux listes contenant la séquence des exons de tous les transcrits d'un gène, dans les fichiers .gp disponibles.
 - une liste ('all.exons')
 - une liste ('first.exons') correspondant aux exons du premiers tiers du CDS
 
-#### changements depuis le 17/12/25 :
+## changements depuis le 17/12/25 :
  
 - retourne la liste des exons dans le bon ordre pour les gènes du brin "-".
 - les exons de plus de 2300bp (MAXSEQLEN) sont scidés en plusieurs séquences.
@@ -20,17 +20,16 @@ cette fonction retourne deux listes contenant la séquence des exons de tous les
 - Un exon trop long pour entrer dans le premier tiers du CDS mais pouvant être tronqué l'est désormais.
 - si le CDS est de < 100bp, tous les exons sont considérés (seuil à augmenter ?)
 
-#### problèmes / à faire :
+## problèmes / à faire :
 
 - pas d'annotation des transcripts ID dans le fichier .gp -> les trancrits sont pour l'instant numérotés selon leur ordre d'appariation.
 - prise en compte des autres fichier d'annotation ? (genes.tsv, .bb, segments.bed) ? 
 
-### Ajout du menu déroulant de la liste des gènes disponible en fonction de l'organisme sélectionné
-
+- Ajout du menu déroulant de la liste des gènes disponible en fonction de l'organisme sélectionné
 via AJAX avec select2
 chargement un peu lent (~2s), à voir avec d'autres génomes.
 
-## 23/12/25
+# 23/12/25
 
 ## ajouts divers 
 
@@ -92,7 +91,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - séquence : mapper sur le génome puis étendre de 800bp FAIT
 - merger la séquence d'insert, puis calculer %GC et segments répétés sur des bins de (50bp ?) 
 
-#30/12/25
+# 30/12/25
 
 - design de l'ADN donneur avec la fonction getDonorSeq()
 - réinstallation complète de crispor à cause d'un bug causé par l'installation de protoSpaceJam (mauvaise version de numpy)
@@ -161,7 +160,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - faire une nouvelle fonction getGeneSeq() prenant comme input l'outupt de getGenePos()
 - optionellement, renvoie le premier tiers de la séquence codante.
 
-## 09/01/26
+# 09/01/26
 
 ## Modification de GetGeneSeq()
 - Correction de getGenePos()
@@ -175,7 +174,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - modifier le système de batch pour gérer plusieurs séquences / PAMs
 - créer une fonction pour éxécuter getGenePos(), getGeneSeq().. et l'appeller dans assistantDispatcher()
 
-## 12/01/26
+# 12/01/26
 
 ## Modification de GetGeneSeq()
 
@@ -221,7 +220,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 
 # 14/01/26
 
-# gestion multi seq / PAM
+## gestion multi seq / PAM
 
 - recherche pour plusieurs pams : modification de processMultiSubmission()
 	- écriture d'un fichier bed vide
@@ -234,7 +233,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 
 - call des effscores dans la boucle avec createMultiBatchEffScoreTable()
 
-# bugs / à faire
+## bugs / à faire
 - certains geneIDs retournent une liste vide
 - Pour certains geneIDs, le job "multisearch" n'est jamais lancé.
 	- (huître) NM_001308865.1 -> fonctionne
@@ -252,7 +251,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 
 - mise a jour de la branche anton ~ non terminé
 
-# à faire
+## à faire
 
 - headers dupliqués dans tableau effscores + 3 scores pour pam NGG
 - keras ne peut pas importer le backend theano ?! -> impossible d'utiliser cpf1
@@ -287,7 +286,7 @@ chargement un peu lent (~2s), à voir avec d'autres génomes.
 - corriger l'écriture des effScores dans processMultiSeqSubmission()
 - corrigder : CFD toujours entre 97 et 100
 
-#19/01/25
+# 19/01/25
 
 ## Gestion multiseq / multiPAM 
 
@@ -535,6 +534,14 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 04/02/26
 
+## divers
+
+- en mode knock-out, affichage par défaut = séquence de l'exon 1 / tous les guides dans le tableau
+- les trois guides non chevauchants au plus haut global score sont surlignés en vert dans le tableau
+(ajout de flagBestGuides, call dans showGuideTable() )
+- correction description global score
+
+
 ## mode knock-in
 
 - correction de l'affichage: ajout titre avec lien vers NCBI/ENSEMBL si geneID, + autres détails
@@ -543,7 +550,59 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire : 
 
+- suggestions JP:
+- ko :
+    - afficher domaines protéine sur le gene model ? si faisable
+    - mettre en surbrillance les 3 meilleurs guides non chevauchants
+- ki : 
+    - input = séquence départ / voulue (pour permettre substitutions et remplacement)
+    - éventuellement, prédiction de la structure de la protéine ? (pour insertion =/= extrémités)
+    - ne pas modifier le global score
+    - par défaut : classer les guides en fonction de la distance site de coupue / site d'insertion
+    - par défaut : recherche avec NGG, afficher les guides à +-20 bp du site d'insertion. 
+    - si pas de guide avec NGG -> rediriger vers une nouvelle recherche
+    - faire un schéma ADN donneur / site d'insertion au lieu d'afficher la séquence du donneur
+    - si pas de chevauchement entre les 15 bp de l'extrémité du guide et le site d'insertion -> flag recodage pour éviter coupure du donneur
+
+## bugs
+
 - le score SaCas9 n'est jamais calculé
+
+# 05/02/26
+
+## divers
+
+- ajout d'un bandeau en haut du menu principal : sélection de trois modes
+    - classic
+    - knock-out
+    - knock-in
+- transfert de assistanDispatcher() dans printBody()
+- réorganisation des formulaires knock-out et knock-in
+
+## mode knock-in 
+
+- tri du tableau des guides par la distance site de coupure / site d'insertion (par défaut) + correction calcul distance
+- modification de calcInsertDistance() : retourne doRecoding = True si les 15bp à l'extrémité du guide ne chevauchent pas le site d'insertion
+- ajout d'un avertissement si  doRecoding = True.
+
+# 06/02/26
+
+## divers
+
+- correction de readAnnGenomes()
+- amélioration de l'affichage du bandeau pour le choix du mode
+- amélioration de l'affichage des formulaires knkock-out / knock-in 
+- correction du mode "excision of the gene locus" : 
+    - affiche downstream + upstream region
+    - affiche taille de la délétion
+    - faut-il séparer le tableau en deux parties (upstream / downstream) ?
+- correction du surlignage des guides : 
+    - déplacement de flagBestGuides() dans ShowGuideTable() (évite double itération)
+    - surlignage de toutes les cases du tableau
+    - définition de la région occuppée par la RNP : 10bp en amont du PAM, 3bp en aval du guide.
+
+## à faire:
+
+    - biblio "competition" entre guides
+    - dans le formulaire knock-in : custom séquence et insert par défault
  
-
-

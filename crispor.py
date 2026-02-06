@@ -114,6 +114,9 @@ except:
 # version of crispor
 versionStr = "5.2.dev.anton"
 
+# Current release note
+
+releaseNote = "July 2025: Added hasCas12Max and e-SpotOn. Also allowing old primer links to Crispor to work again."
 # contact email
 contactEmail='crispor@tefor.net'
 
@@ -239,8 +242,8 @@ pamDesc = [ ('NGG','20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1'),
        ]
 
 # Ideally, pass pams in the batch parameters (to allow the user to select pams) ?
-pamLists = {
-    "multipam1" : ["NGG", "NNG", "NGN", "NNGT", "NAA", "NNGRRT", "NNGRRT-20", "NGK", "NNNRRT", "NNNRRT-20", "NGA", "NNNNCC", "NGCG"]
+multiPamDict = {"20bp-NGG": ["NGG"],
+        "multipam1": ["NGG", "NNG", "NGN", "NNGT", "NAA", "NNGRRT", "NNGRRT-20", "NGK", "NNNRRT", "NNNRRT-20", "NGA", "NNNNCC", "NGCG"]
 }
 
 DEFAULTPAM = 'NGG'
@@ -1584,6 +1587,7 @@ def printLines(lines, labelLen):
         print((labelStr), end=' ')
         print(line)
 
+
 def getMaxLen(lines):
     " given a list of tuples where first element is the label, return the longest label len "
     maxLen = 0
@@ -1591,6 +1595,7 @@ def getMaxLen(lines):
         label = l[0]
         maxLen = max(maxLen, len(label))
     return maxLen
+
 
 def printJson(name, obj):
     print("<script>")
@@ -1610,6 +1615,15 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
     if len(pamSeqs) == 0:
         return
 
+    # for the region upstream of the TSS, scroll to the left by default
+    if koMethod == "excision" and exonId == 0:
+        print("""
+        <script>
+        window.addEventListener('DOMContentLoaded', function() {
+          const div = document.getElementById('exonPamSeq%s');
+            div.scrollLeft = div.scrollWidth - div.clientWidth;
+            });
+        </script> """ % exonId)
     lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam, exonId)
     posLabel = "Position"
     seqLabel = "Sequence"
@@ -1645,9 +1659,14 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
             print(("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq))
         print("""<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">""")
         print(("<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can add it.</a></small>" % contactEmail))
-
-
-    print(""" <div name="exonDisplay" id="exon%s" style="display:block;"> """ % exonId )
+    if koMethod == "excision":
+        exonDisplay = "block"
+    else:
+        if exonId == 0:
+            exonDisplay = "block"
+        else:
+            exonDisplay = "none"
+    print(""" <div name="exonDisplay" id="exon%s" style="display:%s;"> """ % (exonId, exonDisplay))
     print(""" <div class="substep" """)
     print('<a id="seqStart"></a>')
     if koMethod == "frameshift":
@@ -1655,12 +1674,12 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
         print("Coding exon %d (%s) is %d bp long (non extented). It contains %d possible guide sequences.<br>" % (exonIdOneBased, browserlink, exonLen, len(guideScores)))
     elif koMethod == "excision":
         if exonId == 0:
-            print(" the region %s bp upstream of the TSS contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
+            print(" the region %s bp upstream of the TSS (%s) contains %d possible guide sequences.<br>" % (len(seq), browserlink, len(guideScores)))
         else:
-            print(" the region %s bp downstream of the TES contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
+            print(" the region %s bp downstream of the TES (%s) contains %d possible guide sequences.<br>" % (len(seq), browserlink, len(guideScores)))
 
     print("</div>")
-    print('''<div class="blueHighlight" name="exonPamSeq" id="exonPamSeq%s" style="text-align: left; overflow-x:scroll; width:85vw; height:4vw; background:#DDDDDD; border-style: solid; border-width: 1px">''' % exonId)
+    print('''<div class="blueHighlight" name="exonPamSeq" id="exonPamSeq%s" style="text-align: left; overflow-x:scroll; width:85vw; height:7vw; background:#DDDDDD; border-style: solid; border-width: 1px">''' % exonId)
 
     print('''<pre style="font-family: Source Code Pro; font-size: 80%; display:inline; line-height: 0.95em; text-align:left">''')
     print(('{:'+str(labelLen)+'s} ').format(posLabel), end=' ')
@@ -1680,6 +1699,7 @@ def showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, var
     print('''</div>''')
     print('''</div>''')
 
+
 def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, position, pamIdToSeq, multiPamInfo=None, linkToTable=True):
     " show the sequence and the PAM sites underneath in a sequence viewer "
 
@@ -1698,16 +1718,15 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
 
             singlePamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName))
             pamSeqs.extend(singlePamSeqs)
-            
+
             # get lines for the current pam
             currentPamLines = getPamLines(seq.upper(), startDict, len(pam), pam, pamFullName=pamFullName)
             allPamLines.extend(currentPamLines)
-            
+
         # layout all lines
         lines, maxY = layoutPamLines(allPamLines, len(seq))
         pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable))
-        
-    
+
     posLabel = "Position"
     varLabel = "Variants"
     if multiPamInfo:
@@ -1720,8 +1739,8 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
     exonLines = []
 
     geneModels, selGeneModel, selTransId = getSelGeneModel(org)
-    #selGeneModel = None
-    #geneModels = None
+    # selGeneModel = None
+    # geneModels = None
 
     if baseEditor:
         beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
@@ -1730,16 +1749,16 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
 
     labelLen = max(len(varLabel), len(insertLabel), len(seqLabel), len(posLabel), getMaxLen(pamLines))
 
-    if selGeneModel!=None:
+    if selGeneModel is not None:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, position)
         labelLen = max(labelLen, maxTransIdLen)
 
     if baseEditor:
         labelLen = max(labelLen, getMaxLen(editLines))
     if selGeneModel:
-            labelLen = max(labelLen, exonLabelLen)
-    
-    if pamFullName is None:
+        labelLen = max(labelLen, exonLabelLen)
+
+    if multiPamInfo is None:
         print("<div class='substep'>")
         print('<a id="seqStart"></a>')
         print("Your input sequence is %d bp long. It contains %d possible guide sequences.<br>" % (len(seq), len(guideScores)))
@@ -1750,23 +1769,23 @@ def showSeqAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varD
             print("(Need help? Look at the <a target=_blank href='manual/#annotseq'>CRISPOR manual</a>)<br>")
             print('''Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>''')
         else:
-             print("Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>" % (pam, GUIDELEN))
+            print("Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>" % (pam, GUIDELEN))
 
     else:
-        print(""" The target region is %d bp long. It contains %d possible guide sequences.<br>""" % (len(seq), len(guideScores)) )
-        print(""" shown below are the possible guide sequences for the following PAMs : %s <br>""" % ', '.join(pamList) ) 
-        print("Click on a match for a PAM below to show guide sequence.<br>") 
+        print(""" The target region is %d bp long. It contains %d possible guide sequences.<br>""" % (len(seq), len(guideScores)))
+        print(""" Shown below are the possible guide sequences for the following PAMs : %s <br>""" % ', '.join(pamList))
+        print("Click on a PAM below to show its corresponding guide sequence.<br>")
     if baseEditor or varDb or selGeneModel:
         print(("""<form style="display:inline" id="paramForm" action="%s" method="GET">""" % basename(__file__)))
 
     if geneModels:
-        print ("Gene Models:")
+        print("Gene Models:")
         printDropDown("geneModel", geneModels, selGeneModel, style="width:20em")
         if selGeneModel!="noGenes":
-            print ("Transcript:")
+            print("Transcript:")
             transIdInfo = [("allTrans", "All Transcripts")]
             for transId, sym in list(exonInfo.keys()):
-                transIdInfo.append( (transId, sym+" / "+transId) )
+                transIdInfo.append((transId, sym+" / "+transId))
 
             printDropDown("transId", transIdInfo, selTransId, style="width:20em")
             # XX XXXXXX
@@ -2742,7 +2761,7 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq, pamPat):
     return matches
 
 
-def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, GC, freeE, globEffScore, insertDistance = None):
+def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, GC, freeE, globEffScore):
     " Calculate a global score for a sgRNA based of Specificity, Efficientcy, GC content and free-energy "
 
     MitScaled = MitScore/100
@@ -2771,9 +2790,6 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, GC, freeE, globEff
     if freeE < -3:
         mainScore -= 15
 
-    if insertDistance >= len(guideSeq)+len(pamSeq):
-        mainScore -= 40
-
     return mainScore
 
 
@@ -2787,23 +2803,44 @@ def calcEVAscore(EVAlike, MIT):
     return EVAfull
 
 
-def calcInsertDistance(insertIdx, pamStart, guideStart, strand):
+def calcInsertDistance(insertIdx, pamStart, guideStart, guideSeq, strand):
     """ returns the distance between the cut site and the insertion site
-    (for knock-in mode)
+    if one of the 15 bases at the extremity of the guide don't overlap with the insertion site,
+    returns doRecoding = True (need to recode the donor DNA to prevent its cleavage)
     """
+
+    guidelen = len(guideSeq)
 
     if pamIsFirst:
         if strand == "+":
-            cutPos = guideStart + 18
+            cutPos = guideStart + 19
+            if (guideStart + guidelen) - insertIdx < 15 and (guideStart + guidelen) - insertIdx > 0:
+                doRecoding = False
+            else:
+                doRecoding = True
         else:
             cutPos = pamStart - 18
+            if insertIdx - guideStart < 15 and insertIdx - guideStart > 0:
+                doRecoding = False
+            else:
+                doRecoding = True
     else:
         if strand == "+":
-            cutPos = guideStart - 3
+            cutPos = pamStart - 3
+            if insertIdx - guideStart < 15 and insertIdx - guideStart > 0:
+                doRecoding = False
+            else:
+                doRecoding = True
         else:
-            cutPos = guideStart + 3
+            cutPos = guideStart + 4
+            if (guideStart + guidelen) - insertIdx < 15 and (guideStart + guidelen) - insertIdx > 0:
+                doRecoding = False
+            else:
+                doRecoding = True
 
-    return abs(insertIdx - cutPos)
+    insertDistance = abs(insertIdx - cutPos)
+    return insertDistance, doRecoding
+
 
 def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortBy=None,\
                     org=None, exonId=None, globEffScore=None, pamFullName=None, insertIdx=None):
@@ -2850,7 +2887,7 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             seq34Mer = None
 
         gcFrac = gcContent(guideSeq)
-        freeEnergy = getFreeEnergy(guideSeq, temperature) 
+        freeEnergy = getFreeEnergy(guideSeq, temperature)
         # freeEnergy = crisporEffScores.calcFreeEnergyRNAStructure(guideSeq) # slower!
 
         effScoring = effScores.get(pamId, {})
@@ -2863,30 +2900,31 @@ def mergeGuideInfo(seq, startDict, pamPat, otMatches, inputPos, effScores, sortB
             effScoring['EVA'] = EVAscore
 
         # in knock-in mode, get the distance between cut site and insertion site
-        if insertIdx:
-            insertDistance = calcInsertDistance(insertIdx, pamStart, guideStart, strand)
+        if insertIdx is not None:
+            insertDistance, doRecoding = calcInsertDistance(insertIdx, pamStart, guideStart, guideSeq, strand)
             effScoring['insertDistance'] = insertDistance
-
         else:
             insertDistance = None
+            doRecoding = None
 
         if effScoring:
-            mainScore = calcGlobScore(guideSeq, pamSeq, guideScore, guideCfdScore, effScoring, gcFrac, freeEnergy, globEffScore, insertDistance)
+            mainScore = calcGlobScore(guideSeq, pamSeq, guideScore, guideCfdScore, effScoring, gcFrac, freeEnergy, globEffScore)
         else:
             mainScore = 'NA'
 
-        guideRow = [guideScore, guideCfdScore, effScoring, pamStart, guideStart, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount, gcFrac, freeEnergy, mainScore]
+        guideRow = [guideScore, guideCfdScore, effScoring, pamStart, guideStart, strand, pamId, guideSeq, pamSeq, posList, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount, gcFrac, freeEnergy, doRecoding, mainScore]
         guideData.append(guideRow)
         guideScores[pamId] = guideScore
         pamIdToSeq[pamId] = guideSeq
 
     # when the function is not called in a loop, sort now
-    if exonId is None or pamFullName is None:
+    if exonId is None and pamFullName is None and insertIdx is None:
         sortGuideData(guideData, sortBy)
 
     return guideData, guideScores, hasNotFound, pamIdToSeq
 
-def sortGuideData(guideData, sortBy):
+
+def sortGuideData(guideData, sortBy, returnGuideData=False):
     " sorts the guide data according to the value of sortBy "
 
     if sortBy == "main":
@@ -2906,11 +2944,18 @@ def sortGuideData(guideData, sortBy):
         reverse = True
     elif sortBy is not None and not sortBy.endswith("pec"):
         sortFunc = (lambda row: row[2].get(sortBy, 0))
-        reverse = True
+        if sortBy == "insertDistance":
+            reverse = False
+        else:
+            reverse = True
     else:
         errAbort("Unknown sortBy value. This is a bug. Please contact us.")
 
-    guideData.sort(reverse=reverse, key=sortFunc)
+    if returnGuideData:
+        return sorted(guideData, reverse=reverse, key=sortFunc)
+    else:
+        guideData.sort(reverse=reverse, key=sortFunc)
+
 
 def printDownloadTableLinks(batchId, addTsv=False):
     print('<div id="downloads" style="text-align:left">')
@@ -2930,23 +2975,27 @@ def printDownloadTableLinks(batchId, addTsv=False):
 
     print('</div>')
 
+
 def hasGeneModels(org):
     " return true if this organism has gene model information "
     geneFname = join(genomesDir, org, org+".segments.bed")
     return isfile(geneFname)
 
+
 def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamFullName=None):
     " print guide score table description and columns "
     # one row per guide sequence
-    
-    if not pamIsCpf1(pam):
+
+    if not pamIsCpf1(pam) or pamFullName:
         print('''<div class='substep'>Ranked by default from highest to lowest Global Score. Click on a column title to rank by a specific score.<br>''')
     if pamFullName:
         print("""Hover on the PAM in the first column of the table to show information about its corresponding enzyme<br> """)
         #print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
         print('''If you use this website, please cite our <a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">paper in NAR 2018</a>.''')
         print("Too much information? Look at the <a target=_blank href='manual/'>CRISPOR manual</a>.<p>")
-        print('</div>')
+    print("Highlighted in yellow are the 3 non-overlapping guides with the highest selected score")
+    print("""<img src="%simage/info-small.png" title="A guide is defined as overlapping with another one if their region 10bp upstream of PAM to 3bp downstream of the guide insersects. This region represents the occupancy of the RNP on the DNA strand (see LINK), so you can use these guides simultaneously." class="tooltipster">""" % HTMLPREFIX)
+    print('</div>')
 
     printDownloadTableLinks(batchId)
 
@@ -3152,7 +3201,7 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamF
 
     print('<th style="width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
 
-    print ('+ Restriction Enzymes')
+    print('+ Restriction Enzymes')
     htmlHelp("Restriction enzymes can be very useful for screening mutations induced by the guide RNA using PCR and Restrictrion frament length polymorphism (RFLP).<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing.")
     print('<br>')
 
@@ -3168,18 +3217,16 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamF
     htmlHelp("The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3.")
     print('''</small>''')
 
-    # in knock-in mode, show the distance between the cut site and the insertion site
     if pamFullName:
-        print(""" <th style="width:110px; border-bottom:none;">Distance between cut site and insertion site</th>""")
-        helpAddText = "<br>A penalty of -40 is given if the cut site is further from the insertion site than the length of the guide + PAM."
+        print(""" <th style="width:110px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="Click to sort this table by this distance (default)">Distance between cut site and insertion site</a><br></th>""" % batchId)
+        isDefaultText = ""
     else:
-        helpAddText = ""
+        isDefaultText = " (default)"
+    print('<th style="width:80px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score%s. Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a><br>' % (batchId, isDefaultText))
+    htmlHelp("This global score serves to rank the guides based on their specificity and efficiency. It ranges from 0 to 100 and contains of 60% of the CFD specificity score and 40% of the chosen efficiency score (select below which one to use).<br>Each score is normalized before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25% or >75%) and a minimum free energy of the guide structure < -3 kcal/mol, respectively.")
 
-    print('<th style="width:80px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score (default). Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a><br>' % batchId)
-    globScoreHelpText = "This global score ranges from 0 to 100 and is comprised of 60%% CFD specificity score and 40%% of the chosed efficiency score (select below).<br>Each score is min-max scaled before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25%% or >75%%) and a minimum free energy < -3 kcal/mol, respectively.%s" % helpAddText
-    htmlHelp(globScoreHelpText)
     print(""" <br><small style="margin-top:20px;"> """)
-
+    print("<small>select effscore to use for calculation</small><br>")
     globEffScore = cgiParams.get("globEffScore", "rs3")
     scores = [("rs3", "rs3"), ("EVA", "EVA"), ("crisprScan", "MM")]
     for scoreVal, scoreLabel in scores:
@@ -3203,9 +3250,9 @@ def printTableHead(pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamF
         print("</th>")
 
     if len(scoreNames)==2 or pamIsCpf1(pam) or pamIsSaCas9(pam):
-       print('<th style="width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)))
+        print('<th style="width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames)))
     else:
-       print('<th style="width:270px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))) # -1 because proxGc is in scoreNames but has no column
+        print('<th style="width:270px; border-bottom:none" colspan="%d">Predicted Efficiency' % (len(scoreNames))) # -1 because proxGc is in scoreNames but has no column
 
     htmlHelp("The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>")
 
@@ -3368,38 +3415,45 @@ def findOtCutoff(otData):
 
     return otData, 1000
 
+
 def printNote(s):
     print('<div style="text-align:left; background-color: aliceblue; padding:5px; border: 1px solid black"><strong>Note:</strong>')
     print(s)
     print("</div>")
+
 
 def printWarning(s):
     print('<div style="text-align:left; background-color: #FFDDDD; padding:5px; border: 1px solid black"><strong>Warning:</strong>')
     print(s)
     print('</div>')
 
+
 def printNoEffScoreFoundWarn(effScoresCount, pam):
     if effScoresCount==0 and not pamIsCpf1(pam):
         note = "No guide could be scored for efficiency. This happens when the input sequence is shorter than 100bp and there is no genome available to extend it or if there is simply not guide socring method. In the first case, please add flanking 50bp on both sides of the input sequence and submit this new, longer sequence. For the second case, you can contact me and suggest an efficiency scoring method, send me the published paper in this case."
         printNote(note)
 
-def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls, geneId=None, pamFullName=None):
+
+def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHtmls, geneId=None, pamFullName=None, koMethod=None):
     " shows table of all PAM motif matches "
 
-    if geneId and pamFullName is None:
-        print("<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>" % (geneId, pam))
+    if koMethod is not None:
+        if koMethod == "excision":
+            print("<br><div class='title'>Predicted guide sequences for upstream / downstream regions of %s with PAM %s</div>" % (geneId, pam))
+        else:
+            print("<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>" % (geneId, pam))
     else:
         print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
 
     if pamFullName:
-        print(""" <br> <div class="title">Guide sequences for all PAMs</div>""")
+        print(""" <br> <div class="title">Guide sequences for all PAMs in the target region</div>""")
 
     global scoreNames
     if geneId:
         scoreNames = koCas9ScoreNames
-    elif pamFullName: 
-       scoreNames =  ["rs3", "EVA", "crisprScan", "seqDeepCpf1", "najm"]
-    elif (cgiParams.get("showAllScores", "0")=="1"):
+    elif pamFullName:
+        scoreNames = ["rs3", "EVA", "crisprScan", "seqDeepCpf1", "najm"]
+    elif (cgiParams.get("showAllScores", "0") == "1"):
         scoreNames = allScoreNames
 
     showColumns = set()
@@ -3415,9 +3469,50 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
     effScoresCount = 0
     showProxGcCol = ("proxGc" in scoreNames)
 
-    for guideRow in guideData:
+    highlightedGuidesIds = []
+    highlightedGuidesPos = []
+
+    for guideIdx, guideRow in enumerate(guideData):
         guideScore, guideCfdScore, effScores, pamStart, guideStart, strand, pamId, guideSeq, \
-            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount, gcFrac, freeEnergy, mainScore = guideRow
+            pamSeq, otData, otDesc, last12Desc, mutEnzymes, ontargetDesc, repCount, gcFrac, freeEnergy, doRecoding, mainScore = guideRow
+
+        guidelen = len(guideSeq)
+        pamlen = len(pamSeq)
+
+        # flag the 3 best non-overlapping guides
+        if koMethod:
+            inExon = int(pamId.split('.')[0])
+        else:
+            inExon = None
+        pamStart = guideRow[3]
+
+        if len(highlightedGuidesIds) >= 3:
+            highlight = False
+        else:
+            # define Cas9 occupancy region (actual values to precise):
+            overlapStart = (guideStart if strand == "+"
+                            else pamStart - 10)
+            overlapEnd = (pamStart + pamlen + 10 if strand == "+"
+                          else guideStart + guidelen)
+
+            for hgOverlapStart, hgOverlapEnd, exon in highlightedGuidesPos:
+                if ((overlapStart > hgOverlapStart and overlapStart < hgOverlapEnd)
+                    or (overlapEnd > hgOverlapStart and overlapEnd < hgOverlapEnd))\
+                        and (inExon is None or exon == inExon):
+                    overlap = True
+                    highlight = False
+                    break
+            else:
+                overlap = False
+            if not overlap or guideIdx == 0:
+                highlightedGuidesIds.append(pamId)
+                highlightedGuidesPos.append((overlapStart, overlapEnd, inExon))
+                highlight = True
+
+        if highlight:
+            backgroundColor = "#ffffe6"
+        else:
+            backgroundColor = "#ffffff"
 
         color = scoreToColor(guideScore)[0]
 
@@ -3425,43 +3520,48 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         if geneId is not None:
             exonId = pamId.split('.')[0]
             classStr += " exonRow exon-" + exonId
-
         print('<tr id="%s" class="%s" style="border-left: 5px solid %s">' % (pamId, classStr, color))
 
         # position and strand
         #print '<td id="%s">' % pamId
-        print('<td>')
+        print("""<td style="background-color:%s;">""" % backgroundColor)
         print('<a href="#list%s">' % (pamId))
         print(str(pamStart+1)+" /")
         if strand=="+":
             print('fw')
         else:
             print('rev')
-        
+
         # in multiseq / multipam mode, the exon number (0 based) or PAM name is prepended to pamId
         if pamId[0] != 's':
             print("<br>")
             pamPrefix = pamId.split('.')[0]
             if pamPrefix.isdigit():
                 exonId = int(pamPrefix)+1
-                print('in exon %s' % exonId)
+                if koMethod == "excision":
+                    if exonId == 1:
+                        print('upstream')
+                    else:
+                        print('downstream')
+                else:
+                    print('in exon %s' % exonId)
             else:
                 for desc in pamDesc:
                     if desc[0] == pamPrefix:
                         pamText = desc[1]
                         break
                 print("</a>")
-                print("""<div class="tooltipster" title="%s">with PAM %s</div>""" % (pamText, pamPrefix) )
+                print("""<div class="tooltipster" title="%s">with PAM %s</div>""" % (pamText, pamPrefix))
         else:
             pamPrefix = None
 
-        if pamPrefix.isdigit() or pamPrefix is None:
+        if pamPrefix is None or pamPrefix.isdigit():
             print("</a>")
 
         print("</td>")
 
         # sequence with variants and PCR primer link
-        print("<td>")
+        print("""<td style="background-color:%s;">""" % backgroundColor)
         print("<small>")
 
         # guide sequence + PAM sequence
@@ -3492,6 +3592,11 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 varStrs.append(html)
             print(("<tt style='color:#888888'>%s</tt><br>" % ("".join(varStrs))))
 
+        if pamFullName and doRecoding:
+            text = "If you use this guide, the donor DNA needs to be recoded, as the 15bp at the end of the guide don't overlap with the insertion site. Without recoding of the donor this guide sequence will hybridize to it, resulting in its cleavage."
+            htmlWarn(text)
+            print('Donor needs recoding')
+            print('<br>')
         if "TTTT" in guideSeq.upper():
             text = "This guide contains the sequence TTTT. It cannot be transcribed with a U6 or U3 promoter, as TTTT terminates the transcription."
             htmlWarn(text)
@@ -3538,7 +3643,6 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         if otData!=None and repCount == 0:
             print(('&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>Cloning / PCR primers</strong></a>' % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam) ))
 
-        
         print("</small>")
         print("</td>")
 
@@ -3552,7 +3656,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         # Global Score
         if not pamIsCpf1(pam):
-            print("<td>")
+            print(""" <td style="background-color:%s;"> """ % backgroundColor)
             if guideScore==None or mainScore == 'NA':
                 print("No matches")
             else:
@@ -3561,7 +3665,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         # off-target score, aka specificity score aka MIT score
         if not pamIsCpf1(pam):
-            print("<td>")
+            print(""" <td style="background-color:%s;"> """ % backgroundColor)
             if guideScore==None:
                 print("No matches")
             else:
@@ -3570,7 +3674,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         # guide score based on CFD scores, aka guidescan score
         if "cfdGuideScore" in showColumns:
-            print("<td>")
+            print(""" <td style="background-color:%s;"> """ % backgroundColor)
             if guideCfdScore==None:
                 print("No matches")
             else:
@@ -3579,7 +3683,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         # eff scores
         if effScores==None:
-            print('<td colspan="%d">Too close to end</td>' % len(scoreNames))
+            print('<td colspan="%d" style="background-color:%s;">Too close to end</td>' % (backgroundColor, len(scoreNames)))
             htmlHelp("The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>")
         else:
             for scoreName in scoreNames:
@@ -3591,19 +3695,19 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                     effScoresCount += 1
                 # in multipam mode, all scores for all enzymes are displayed, and non available scores are 0.
                 if score==None or (score==0 and pamFullName is not None):
-                    print('''<td>--</td>''')
+                    print('''<td style="background-color:%s;">--</td>''' % backgroundColor)
                 elif scoreName=="ssc":
                     # save some space
                     numStr = '%.1f' % (float(score))
-                    print('''<td style="font-size:small">%s</td>'''  % numStr)
+                    print('''<td style="font-size:small; background-color:%s;">%s</td>''' % (backgroundColor, numStr))
                 elif scoreDigits.get(scoreName, 0)==0:
-                    print('''<td>%d</td>''' % int(score))
+                    print('''<td style="background-color:%s;">%d</td>''' % (backgroundColor, int(score)))
                 else:
-                    print('''<td>%0.1f</td>''' % (float(score)))
+                    print('''<td style="background-color:%s;">%0.1f</td>''' % (backgroundColor, float(score)))
             #print "<!-- %s -->" % seq30Mer
 
         if showProxGcCol:
-            print("<td>")
+            print("""<td style="background-color:%s;">""" % backgroundColor)
             # close GC > 4
             finalGc = int(effScores.get("finalGc6", -1))
             if finalGc==1:
@@ -3621,7 +3725,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
 
         if not baseEditor:
             for mutScoreName in mutScoreNames:
-                print("<td>")
+                print("""<td style="background-color:%s;">""" % backgroundColor)
                 oofScore = str(effScores.get(mutScoreName, None))
 
                 if mutScoreName=="oof":
@@ -3637,7 +3741,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 print("</td>")
 
         # mismatch description
-        print("<td>")
+        print("""<td style="background-color:%s;">""" % backgroundColor)
         #otCount = sum([int(x) for x in otDesc.split("/")])
         if otData==None:
             # no genome match
@@ -3657,7 +3761,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
         print("</td>")
 
         # links to offtargets
-        print("<td><small>")
+        print("""<td style="background-color:%s;"><small>""" % backgroundColor)
         if otData!=None:
             if len(otData)>500 and len(guideData)>1:
                 otData, cutoff = findOtCutoff(otData)
@@ -3685,11 +3789,8 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
                 print('''<a id="%sMoreLink" class="otMoreLink" onclick="showAllOts('%s')">''' % (cssPamId, cssPamId))
                 print('show all...</a>')
 
-
                 print('''<a id="%sLessLink" class="otLessLink" style="display:none" onclick="showLessOts('%s')">''' % (cssPamId, cssPamId))
                 print('show less...</a>')
-
-
 
         print("</small></td>")
 
@@ -3700,6 +3801,7 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
     printDownloadTableLinks(batchId, addTsv=True)
 
     printNoEffScoreFoundWarn(effScoresCount, pam)
+
 
 def linkLocalFiles(listFname):
     """ write a <link> statement for each filename in listFname. Version them via mtime
@@ -4376,7 +4478,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
             enz = "sacas9"
 
         global scoreNames
-       
+
         if enz == "cpf1":
             scoreNames = cpf1ScoreNames
         elif enz == "sacas9":
@@ -4492,7 +4594,7 @@ def createMultiBatchEffScoreTable(batchId, Fname, queue, pam, pamFullName, extSe
     extSeq = batchInfo.get("extSeq")
 
     guideFh = open(Fname, 'w')
-    
+
     logging.info("writing eff scores for PAM %s" % pam)
     seq = seq.upper()
     guideRows = calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter)
@@ -5025,14 +5127,12 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
 
     # allow up to 3 mismatches for offtarget search
     global maxMMs
-    maxMMs = 3
+    maxMMs = 4
     batchInfo = readBatchAsDict(batchId)
-    insertIdx = batchInfo["insertIdx"]
 
     if seq is None and posStr is None:
         return None, None
-    
-    pamList = pamLists[multipam]
+    pamList = multiPamDict[multipam]
     logging.info("PAMs are : %s" % ', '.join(pamList))
 
     bedFname = batchBase+".bed.gz"
@@ -5176,22 +5276,24 @@ def readGenomes():
     allGenomes = genomes
     return allGenomes
 
+
 def readAnnGenomes():
-    " returns a list of all genomes with a genePred file " 
- 
+    " returns a list of all genomes with a genePred file "
+
     myDir = dirname(__file__)
     genomesDir = join(myDir, "genomes")
 
     annGenomes = []
     for subDir in os.listdir(genomesDir):
-            if os.path.isdir(subDir):
-                subPath = join(genomesDir, subDir)
-                gpFiles = [f for f in os.listdir(subPath) if f.endswith(".gp")]
-                if gpFiles:
-                    orgName = os.path.basename(subDir)
-                    annGenomes.append(orgName)
-    
+        subPath = join(genomesDir, subDir)
+        if os.path.isdir(subPath):
+            gpFiles = [f for f in os.listdir(subPath) if f.endswith(".gp")]
+            if gpFiles:
+                orgName = os.path.basename(subDir)
+                annGenomes.append(orgName)
+
     return annGenomes
+
 
 def printOrgDropDown(lastorg, genomes):
     " print the organism drop down box. "
@@ -5257,7 +5359,7 @@ def dbsearchGene(params):
                         matches.append({"id": mainId, "text": f"{mainId} ({altId}) - {exonCount} exons", "exonCount": exonCount })
                     else:
                         matches.append({"id": mainId, "text": mainId, "exonCount": exonCount})
-    
+
     seen = set()
     unique_matches = []
     for match in matches:
@@ -5272,11 +5374,11 @@ def dbsearchGene(params):
 
 
 def printGeneSelection():
-    # generalize this function to handle any ajax param / filtering condition ?
+    " prints the searchable dropdown menu for gene/transcript selection "
 
     scriptName = basename(__file__)
     print("""
-    <select class="js-select-gene" name="ko_geneid" style="width: 500px;"></select>
+    <select class="js-select-gene" name="ko_geneid" style="width: 80%%;"></select>
     <input type="hidden" name="exonCount" id="exonCountVal">
     <br>
     <script>
@@ -5320,7 +5422,8 @@ def printGeneSelection():
     });
     </script>
     """ % scriptName)
-    
+
+
 def printPamDropDown(lastpam):
 
     print('<select class="js-example-basic-single" style="float:left" name="pam" tabindex="3">')
@@ -5356,7 +5459,8 @@ def processCustomPam (params):
         raise ValueError("N")
     else:
         params["pam"] = "%(pamSeq)s.%(ezType)s.%(guideLen)s.custom" % locals()
-    
+
+
 def printForm(params):
     " print html input form "
     scriptName = basename(__file__)
@@ -5372,44 +5476,36 @@ def printForm(params):
     # The returned cookie is available in the os.environ dictionary
     cookies=http.cookies.SimpleCookie(os.environ.get('HTTP_COOKIE'))
     if "lastorg" in cookies and "lastseq" in cookies and "lastpam" in cookies:
-       lastorg   = cookies['lastorg'].value
-       lastseq   = cookies['lastseq'].value
-       lastpam   = cookies['lastpam'].value
+        lastorg = cookies['lastorg'].value
+        lastseq = cookies['lastseq'].value
+        lastpam = cookies['lastpam'].value
     else:
-       if not haveHuman:
-           global DEFAULTSEQ
-           global DEFAULTORG
-           DEFAULTSEQ = ALTSEQ
-           DEFAULTORG = ALTORG
-       lastorg = DEFAULTORG
-       lastseq = DEFAULTSEQ
-       lastpam = DEFAULTPAM
+        if not haveHuman:
+            global DEFAULTSEQ
+            global DEFAULTORG
+            DEFAULTSEQ = ALTSEQ
+            DEFAULTORG = ALTORG
+        lastorg = DEFAULTORG
+        lastseq = DEFAULTSEQ
+        lastpam = DEFAULTPAM
 
     # SerialCloner is sending us the sequence via a HTTP get parameter
     if "seq" in params:
         lastseq = params["seq"]
     if "org" in params:
         lastorg = params["org"]
-    
+
     if "exonCountVal" in params:
         exonCountVal = params["exonCountVal"]
     seqName = ""
     if "seqName" in params:
         seqName = params["seqName"]
 
-    printTeforBodyStart()
     #print('''March 6 2023: Sorry, no CRISPOR on the new UCSC-based-server (with RS3 scores) today. Too many performance problems on the new server. We were able to renew the old server. Please use the <a href="http://37.187.154.234">old server</a> temporarily.''')
     #sys.exit(0)
 
     print("""
 <form id="main-form" method="post" action="%s">
-
- <div style="text-align:left; margin-left: 10px">
- CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a><br>
- Alternatively, use <a href="crispor.py?assist=1"> CRISPOR Assistant </a> to guide you through your experiment<br>
-<br><i>July 2025: Added hasCas12Max and e-SpotOn. Also allowing old primer links to Crispor to work again. See <a href="doc/changes.html">Full list of changes</a></i><br>
-
- </div>
 
 <div class="windowstep subpanel" style="width:40%%;">
     <div class="substep">
@@ -5428,14 +5524,14 @@ def printForm(params):
     <small><a href="javascript:resetToExample()">Reset to default</a></small>
     </div>
 
-    <textarea tabindex="1" style="width:100%%" name="seq" rows="12"
+    <textarea tabindex="1" style="width:98%%" name="seq" rows="12"
               placeholder="Paste here the genomic - not a cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp. If you only have a cDNA, please BLAST or BLAT the cDNA first to find the right exon sequence for CRISPOR.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
-          
+
 <details style = "margin-top:12px;">
     <summary>Click here to enter a gene ID instead</summary>
           """ % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq))
-    
+
     printGeneSelection()
 
     print("""<div style="margin-top:12px; margin-bottom:12px">""")
@@ -5445,11 +5541,11 @@ def printForm(params):
     </select>
 <img src="%simage/info-small.png" title="Due to technical constraints, small exons (<23 bp) will be omitted, and large exons (>2300 bp) splitted into several smaller ones." class="tooltipsterInteract"><br>
     </div>
-""" % HTMLPREFIX )
+""" % HTMLPREFIX)
     print("""
     <small>Currenlty, %d out of %d genomes are annotated.</small>
 </details>
-</div> 
+</div>
 <div class="windowstep subpanel" style="width:50%%">
     <div class="substep" style="margin-bottom: 1px">
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep2').toggle('fast')">
@@ -5457,7 +5553,7 @@ def printForm(params):
         </div>
         Select a genome
     </div>
-    """  % (len(annGenomes), len(genomes)) )
+    """ % (len(annGenomes), len(genomes)) )
 
     printOrgDropDown(lastorg, genomes)
 
@@ -5498,7 +5594,7 @@ def printForm(params):
         <input type="submit" name="submit" value="SUBMIT" tabindex="4"/>
     </div>
     </div>
-          """ % (HTMLPREFIX, contactEmail) )
+          """ % (HTMLPREFIX, contactEmail))
 
     print("""
 <script>
@@ -5531,7 +5627,7 @@ function clearInput() {
     $("#genomeDropDown").on('change', showHideHubNote);
     showHideHubNote();
 </script>
-          
+
 <script>
     $(document).ready(function() {
     $('.js-example-basic-single').select2();
@@ -5564,7 +5660,7 @@ $(document).ready(function() {
         }
     });
 });
-</script> 
+</script>
 
 <script>
 // select2 with hidden search box
@@ -5573,6 +5669,7 @@ $(".js-select-hidden").select2({
 </script>
 </form>
     """ % (DEFAULTSEQ, DEFAULTORG))
+
 
 def readBatchAsDict(batchId):
     " return contents of batch as a dictionary or None "
@@ -6720,20 +6817,20 @@ def parseAndPrintMultiPamInfo(params, batchId):
     insertPos = batchInfo["insertpos"]
     geneId = batchInfo.get("koGeneId")
 
-    sortBy = params.get("sortBy", "main")
+    sortBy = params.get("sortBy", "insertDistance")
 
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId, multipam=multipam)
 
-    pamList = pamLists[multipam]
+    pamList = multiPamDict[multipam]
     chrom, start, end, strand = parsePos(posStr)
-      
+
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
 
     seqMsg = "of a %s bp sequence" % len(seq)
-    
+
     if geneId:
         if 'ENST' in geneId:
             transcriptUrl = """in %s of <a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a> """ % (insertPos, geneId.split('_')[0], geneId.split('_')[0])
@@ -6742,7 +6839,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
     else:
         transcriptUrl = "at coordinates %s " % len(seq)
 
-    print("""<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : knock-in of %s %s </div><br> """ % (dbInfo.scientificName, seqMsg, transcriptUrl) )
+    print("""<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : knock-in of %s %s </div><br> """ % (dbInfo.scientificName, seqMsg, transcriptUrl))
 
     showDonor(donorSeq)
 
@@ -6758,8 +6855,9 @@ def parseAndPrintMultiPamInfo(params, batchId):
         allPamIdToSeq.update(pamIdToSeq.copy())
 
     showSeqAndPams(org, seq, None, None, allGuideScores, None, None, None, 0.0, posStr, allPamIdToSeq, multiPamInfo=(pamList, insertIdx))
-    sortGuideData(allGuideData, sortBy)
+    sortGuideData(allGuideData, sortBy=sortBy)
     showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None, geneId=None, pamFullName="multipam")
+
 
 def showDonor(donorSeq):
     """ Dispays the unmodified donor DNA sequence """
@@ -6774,7 +6872,7 @@ def showDonor(donorSeq):
           navigator.clipboard.writeText(donorSeq.value).then(function() {
 
             // alert("Copied the donor DNA sequence");
-          
+
           }).catch(function(err) {
 
           console.error("failed to copy: ", err);
@@ -6791,7 +6889,7 @@ def showDonor(donorSeq):
     print("<small>lowercase = homology arms. Uppercase = insert sequence</small>")
 
     print("""<div style="
-          overflow-x:scroll; 
+          overflow-x:scroll;
           font-family: Source Code Pro;
           font-size: 80%;
           padding:5px;
@@ -6804,6 +6902,7 @@ def showDonor(donorSeq):
           margin-bottom: 50px;"> """)
     print(donorSeq)
     print("</div>")
+
 
 def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
     """ read offtargets and effcores files generated by the multiseq job,
@@ -6839,6 +6938,8 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
         print("%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name))
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
+        elif koMethod == "excision":
+            titleText = "excision of the gene locus"
         print('<span style="text-decoration:underline">')
         if 'ENST' in koGeneId:
             transcriptUrl = "https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" % koGeneId.split('_')[0]
@@ -6849,8 +6950,7 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
 
         if koMethod == "frameshift":
             printGeneModel(geneModel, exonSeqs, pam, koMethod)
-
-        print("""<p>Below are the exon and PAM sequences. lowercase bases corresponds to an extension of the target.</p>""")
+        print("""<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (for hybridization of the guides).</p>""")
 
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
 
@@ -6877,10 +6977,10 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
 
             showExonAndPams(org, seq, startDict, pam, guideScores, varHtmls, varDbs, varDb, minFreq, \
                 posStr, pamIdToSeq, exonId, koMethod, browserLink)
-    
+
     if download == False:
         sortGuideData(allGuideData, sortBy)
-        showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None, koGeneId)
+        showGuideTable(allGuideData, pam, otMatches, dbInfo, batchId, org, chrom, None, koGeneId, koMethod=koMethod)
     else:
         return exonSeqs, org, pam, exonPosStr, guideData
 
@@ -6915,10 +7015,10 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
         varShortLabel = None
 
     varHtmls = varDictToHtml(varDict, seq, varShortLabel)
-    
+
     return varHtmls, varDbs
 
-    
+
 def printGeneModel(geneModel, exonSeqs, pam, koMethod):
     " displays the gene model, from CDS start to CDS end "
 
@@ -6932,12 +7032,12 @@ def printGeneModel(geneModel, exonSeqs, pam, koMethod):
 
         lastseq = str(exonSeqs[-1][1])
 
-        # remove flanking sequences 
+        # remove flanking sequences
         lastseq = ''.join(base for base in lastseq if base.isupper())
         lastLen = len(lastseq)
-        
+
     exonSeqs = dict(exonSeqs)
-    
+
     print("""
         <script>
 function toggleExonSeq(selectedValue) {
@@ -6956,7 +7056,7 @@ function toggleExonSeq(selectedValue) {
             exonMsg.style.display = 'none'
         }
         $('#otTable tr.guideRow').show();
-          
+
     } else {
         // hide all exons
         for (const displayElement of exonDisplay) {
@@ -6968,14 +7068,14 @@ function toggleExonSeq(selectedValue) {
         for (exonMsg of exonFilterMsg) {
             exonMsg.style.display = 'none'
         }
-        
+
         // show matching exon and its filter message
         const targetElement = document.getElementById(selectedValue);
         const targetMsg = document.getElementById(selectedValue+'Msg');
         if (targetElement) {
             targetElement.style.display = 'block';
             targetMsg.style.display = 'block';
-        } 
+        }
 
         // Filter guide table
         var exonClass = selectedValue.replace('exon', 'exon-');
@@ -6984,19 +7084,18 @@ function toggleExonSeq(selectedValue) {
     }
 }
         </script>
-            """ )
-    
+            """)
+
     print("""<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides, or
             <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
             style="width:110spx; height:25px"><small>show all exons</small></button> </div>""")
-     
-    for exonId in exonSeqs:
-        
-        print("""<div name="exonFilterMsg" id="exon%dMsg" style="display:none;"> the results are currently filtered for Exon %s </div>""" % (exonId, exonId+1) ) 
 
-   
+    for exonId in exonSeqs:
+
+        print("""<div name="exonFilterMsg" id="exon%dMsg" style="display:none;"> the results are currently filtered for Exon %s </div>""" % (exonId, exonId+1))
+
     print(""" <div style="
-          overflow-x:scroll; 
+          overflow-x:scroll;
           display:flex;
           align-items:center;
           padding:5px;
@@ -7116,9 +7215,9 @@ function toggleExonSeq(selectedValue) {
                     ">
                     %s
                     </div> """ % (exonMouseOver, length, borderRadius, exonText))
-            
+
         elif featureType == "intron":
-            
+
             print(""" <div class="block_1" style="
                   height: 1px;
                   border: 1px solid #C4C4C4;
@@ -7136,7 +7235,7 @@ function toggleExonSeq(selectedValue) {
                   "></div> """)
         if i == len(geneModel)-1:
             print("<small>&nbsp&nbspCDS end</small>")
-            
+
     print("</div><br>")
 
 def printFile(fname):
@@ -8737,7 +8836,7 @@ def printLibGuides(params):
 
 
 def printKoForm(params):
-    #form for knock-out mode in the assistant
+    """ form for knock-out mode """
     lastorg = DEFAULTORG
     genomes = readGenomes()
     annGenomes = readAnnGenomes()
@@ -8762,25 +8861,26 @@ def printKoForm(params):
         }
     </script>
           """)
-    
+
     print(
-    """
+        """
     <form id="KoForm", method="get">
 
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ko">
-        <div class="windowstep subpanel" style="width:50%; position:fixed; top:100px; right:105px; width:1000px;">
-            <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
+        <div style="display:grid; width:100%; grid-template-columns: 50% 1fr; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+        <div class="windowstep subpanel" style="width:80%; grid-column:1; grid-row:1;">
+            <div class="title" style="cursor:pointer" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
             </div>
-            <div class="substep" style="margin-bottom:20px;">     
+            <div class="substep" style="margin-bottom:20px;">
                 Select a genome
             """)
 
     printOrgDropDown(lastorg, genomes)
 
     print(
-    """
+        """
                 <div id="trackHubNote" style="margin-bottom:12px; margin-top:12px;">
                     <small>Note: pre-calculated exonic guides for this species are on the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
                 </div>
@@ -8789,67 +8889,71 @@ def printKoForm(params):
         </div>
     """ % (len(genomes), contactEmail))
     print("""
-        <div class="windowstep subpanel" style="width:100%; height:450px;">
-            <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
-                Step 2
+        <div class="windowstep subpanel" style="width:100%; grid-column:2; grid-row:1/-1;">
+            <div class="title" style="cursor:pointer; margin-bottom:20px;" onclick="$('#helpstep3').toggle('fast')">
+                Step 3
             </div>
-            <div>
-            Enter a gene symbol and a Protospacer Adjacent Motif (PAM)
-            </div>
-            <div class="windowstep subpanel" style="width:50%%; height:350px;">
-                <div style="margin-bottom:15px; margin-top:12px;">Enter the gene Symbol, Entrez Gene ID or Refseq ID of the gene you want to knock-out</div>
+            <div style="margin-bottom:12px;"> Select a transcript and choose an approach to inactivate its product</div>
           """)
-    
+
     printGeneSelection()
 
     print("""
-                <div style="margin-top:20px;">
+                <div style="margin-top:12px;">
                     <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, paste a sequence below.</small><br>
                 </div>
-            <p>Select one of the following approaches to inactivate your gene</p>
-            
+            <p style="margin-top:50px">Select one of the following approaches to inactivate your gene</p>
+
             <input type="radio" checked name="koMethod" id="frameshift" value="frameshift" onchange="toggleFlankLen()"/> Frameshift mutation in the first third of the coding sequence<br>
             <input type="radio" name="koMethod" id="excision" value="excision" onchange="toggleFlankLen()"/> Excision of the gene locus<br>
-            
-            <small id="flankLen" style="text-align:center; display:none;"> 
+
+            <small id="flankLen" style="text-align:left; display:none;">
             <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
             target <output style="text-align:center;">500</output> bp uptream/downstream of the TSS/TES
             </small>
-            
+
             <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Intron retention by edition of a splicing site<br>
-            </div>
-            """ % (len(annGenomes), len(genomes)) )
-            
+            """ % (len(annGenomes), len(genomes)))
     print("""
-            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:50%%; height:350px; padding:px;">
+    <div style="align-items:center; text-align:center;margin-top:20px;">
+        <input id="submitKoGeneID" type="submit" name="submit" value="SUBMIT" style="height:35px; width:100px;">
+    </div>
+    </div>
+ """)
+    print("""
+        <div class="windowstep subpanel" style="display:flex; width:80%%; flex-direction:column; grid-column:1; grid-row:2;">
+        <div>
+            <div class="title" style="cursor:pointer;">
+            Step 2
+            </div>
                 <div style="margin-bottom:35px; margin-top:12px;">
                     Select a Protospacer Adjacent Motif (PAM)
                     <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Cas9-HF1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, eSpCas1.1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4714946/'>Slaymaker 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>, SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25830891/'>Ran 2015</a> and KKH-SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/26524662/'>Kleinstiver 2015</a>, modified As-Cpf1s by <a href='http://biorxiv.org/content/early/2016/12/04/091611'>Gao et al. 2017</a>." class="tooltipsterInteract">
                     <br>
                 </div>
-                <div style="margin-bottom:15px;">
+            <div style="margin-bottom:15px;">
 
     """ % HTMLPREFIX)
 
     printPamDropDown(lastpam)
 
     print("""
-                </div>
+            </div>
                 <div style="margin-bottom:15px;">
                     <br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
                 </div>
-            </div>
-        <div style="margin-top:80px; text-align:center;">
-            <input id="submitKoGeneID" type="submit" name="submit" value="SUBMIT" style="height:50px; width:100px;">
         </div>
-        </div>
+       </div>
+    </div>
+    </div>
+    </div>
     </form>
     """)
+
 
 def printTagsAndLinkers():
     """ prints the dropdown menus for tags and linkers """
     # names : tag = "tagseq" ; linker = "linkerseq"
-
 
     print("""
     <script>
@@ -8861,15 +8965,15 @@ def printTagsAndLinkers():
 
     # move these at the top of the program ?
     tags = {
-        'eGFP' : 'GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG',
-        'Streptavidin' : 'TGGAGCCACCCGCAGTTCGAAAAA'
+        'eGFP': 'GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG',
+        'Streptavidin': 'TGGAGCCACCCGCAGTTCGAAAAA'
     }
     linkers = {
-        '(GGGGS)x2' : 'GGTGGTGGTGGTTCTGGTGGTGGTGGTTCT',
-        'XTEN' : 'AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT'
+        '(GGGGS)x2': 'GGTGGTGGTGGTTCTGGTGGTGGTGGTTCT',
+        'XTEN': 'AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT'
     }
 
-    print("""<div class="windowstep subpanel" style="width:100%; height:75px; display:flex; flex-direction:row; padding:12px; align-items: center; gap: 10px;"> """)
+    print("""<div class="windowstep subpanel" style="width:95%; height:75px; display:flex; flex-direction:row; padding:12px; align-items: center; gap: 10px;"> """)
     print("""<div>
           <select name="tagseq" class="js-example-basic-single" style="width:100%;">
           <option value="">Select a tag from the list</option>""")
@@ -8937,7 +9041,7 @@ def printKiForm(params):
                 ctext.style.display = 'none';
             }
         }
-        
+
         function toggleInsertseq() {
           const insertype = document.getElementsByName('insertype')
           const taglist = document.getElementById('taglist')
@@ -8999,25 +9103,26 @@ function handleEnter(event) {
         });
     </script>
     """)
-    
+
     print(
-    """
+        """
     <form id="KiForm", method="get">
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ki">
-    
-        <div class="windowstep subpanel" style="width:50%; position:fixed; top:100px; right:105px; width:1000px;">
+
+        <div style="display:flex; flex-wrap:wrap; ">
+        <div class="windowstep subpanel" style="width:46%">
             <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
             </div>
-            <div class="substep" style="margin-bottom:20px;">     
+            <div class="substep" style="margin-bottom:20px;">
                 Select a genome
             """)
 
     printOrgDropDown(lastorg, genomes)
 
     print(
-    """
+        """
                 <div id="trackHubNote" style="margin-bottom:12px; margin-top:12px;">
                     <small>Note: pre-calculated exonic guides for this species are on the <a id='hgTracksLink' target=_blank href="">UCSC Genome Browser</a>.</small>
                 </div>
@@ -9026,24 +9131,21 @@ function handleEnter(event) {
         </div>
     """ % (len(genomes), contactEmail))
     print("""
-        <div class="windowstep subpanel" style="width:100%; height:450px;">
+        <div class="windowstep subpanel" style="width:46%;">
             <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                 Step 2
             </div>
-            <div>
-            Enter a gene symbol and a Protospacer Adjacent Motif (PAM) (will need to update this text)
-            </div>
-            <div class="windowstep subpanel" style="width:50%%; height:350px;">
-                <div style="margin-bottom:15px; margin-top:12px;">Enter the gene Symbol, Entrez Gene ID or Refseq ID</div>
+            Choose the target region
+            <div style="margin-bottom:15px; margin-top:12px;">Enter the gene Symbol, Entrez Gene ID or Refseq ID</div>
           """)
-    
+
     printGeneSelection()
 
     print("""
                 <div style="margin-top:20px;">
                     <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, use "Custom sequence" below.</small><br>
                 </div>
-          
+
                 <p>Choose the position of insertion</p>
                 <div>
                     <input type="radio" name="insertpos" value="Nter" onchange="toggleInsertpos()"/>N-terminal
@@ -9053,48 +9155,61 @@ function handleEnter(event) {
             <small id='Ntext' style="display: none; margin-top: 12px;">Insertion after the START codon</small>
             <small id='Ctext' style="display: none; margin-top: 12px;">Insertion before the STOP codon</small>
             <textarea id="customseq" name="customseq" style="display: none;" rows="6" cols="67" placeholder="Paste your target sequence here and insert '//' at the position of insertion. You can use the sequence of both strands"></textarea>
-            
+
+            </div> """ % (len(annGenomes), len(genomes)))
+
+    print("""
+        <div class="windowstep subpanel" style="width:46%%;">
+            <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
+                Step 3
             </div>
-            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:50%%; height:350px; padding:px;">
+        Select a list of Protospacer Adjacent Motifs (PAMs)
+        <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Cas9-HF1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, eSpCas1.1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4714946/'>Slaymaker 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>, SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25830891/'>Ran 2015</a> and KKH-SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/26524662/'>Kleinstiver 2015</a>, modified As-Cpf1s by <a href='http://biorxiv.org/content/early/2016/12/04/091611'>Gao et al. 2017</a>." class="tooltipsterInteract">
+        <br>
+        <div style="margin-bottom:2px;"> """ % HTMLPREFIX)
+
+    print(""" <select class=js-example-basic-single style="width:25%;" name="multipam"> """)
+    for pamKey in multiPamDict:
+        print(""" <option value="%s">%s</option>" """ % (pamKey, pamKey))
+    print(""" </select> """)
+
+    print("""
+        </div>
+        <div style="margin-bottom: 6px;">
+            <br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
+        </div>
+        </div>""")
+
+    print("""
+            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:46%;">
+                <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
+                    Step 4
+                </div>
                 <div style="margin-bottom:12px; margin-top:12px;">
                     Choose the sequence to insert<br>
-                    <input type="radio" checked name="insertype" value="tag" onchange="toggleInsertseq()"/>Choose from a list of linkers and tags
-                    <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()"/>Custom sequence
+                    <input type="radio" checked name="insertype" value="custom" onchange="toggleInsertseq()"/>Custom sequence
+                    <input type="radio" name="insertype" value="tag" onchange="toggleInsertseq()"/>Choose from a list of linkers and tags
                     <textarea id="insertseq" name="insertseq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea><br>
-                    
+
                 <div style="width:80%%;" display: none;" id="taglist">
-          """ % (len(annGenomes), len(genomes)) )
+          """)
 
     printTagsAndLinkers()
-    
-    print("""<div>
-        <label for="armLen">Length of the homology arms:</label>
-        <input type="range" id="armLen" name="armLen" value="800" min="150" max="1200" oninput="updateValues('range', this.value)" style="width:80%;">
-        <input type="number" id="armLenText" value="800" min="150" max="1200" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)">
-        </div><br>
-          """)
-    print("""
-                </div>
-                    Select a list of Protospacer Adjacent Motifs (PAMs)
-                    <img src="%simage/info-small.png" title="The most common system uses the NGG PAM recognized by Cas9 from S. <i>pyogenes</i>. The VRER and VQR mutants were described by <a href='http://www.nature.com/nature/journal/vaop/ncurrent/abs/nature14592.html' target='_blank'>Kleinstiver et al</a>, Cas9-HF1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4851738/'>Kleinstiver 2016</a>, eSpCas1.1 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4714946/'>Slaymaker 2016</a>, Cpf1 by <a href='http://www.cell.com/abstract/S0092-8674(15)01200-3'>Zetsche 2015</a>, SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25830891/'>Ran 2015</a> and KKH-SaCas9 by <a href='https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/26524662/'>Kleinstiver 2015</a>, modified As-Cpf1s by <a href='http://biorxiv.org/content/early/2016/12/04/091611'>Gao et al. 2017</a>." class="tooltipsterInteract">
-                    <br>
-                </div>
-                <div style="margin-bottom:2px;"> """ % HTMLPREFIX )
-
-    print(""" <select class=js-example-basic-single style="width:25%;" name="multipam">
-          <option value="multipam1">multi 1</option>
-          </select> """)
 
     print("""
                 </div>
-                <div style="margin-bottom: 6px;">
-                    <br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
-                </div>
-            </div>
-        <div style="margin-top:80px; text-align:center;">
+        <div>
+            <label for="armLen">Length of the homology arms:</label>
+            <input type="range" id="armLen" name="armLen" value="800" min="150" max="1200" oninput="updateValues('range', this.value)" style="width:80%;">
+            <input type="number" id="armLenText" value="800" min="150" max="1200" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp
             <input id="submitKoGeneID" type="submit" name="submit" value="SUBMIT" style="height:50px; width:100px;">
         </div>
-        </div>
+          """)
+    print("""
+    </div>
+    </div>
+    </div>
+    </div>
     </form>
     """)
 
@@ -9104,17 +9219,63 @@ def printBody(params):
 
     # TODO: first, if batchId is the only parameters,
     # we will check for a flag file to see if the job is running and output the status file if it is.
-    
+
     org = params.get("org")
     pam = params.get("pam")
+    ko_geneid = params.get("ko_geneid")
+    expType = params.get("expType")
+    submit = params.get("submit")
 
     customPamErr = "<p>The custom PAM you entered either contains less than two non N nucleotides, unexpected characters or is not 3-8 nt long. Please use A, T, G, C or N only.</p>"
 
+    printTeforBodyStart()
+    if submit is None and "batchId" not in params:
+        printAssistant(params)
     global doCfdFix
     if "fixCfd" in params:
         doCfdFix = True
 
-    if "batchId" in params and not "satMut" in params:
+    if submit and (ko_geneid or params.get("customseq")):
+        if expType == "ko":
+            if ko_geneid is not None:
+                pam = params.get("pam")
+                koMethod = params.get("koMethod")
+                flankLen = params.get("flankLen")
+                multiseq, geneModel = getExonsFromID(ko_geneid, org, pam, koMethod, int(flankLen))
+                params["multiseq"] = multiseq
+                params["geneModel"] = geneModel
+                geneModel = params.get("geneModel")
+                if multiseq:
+                    printCrisporBodyStart()
+                    if geneModel and len(geneModel) == 0:
+                        print("this is a non-coding transcript. Please choose another method to perform a knock-out on it")
+                    else:
+                        crisprSearch(params)
+
+        elif expType == "ki":
+            insertpos = params.get('insertpos')
+            if ((insertpos == "Nter" or insertpos == "Cter") and ko_geneid is not None) or (insertpos == "custom" and "customseq" in params) and org is not None:
+                if ("tagseq" in params and "linkerseq" in params and "tagorder" in params) or "insertseq" in params:
+                    try:
+                        targetSeq, targetPos, insertIdx = getTargetSeq(params)
+                        if "tagseq" in params and "linkerseq" in params:
+                            insertseq = getInsertSeq(params)
+                            params["insertseq"] = insertseq
+
+                        params["seq"] = targetSeq
+                        params["pos"] = targetPos
+                        params["insertIdx"] = insertIdx
+                    except ValueError as err:
+                        error = str(err)
+                        if error == "frameErr":
+                            print("""<p>The insert sequence you entered is not in frame. Note that any charater other than "ATGCN" (case insensitive) is automatically removed.</p>""")
+                        elif error == "insertErr":
+                            print("""<p>The target sequence you entered contains multiple insertion sites "//". Please use only one.</p>""")
+                    if "donorSeq":
+                        printCrisporBodyStart()
+                        crisprSearch(params)
+
+    if "batchId" in params and "satMut"not in params:
         printCrisporBodyStart()
         if "pamId" in params:
             if "pam" in params:
@@ -9141,10 +9302,10 @@ def printBody(params):
         if "seq" in params:
             params.pop("seq")
         try:
-            multiseq, _ = getExonsFromID(ko_geneid, org, pam, method = "allExons")
+            multiseq, _ = getExonsFromID(ko_geneid, org, pam, method="allExons")
             exonIds = [seqInfo[0] for seqInfo in multiseq]
             if exonSelect in exonIds:
-                for seqInfo in multiseq: # seqInfo is (exonId, posStr)
+                for seqInfo in multiseq:  # seqInfo is (exonId, posStr)
                     if seqInfo[0] == exonSelect:
                         params['pos'] = seqInfo[1]
                         break
@@ -9166,77 +9327,22 @@ def printBody(params):
         except ValueError:
             print(customPamErr)
 
-    elif "libDesign" in params:
-        printCrisporBodyStart()
-        printLibForm(params)
-    elif "geneIds" in params:
-        printCrisporBodyStart()
-        printLibGuides(params)
-    else:
-        printForm(params)
-
-
-def assistantDispatcher(params):
-# Dispatcher function for Assistant mode
-
-    org = params.get("org")
-    ko_geneid = params.get("ko_geneid", None)
-    expType = params.get("expType")
-    submit = params.get("submit")
-    
-    printTeforBodyStart()
-    
-    if submit == "SUBMIT" and (ko_geneid or params.get("customseq")):
-        if expType == "ko":
-            if ko_geneid is not None:
-                pam = params.get("pam")
-                koMethod = params.get("koMethod")
-                flankLen = params.get("flankLen")
-                multiseq, geneModel = getExonsFromID(ko_geneid, org, pam, koMethod, int(flankLen) )
-                params["multiseq"] = multiseq
-                if geneModel:
-                    params["geneModel"] = geneModel
-
-                if multiseq:
-                    printCrisporBodyStart()
-                    if len(geneModel) == 0:
-                        print("this is a non-coding transcript. Please choose another method to perform a knock-out on it")
-                    else:
-                        crisprSearch(params)
-                                   
-        elif expType == "ki":
-            insertpos = params.get('insertpos')
-            if ((insertpos == "Nter" or insertpos == "Cter") and ko_geneid is not None) or (insertpos == "custom" and "customseq" in params) and org is not None:
-                if ("tagseq" in params and "linkerseq" in params and "tagorder" in params) or "insertseq" in params:
-                    try : 
-                        targetSeq, targetPos, insertIdx = getTargetSeq(params)
-                        if "tagseq" in params and "linkerseq" in params:
-                            insertseq = getInsertSeq(params)
-                            params["insertseq"] = insertseq
-                            
-                        params["seq"] = targetSeq
-                        params["pos"] = targetPos
-                        params["insertIdx"] = insertIdx
-                    except ValueError as err:
-                        error = str(err)
-                        if error == "frameErr":
-                            print("""<p>The insert sequence you entered is not in frame. Note that any charater other than "ATGCN" (case insensitive) is automatically removed.</p>""")
-                        elif error == "insertErr":
-                            print("""<p>The target sequence you entered contains multiple insertion sites "//". Please use only one.</p>""")
-                    if "donorSeq":
-                        printCrisporBodyStart()
-                        crisprSearch(params)
-    else:
-        printCrisporBodyStart()
-        printAssistant(params)
+    if "batchId" not in params and submit is None:
         if expType == "ko":
             printKoForm(params)
         elif expType == "ki":
             printKiForm(params)
+        elif expType == "classic":
+            printForm(params)
+        elif "libDesign" in params:
+            printCrisporBodyStart()
+            printLibForm(params)
+        elif "geneIds" in params:
+            printCrisporBodyStart()
+            printLibGuides(params)
         else:
-            printKoForm(params)
+            printForm(params)
 
-    printTeforBodyEnd()
 
 def getInsertSeq(params):
     " from a tag and a linker sequence, return the insert sequence to be used for the HDR donor "
@@ -9252,13 +9358,14 @@ def getInsertSeq(params):
 
     return insertSeq
 
+
 def getExonsFromID(geneId, org, pam, method, flankLen = None):
     """ from a geneId, returns a list of tuples [(exonId, exonPosStr)]
     and the gene model (only whithin the cds)"""
-    
+
     if flankLen is None and (method == "excision" or method == "promoter"):
         raise ValueError("flankLen needs to be set for this method")
-    
+
     # set pam-dependent variables
     pam = setupPamInfo(pam)
     if (pam in verySlowPams):
@@ -9271,7 +9378,7 @@ def getExonsFromID(geneId, org, pam, method, flankLen = None):
     chrom, strand, exons = getGenePos(geneId, org, method, flankLen)
     if method == "frameshift":
         if len(exons) == 0:
-            return None, None 
+            return None, None
         allExons = exons
         exons = getFirstThird(exons, strand, GUIDELEN, maxLen)
         geneModel = getGeneModel(allExons, strand)
@@ -11365,13 +11472,14 @@ def sendStatus(batchId):
     status = q.getStatus(batchId)
     q.close()
 
-    if status==None:
+    if status is None:
         d = {"status":status}
     elif "Traceback" in status:
         d = {"status" : "An error occured. Please send an email to %s and tell us that the failing batchId was %s. We can usually fix this quickly. Thanks!" % (contactEmail, batchId)}
     else:
         d = {"status":status}
     print(json.dumps(d))
+
 
 def cleanJobs():
     """ look for flag file cleanJobs in current dir. If present, remove jobs.db.
@@ -11383,14 +11491,40 @@ def cleanJobs():
 
 
 def printAssistant(params):
-    " "
-    print("<h4>What is the aim of your experiment?</h4>")
-    print('<form action="crispor.py" name="main" method="get">')
-    print('<input type=radio checked name="expType" value="ko">Knock-out of a gene<p>')
-    print('<input type=radio name="expType" value="ki">Knock-in of a sequence at a genome position<p>')
-    print('<input type=hidden name="assist" value="1">')
-    print('<input type=submit name="submit" value="change">')
-    print('</form>')
+    " prints the dispatcher menu for the different modes "
+    print("""
+        <!-- <div class="title" style="text-align:left;">Choose a mode</div> -->
+        <!-- <hr size=1 /> -->
+        <form action="crispor.py" name="main" method="get">
+        <div class="windowstep subpanel" style="display:flex;
+                    text-align:center;
+                    margin-top:12px;
+                    margin-bottom:12px;
+                    justify-content:center;
+                    padding:20px;
+                    width: 100%;
+                    flex-wrap:wrap;
+                    column-gap: 150px;
+                    border-width:1px;
+                    border-radius:8px;">
+            <button style="width:25%;" class="tooltipsterInteract" Title="Enter a sequence to find guides"
+                value="classic">CRISPOR Classic</button>
+            <button style="width:25%;" name="expType" class="tooltipsterInteract" Title="Select a transcript and find guides to inactivate its product"
+                value="ko">CRISPOR Assistant for Knock-out Experiments (CAKE)</button>
+            <button style="width:25%;" name="expType" class="tooltipsterInteract" Title="Design a donor DNA and guides to knock-in a sequence at a genome position"
+                value="ki">CRISPOR Knock-in</button>
+        </form>
+        <!-- <hr size=1 /> -->
+        """)
+
+    print("""
+        <div style="text-align:left; margin-left: 10px">
+             CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a><br>
+            <br><i>%s See <a href="doc/changes.html">Full list of changes</a></i><br>
+         </div>
+        </div>
+         """ % releaseNote)
+
 
 def mainCgi():
     " main entry if called from apache "
@@ -11449,9 +11583,6 @@ def mainCgi():
 
         printHeader(batchId, title)
 
-    if "assist" in params:
-        assistantDispatcher(params)
-        return
     printBody(params)     # main dispatcher, branches based on the params dictionary
 
     printTeforBodyEnd()
@@ -11463,9 +11594,11 @@ def mainCgi():
     </div>""")
     print("</body></html>")
 
+
 def handle_pdb(sig, frame):
     import pdb
     pdb.Pdb().set_trace(frame)
+
 
 def main():
     # send SIGUSR1 to the process to get a pdb console. Handy for live debugging.
