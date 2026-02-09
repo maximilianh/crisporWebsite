@@ -3490,10 +3490,10 @@ def showGuideTable(guideData, pam, otMatches, dbInfo, batchId, org, chrom, varHt
             highlight = False
         else:
             # define Cas9 occupancy region (actual values to precise):
-            overlapStart = (guideStart if strand == "+"
+            overlapStart = (guideStart - 3 if strand == "+"
                             else pamStart - 10)
             overlapEnd = (pamStart + pamlen + 10 if strand == "+"
-                          else guideStart + guidelen)
+                          else guideStart + guidelen + 3)
 
             for hgOverlapStart, hgOverlapEnd, exon in highlightedGuidesPos:
                 if ((overlapStart > hgOverlapStart and overlapStart < hgOverlapEnd)

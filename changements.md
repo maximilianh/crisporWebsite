@@ -591,8 +591,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - correction de readAnnGenomes()
 - amélioration de l'affichage du bandeau pour le choix du mode
-- amélioration de l'affichage des formulaires knkock-out / knock-in 
-- correction du mode "excision of the gene locus" : 
+- amélioration de l'affichage des formulaires knock-out / knock-in 
+- correction du mode "ko by excision of the gene locus" : 
     - affiche downstream + upstream region
     - affiche taille de la délétion
     - faut-il séparer le tableau en deux parties (upstream / downstream) ?
@@ -603,6 +603,6 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire:
 
-    - biblio "competition" entre guides
+    - biblio "competition" entre guides (cf Anders et al. 2014)
     - dans le formulaire knock-in : custom séquence et insert par défault
  
