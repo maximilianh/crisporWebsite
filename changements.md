@@ -601,8 +601,37 @@ réécriture de getDonorSeq() : séparation en deux fonctions
     - surlignage de toutes les cases du tableau
     - définition de la région occuppée par la RNP : 10bp en amont du PAM, 3bp en aval du guide.
 
-## à faire:
+## à faire
 
-    - biblio "competition" entre guides (cf Anders et al. 2014)
-    - dans le formulaire knock-in : custom séquence et insert par défault
+- biblio "competition" entre guides (cf Anders et al. 2014)
+- dans le formulaire knock-in : custom séquence et insert par défault
+ 
+# 09/02/26
+
+## divers
+
+- ajout du paramètre optionnel "maxlen=True" dans getSeq() : retire longueur maximum si False (pour ADN donneur > 2300 bp)
+- reformatage de crispor.py avec black
+
+# 10/02/26
+
+## divers
+
+- corrections d'erreurs html
+
+## mode knock-in 
+
+- choix de la longeur des bras d'homologie (+ donneur db/sb) -> step 3
+- steps 4 et 5:
+    - soit séquence de départ / séquence éditée
+    - soit sélection geneID -> protein tagging en Nter ou Cter
+
+# 11/02/26
+
+## mode knock-in 
+
+- réorganisaiton de printBody() pour expType == "ki" :
+    - ajout de processCustomInsertSeq() depuis séquence de départ / séquence d'arrivée, extrait le type de knock-in (insertion, remplacement, substituion),
+        la position d'insertion et la séquence d'insert (à compléter)
+
  
