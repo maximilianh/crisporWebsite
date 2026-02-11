@@ -634,4 +634,4 @@ réécriture de getDonorSeq() : séparation en deux fonctions
     - ajout de processCustomInsertSeq() depuis séquence de départ / séquence d'arrivée, extrait le type de knock-in (insertion, remplacement, substituion),
         la position d'insertion et la séquence d'insert (à compléter)
 
- 
+- modification de showDonor() : représentation du donneur par des lignes (+ longueur des bras d'homologie / séquence d'insert) au lieu de la séquence 

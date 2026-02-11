@@ -2349,10 +2349,10 @@ def showSeqAndPams(
         print("".join(varHtmls))
 
     if multiPamInfo:
-        leftRange = 23 if insertIdx > 23 else insertIdx
+        leftRange = 15 if insertIdx > 15 else insertIdx
         leftOptRange = "".join(["-" for i in range(leftRange)])
 
-        rightRange = 23 if len(seq) - insertIdx > 23 else len(seq) - insertIdx
+        rightRange = 15 if len(seq) - insertIdx > 15 else len(seq) - insertIdx
         rightOptRange = "".join(["-" for i in range(rightRange)])
 
         insertPos = "".join([" " for i in range(insertIdx - len(leftOptRange) - 1)])
@@ -6988,7 +6988,8 @@ $(document).ready(function() {
 <script>
 // select2 with hidden search box
 $(".js-select-hidden").select2({
-     minimumResultsForSearch: -1})
+     minimumResultsForSearch: -1,
+     placeholder: 'Select the exon to target'})
 </script>
 </form>
     """
@@ -8485,6 +8486,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
     uppSeq = seq.upper()
     dbInfo = readDbInfo(org)
     multipam = batchInfo["multipam"]
+    armLen = batchInfo["armLen"]
     donorSeq = batchInfo["donorSeq"]
     insertIdx = batchInfo["insertIdx"]
     insertPos = batchInfo["insertpos"]
@@ -8516,14 +8518,14 @@ def parseAndPrintMultiPamInfo(params, batchId):
                 % (insertPos, geneId, geneId)
             )
     else:
-        transcriptUrl = "at coordinates %s " % len(seq)
+        transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
 
     print(
         """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : knock-in of %s %s </div><br> """
         % (dbInfo.scientificName, seqMsg, transcriptUrl)
     )
 
-    showDonor(donorSeq)
+    showDonor(donorSeq, armLen, insertPos, geneId, seq)
 
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
@@ -8577,9 +8579,15 @@ def parseAndPrintMultiPamInfo(params, batchId):
     )
 
 
-def showDonor(donorSeq):
+def showDonor(donorSeq, armLen, insertPos, geneId, seq):
     """Dispays the unmodified donor DNA sequence"""
 
+    insertSeq = re.sub('[atgcn]', '', donorSeq)
+    leftLen = len(donorSeq.split(insertSeq)[0])
+    rightLen = len(donorSeq.split(insertSeq)[1])
+
+    if geneId and insertPos == "Cter":
+        stop = ''.join([base for base in seq if base.isupper()])
     print(
         """
     <script>
@@ -8608,23 +8616,42 @@ def showDonor(donorSeq):
     print(
         """<button onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>"""
     )
-    print("<small>lowercase = homology arms. Uppercase = insert sequence</small>")
+    # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
 
     print(
         """<div style="
-          overflow-x:scroll;
+          display:flex;
+          justify-contents: center;
+          align-items: center;
+          overflow-x: scroll;
           font-family: Source Code Pro;
           font-size: 80%;
           padding:5px;
           white-space: nowrap;
           height: 35px;
-          background: #DDDDDD;
+          background: #ffffff;
           border: 0.5px solid lightgray;
           border-radius: 8px;
           margin-top:12px;
           margin-bottom: 50px;"> """
     )
-    print(donorSeq)
+    print("<p>5'</p>")
+    print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid black;"></div>""" % leftLen*100)
+    print("<small>(%dbp 5' homology arm)</small>" % leftLen)
+    print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid black;"></div>""" % leftLen*100)
+
+    if geneId and insertPos == "Nter":
+        print("""<small style="/*color: #32cd32*/">ATG</small>""")
+    print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid #e68a00;"></div>""" % len(insertSeq)*100)
+    print("""<small style="color: #e68a00">(%dbp insert sequence)</small>""" % len(insertSeq))
+    print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid #e68a00;"></div>""" % len(insertSeq)*100)
+
+    if geneId and insertPos == "Cter":
+        print("""<small style="/*color: red;*/">%s</small>""" % stop)
+    print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid black;"></div>""" % rightLen*100)
+    print("<small>(%dbp 3' homology arm)</small>" % rightLen)
+    print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid black;"></div>""" % rightLen*100)
+    print("<p>3'</p>")
     print("</div>")
 
 
@@ -8935,7 +8962,7 @@ function toggleExonSeq(selectedValue) {
                         padding:0;
                         margin:0;
                         box-sizing: border-box;
-                        width:%dpx; 
+                        width:%dpx;
                         height: 27px;
                         border: 0.5px solid gray;
                         border-right: 0px;
@@ -8953,7 +8980,7 @@ function toggleExonSeq(selectedValue) {
                     print(
                         """<div style="
                         %s
-                        width:%dpx; 
+                        width:%dpx;
                         height: 25px;
                         border: 0.5px solid gray;
                         border-left: 0px;
@@ -8993,8 +9020,8 @@ function toggleExonSeq(selectedValue) {
                     )
             else:
                 print(
-                    """<div 
-                    %s 
+                    """<div
+                    %s
                     style="
                     width:%dpx;
                     height: 25px;
@@ -11437,12 +11464,12 @@ def printKoForm(params):
             <input type="radio" checked name="koMethod" id="frameshift" value="frameshift" onchange="toggleFlankLen()"/> Frameshift mutation in the first third of the coding sequence<br>
             <input type="radio" name="koMethod" id="excision" value="excision" onchange="toggleFlankLen()"/> Excision of the gene locus<br>
 
-            <small id="flankLen" style="text-align:left; display:none; align-items:center;">
+            <small id="flankLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
             <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
-            &nbsp&nbsptarget <output style="">&nbsp500</output> bp uptream/downstream of the TSS/TES
+            &nbsp&nbsp target&nbsp<output style="">500</output> bp uptream of the TSS and downstream of the TES
             </small>
 
-            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Intron retention by edition of a splicing site<br>
+            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Disruption of splicing by targeting a splice site<br>
             """
         % (len(annGenomes), len(genomes))
     )
@@ -11756,7 +11783,7 @@ function handleEnter(event) {
                 Choose one of the following methods : &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
                 <div style="border:dashed 0.5px grey; border-radius:6px; padding:8px;">
                     <input type="radio" checked name="targetRegions" value="seq" onchange="toggleTargetRegion()" autocomplete="off"/>Enter a sequence with the desired modifications<br>
-                    <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript for protein tagging in Nter or Cter</div>
+                    <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag  protein in Nter or Cter</div>
             </div>
             <div id="seqTarget" style="margin-top:20px;">
                 Enter the original (target) sequence
@@ -11774,7 +11801,7 @@ function handleEnter(event) {
                 <div style="margin-top:20px;">
                     <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, Enter a sequence manually.</small><br>
                 </div>
-                <div style="margin-top: 32px; display:flex; flex-direction:row; align-items:center;">
+                <div style="margin-top: 32px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
                 Select the position of insertion :
                     <input type="radio" checked name="insertpos" value="Nter" onchange="toggleInsertpos()" autocomplete="off"/>N-terminal
                     <input type="radio" name="insertpos" value="Cter" onchange="toggleInsertpos()" autocomplete="off"/>C-terminal
@@ -11848,7 +11875,7 @@ def printBody(params):
     if "fixCfd" in params:
         doCfdFix = True
 
-    if submit and (ko_geneid or params.get("customseq")):
+    if submit and (ko_geneid or ("startSeq" in params and "endSeq" in params)):
         if expType == "ko":
             if ko_geneid is not None:
                 pam = params.get("pam")
@@ -11905,6 +11932,7 @@ def printBody(params):
             if "seq" in params:
                 printCrisporBodyStart()
                 crisprSearch(params)
+                pass
 
     if "batchId" in params and "satMut" not in params:
         printCrisporBodyStart()
@@ -11982,19 +12010,26 @@ def processCustomInsertSeq(startSeq, endSeq):
     type (insertion, replacement or substitution), the insert site position index
     and the insert sequence """
 
+    startSeq = startSeq.upper()
+    endSeq = endSeq.upper()
     if len(endSeq) - len(startSeq) > 1:
         for startIdx, base in enumerate(startSeq):
-            if endSeq[startIdx] != base:
+            # does not work if there are homopolymers at the insertion site
+            # for the same position relative the the 5' or 3' end the the seq, check if the bases match
+            if (endSeq[startIdx] != base and len(startSeq[:startIdx]) == len(endSeq[:startIdx])) or len(startSeq[:startIdx]) != len(endSeq[:startIdx]):
                 break
-        for endIdx, endBase in reversed(list(enumerate(startSeq))):
-            if endSeq[endIdx] != endBase:
+        for endIdx, endBase in enumerate(reversed(startSeq)):
+            # print(endSeq[::-1][:endIdx])
+            if (endSeq[::-1][endIdx] != endBase and len(startSeq[::-1][:endIdx]) == len(endSeq[::-1][:endIdx])) or len(startSeq[::-1][:endIdx]) != len(endSeq[::-1][:endIdx]):
                 break
+
+        print(startIdx, endIdx)
         if startIdx > 1 and endIdx > 1:
             kiType = "insertion"
 
-            startMatch = endSeq[0:startIdx]
-            endMatch = endSeq[:endIdx]
-            insertSeq = endSeq.strip(startMatch).strip(endMatch)
+            # startMatch = endSeq[0:startIdx]
+            # endMatch = endSeq[-endIdx:]
+            insertSeq = endSeq[startIdx:-endIdx:]
         else:
             raise ValueError("knock-in method not supported")
 
