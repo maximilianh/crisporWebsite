@@ -2150,9 +2150,12 @@ def showSeqAndPams(
         pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True))
         lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam)
         pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable))
+        # kiType = None
     else:
         pamList = multiPamInfo[0]
         insertIdx = multiPamInfo[1]
+        kiType = multiPamInfo[2]
+        substBase = multiPamInfo[3]
         pamSeqs = []
         allPamLines = []
         for pamFullName in pamList:
@@ -2179,7 +2182,10 @@ def showSeqAndPams(
     posLabel = "Position"
     varLabel = "Variants"
     if multiPamInfo:
-        insertLabel = "Insertion site"
+        if kiType == "substitution":
+            insertLabel = "substitution"
+        else:
+            insertLabel = "Insertion site"
     else:
         insertLabel = ""
     seqLabel = "Sequence"
@@ -2349,15 +2355,22 @@ def showSeqAndPams(
         print("".join(varHtmls))
 
     if multiPamInfo:
+        if kiType == "substitution":
+            rangeChar = ' '
+            insertChar = ' %s' % substBase
+        else:
+            rangeChar = '-'
+            insertChar = '\/'
+
         leftRange = 15 if insertIdx > 15 else insertIdx
-        leftOptRange = "".join(["-" for i in range(leftRange)])
+        leftOptRange = "".join([rangeChar for i in range(leftRange)])
 
         rightRange = 15 if len(seq) - insertIdx > 15 else len(seq) - insertIdx
-        rightOptRange = "".join(["-" for i in range(rightRange)])
+        rightOptRange = "".join([rangeChar for i in range(rightRange)])
 
         insertPos = "".join([" " for i in range(insertIdx - len(leftOptRange) - 1)])
         print(("{:" + str(labelLen) + "s} ").format(insertLabel), end=" ")
-        print(insertPos + leftOptRange + "\/" + rightOptRange)
+        print(insertPos + leftOptRange + insertChar + rightOptRange)
 
     print(("{:" + str(labelLen) + "s} ").format(seqLabel), end=" ")
     print(seq)
@@ -7272,6 +7285,7 @@ def newMultiPamBatch(
     assist=None,
     koGeneId=None,
     insertPos=None,
+    kiType=None
 ):
 
     donorStr = str(armLen + insertIdx)
@@ -7302,6 +7316,8 @@ def newMultiPamBatch(
             batchData["koGeneId"] = koGeneId
         if insertPos:
             batchData["insertpos"] = insertPos
+        if kiType:
+            batchData["kiType"] = kiType
 
         writeBatchAsDict(batchData, batchId)
 
@@ -8226,6 +8242,7 @@ def crisprSearch(params):
                 insertPos = params.get("insertpos")
                 insertSeq, warnMsg = cleanSeq(params["insertseq"], org)
                 insertIdx = int(params["insertIdx"])
+                kiType = params.get("kiType")
                 armLen = int(params["armLen"])
                 batchId = newMultiPamBatch(
                     newBatchName,
@@ -8239,6 +8256,7 @@ def crisprSearch(params):
                     assist,
                     koGeneId,
                     insertPos,
+                    kiType
                 )
             else:
                 assist = params["assist"]
@@ -8491,6 +8509,11 @@ def parseAndPrintMultiPamInfo(params, batchId):
     insertIdx = batchInfo["insertIdx"]
     insertPos = batchInfo["insertpos"]
     geneId = batchInfo.get("koGeneId")
+    kiType = batchInfo.get("kiType")
+    if kiType:
+        insertSeq = batchInfo["insertseq"]
+    else:
+        insertSeq = None
 
     sortBy = params.get("sortBy", "insertDistance")
 
@@ -8504,7 +8527,10 @@ def parseAndPrintMultiPamInfo(params, batchId):
     allGuideScores = {}
     allPamIdToSeq = {}
 
-    seqMsg = "of a %s bp sequence" % len(batchInfo["insertseq"])
+    if kiType == "substitution":
+        seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
+    else:
+        seqMsg = "knock-in of a %s bp sequence" % len(batchInfo["insertseq"])
 
     if geneId:
         if "ENST" in geneId:
@@ -8521,11 +8547,11 @@ def parseAndPrintMultiPamInfo(params, batchId):
         transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
 
     print(
-        """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : knock-in of %s %s </div><br> """
+        """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
         % (dbInfo.scientificName, seqMsg, transcriptUrl)
     )
 
-    showDonor(donorSeq, armLen, insertPos, geneId, seq)
+    showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType)
 
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
@@ -8562,7 +8588,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
         0.0,
         posStr,
         allPamIdToSeq,
-        multiPamInfo=(pamList, insertIdx),
+        multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
     )
     sortGuideData(allGuideData, sortBy=sortBy)
     showGuideTable(
@@ -8579,7 +8605,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
     )
 
 
-def showDonor(donorSeq, armLen, insertPos, geneId, seq):
+def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
     """Dispays the unmodified donor DNA sequence"""
 
     insertSeq = re.sub('[atgcn]', '', donorSeq)
@@ -8588,6 +8614,12 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq):
 
     if geneId and insertPos == "Cter":
         stop = ''.join([base for base in seq if base.isupper()])
+
+    if kiType == "substitution":
+        insertText = "substitution"
+    else:
+        insertText = "insert sequence"
+
     print(
         """
     <script>
@@ -8643,7 +8675,7 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq):
     if geneId and insertPos == "Nter":
         print("""<small style="/*color: #32cd32*/">ATG</small>""")
     print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid #e68a00;"></div>""" % len(insertSeq)*100)
-    print("""<small style="color: #e68a00">(%dbp insert sequence)</small>""" % len(insertSeq))
+    print("""<small style="color: #e68a00">(%dbp %s)</small>""" % (len(insertSeq), insertText))
     print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid #e68a00;"></div>""" % len(insertSeq)*100)
 
     if geneId and insertPos == "Cter":
@@ -11486,8 +11518,7 @@ def printKoForm(params):
     </div>
     </div>
     </form>
-    """
-    )
+    """)
 
 
 def printTagsAndLinkers():
@@ -11506,12 +11537,47 @@ def printTagsAndLinkers():
             placeholder: 'select a linker from the list'
             });
         });
+          $(document).ready(function() {
+        $('.js-select-marker').select2({
+            placeholder: 'select a marker from the list'
+            });
+        });
+       $(document).ready(function() {
+        $('.js-select-selection').select2({
+            placeholder: 'select a selection cassette from the list'
+            });
+        });
+
+        function toggleTagMenu() {
+            const tagMode = document.getElementsByName('tagMode')
+            const tagLinkerDisplay = document.getElementById('tagLinkerDisplay')
+            const qTagDisplay = document.getElementById('qTagDisplay')
+
+            let selectedValue;
+            for (mode in tagMode) {
+                    if (mode.checked) {
+                    selectedValue = mode.value;
+                    break;
+                    };
+                };
+
+            if (selectedValue === "tagLinker") {
+                tagLinkerDisplay.style.display = "block";
+                } else {
+                tagLinkerDisplay.style.display = "none";
+                };
+            if (selectedValue === "qTAG") {
+                qTagDisplay.style.display = "block";
+                } else {
+                qTagDisplay.style.display = "none";
+                };
+            };
 
     </script>
     """
     )
 
-    # move these at the top of the program ?
+    # tags and linkers
     tags = {
         "eGFP": "GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG",
         "Streptavidin": "TGGAGCCACCCGCAGTTCGAAAAA",
@@ -11521,9 +11587,56 @@ def printTagsAndLinkers():
         "XTEN": "AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT",
     }
 
+    # qTAG cassette elements
+
+    markers = {
+            "Mammalian slection": {
+                "Blast": "seq",
+                "Puro": "seq",
+                "Zeo": "seq"
+                },
+            "Fluorescent selection": {
+                "moxGFP": "seq",
+                "mScarlet": "seq"
+                },
+            "No selection": {
+                "none": ""
+                },
+            }
+
+    selectionCass = {
+            "2A": "seq",
+            "EF1a": "seq",
+            "no selection": ""
+            }
+    qTags = {
+            "Fluorescent proteins": {
+                "mStrayGold": "seq",
+                "mNeon": "seq",
+                "moxGFP": "seq",
+                "mScarlet": "seq",
+                "sTagRFP": "seq",
+                "miRFP670nano3": "seq"
+                },
+            "biot": {
+                "miniTurbo": "seq",
+                "ultraID": "seq"
+                },
+            "Targeted Degradation": {
+                "dTAG": "seq"
+                },
+            "Epitopes": {
+                "FLAG": "seq",
+                "HA": "seq",
+                "V5": "seq"
+                }
+            }
+
     print(
-        """<div class="windowstep subpanel" style="width:95%; height:75px; display:flex; flex-direction:row; padding:12px; align-items: center; gap: 10px;"> """
+        """<div class="windowstep subpanel" style="width:95%; height:75px; display:flex; flex-direction:row;"> """
     )
+
+    print("""<div id="tagLinkerDisplay" style="display:none; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
     print(
         """<div>
           <select name="tagseq" class="js-select-tag" style="width:100%;" autocomplete="off">
@@ -11549,17 +11662,68 @@ def printTagsAndLinkers():
     for linker in linkers:
         linkerseq = linkers[linker]
         print("""<option value="%s">%s</option>""" % (linkerseq, linker))
+    print("</select>")
+
+    print("</div>")
+    print("</div>")
+
+    # qTAG options
+    print("""<div id="qTagDisplay" style="display:flex; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
+
+    # Markers
+    print("""
+    <div>
+    <select name="markerseq" class="js-select-marker" style="width:100%;" autocomplete="off">""")
+    for markerType in markers:
+        print("""<optgroup label="%s">""" % markerType)
+        for marker in markers[markerType]:
+            print("""<option value="%s">%s</option>""" % (markers[markerType][marker], marker))
+        print("</optgroup>")
+    print("""
+    </select>
+    </div>
+    """)
+
+    # selection cassette type
+    print("""
+    <div>
+    <select name="casseteseq" class="js-select-cassette" style="width:100%;" autocomplete="off">""")
+    for cassette in selectionCass:
+        print("""<option value="%s">%s</option>""" % (selectionCass[cassette], cassette))
+    print("""
+    </select>
+    </div>
+    """)
+
+    # TAG sequence
+    print("""
+    <div>
+    <select name="qTag" class="js-select-tag" style="width:100%;" autocomplete="off">""")
+    for tagType in qTags:
+        print("""<optgroup label="%s">""" % tagType)
+        for tag in qTags[tagType]:
+            print("""<option value="%s">%s</option>""" % (qTags[tagType][tag], tag))
+        print("</optgroup>")
+    print("""
+    </select>
+    </div>
+    """)
+
+    print("</div>")
     print(
-        """</select>
-          </div> choose their order
+        """
+          choose a mode
           <div>
-            <input type="radio" checked name="tagorder" id="tagFirst" value="tagFirst" />
-            <label for="tagFirst">N--Tag--Linker--C</label><br>
-            <input type="radio" name="tagorder" id="linkerFirst" value="linkerFirst" />
-            <label for="linkerFirst">N--Linker--Tag--C</label><br>
+            <input type="radio" checked name="tagMode" id="tagLinker" value="tagLinker" onchange="toggleTagMenu()"/>
+            <label for="tagLinker">tags and linkers</label><br>
+            <input type="radio" name="tagMode" id="qTAG" value="qTAG" onchange="toggleTagMenu()"/>
+            <label for="qTAG">qTAG (add tooltip)</label><br>
           </div>
-          </div>"""
+          </div>
+          """
     )
+
+    print("</div>")
 
 
 def printKiForm(params):
@@ -11650,7 +11814,7 @@ def printKiForm(params):
 
 function updateValues(source, val) {
     let numVal = parseInt(val);
-    if (isNaN(numVal) || numVal < 150 || numVal > 1200) {
+    if (isNaN(numVal) || numVal < 50 || numVal > 2000) {
         if (source === 'range') {
             numVal = Math.max(150, Math.min(1200, numVal));
         } else {
@@ -11667,7 +11831,7 @@ function clampValue(el) {
     if (isNaN(val)) {
         val = 800;
     }
-    val = Math.max(150, Math.min(1200, val));
+    val = Math.max(50, Math.min(2000, val));
     el.value = val;
     updateValues('number', val);
 }
@@ -11679,6 +11843,23 @@ function handleEnter(event) {
         event.target.blur();
     }
 }
+
+function changeSeqCase(value) {
+    const textarea = document.getElementById('endSeq');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+
+    let modText;
+    if (value === 'uppercase') {
+        modText = selectedText.toUpperCase();
+        }
+    if (value === 'lowercase') {
+        modText = selectedText.toLowerCase();
+        }
+    textarea.setRangeText(modText, start, end, 'select');
+}
+
     </script>
     """
     )
@@ -11765,8 +11946,8 @@ function handleEnter(event) {
             </div>
         </div>
        <div style="margin-top:32px; display:flex; gap:12px;">
-            <input type="range" id="armLen" name="armLen" value="800" min="150" max="1200" oninput="updateValues('range', this.value)" style="width:80%;">
-            <input type="number" id="armLenText" value="800" min="150" max="1200" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+            <input type="range" id="armLen" name="armLen" value="800" min="50" max="2000" oninput="updateValues('range', this.value)" style="width:80%;">
+            <input type="number" id="armLenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
 
         </div>
         </div>
@@ -11787,7 +11968,7 @@ function handleEnter(event) {
             </div>
             <div id="seqTarget" style="margin-top:20px;">
                 Enter the original (target) sequence
-                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="114" placeholder="Paste the target sequence here (max. 2300bp)"></textarea>
+                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
@@ -11801,7 +11982,7 @@ function handleEnter(event) {
                 <div style="margin-top:20px;">
                     <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, Enter a sequence manually.</small><br>
                 </div>
-                <div style="margin-top: 32px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
+                <div style="margin-top: 37px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
                 Select the position of insertion :
                     <input type="radio" checked name="insertpos" value="Nter" onchange="toggleInsertpos()" autocomplete="off"/>N-terminal
                     <input type="radio" name="insertpos" value="Cter" onchange="toggleInsertpos()" autocomplete="off"/>C-terminal
@@ -11821,17 +12002,26 @@ function handleEnter(event) {
                     Step 5
                 </div>
                 <div id="endSeqDisplay" style="display: block; margin-bottom:12px; margin-top:12px;">
-                    Enter the edited sequence<br>
-                    <textarea name="endSeq" rows="8" cols="114" placeholder="Paste the edited sequence (target sequence with the desired modifications) here. Substitution, insertion or replacement are supported. Inserting sequences at multiple positions is not supported."></textarea>
+                    <div style="display: flex; flex-direction: row;">
+                        <div style="margin-right:200px;">
+                            Enter the edited sequence<br>
+                            <small>(with edits in uppercase)</small>
+                        </div>
+                        <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%;">
+                            <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
+                            <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
+                        </div>
+                    </div>
+                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. The edits should be in uppercase. Substitution and insertion are supported. Inserting sequences at multiple positions is not supported."></textarea>
                 </div>
 
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
                     Enter the sequence to insert<br>
-                    <input type="radio" checked name="insertype" value="tag" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
-                    <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Custom sequence
+                    <input type="radio" checked style="margin-top:13px;" name="insertype" value="tag" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
+                    <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
                     <textarea id="insertseq" name="insertseq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea><br>
 
-                <div style="width:80%%; display: block;" id="taglist">
+                <div style="width:80%%; display: block; margin-top: 14px;" id="taglist">
           """
     )
 
@@ -11904,16 +12094,35 @@ def printBody(params):
                 endSeq = params.get("endSeq")
                 if startSeq and endSeq:
                     kiType, insertIdx, insertSeq = processCustomInsertSeq(startSeq, endSeq)
-                    # don't forget to cleanSeq()
-                    params["kiType"] = kiType
-                    params["insertIdx"] = insertIdx
-                    params["insertseq"] = insertSeq
-                    params["seq"] = startSeq
+                    if kiType is None:
+                        printAssistant(params)
+                        printKiForm(params)
+                    elif kiType == "noEdits":
+                        printCrisporBodyStart()
+                        print("<p>No edits were found in the sequence</p>")
+                    elif kiType == "replacement":
+                        printCrisporBodyStart()
+                        print("<p>Sequence replacement is currently not supported. If you want to replace a large sequence (eg. a CDS), please refer to LINK</p>")
+                    elif kiType == "multiInsert":
+                        printCrisporBodyStart()
+                        print("<p>Multiple insertions are currenlty not supported</p>")
+
+                    else:
+                        # don't forget to cleanSeq()
+                        params["kiType"] = kiType
+                        params["insertIdx"] = insertIdx
+                        params["insertseq"] = insertSeq
+                        params["seq"] = startSeq
             elif targetRegion == "gene" and ko_geneid and ("tagseq" in params and "linkerseq" in params) or "insertseq" in params:
+                insertPos = params["insertpos"]
+                if insertPos == "Nter":
+                    tagOrder = "tagFirst"
+                else:
+                    tagOrder = "linkerFirst"
                 try:
                     targetSeq, targetPos, insertIdx = getTargetSeq(params)
                     if "tagseq" in params and "linkerseq" in params:
-                        insertseq = getInsertSeq(params)
+                        insertseq = getInsertSeq(params, tagOrder)
                         params["insertseq"] = insertseq
 
                     params["seq"] = targetSeq
@@ -11932,7 +12141,6 @@ def printBody(params):
             if "seq" in params:
                 printCrisporBodyStart()
                 crisprSearch(params)
-                pass
 
     if "batchId" in params and "satMut" not in params:
         printCrisporBodyStart()
@@ -12010,11 +12218,63 @@ def processCustomInsertSeq(startSeq, endSeq):
     type (insertion, replacement or substitution), the insert site position index
     and the insert sequence """
 
+    if startSeq.lower() == endSeq.lower():
+        kiType = "noEdits"
+        return kiType, None, None
+
+    noEditEndSeq = ''.join([base for base in endSeq if base.islower()])
+
+    # check if all the edits are in uppercase
+    if startSeq.lower() == noEditEndSeq:
+        doProcess = True
+    elif len(startSeq) - len(noEditEndSeq) == 1 and len(startSeq) == len(endSeq):
+        doProcess = True
+    elif len(startSeq) - len(noEditEndSeq) > 1:
+        kiType = "replacement"
+        return kiType, None, None
+    else:
+        return None, None, None
+
+    if doProcess:
+        editSeqs = []
+        targetPos = 0  # position on the non edited sequence
+        for basePos, base in enumerate(endSeq):
+
+            if base.islower():
+                targetPos += 1
+            stretchStart = (basePos == 0 and base.isupper()) or (basePos > 0 and base.isupper() and endSeq[basePos - 1].islower())
+            # find stretches of edited sequences
+            # new stretch
+            if stretchStart:
+                editStretch = []
+                for editBase in endSeq[basePos:]:
+                    if editBase.islower():
+                        editSeqs.append((basePos, ''.join(editStretch)))
+                        break
+                    else:
+                        editStretch.append(editBase)
+        if len(editSeqs) == 0:  # multiple insertions need to be close enough to use a single donor DNA
+            return None, None, None
+        if len(editSeqs) > 1:
+            kiType = "multiInsert"
+            return kiType, None, None
+        elif len(editSeqs) == 1 and len(editSeqs[0][1]) > 1:
+            kiType = "insertion"
+        elif len(editSeqs) == 1 and len(editSeqs[0][1]) == 1:
+            kiType = "substitution"
+        else:
+            return None, None, None
+        insertIdx, insertSeq = editSeqs[0]
+
+    return kiType, insertIdx, insertSeq
+
+    # Old version : alignement of the two sequences instead of edits in uppercase bases
+    """
     startSeq = startSeq.upper()
     endSeq = endSeq.upper()
     if len(endSeq) - len(startSeq) > 1:
         for startIdx, base in enumerate(startSeq):
-            # does not work if there are homopolymers at the insertion site
+            # does not work if there are homopolymers at the insertion site and the insert sequence starts / end with the same base
             # for the same position relative the the 5' or 3' end the the seq, check if the bases match
             if (endSeq[startIdx] != base and len(startSeq[:startIdx]) == len(endSeq[:startIdx])) or len(startSeq[:startIdx]) != len(endSeq[:startIdx]):
                 break
@@ -12034,12 +12294,12 @@ def processCustomInsertSeq(startSeq, endSeq):
             raise ValueError("knock-in method not supported")
 
     return kiType, startIdx, insertSeq
+    """
 
 
-def getInsertSeq(params):
+def getInsertSeq(params, tagOrder):
     "from a tag and a linker sequence, return the insert sequence to be used for the HDR donor"
 
-    tagOrder = params["tagorder"]
     tagSeq = params["tagseq"]
     linkerSeq = params["linkerseq"]
 
@@ -12245,13 +12505,14 @@ def writeDonorSeq(org, seq, posStr, batchId):
     insertIdx = batchInfo["insertIdx"]
     armLen = batchInfo["armLen"]
     codonTable = buildCodonTable(key="aa")
-
+    kiType = batchInfo.get("kiType")
     # input is a sequence
     if posStr is None and seq:
+
         posStr = findPerfectMatch(batchId, seq, org)
         batchInfo["posStr"] = posStr
 
-    # input is a geneID
+    # input is a transcriptID
     elif seq is None and posStr:
         seq = getSeq(org, posStr)
 
@@ -12288,10 +12549,19 @@ def writeDonorSeq(org, seq, posStr, batchId):
     else:
         insertCoord = int(end - insertIdx)
 
-    HAstart, HAend = checkCoords(insertCoord - armLen, insertCoord + armLen, org, chrom)
+    HAstart, HAend, HA5len, HA3len = checkCoords(insertCoord - armLen, insertCoord + armLen, org, chrom, insertCoord=insertCoord)
+
+    # for substitutions, remove the edited based in the homology arm and extend the arm by 1bp
+    if kiType == "substitution":
+        HA3len += 1
+        if strand == "+":
+            HAend += 1
+        else:
+            HAstart -= 1
+
     HAseqs = getSeq(org, "%s:%s-%s:%s" % (chrom, HAstart, HAend, strand), maxlen=False)
 
-    donorSeq = HAseqs[0:armLen].lower() + insertSeq.upper() + HAseqs[armLen:].lower()
+    donorSeq = HAseqs[0:HA5len].lower() + insertSeq.upper() + HAseqs[HA3len:].lower()
     batchInfo["donorSeq"] = donorSeq
 
     writeBatchAsDict(batchInfo, batchId)
@@ -12313,7 +12583,7 @@ def getTargetSeq(params):
     )
 
     if insertpos == "custom":
-        # Custom sequence template
+        # Custom sequence template (not used anymore)
 
         customseq, warnMsgCustomPos = cleanSeq(params.get("customseq"), org, "split")
         splitSeq = customseq.split("//")
@@ -12349,8 +12619,10 @@ def getTargetSeq(params):
     return targetSeq, targetPos, insertIdx
 
 
-def checkCoords(start, end, org, chrom):
-    "clip coordinates to chromosome boundaries"
+def checkCoords(start, end, org, chrom, insertCoord=None):
+    """clip coordinates to chromosome boundaries
+    and returns the length of the homolohy arms
+    """
 
     chromSize = parseChromSizes(org)[chrom]
     if start < 0:
@@ -12358,7 +12630,13 @@ def checkCoords(start, end, org, chrom):
     if end > chromSize:
         end = chromSize
 
-    return start, end
+    if insertCoord:
+        HA5len = insertCoord - start
+        HA3len = end - insertCoord
+
+        return start, end, HA5len, HA3len
+    else:
+        return start, end
 
 
 def processDonor(DonorSeq):

@@ -635,3 +635,34 @@ réécriture de getDonorSeq() : séparation en deux fonctions
         la position d'insertion et la séquence d'insert (à compléter)
 
 - modification de showDonor() : représentation du donneur par des lignes (+ longueur des bras d'homologie / séquence d'insert) au lieu de la séquence 
+
+# 12/02/26
+
+## mode knock-in 
+- modification de processCustomInsertSeq() : 
+    - prise en compte des modifications en uppercase 
+    - retourne type de knock-in, position d'insertion, séquence d'insertion 
+
+- dans formulaire knock-in :
+    - les modifications sont indiquées en uppercase par l'utilisateur
+    - ajout de deux boutons permettant de convertir la sélection en uppercase / lowercase 
+## à faire
+
+- stratégie knock-out : retrait d'un exon (en dehord du cardre de lecture) (précalculer oof exons)
+- adapter pénalités global score au choix de l'effscore choisi
+- ajouter liens vers CasPedia (http://caspedia.org/) 
+
+# 13/02/26
+
+## mode knock-in
+
+- changement range longueur bras d'homologie : 50 -> 2000bp
+- ajout de messages d'avertissement pour les type d'édition non supportés (remplacement, insertions multiples..)
+- support du mode substitution : modification de writeDonorSeq(), parseAndPrintMultiPamInfo() et showSeqAndPams() : affiche le type de substitution (base WT -> base Edit) dans le titre, affichage de la substitution sur la séquence target.
+
+## à faire
+
+-  liste PAMS : NGG > dispo commercialement > addGene > cas naturelles / cas engeneered (activité + faible + offtargets)
+- ajouter qTAGs dans la liste + ajouter interface pour construire la cassette complète
+- si mode "protein tagging" : afficher geneModel avec représentation de l'insertion (nom tag + couleur)
+- dans le mode substitution -> ajouter l'acide aminé correspondant à la substitution dans le gene model
