@@ -8657,6 +8657,7 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
           align-items: center;
           overflow-x: scroll;
           font-family: Source Code Pro;
+          width: max-content;
           font-size: 80%;
           padding:5px;
           white-space: nowrap;
