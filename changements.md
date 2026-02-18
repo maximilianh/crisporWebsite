@@ -659,10 +659,83 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - changement range longueur bras d'homologie : 50 -> 2000bp
 - ajout de messages d'avertissement pour les type d'édition non supportés (remplacement, insertions multiples..)
 - support du mode substitution : modification de writeDonorSeq(), parseAndPrintMultiPamInfo() et showSeqAndPams() : affiche le type de substitution (base WT -> base Edit) dans le titre, affichage de la substitution sur la séquence target.
-
+- dans mode protein Tagging : ajout du mode "qTAG" (cf https://doi.org/10.1038/s44318-024-00337-5) :
+    - contruction de la cassette qTAG
+- déplacement de la séquence des linkers, tags et markers dans une variable globale
+- stockage du nom et de l'ordre des séquences de tagging dans les paramères de batch (pour affichage sur geneModel)
+- création d'un batchId unique pour différentes séquences d'insert
 ## à faire
 
 -  liste PAMS : NGG > dispo commercialement > addGene > cas naturelles / cas engeneered (activité + faible + offtargets)
 - ajouter qTAGs dans la liste + ajouter interface pour construire la cassette complète
 - si mode "protein tagging" : afficher geneModel avec représentation de l'insertion (nom tag + couleur)
 - dans le mode substitution -> ajouter l'acide aminé correspondant à la substitution dans le gene model
+
+# bugs
+
+- si un geneID n'est pas sélectionné, une page vide s'ouvre (devrait rediriger vers le formulaire)
+- bug sélection EF1alpha
+
+# 16/02/26
+
+## mode knock-in
+
+- réinitialisation de la sélection tag/linkers lors du changement de menu
+- simplification de calcInsertDistance() + modification de la fenêtre de recodage si substitution
+- si subtitution, recodage uniquement si la séquence du pam est altérée
+
+## bugs
+
+- double impression du formulaire ki 
+
+# 14/02/26
+
+## général
+
+- retrait de l'autocorrection des éléments textarea
+
+## mode knock-in
+
+- correction de l'affichage qTAG
+- modification de getInsertSeq() : pas de recodage si la séquence du pam est modifiée en mode insertion
+- si insertion dans la séquence du pam mais que l'insert recrée le pam -> recodage (à adapter pour tous les types de pams)
+- ajout de donorDesignPage() : lien depuis le tableau des guides, redirige vers un formulaire pour le design de l'ADN donneur
+
+## notes Schubert et al (design ssODN)
+
+- taille min bras d'homologie : 20-30nt
+
+- amélioration efficacité HDR : 
+    - donneur asymétrique
+    - ajout phosphorothioate
+    - double nicking : distance optimale ~40-68nt (dépend de l'enzyme)  
+        - permet de réduire l'impact de la distance site de coupure / site d'insertion sur l'efficacité
+        - si site d'insertion à mi-distance du site de coupure des deux guides, efficacité > à WT Cas9
+
+- choix design : 
+    - 200nt max (insert 160nt max)
+    - proposer template sur le brin target ou non target (préférence varie en fonction lu locus / type cell)
+    - 
+
+- choix du guide:
+    - efficacité > distance pour guides dont le site de coupe est ~< 10-14bp du site d'insertion.
+
+- recodage:
+    - pas de préférence transition / transversion
+    - recodage PAM efficace, en particulier si insertion vers extrémité 3'
+    - recodage guide en 3' efficace
+    - 2 mutations suffisantes (3/4 n'améliorent pas l'efficacité)
+    - si trop de mutations -> perte d'efficacité HDR
+
+## bugs
+
+- prendre en compte de global score pour mutated guides (dans page cloning)
+
+# 18/02/26
+
+## global
+
+- ajout d'un message d'avertissement sur la page cloning / primers : tracr varie en fonction de l'enzyme
+## knock-in mode
+
+- correction du bug de la page clonig / primers en mode knock-in

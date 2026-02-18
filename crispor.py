@@ -558,6 +558,38 @@ rebaseSuppliers = {
     "Y": "SinaClon BioScience",
 }
 
+# tag, linker and marker sequences
+
+taggingSeqs = {
+        "eGFP": "GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG",
+        "Streptavidin": "TGGAGCCACCCGCAGTTCGAAAAA",
+        "(GGGGS)x2": "GGTGGTGGTGGTTCTGGTGGTGGTGGTTCT",
+        "XTEN": "AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT",
+        "Blast": "ATGC",
+        "Puro": "ATGC",
+        "Zeo": "ATGC",
+        "moxGFP": "ATGC",
+        "mScarlet": "ATGC",
+        "2A": "ATGC",
+        "EF1": "ATGC",
+        "Fluorescent proteins": "ATGC",
+        "mStrayGold": "ATGC",
+        "mNeon": "ATGC",
+        "moxGFP": "ATGC",
+        "mScarlet": "ATGC",
+        "sTagRFP": "ATGC",
+        "miRFP670nano3": "ATGC",
+        "miniTurbo": "ATGC",
+        "ultraID": "ATGC",
+        "dTAG": "ATGC",
+        "FLAG": "ATGC",
+        "HA": "ATGC",
+        "V5": "ATGC",
+        "lox": "ATGC",
+        "none": ""
+        }
+
+
 # labels and descriptions of eff. scores
 scoreDescs = {
     "doench": (
@@ -1157,7 +1189,7 @@ def cgiGetParams():
         if val != None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore"]:
+            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "cassetteseq"]:
                 checkVal(key, val)
             cgiParams[key] = val
 
@@ -2003,7 +2035,7 @@ def showExonAndPams(
     browserlink,
 ):
 
-    pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId))
+    pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId=exonId))
     exonIdOneBased = exonId + 1
 
     # don't display the exons where no PAMs were found
@@ -3471,44 +3503,62 @@ def calcEVAscore(EVAlike, MIT):
     return EVAfull
 
 
-def calcInsertDistance(insertIdx, pamStart, guideStart, guideSeq, strand):
+def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand, kiType, insertSeq, pamPat):
     """returns the distance between the cut site and the insertion site
     if one of the 15 bases at the extremity of the guide don't overlap with the insertion site,
     returns doRecoding = True (need to recode the donor DNA to prevent its cleavage)
     """
 
-    guidelen = len(guideSeq)
+    pamWindowStart = pamStart
+    pamWindowEnd = pamStart + len(pamSeq) - 1
+
+    if strand == "+":
+        guideWindowStart = guideStart
+        guideWindowEnd = guideStart + 15 - 1
+    else:
+        guideWindowStart = guideStart + len(guideSeq) - 15
+        guideWindowEnd = guideStart + len(guideSeq) - 1
 
     if pamIsFirst:
         if strand == "+":
             cutPos = guideStart + 19
-            if (guideStart + guidelen) - insertIdx < 15 and (
-                guideStart + guidelen
-            ) - insertIdx > 0:
-                doRecoding = False
-            else:
-                doRecoding = True
         else:
             cutPos = pamStart - 18
-            if insertIdx - guideStart < 15 and insertIdx - guideStart > 0:
-                doRecoding = False
-            else:
-                doRecoding = True
     else:
         if strand == "+":
             cutPos = pamStart - 3
-            if insertIdx - guideStart < 15 and insertIdx - guideStart > 0:
-                doRecoding = False
-            else:
-                doRecoding = True
         else:
             cutPos = guideStart + 4
-            if (guideStart + guidelen) - insertIdx < 15 and (
-                guideStart + guidelen
-            ) - insertIdx > 0:
-                doRecoding = False
-            else:
+    cutInGuide = insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd
+    cutInPam = insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd
+
+    # check if the substitution alters the pam sequence
+    if kiType == "substitution" and cutInPam:
+        # position of the substitution relative to the pam sequence
+        editPos = abs(pamWindowStart - insertIdx)
+        if strand == "-":
+            pamPat = revComp(pamPat)
+        pamBase = pamPat[editPos]
+        print(pamPat, pamBase, editPos)
+        if pamBase == "N" or (pamBase == "R" and insertSeq in ["G", "A"]) or (pamBase == "Y" and insertSeq in ["C", "T"]) or (pamBase == "V" and insertSeq in ["G", "C", "A"]):
+            doRecoding = True
+        else:
+            doRecoding = False
+
+    elif kiType != "substitution":
+        if cutInGuide:
+            doRecoding = False
+        elif cutInPam:
+            if strand == "-":
+                pamPat = revComp(pamPat)
+            editPos = abs(pamWindowStart - insertIdx)
+            pamBase = pamPat[editPos:]
+            if insertSeq[0:len(pamBase)] == pamBase:
                 doRecoding = True
+        else:
+            doRecoding = True
+    else:
+        doRecoding = True
 
     insertDistance = abs(insertIdx - cutPos)
     return insertDistance, doRecoding
@@ -3527,6 +3577,8 @@ def mergeGuideInfo(
     globEffScore=None,
     pamFullName=None,
     insertIdx=None,
+    kiType=None,
+    insertSeq=None
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -3594,7 +3646,7 @@ def mergeGuideInfo(
         # in knock-in mode, get the distance between cut site and insertion site
         if insertIdx is not None:
             insertDistance, doRecoding = calcInsertDistance(
-                insertIdx, pamStart, guideStart, guideSeq, strand
+                insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand, kiType, insertSeq, pamPat
             )
             effScoring["insertDistance"] = insertDistance
         else:
@@ -4401,7 +4453,7 @@ def showGuideTable(
         if len(highlightedGuidesIds) >= 3:
             highlight = False
         else:
-            # define Cas9 occupancy region (actual values to precise):
+            # define Cas9 occupancy region:
             overlapStart = guideStart - 3 if strand == "+" else pamStart - 10
             overlapEnd = (
                 pamStart + pamlen + 10 if strand == "+" else guideStart + guidelen + 3
@@ -4499,7 +4551,7 @@ def showGuideTable(
             varStrs = []
             guideHtmlStart = min(guideStart, pamStart)
             guideHtmls = varHtmls[
-                guideHtmlStart : guideHtmlStart + len(guideSeq) + len(pamSeq)
+                guideHtmlStart: guideHtmlStart + len(guideSeq) + len(pamSeq)
             ]
             if strand == "-":
                 guideHtmls = list(reversed(guideHtmls))
@@ -4567,7 +4619,15 @@ def showGuideTable(
             print("</i></div>")
 
         scriptName = basename(__file__)
-        if otData != None and repCount == 0:
+        if pamFullName:
+            print(
+                (
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
+                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding)
+                )
+            )
+            print("<br>")
+        if otData is not None and repCount == 0:
             print(
                 (
                     '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>Cloning / PCR primers</strong></a>'
@@ -6679,7 +6739,7 @@ def printGeneSelection():
     scriptName = basename(__file__)
     print(
         """
-    <select class="js-select-gene" name="ko_geneid" style="width: 80%%;"></select>
+    <select class="js-select-gene" name="ko_geneid" id="geneSelection" style="width: 80%%;"></select>
     <input type="hidden" name="exonCount" id="exonCountVal">
     <br>
     <script>
@@ -6835,7 +6895,7 @@ def printForm(params):
     <small><a href="javascript:resetToExample()">Reset to default</a></small>
     </div>
 
-    <textarea tabindex="1" style="width:98%%" name="seq" rows="12"
+    <textarea tabindex="1" style="width:98%%" name="seq" rows="12" autocorrect="off"
               placeholder="Paste here the genomic - not a cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp. If you only have a cDNA, please BLAST or BLAT the cDNA first to find the right exon sequence for CRISPOR.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 
@@ -7285,14 +7345,16 @@ def newMultiPamBatch(
     assist=None,
     koGeneId=None,
     insertPos=None,
-    kiType=None
+    kiType=None,
+    tagNames=None,
+    geneModel=None
 ):
 
     donorStr = str(armLen + insertIdx)
     if seq:
-        concatSeq = seq + donorStr
+        concatSeq = seq + donorStr + insertSeq
     else:
-        concatSeq = posStr + donorStr
+        concatSeq = posStr + donorStr + insertSeq
 
     batchId = makeTempBase(concatSeq, org, multipam, batchName)
     batchBase = join(batchDir, batchId)
@@ -7318,6 +7380,10 @@ def newMultiPamBatch(
             batchData["insertpos"] = insertPos
         if kiType:
             batchData["kiType"] = kiType
+        if tagNames:
+            batchData["tagNames"] = tagNames
+        if geneModel:
+            batchData["geneModel"] = geneModel
 
         writeBatchAsDict(batchData, batchId)
 
@@ -8230,6 +8296,7 @@ def crisprSearch(params):
         donorSeq = params.get("donorSeq")
 
         koGeneId = params.get("ko_geneid")
+        geneModel = params.get("geneModel")
 
         koMethod = params.get("koMethod")
         multiseq = params.get("multiseq")
@@ -8244,6 +8311,7 @@ def crisprSearch(params):
                 insertIdx = int(params["insertIdx"])
                 kiType = params.get("kiType")
                 armLen = int(params["armLen"])
+                tagNames = params.get("tagNames")
                 batchId = newMultiPamBatch(
                     newBatchName,
                     seq,
@@ -8256,12 +8324,13 @@ def crisprSearch(params):
                     assist,
                     koGeneId,
                     insertPos,
-                    kiType
+                    kiType,
+                    tagNames,
+                    geneModel
                 )
             else:
                 assist = params["assist"]
                 pamDesc = params["pam"]
-                geneModel = params.get("geneModel")
                 batchId = newMultiSeqBatch(
                     newBatchName,
                     multiseq,
@@ -8570,6 +8639,8 @@ def parseAndPrintMultiPamInfo(params, batchId):
             globEffScore="rs3",
             pamFullName=pamFullName,
             insertIdx=insertIdx,
+            kiType=kiType,
+            insertSeq=insertSeq
         )
 
         allGuideData.extend(guideData)
@@ -8851,10 +8922,10 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
     return varHtmls, varDbs
 
 
-def printGeneModel(geneModel, exonSeqs, pam, koMethod):
+def printGeneModel(geneModel, exonSeqs, pam, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None):
     "displays the gene model, from CDS start to CDS end"
 
-    if koMethod == "frameshift":
+    if koMethod == "frameshift" and exonSeqs:
         thirdLen = 0
         for feature in geneModel:
             if feature[0] == "exon":
@@ -8920,18 +8991,19 @@ function toggleExonSeq(selectedValue) {
             """
     )
 
-    print(
-        """<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides, or
+    if exonSeqs:
+        print(
+            """<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides, or
             <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
             style="width:110spx; height:25px"><small>show all exons</small></button> </div>"""
-    )
-
-    for exonId in exonSeqs:
-
-        print(
-            """<div name="exonFilterMsg" id="exon%dMsg" style="display:none;"> the results are currently filtered for Exon %s </div>"""
-            % (exonId, exonId + 1)
         )
+
+        for exonId in exonSeqs:
+
+            print(
+                """<div name="exonFilterMsg" id="exon%dMsg" style="display:none;"> the results are currently filtered for Exon %s </div>"""
+                % (exonId, exonId + 1)
+            )
 
     print(
         """ <div style="
@@ -8945,6 +9017,13 @@ function toggleExonSeq(selectedValue) {
           border-radius: 8px;"> """
     )
     currentLen = 0
+
+    if tagNames:
+        tagSeqList = []
+        for tagName in tagNames:
+            tagSeq = taggingSeqs[tagName]
+            tagSeqList.append((tagName, tagSeq))
+
     for i, feature in enumerate(geneModel):
 
         featureType = feature[0]
@@ -8954,6 +9033,28 @@ function toggleExonSeq(selectedValue) {
 
         if i == 0:
             print("<small>CDS start&nbsp&nbsp</small>")
+
+            if kiType and insertPos == "Nter":
+                if tagNames:
+                    for tagName, tagSeq in tagSeqList:
+                        print(
+                        """<div
+                        style="
+                        width:%dpx;
+                        height: 25px;
+                        border: 0.5px solid gray;
+                        background-color: #eeeeee;
+                        text-align:center;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        ">
+                        %s
+                        </div> """
+                        % (len(tagSeq), tagName)
+                        )
+
 
         if featureType == "exon":
             currentLen += length
@@ -8979,8 +9080,13 @@ function toggleExonSeq(selectedValue) {
             else:
                 exonMouseOver = ""
 
-            isSplittedExon = featureId + 1 == len(exonSeqs) and lastLen < length
-            isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
+            if exonSeqs:
+                isSplittedExon = featureId + 1 == len(exonSeqs) and lastLen < length
+                isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
+            # Only print the gene model, without highlighting target exons
+            else:
+                isSplittedExon = None
+                isTargetExon = None
 
             if (isSplittedExon or isTargetExon) and featureId in exonSeqs:
 
@@ -10751,7 +10857,7 @@ def microHomPage(params):
                     guideSeqHtml,
                     guideStart,
                     guideEnd,
-                ) = findGuideSeq(inSeq, pam, pamId, exonId)
+                ) = findGuideSeq(inSeq, pam, pamId, exonId=exonId)
                 break
     else:
         (
@@ -11530,180 +11636,163 @@ def printTagsAndLinkers():
     <script>
         $(document).ready(function() {
         $('.js-select-tag').select2({
-            placeholder: 'select a tag from the list'
+            placeholder: 'select a tag',
+            width: '100%'
             });
         });
         $(document).ready(function() {
         $('.js-select-linker').select2({
-            placeholder: 'select a linker from the list'
+            placeholder: 'select a linker',
             });
         });
-          $(document).ready(function() {
+        $(document).ready(function() {
         $('.js-select-marker').select2({
-            placeholder: 'select a marker from the list'
+            placeholder: 'select a marker',
+            width: '100%'
+            });
+        });
+        $(document).ready(function() {
+        $('.js-select-cassette').select2({
+            placeholder: 'select a selection method',
+            width: '100%'
             });
         });
        $(document).ready(function() {
-        $('.js-select-selection').select2({
-            placeholder: 'select a selection cassette from the list'
-            });
-        });
-
-        function toggleTagMenu() {
-            const tagMode = document.getElementsByName('tagMode')
-            const tagLinkerDisplay = document.getElementById('tagLinkerDisplay')
-            const qTagDisplay = document.getElementById('qTagDisplay')
-
-            let selectedValue;
-            for (mode in tagMode) {
-                    if (mode.checked) {
-                    selectedValue = mode.value;
-                    break;
-                    };
-                };
-
-            if (selectedValue === "tagLinker") {
-                tagLinkerDisplay.style.display = "block";
-                } else {
-                tagLinkerDisplay.style.display = "none";
-                };
-            if (selectedValue === "qTAG") {
-                qTagDisplay.style.display = "block";
-                } else {
-                qTagDisplay.style.display = "none";
-                };
-            };
+       $('.js-select-qtag').select2({
+           placeholder: 'select a tag',
+           width: '200%'
+           });
+       });
 
     </script>
     """
     )
 
     # tags and linkers
-    tags = {
-        "eGFP": "GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG",
-        "Streptavidin": "TGGAGCCACCCGCAGTTCGAAAAA",
-    }
-    linkers = {
-        "(GGGGS)x2": "GGTGGTGGTGGTTCTGGTGGTGGTGGTTCT",
-        "XTEN": "AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT",
-    }
-
     # qTAG cassette elements
+    tags = ["eGFP", "Streptavidin"]
+    linkers = ["(GGGGS)x2", "XTEN"]
 
     markers = {
-            "Mammalian slection": {
-                "Blast": "seq",
-                "Puro": "seq",
-                "Zeo": "seq"
+            "Mammalian selection": {
+                "Blast",
+                "Puro",
+                "Zeo"
                 },
             "Fluorescent selection": {
-                "moxGFP": "seq",
-                "mScarlet": "seq"
-                },
-            "No selection": {
-                "none": ""
-                },
+                "moxGFP",
+                "mScarlet"
+                }
             }
 
-    selectionCass = {
-            "2A": "seq",
-            "EF1a": "seq",
-            "no selection": ""
-            }
+    selectionCass = ["2A", "EF1"]
+
     qTags = {
             "Fluorescent proteins": {
-                "mStrayGold": "seq",
-                "mNeon": "seq",
-                "moxGFP": "seq",
-                "mScarlet": "seq",
-                "sTagRFP": "seq",
-                "miRFP670nano3": "seq"
+                "mStrayGold",
+                "mNeon",
+                "moxGFP",
+                "mScarlet",
+                "sTagRFP",
+                "miRFP670nano3"
                 },
-            "biot": {
-                "miniTurbo": "seq",
-                "ultraID": "seq"
+            "Proximity Biotinylation": {
+                "miniTurbo",
+                "ultraID"
                 },
-            "Targeted Degradation": {
-                "dTAG": "seq"
+            "Targeted degradation": {
+                "dTAG"
                 },
             "Epitopes": {
-                "FLAG": "seq",
-                "HA": "seq",
-                "V5": "seq"
+                "FLAG",
+                "HA",
+                "V5"
                 }
             }
 
     print(
-        """<div class="windowstep subpanel" style="width:95%; height:75px; display:flex; flex-direction:row;"> """
+        """<div class="windowstep subpanel" id="tagPanel" style="width:95%; height:75px; display:flex; flex-direction:row;"> """
     )
 
-    print("""<div id="tagLinkerDisplay" style="display:none; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
+    print("""<div id="tagLinkerDisplay" style="display:flex; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
     print(
-        """<div>
-          <select name="tagseq" class="js-select-tag" style="width:100%;" autocomplete="off">
-          <option selected="selected"></option>
-        """
+       """<div>
+         <select name="linkerseq" id="linkerseq" class="js-select-linker" style="width:100%;" autocomplete="off">
+         <option selected="selected"></option>
+       """
     )
-    for tag in tags:
-        tagseq = tags[tag]
-        print("""<option value="%s">%s</option>""" % (tagseq, tag))
-    print(
-        """</select>
-          </div>"""
-    )
+    for linker in linkers:
+        print("""<option value="%s">%s</option>""" % (linker, linker))
+    print("</select>")
+
+    print("</div>")
 
     print("<div>and</div>")
 
     print(
         """<div>
-          <select name="linkerseq" class="js-select-linker" style="width:100%;" autocomplete="off">
+          <select name="tagseq" id="tagseq" class="js-select-tag" style="width:100%;" autocomplete="off">
           <option selected="selected"></option>
         """
     )
-    for linker in linkers:
-        linkerseq = linkers[linker]
-        print("""<option value="%s">%s</option>""" % (linkerseq, linker))
-    print("</select>")
+    for tag in tags:
+        print("""<option value="%s">%s</option>""" % (tag, tag))
+    print(
+        """</select>
+          </div>"""
+    )
 
-    print("</div>")
     print("</div>")
 
     # qTAG options
-    print("""<div id="qTagDisplay" style="display:flex; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
+    print("""<div id="qTagDisplay" style="display:none; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
 
     # Markers
     print("""
     <div>
-    <select name="markerseq" class="js-select-marker" style="width:100%;" autocomplete="off">""")
+    <select name="markerseq" id="markerseq" class="js-select-marker" style="width:100%;" autocomplete="off">""")
+    print("<option></option>")
+    print("""<option value="none">None</option>""")
     for markerType in markers:
         print("""<optgroup label="%s">""" % markerType)
         for marker in markers[markerType]:
-            print("""<option value="%s">%s</option>""" % (markers[markerType][marker], marker))
+            print("""<option value="%s">%s</option>""" % (marker, marker))
         print("</optgroup>")
     print("""
     </select>
     </div>
     """)
 
+    print("<div>and</div>")
+
     # selection cassette type
     print("""
     <div>
-    <select name="casseteseq" class="js-select-cassette" style="width:100%;" autocomplete="off">""")
+    <select name="cassetteseq" id="cassetteseq" class="js-select-cassette" style="width:100%;" autocomplete="off">""")
+    print("<option></option>")
+    print("""<option value="none">None</option>""")
     for cassette in selectionCass:
-        print("""<option value="%s">%s</option>""" % (selectionCass[cassette], cassette))
+        if cassette == "EF1":
+            cassetteHtml = cassette + "&alpha;"
+        else:
+            cassetteHtml = cassette
+        print("""<option value="%s">%s</option>""" % (cassette, cassetteHtml))
     print("""
     </select>
     </div>
     """)
 
+    print("<div>and</div>")
+
     # TAG sequence
     print("""
     <div>
-    <select name="qTag" class="js-select-tag" style="width:100%;" autocomplete="off">""")
+    <select name="qTag" id="qTag" class="js-select-qtag" style="width:100%;" autocomplete="off">""")
+    print("<option></option>")
     for tagType in qTags:
         print("""<optgroup label="%s">""" % tagType)
         for tag in qTags[tagType]:
-            print("""<option value="%s">%s</option>""" % (qTags[tagType][tag], tag))
+            print("""<option value="%s">%s</option>""" % (tag, tag))
         print("</optgroup>")
     print("""
     </select>
@@ -11711,19 +11800,6 @@ def printTagsAndLinkers():
     """)
 
     print("</div>")
-    print(
-        """
-          choose a mode
-          <div>
-            <input type="radio" checked name="tagMode" id="tagLinker" value="tagLinker" onchange="toggleTagMenu()"/>
-            <label for="tagLinker">tags and linkers</label><br>
-            <input type="radio" name="tagMode" id="qTAG" value="qTAG" onchange="toggleTagMenu()"/>
-            <label for="qTAG">qTAG (add tooltip)</label><br>
-          </div>
-          </div>
-          """
-    )
-
     print("</div>")
 
 
@@ -11747,6 +11823,7 @@ def printKiForm(params):
             const seqTarget = document.getElementById('seqTarget')
             const endSeqDisplay = document.getElementById('endSeqDisplay')
             const tagInsertDisplay = document.getElementById('tagInsertDisplay')
+            const geneSelection = document.getElementById('geneSelection')
 
             let selectedValue;
             for (const target of targetRegions) {
@@ -11767,6 +11844,8 @@ def printKiForm(params):
             } else {
                 geneTarget.style.display = 'none';
                 tagInsertDisplay.style.display = 'none';
+                $('#geneSelection').val(null).trigger('change');
+
             }
 
         }
@@ -11797,21 +11876,48 @@ def printKiForm(params):
           const insertype = document.getElementsByName('insertype')
           const taglist = document.getElementById('taglist')
           const insertseq = document.getElementById('insertseq')
+          const qTagDisplay = document.getElementById('qTagDisplay')
+          const tagLinkerDisplay = document.getElementById('tagLinkerDisplay')
+          const tagPanel = document.getElementById('tagPanel')
+
+          const tagseq = document.getElementById('tagseq')
+          const linkerseq = document.getElementById('linkerseq')
+          const markerseq = document.getElementById('markerseq')
+          const cassetteseq = document.getElementById('cassetteseq')
+          const qTag = document.getElementById('qTag')
+
           let selectedValue;
           for (const type of insertype){
             if (type.checked) {
                 selectedValue = type.value;
                 break; }
             }
-            if (selectedValue === 'tag') {
+            if (selectedValue === 'tagLinker') {
                 taglist.style.display = 'block';
-            } else {
-                taglist.style.display = 'none'}
+                tagLinkerDisplay.style.display = 'flex';
+                tagPanel.style.display = 'flex';
+           } else {
+                tagLinkerDisplay.style.display = 'none';
+                $('#tagseq').val(null).trigger('change');
+                $('#linkerseq').val(null).trigger('change');
+               };
+            if (selectedValue === 'qTag') {
+                taglist.style.display = 'block';
+                qTagDisplay.style.display = 'flex';
+                tagPanel.style.display = 'flex';
+           } else {
+                qTagDisplay.style.display = 'none';
+                $('#markerseq').val(null).trigger('change');
+                $('#cassetteseq').val(null).trigger('change');
+                $('#qTag').val(null).trigger('change');
+               };
             if (selectedValue === 'custom') {
-                insertseq.style.display = 'block' ;
+                insertseq.style.display = 'block';
+                tagPanel.style.display = 'none';
             } else {
-                insertseq.style.display = 'none'}
-          }
+                insertseq.style.display = 'none';
+            }
+        }
 
 function updateValues(source, val) {
     let numVal = parseInt(val);
@@ -12018,9 +12124,11 @@ function changeSeqCase(value) {
 
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
                     Enter the sequence to insert<br>
-                    <input type="radio" checked style="margin-top:13px;" name="insertype" value="tag" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
+                    <input type="radio" checked style="margin-top:13px;" name="insertype" value="tagLinker" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
+<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG
+
                     <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
-                    <textarea id="insertseq" name="insertseq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea><br>
+                    <textarea id="insertseq" name="insertseq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
 
                 <div style="width:80%%; display: block; margin-top: 14px;" id="taglist">
           """
@@ -12096,8 +12204,8 @@ def printBody(params):
                 if startSeq and endSeq:
                     kiType, insertIdx, insertSeq = processCustomInsertSeq(startSeq, endSeq)
                     if kiType is None:
-                        printAssistant(params)
-                        printKiForm(params)
+                        printCrisporBodyStart()
+                        print("<p>Insertion type currently not supported.</p>")
                     elif kiType == "noEdits":
                         printCrisporBodyStart()
                         print("<p>No edits were found in the sequence</p>")
@@ -12114,21 +12222,28 @@ def printBody(params):
                         params["insertIdx"] = insertIdx
                         params["insertseq"] = insertSeq
                         params["seq"] = startSeq
-            elif targetRegion == "gene" and ko_geneid and ("tagseq" in params and "linkerseq" in params) or "insertseq" in params:
+            elif targetRegion == "gene" and ko_geneid and (("tagseq" in params and "linkerseq" in params) or "insertseq" in params or ("markerseq" in params and "cassetteseq" in params and "qTag" in params)):
                 insertPos = params["insertpos"]
-                if insertPos == "Nter":
-                    tagOrder = "tagFirst"
-                else:
-                    tagOrder = "linkerFirst"
+                params["kiType"] = "tagging"
+
+                linkerseq = params.get("linkerseq")
+                tagseq = params.get("tagseq")
+
+                markerseq = params.get("markerseq")
+                cassetteseq = params.get("cassetteseq")
+                qTag = params.get("qTag")
+
                 try:
-                    targetSeq, targetPos, insertIdx = getTargetSeq(params)
-                    if "tagseq" in params and "linkerseq" in params:
-                        insertseq = getInsertSeq(params, tagOrder)
+                    targetSeq, targetPos, insertIdx, geneModel = getTargetSeq(params)
+                    if (linkerseq and tagseq) or (markerseq and cassetteseq and qTag):
+                        tagNames, insertseq = getInsertSeq(linkerseq, tagseq, markerseq, cassetteseq, qTag, insertPos)
                         params["insertseq"] = insertseq
+                        params["tagNames"] = tagNames
 
                     params["seq"] = targetSeq
                     params["pos"] = targetPos
                     params["insertIdx"] = insertIdx
+                    params["geneModel"] = geneModel
                 except ValueError as err:
                     error = str(err)
                     if error == "frameErr":
@@ -12142,11 +12257,16 @@ def printBody(params):
             if "seq" in params:
                 printCrisporBodyStart()
                 crisprSearch(params)
+            else:
+                printAssistant(params)
+                printKiForm(params)
 
     if "batchId" in params and "satMut" not in params:
         printCrisporBodyStart()
         if "pamId" in params:
-            if "pam" in params:
+            if "doRecoding" in params:
+                donorDesignPage(params)
+            elif "pam" in params:
                 primerDetailsPage(params)
             elif "otPrimers" in params:
                 otPrimerPage(params)
@@ -12298,18 +12418,27 @@ def processCustomInsertSeq(startSeq, endSeq):
     """
 
 
-def getInsertSeq(params, tagOrder):
+def getInsertSeq(linkerSeq, tagSeq, markerSeq, cassetteSeq, qTag, insertPos):
     "from a tag and a linker sequence, return the insert sequence to be used for the HDR donor"
 
-    tagSeq = params["tagseq"]
-    linkerSeq = params["linkerseq"]
+    loxSeq = "lox"
 
-    if tagOrder == "tagFirst":
-        insertSeq = tagSeq + linkerSeq
-    else:
-        insertSeq = linkerSeq + tagSeq
+    if (linkerSeq and tagSeq) or (linkerSeq and tagSeq and markerSeq and cassetteSeq and qTag):
+        if insertPos == "Nter":
+            insertSeq = taggingSeqs[tagSeq] + taggingSeqs[linkerSeq]
+            tagNames = [tagSeq, linkerSeq]
+        else:
+            insertSeq = linkerSeq + tagSeq
+            tagNames = [linkerSeq, tagSeq]
+    elif markerSeq and cassetteSeq and qTag:
+        if insertPos == "Nter":
+            insertSeq = taggingSeqs[loxSeq] + taggingSeqs[markerSeq] + taggingSeqs[cassetteSeq] + taggingSeqs[loxSeq] + taggingSeqs[qTag]
+            tagNames = [loxSeq, markerSeq, cassetteSeq, loxSeq, qTag]
+        else:
+            insertSeq = taggingSeqs[qTag] + taggingSeqs[loxSeq] + taggingSeqs[cassetteSeq] + taggingSeqs[markerSeq] + taggingSeqs[loxSeq]
+            tagNames = [qTag, loxSeq, cassetteSeq, markerSeq, loxSeq]
 
-    return insertSeq
+    return tagNames, insertSeq
 
 
 def getExonsFromID(geneId, org, pam, method, flankLen=None):
@@ -12518,7 +12647,7 @@ def writeDonorSeq(org, seq, posStr, batchId):
         seq = getSeq(org, posStr)
 
         # Annotation of START and STOP codons (uppercase)
-        if len(seq) == 2 * insertIdx:
+        if kiType == "tagging":
             if (
                 insertPos == "Nter"
                 and seq[insertIdx - 3: insertIdx].upper() in codonTable["M"]
@@ -12573,7 +12702,8 @@ def writeDonorSeq(org, seq, posStr, batchId):
 def getTargetSeq(params):
     """Used in knock-in mode : from a geneID or a sequence,
     returns the target sequence or coordinates (str),
-    and the insert position index on the target sequence (int, 0 based)
+    the insert position index on the target sequence (int, 0 based),
+    and the gene model
     """
 
     insertpos = params.get("insertpos")
@@ -12600,6 +12730,7 @@ def getTargetSeq(params):
 
     elif geneId:
         chrom, strand, exons = getGenePos(geneId, org, method="allExons", flankLen=0)
+        geneModel = getGeneModel(exons, strand)
         start, end = exons[0] if insertpos == "Nter" else exons[-1]
         isStart = (insertpos == "Nter" and strand == "+") or (
             insertpos == "Cter" and strand == "-"
@@ -12617,7 +12748,7 @@ def getTargetSeq(params):
         targetSeq = None
         insertIdx = targetHalfLen
 
-    return targetSeq, targetPos, insertIdx
+    return targetSeq, targetPos, insertIdx, geneModel
 
 
 def checkCoords(start, end, org, chrom, insertCoord=None):
@@ -13453,12 +13584,12 @@ def printDropDown(name, nameValList, default, onChange=None, style=None):
     print("</select>")
 
 
-def findGuideSeq(inSeq, pam, pamId, exonId=None):
+def findGuideSeq(inSeq, pam, pamId, exonId=None, pamFullName=None):
     """given the input sequence and the pamId, return the guide sequence,
     the sequence with the pam and its strand.
     """
     startDict, endSet = findAllPams(inSeq, pam)
-    pamInfo = list(flankSeqIter(inSeq, startDict, len(pam), False, exonId))
+    pamInfo = list(flankSeqIter(inSeq, startDict, len(pam), False, exonId=exonId, pamFullName=pamFullName))
     for (
         guidePamId,
         pamStart,
@@ -13475,12 +13606,12 @@ def findGuideSeq(inSeq, pam, pamId, exonId=None):
         if pamIsFirst:
             guideSeqHtml = "<i>%s</i> %s" % (
                 guideSeqWPam[: len(pam)].upper(),
-                guideSeqWPam[len(pam) :].upper(),
+                guideSeqWPam[len(pam):].upper(),
             )
         else:
             guideSeqHtml = "%s <i>%s</i>" % (
                 guideSeqWPam[: -len(pam)].upper(),
-                guideSeqWPam[-len(pam) :].upper(),
+                guideSeqWPam[-len(pam):].upper(),
             )
         guideEnd = guideStart + GUIDELEN
         return (
@@ -13876,6 +14007,10 @@ def printCloningSection(batchId, primerGuideName, guideSeq, params, pam):
         % primerType
     )
 
+    print(
+        "<p>Note: this sequence should only be used to synthetize guides for spCas9. The tracr sequence will vary if you are using a different enzyme.</p>"
+    )
+
     printPrimerTable(primers["T7iv"])
 
     print(
@@ -14040,6 +14175,7 @@ def primerDetailsPage(params):
     """
     # retrieve batch information
     batchId, pamId, pam = params["batchId"], params["pamId"], params["pam"]
+
     pam = setupPamInfo(pam)
 
     (
@@ -14058,9 +14194,16 @@ def primerDetailsPage(params):
     batchInfo = readBatchAsDict(batchId)
     exonSeqs = batchInfo.get("exonSeqs")
 
-    # get the exonID  and its sequence if in multiseq mode
+    # get the pam in multipam mode
+    pamPrefix = pamId.split('.')[0]
+    if pamPrefix not in ['0-9']:
+        pamFullName = pamPrefix
+        pam = setupPamInfo(pamFullName)
+    else:
+        pamFullName = None
+    # get the exonID and its sequence if in multiseq mode
     if exonSeqs:
-        exonId = int(pamId.split(".")[0])
+        exonId = int(pamPrefix)
         for exonInfo in exonSeqs:
             if exonInfo[0] == exonId:
                 inSeq = exonInfo[1]
@@ -14080,7 +14223,7 @@ def primerDetailsPage(params):
         guideSeqHtml,
         guideStart,
         guideEnd,
-    ) = findGuideSeq(inSeq, pam, pamId, exonId)
+    ) = findGuideSeq(inSeq, pam, pamId, exonId, pamFullName)
 
     # search for restriction enzymes that overlap the mutation site
     allEnzymes = readRestrEnzymes()
@@ -14089,7 +14232,7 @@ def primerDetailsPage(params):
     )
 
     # create a more human readable name of this guide
-    if exonSeqs:
+    if exonSeqs or pamFullName:
         guidePos = int(pamId.split(".")[1].strip("s+-")) + 1
     else:
         guidePos = int(pamId.strip("s+-")) + 1
@@ -14274,6 +14417,122 @@ def primerDetailsPage(params):
     print("<hr>")
 
     print("</div>")
+
+
+def donorDesignPage(params):
+   
+    batchId = params["batchId"]
+    pamId = params["pamId"]
+    pamFullName = pamId.split(".")[0]
+    pam = setupPamInfo(pamFullName)
+
+    batchInfo = readBatchAsDict(batchId)
+    insertSeq = batchInfo["insertseq"]
+    inSeq = batchInfo["seq"]
+    geneId = batchInfo.get("koGeneId")
+    insertPos = batchInfo.get("insertpos")
+    geneModel = batchInfo.get("geneModel")
+    kiType = batchInfo["kiType"]
+    tagNames = batchInfo.get["tagNames"]
+
+    (
+        guideSeq,
+        pamSeq,
+        pamPlusSeq,
+        guideSeqWPam,
+        guideStrand,
+        guideSeqHtml,
+        guideStart,
+        guideEnd,
+    ) = findGuideSeq(inSeq, pam, pamId, pamFullName=pamFullName)
+    printBackLink()
+
+    print("""
+    <script>
+    function updateValues(source, val, cursor, text) {
+        let numVal = parseInt(val);
+        if (isNaN(numVal) || numVal < 50 || numVal > 2000) {
+            if (source === 'range') {
+                numVal = Math.max(150, Math.min(1200, numVal));
+            } else {
+                return;
+            }
+        }
+        document.getElementById(cursor).value = numVal;
+        document.getElementById(text).value = numVal;
+        document.querySelector('output').value = numVal;
+    }
+
+    function clampValue(el) {
+        let val = parseInt(el.value)
+        if (isNaN(val)) {
+            val = 800;
+        }
+        val = Math.max(50, Math.min(2000, val));
+        el.value = val;
+        updateValues('number', val);
+    }
+
+    // prevents the form from submitting if the enter key is pressed
+    function handleEnter(event) {
+        if (event.keyCode === 13) {
+            event.preventDefault();
+            event.target.blur();
+        }
+    }
+    </script>
+    """)
+    print(
+            """<div style='width: 80%; margin-top: 54px; margin-left:10%; margin-right:10%; text-align:left;'>"""
+    )
+
+    print("""<h2>guide Sequence : %s</h2>""" % guideSeqHtml)
+    print("<hr>")
+
+    if geneModel:
+        if "ENST" in geneId:
+            transcriptUrl = """<a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a>""" % (geneId, geneId)
+        else:
+            transcriptUrl = """<a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="blank">%s</a>""" % (geneId, geneId)
+        print("<h2>Transcript : %s</h2>" % transcriptUrl)
+        if insertPos == "Nter":
+            insertText = "N-terminal"
+        elif insertPos == "Cter":
+            insertText = "C-terminal"
+
+        print("<p>Insertion of a %sbp sequence in %s</p>" % (len(insertSeq), insertText))
+        exonSeqsPlaceholder = []
+        printGeneModel(geneModel, exonSeqsPlaceholder, pam, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
+
+    print("<form>")
+
+    print("""
+         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:3;">
+        <div style="display:flex;">
+           <p>Enter the length of the homology arms to design the donor DNA&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</p>
+            <div>
+                <input type="radio" checked name="donorType" value="ds" autocomplete="off"/>Double strand Donor<br>
+                <input type="radio" name="donorType" value="ss" autocomplete="off"/>Single strand Donor<br>
+            </div>
+        </div>
+        5' homology arm
+       <div style="margin-top:32px; display:flex; gap:12px;">
+            <input type="range" id="arm5Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%;">
+            <input type="number" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+        </div>
+        <br>
+        3' homology arm
+       <div style="margin-top:32px; display:flex; gap:12px;">
+            <input type="range" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%;">
+            <input type="number" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+
+        </div>
+        </div>
+        </div>""")
+
+    print("""<button style="align-self:center;" type="submit" name="submit" value="SUBMIT">Design Donor DNA</button>""")
+    print("</div>")
+    print("</form>")
 
 
 def runTests():
