@@ -736,6 +736,22 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## global
 
 - ajout d'un message d'avertissement sur la page cloning / primers : tracr varie en fonction de l'enzyme
+
 ## knock-in mode
 
 - correction du bug de la page clonig / primers en mode knock-in
+- affichage du geneModel (si applicable) dans la page du design ADN donneur + affichage de l'insertion sur le geneModel
+- ajout du mode délétion : détection de la délétion dans la séquence d'input et modification de l'affichage des résultats
+- changement de la fenêtre de recodage en mode délétion
+- correction bug : décalage de l'affichage de la base substituée si subtitution proche des extrémités de la séquence
+
+## notes
+- design donneur
+    - proposer la séquence le donneur sous forme de plasmide ?
+        - insérer target sgRNA de part et d'autre du donneur
+    - ou ajout de biotine, amino-dT ou carbon spacers en 5'
+        - évite multimérisation -> augmente efficacité (https://doi.org/10.1016/j.omtn.2024.102344) 
+
+## à faire
+
+- intersecion fenêtre recodage / fenêtre délétion

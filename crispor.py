@@ -11,7 +11,7 @@ import subprocess, tempfile, optparse, logging, atexit, glob, shutil, signal, pd
 import http.cookies, time, sys, cgi, re, random, platform, os, pipes, html
 import hashlib, base64, string, logging, operator, urllib.request, urllib.parse, urllib.error, time
 import traceback, json, pwd, gzip, zlib
-import math
+import math, difflib
 
 from io import StringIO
 from collections import defaultdict, namedtuple
@@ -589,7 +589,33 @@ taggingSeqs = {
         "none": ""
         }
 
-
+tagToColor = {
+        "eGFP": "#66ff33",
+        "Streptavidin": "#ffff99",
+        "(GGGGS)x2": "#ffff66",
+        "XTEN": "#ffff66",
+        "Blast": "#bfbfbf",
+        "Puro": "#bfbfbf",
+        "Zeo": "#bfbfbf",
+        "moxGFP": "#66ff33",
+        "mScarlet": "#ff3300",
+        "2A": "#bfbfbf",
+        "EF1": "#bfbfbf",
+        "mStrayGold": "#ffcc66",
+        "mNeon": "#99ff66",
+        "moxGFP": "#66ff33",
+        "mScarlet": "#ff3300",
+        "sTagRFP": "#ff3300",
+        "miRFP670nano3": "#ff3300",
+        "miniTurbo": "#bfbfbf",
+        "ultraID": "#bfbfbf",
+        "dTAG": "#bfbfbf",
+        "FLAG": "#bfbfbf",
+        "HA": "#bfbfbf",
+        "V5": "#bfbfbf",
+        "lox": "#bfbfbf",
+        "none": "#bfbfbf"
+        }
 # labels and descriptions of eff. scores
 scoreDescs = {
     "doench": (
@@ -1845,7 +1871,7 @@ def getSelGeneModel(org):
 
     if geneModels:
         # selGeneModel = cgiParams.get("geneModel", geneModels[0][0])
-        selGeneModel = cgiParams.get("geneModel", "noGenes")
+        selGeneModel = cgiParams.get("geneModelSelection", "noGenes")
         geneModels.insert(0, ("noGenes", "Do not show"))
         possNames = [x for x, y in geneModels]
         if not selGeneModel in possNames:
@@ -2187,7 +2213,7 @@ def showSeqAndPams(
         pamList = multiPamInfo[0]
         insertIdx = multiPamInfo[1]
         kiType = multiPamInfo[2]
-        substBase = multiPamInfo[3]
+        insertSeq = multiPamInfo[3]
         pamSeqs = []
         allPamLines = []
         for pamFullName in pamList:
@@ -2216,6 +2242,8 @@ def showSeqAndPams(
     if multiPamInfo:
         if kiType == "substitution":
             insertLabel = "substitution"
+        elif kiType == "deletion":
+            insertLabel = "deletion"
         else:
             insertLabel = "Insertion site"
     else:
@@ -2301,7 +2329,7 @@ def showSeqAndPams(
 
     if geneModels:
         print("Gene Models:")
-        printDropDown("geneModel", geneModels, selGeneModel, style="width:20em")
+        printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em")
         if selGeneModel != "noGenes":
             print("Transcript:")
             transIdInfo = [("allTrans", "All Transcripts")]
@@ -2389,12 +2417,16 @@ def showSeqAndPams(
     if multiPamInfo:
         if kiType == "substitution":
             rangeChar = ' '
-            insertChar = ' %s' % substBase
+            insertChar = ' %s' % insertSeq
+        elif kiType == "deletion":
+            delRange = ''.join(["x" for i in range(len(insertSeq))])
+            rangeChar = '-'
+            insertChar = "\%s/" % delRange
         else:
             rangeChar = '-'
             insertChar = '\/'
 
-        leftRange = 15 if insertIdx > 15 else insertIdx
+        leftRange = 15 if insertIdx > 15 else insertIdx - 1
         leftOptRange = "".join([rangeChar for i in range(leftRange)])
 
         rightRange = 15 if len(seq) - insertIdx > 15 else len(seq) - insertIdx
@@ -3529,6 +3561,15 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
             cutPos = pamStart - 3
         else:
             cutPos = guideStart + 4
+    if kiType == "deletion":
+
+        # not functional yet
+        deletionEnd = insertIdx + len(insertSeq)
+        cutInGuide = (insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd) or \
+            (deletionEnd >= guideWindowStart and deletionEnd <= guideWindowEnd)
+        cutInPam = (insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd) or \
+            (deletionEnd >= pamWindowStart and deletionEnd <= pamWindowEnd)
+
     cutInGuide = insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd
     cutInPam = insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd
 
@@ -3539,7 +3580,6 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
         if strand == "-":
             pamPat = revComp(pamPat)
         pamBase = pamPat[editPos]
-        print(pamPat, pamBase, editPos)
         if pamBase == "N" or (pamBase == "R" and insertSeq in ["G", "A"]) or (pamBase == "Y" and insertSeq in ["C", "T"]) or (pamBase == "V" and insertSeq in ["G", "C", "A"]):
             doRecoding = True
         else:
@@ -3555,6 +3595,8 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
             pamBase = pamPat[editPos:]
             if insertSeq[0:len(pamBase)] == pamBase:
                 doRecoding = True
+            else:
+                doRecoding = False
         else:
             doRecoding = True
     else:
@@ -8598,6 +8640,8 @@ def parseAndPrintMultiPamInfo(params, batchId):
 
     if kiType == "substitution":
         seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
+    elif kiType == "deletion":
+        seqMsg = "%dbp deletion" % (len(batchInfo["insertseq"]))
     else:
         seqMsg = "knock-in of a %s bp sequence" % len(batchInfo["insertseq"])
 
@@ -8619,8 +8663,6 @@ def parseAndPrintMultiPamInfo(params, batchId):
         """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
         % (dbInfo.scientificName, seqMsg, transcriptUrl)
     )
-
-    showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType)
 
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
@@ -8991,6 +9033,19 @@ function toggleExonSeq(selectedValue) {
             """
     )
 
+    # scroll to the stop codon for insertions in C-terminal
+    if insertPos == "Cter":
+        print(
+            """
+            <script>
+            window.addEventListener('DOMContentLoaded', function() {
+              const div = document.getElementById('geneModel');
+                div.scrollLeft = div.scrollWidth - div.clientWidth;
+                });
+            </script>
+            """
+            )
+
     if exonSeqs:
         print(
             """<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides, or
@@ -9006,7 +9061,7 @@ function toggleExonSeq(selectedValue) {
             )
 
     print(
-        """ <div style="
+        """ <div id="geneModel" style="
           overflow-x:scroll;
           display:flex;
           align-items:center;
@@ -9018,11 +9073,62 @@ function toggleExonSeq(selectedValue) {
     )
     currentLen = 0
 
-    if tagNames:
+    if kiType and insertPos:
         tagSeqList = []
-        for tagName in tagNames:
-            tagSeq = taggingSeqs[tagName]
-            tagSeqList.append((tagName, tagSeq))
+        tagBoxes = []
+        if tagNames:
+            for tagName in tagNames:
+                tagSeq = taggingSeqs[tagName]
+                tagSeqList.append((tagName, tagSeq))
+            for tagName, tagSeq in tagSeqList:
+                color = tagToColor[tagName]
+                tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
+                if len(tagSeq) < 50:
+                    tagName = ""
+
+                tagBox = (
+                    """<div
+                    %s
+                    style="
+                    width:%dpx;
+                    height: 25px;
+                    border: 0.5px solid gray;
+                    background-color: %s;
+                    text-align:center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    ">
+                    %s
+                    </div> """
+                    % (tagMouseOver, len(tagSeq), color, tagName)
+                    )
+                tagBoxes.append(tagBox)
+        else:
+            insertSeqText = "%s bp sequence" % len(insertSeq)
+            tagMouseOver = 'class="tooltipsterInteract" title="%s"' % insertSeqText
+
+            if len(insertSeq) < 50:
+                insertSeqText = ""
+            tagBox = (
+                    """<div
+                    %s
+                    style="
+                    width:%dpx;
+                    height: 25px;
+                    border: 0.5px solid gray;
+                    background-color: #ffff66;
+                    text-align:center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    ">
+                    %s
+                    </div> """ % (tagMouseOver, len(insertSeq), insertSeqText)
+                    )
+            tagBoxes.append(tagBox)
 
     for i, feature in enumerate(geneModel):
 
@@ -9034,28 +9140,9 @@ function toggleExonSeq(selectedValue) {
         if i == 0:
             print("<small>CDS start&nbsp&nbsp</small>")
 
-            if kiType and insertPos == "Nter":
-                if tagNames:
-                    for tagName, tagSeq in tagSeqList:
-                        print(
-                        """<div
-                        style="
-                        width:%dpx;
-                        height: 25px;
-                        border: 0.5px solid gray;
-                        background-color: #eeeeee;
-                        text-align:center;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                        ">
-                        %s
-                        </div> """
-                        % (len(tagSeq), tagName)
-                        )
-
-
+        if i == 0 and kiType and insertPos == "Nter":
+            for tagBox in tagBoxes:
+                print(tagBox)
         if featureType == "exon":
             currentLen += length
             if i == 0:
@@ -9200,6 +9287,9 @@ function toggleExonSeq(selectedValue) {
                   "></div> """
             )
         if i == len(geneModel) - 1:
+            if kiType and insertPos == "Cter":
+                for tagBox in tagBoxes:
+                    print(tagBox)
             print("<small>&nbsp&nbspCDS end</small>")
 
     print("</div><br>")
@@ -12119,7 +12209,7 @@ function changeSeqCase(value) {
                             <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
                         </div>
                     </div>
-                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. The edits should be in uppercase. Substitution and insertion are supported. Inserting sequences at multiple positions is not supported."></textarea>
+                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits (insertions or substitutions) should be in uppercase, with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
                 </div>
 
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
@@ -12215,7 +12305,11 @@ def printBody(params):
                     elif kiType == "multiInsert":
                         printCrisporBodyStart()
                         print("<p>Multiple insertions are currenlty not supported</p>")
-
+                    elif kiType == "multiDel":
+                        printCrisporBodyStart()
+                        print("<p>Multiple deletions are currently not supported</p>")
+                    elif kiType == "longDel":
+                        print("<p>Deletions larger than 500bp are currently not supported</p>")
                     else:
                         # don't forget to cleanSeq()
                         params["kiType"] = kiType
@@ -12350,6 +12444,58 @@ def processCustomInsertSeq(startSeq, endSeq):
         doProcess = True
     elif len(startSeq) - len(noEditEndSeq) == 1 and len(startSeq) == len(endSeq):
         doProcess = True
+    elif noEditEndSeq == endSeq and len(endSeq) < len(startSeq):
+        kiType = "deletion"
+        # old code : manual alignement
+        # doesn't work when the deletion is part of a repeated sequence
+
+        """
+        startSeqIdx = 0
+        endSeqIdx = 0
+        deletions = []
+        currentDeletion = []
+
+        while startSeqIdx < len(startSeq) and endSeqIdx < len(endSeq):
+            if startSeq.lower()[startSeqIdx] == endSeq[endSeqIdx]:
+                if currentDeletion:
+                    deletions.append(''.join(currentDeletion))
+                    currentDeletion = []
+                startSeqIdx += 1
+                endSeqIdx += 1
+            else:
+                if len(deletions) == 0 and len(currentDeletion) == 0:
+                    insertIdx = startSeqIdx
+                currentDeletion.append(startSeq.lower()[startSeqIdx])
+                startSeqIdx += 1
+        if currentDeletion:
+            deletions.append(''.join(currentDeletion))
+        print(deletions)
+        """
+
+        # new code : using difflib
+
+        matcher = difflib.SequenceMatcher(a=startSeq.lower(), b=endSeq.lower(), autojunk=False)
+        deletions = []
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag == 'delete':
+                deletions.append({'start': i1, 'seq': startSeq[i1:i2]})
+
+        if len(deletions) == 1:
+            deletion_info = deletions[0]
+            insertIdx = deletion_info['start']
+            insertSeq = deletion_info['seq']
+
+            # insertSeq = ''.join(deletions)
+
+            if len(insertSeq) > 500:
+                return "longDel", None, None
+            else:
+                return kiType, insertIdx, insertSeq
+        elif len(deletions) > 1:
+            return "multiDel", None, None
+        else:
+            return None, None, None
+
     elif len(startSeq) - len(noEditEndSeq) > 1:
         kiType = "replacement"
         return kiType, None, None
@@ -12428,8 +12574,9 @@ def getInsertSeq(linkerSeq, tagSeq, markerSeq, cassetteSeq, qTag, insertPos):
             insertSeq = taggingSeqs[tagSeq] + taggingSeqs[linkerSeq]
             tagNames = [tagSeq, linkerSeq]
         else:
-            insertSeq = linkerSeq + tagSeq
+            insertSeq = taggingSeqs[linkerSeq] + taggingSeqs[tagSeq]
             tagNames = [linkerSeq, tagSeq]
+
     elif markerSeq and cassetteSeq and qTag:
         if insertPos == "Nter":
             insertSeq = taggingSeqs[loxSeq] + taggingSeqs[markerSeq] + taggingSeqs[cassetteSeq] + taggingSeqs[loxSeq] + taggingSeqs[qTag]
@@ -14420,7 +14567,7 @@ def primerDetailsPage(params):
 
 
 def donorDesignPage(params):
-   
+
     batchId = params["batchId"]
     pamId = params["pamId"]
     pamFullName = pamId.split(".")[0]
@@ -14433,7 +14580,8 @@ def donorDesignPage(params):
     insertPos = batchInfo.get("insertpos")
     geneModel = batchInfo.get("geneModel")
     kiType = batchInfo["kiType"]
-    tagNames = batchInfo.get["tagNames"]
+    tagNames = batchInfo.get("tagNames")
+    donorSeq = batchInfo.get("donorSeq")
 
     (
         guideSeq,
@@ -14499,6 +14647,8 @@ def donorDesignPage(params):
             insertText = "N-terminal"
         elif insertPos == "Cter":
             insertText = "C-terminal"
+
+        showDonor(donorSeq)
 
         print("<p>Insertion of a %sbp sequence in %s</p>" % (len(insertSeq), insertText))
         exonSeqsPlaceholder = []
