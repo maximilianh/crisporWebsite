@@ -746,6 +746,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - correction bug : décalage de l'affichage de la base substituée si subtitution proche des extrémités de la séquence
 
 ## notes
+
 - design donneur
     - proposer la séquence le donneur sous forme de plasmide ?
         - insérer target sgRNA de part et d'autre du donneur
@@ -754,4 +755,52 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire
 
-- intersecion fenêtre recodage / fenêtre délétion
+- intersecion fenêtre recodage / fenêtre délétion mal calculée
+
+# 19/02/26
+
+- docker reset sur config root au démarrage! -> dockerd-rootless-setuptool.sh
+
+## knock-in mode
+
+- correction : en mode délétion, les guides dont le site de coupure est situé dans la délétion ont une insertDistance de 0
+- correction : le changement de l'effscore pour le calcul du global score fonctionne en mode knock-in
+- correction du chevauchement fenêtre de recodage du guide avec intervalle de la délétion
+
+## notes
+
+- structure prot -> préférence insertion Nter / Cter
+- recodage : effets sur l'épissage
+- input sq protéique (pour tagging)
+- alphaGenome / VEP (ensembl)
+- recodage entre site d'insertion / site de coupure
+- ko par délétion du promoteur
+
+# 20/02/26
+
+## divers
+
+- retrait de l'input "longueur des bras d'homologie" dans le formulaire knock-in
+
+## knock-in mode
+
+- formulaire design donor DNA
+    - sélection ssODN / dsODN
+    - si ssODN : 
+        - choix du brin template
+        - réduction de la longueur max des bras d'homologie (20 -> 200 - taille insert)
+        - ajustement dynamique de la longueur des bras d'homologie afin que la taille max du ssODN de dépasse pas 200
+    - sélection un nombre de design
+    - sélection de la longueur des bras d'homologie (5' et 3')
+    - options de recodage (PAM / guide / entre coupure-insertion / homopolymères / GC rich / repeat)
+
+## à faire
+
+- affichage gene model -> sélection longueur bras d'homologie sur gene model (éventuellement)
+- enlever sélection PAM dans tableHead en mode knock-in
+- option : recode only in coding seq
+- "Recode between the cut site and insertion site" : reformuler
+- symbole warning gif
+- afficher lien ucsc correspondnat au bras d'homologie
+- si pas de geneID -> annoter sq avec exons : ne pas recoder 5'UTR et splicing sites
+- minVal à -564 pour si ssODN sélectionné ?!

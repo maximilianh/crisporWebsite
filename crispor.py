@@ -591,7 +591,7 @@ taggingSeqs = {
 
 tagToColor = {
         "eGFP": "#66ff33",
-        "Streptavidin": "#ffff99",
+        "Streptavidin": "#bfbfbf",
         "(GGGGS)x2": "#ffff66",
         "XTEN": "#ffff66",
         "Blast": "#bfbfbf",
@@ -2422,6 +2422,7 @@ def showSeqAndPams(
             delRange = ''.join(["x" for i in range(len(insertSeq))])
             rangeChar = '-'
             insertChar = "\%s/" % delRange
+            insertIdx += 1
         else:
             rangeChar = '-'
             insertChar = '\/'
@@ -3545,12 +3546,11 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
     pamWindowEnd = pamStart + len(pamSeq) - 1
 
     if strand == "+":
-        guideWindowStart = guideStart
-        guideWindowEnd = guideStart + 15 - 1
+        guideWindowStart = guideStart + (len(guideSeq) - 15)
+        guideWindowEnd = guideStart + len(guideSeq)
     else:
-        guideWindowStart = guideStart + len(guideSeq) - 15
-        guideWindowEnd = guideStart + len(guideSeq) - 1
-
+        guideWindowStart = guideStart
+        guideWindowEnd = guideStart + 15
     if pamIsFirst:
         if strand == "+":
             cutPos = guideStart + 19
@@ -3561,17 +3561,22 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
             cutPos = pamStart - 3
         else:
             cutPos = guideStart + 4
+
     if kiType == "deletion":
-
-        # not functional yet
         deletionEnd = insertIdx + len(insertSeq)
-        cutInGuide = (insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd) or \
-            (deletionEnd >= guideWindowStart and deletionEnd <= guideWindowEnd)
-        cutInPam = (insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd) or \
-            (deletionEnd >= pamWindowStart and deletionEnd <= pamWindowEnd)
 
-    cutInGuide = insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd
-    cutInPam = insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd
+        # overlap between guide recoding window / pam and deletion
+        # deletion start overlaps guide seq \ guide seq in deletion \ deletion end overlaps guide seq
+        cutInGuide = (insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd) or \
+            (insertIdx <= guideWindowStart and deletionEnd >= guideWindowEnd) or \
+            (deletionEnd >= guideWindowStart and deletionEnd <= guideWindowEnd)
+
+        cutInPam = (insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd) or \
+            (insertIdx <= pamWindowStart and deletionEnd >= pamWindowEnd) or \
+            (deletionEnd >= pamWindowStart and deletionEnd <= pamWindowEnd)
+    else:
+        cutInGuide = insertIdx >= guideWindowStart and insertIdx <= guideWindowEnd
+        cutInPam = insertIdx >= pamWindowStart and insertIdx <= pamWindowEnd
 
     # check if the substitution alters the pam sequence
     if kiType == "substitution" and cutInPam:
@@ -3602,8 +3607,22 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
     else:
         doRecoding = True
 
-    insertDistance = abs(insertIdx - cutPos)
-    return insertDistance, doRecoding
+    # insertDistance should be 0 if the cut site is whithin the deletion
+    if kiType == "deletion":
+        if cutPos > insertIdx and cutPos < deletionEnd:
+            insertDistance = 0
+            cutUpstream = True
+        elif cutPos <= insertIdx:
+            insertDistance = insertIdx - cutPos
+            cutUpstream = True
+        elif cutPos >= deletionEnd:
+            insertDistance = cutPos - deletionEnd
+            cutUpstream = False
+    else:
+        insertDistance = abs(insertIdx - cutPos)
+        cutUpstream = insertIdx - cutPos >= 0
+
+    return insertDistance, doRecoding, cutUpstream
 
 
 def mergeGuideInfo(
@@ -3687,13 +3706,14 @@ def mergeGuideInfo(
 
         # in knock-in mode, get the distance between cut site and insertion site
         if insertIdx is not None:
-            insertDistance, doRecoding = calcInsertDistance(
+            insertDistance, doRecoding, cutUpstream = calcInsertDistance(
                 insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand, kiType, insertSeq, pamPat
             )
             effScoring["insertDistance"] = insertDistance
         else:
             insertDistance = None
             doRecoding = None
+            cutUpstream = None
 
         if effScoring:
             mainScore = calcGlobScore(
@@ -3728,6 +3748,7 @@ def mergeGuideInfo(
             gcFrac,
             freeEnergy,
             doRecoding,
+            cutUpstream,
             mainScore,
         ]
         guideData.append(guideRow)
@@ -4099,7 +4120,7 @@ def printTableHead(
 
     if pamFullName:
         print(
-            """ <th style="width:110px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="Click to sort this table by this distance (default)">Distance between cut site and insertion site</a><br></th>"""
+            """ <th style="width:110px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1). Click to sort this table by this distance (default)">Distance between cut site and insertion site</a><br></th>"""
             % batchId
         )
         isDefaultText = ""
@@ -4479,6 +4500,7 @@ def showGuideTable(
             gcFrac,
             freeEnergy,
             doRecoding,
+            cutUpstream,
             mainScore,
         ) = guideRow
 
@@ -4664,8 +4686,8 @@ def showGuideTable(
         if pamFullName:
             print(
                 (
-                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
-                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding)
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
+                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream)
                 )
             )
             print("<br>")
@@ -7383,7 +7405,6 @@ def newMultiPamBatch(
     multipam,
     insertSeq,
     insertIdx,
-    armLen,
     assist=None,
     koGeneId=None,
     insertPos=None,
@@ -7392,11 +7413,10 @@ def newMultiPamBatch(
     geneModel=None
 ):
 
-    donorStr = str(armLen + insertIdx)
     if seq:
-        concatSeq = seq + donorStr + insertSeq
+        concatSeq = seq + insertSeq + str(insertIdx)
     else:
-        concatSeq = posStr + donorStr + insertSeq
+        concatSeq = posStr + insertSeq + str(insertIdx)
 
     batchId = makeTempBase(concatSeq, org, multipam, batchName)
     batchBase = join(batchDir, batchId)
@@ -7413,7 +7433,6 @@ def newMultiPamBatch(
         batchData["multipam"] = multipam
         batchData["insertseq"] = insertSeq
         batchData["insertIdx"] = insertIdx
-        batchData["armLen"] = armLen
         batchData["batchName"] = batchName
         batchData["assist"] = assist
         if koGeneId:
@@ -8352,7 +8371,6 @@ def crisprSearch(params):
                 insertSeq, warnMsg = cleanSeq(params["insertseq"], org)
                 insertIdx = int(params["insertIdx"])
                 kiType = params.get("kiType")
-                armLen = int(params["armLen"])
                 tagNames = params.get("tagNames")
                 batchId = newMultiPamBatch(
                     newBatchName,
@@ -8362,7 +8380,6 @@ def crisprSearch(params):
                     multipam,
                     insertSeq,
                     insertIdx,
-                    armLen,
                     assist,
                     koGeneId,
                     insertPos,
@@ -8615,8 +8632,6 @@ def parseAndPrintMultiPamInfo(params, batchId):
     uppSeq = seq.upper()
     dbInfo = readDbInfo(org)
     multipam = batchInfo["multipam"]
-    armLen = batchInfo["armLen"]
-    donorSeq = batchInfo["donorSeq"]
     insertIdx = batchInfo["insertIdx"]
     insertPos = batchInfo["insertpos"]
     geneId = batchInfo.get("koGeneId")
@@ -8630,6 +8645,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
 
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId, multipam=multipam)
+    globEffScore = params.get("globEffScore", "rs3")
 
     pamList = multiPamDict[multipam]
     chrom, start, end, strand = parsePos(posStr)
@@ -8664,6 +8680,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
         % (dbInfo.scientificName, seqMsg, transcriptUrl)
     )
 
+
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
         startDict, endSet = findAllPams(uppSeq, pam)
@@ -8678,7 +8695,7 @@ def parseAndPrintMultiPamInfo(params, batchId):
             sortBy,
             org=org,
             exonId=None,
-            globEffScore="rs3",
+            globEffScore=globEffScore,
             pamFullName=pamFullName,
             insertIdx=insertIdx,
             kiType=kiType,
@@ -8756,13 +8773,15 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
           """
     )
 
-    print("Below is the unmodified donor DNA sequence to be used as a HDR template")
+    print("Here is the unmodified donor DNA sequence : ")
+
     print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
     print(
         """<button onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>"""
     )
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
 
+    '''
     print(
         """<div style="
           display:flex;
@@ -8799,6 +8818,7 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
     print("""<div style="box-sizing: border-box; heigth: 1px; width:%s; border: 1px solid black;"></div>""" % rightLen*100)
     print("<p>3'</p>")
     print("</div>")
+    '''
 
 
 def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
@@ -9083,7 +9103,7 @@ function toggleExonSeq(selectedValue) {
             for tagName, tagSeq in tagSeqList:
                 color = tagToColor[tagName]
                 tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
-                if len(tagSeq) < 50:
+                if len(tagSeq) < 25:
                     tagName = ""
 
                 tagBox = (
@@ -9106,7 +9126,7 @@ function toggleExonSeq(selectedValue) {
                     )
                 tagBoxes.append(tagBox)
         else:
-            insertSeqText = "%s bp sequence" % len(insertSeq)
+            insertSeqText = "%s bp" % len(insertSeq)
             tagMouseOver = 'class="tooltipsterInteract" title="%s"' % insertSeqText
 
             if len(insertSeq) < 50:
@@ -12009,30 +12029,6 @@ def printKiForm(params):
             }
         }
 
-function updateValues(source, val) {
-    let numVal = parseInt(val);
-    if (isNaN(numVal) || numVal < 50 || numVal > 2000) {
-        if (source === 'range') {
-            numVal = Math.max(150, Math.min(1200, numVal));
-        } else {
-            return;
-        }
-    }
-    document.getElementById('armLen').value = numVal;
-    document.getElementById('armLenText').value = numVal;
-    document.querySelector('output').value = numVal;
-}
-
-function clampValue(el) {
-    let val = parseInt(el.value)
-    if (isNaN(val)) {
-        val = 800;
-    }
-    val = Math.max(50, Math.min(2000, val));
-    el.value = val;
-    updateValues('number', val);
-}
-
 // prevents the form from submitting if the enter key is pressed
 function handleEnter(event) {
     if (event.keyCode === 13) {
@@ -12078,7 +12074,7 @@ function changeSeqCase(value) {
         <input type=hidden name="expType" value="ki">
 
        <div style="display:flex; padding:12px;">
-       <div style="flex:1; display:flex; flex-direction:column;">
+       <div style="flex:1; display:flex; flex-direction:column; gap:21%;">
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:150px;">
             <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
@@ -12128,25 +12124,6 @@ function changeSeqCase(value) {
         <div style="margin-bottom: 6px;">
             <br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
         </div>
-        </div>""")
-
-    print("""
-         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:3;">
-            <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
-                Step 3
-            </div>
-        <div style="display:flex;">
-           <p>Enter the length of the homology arms to design the donor DNA&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</p>
-            <div>
-                <input type="radio" checked name="donorType" value="ds" autocomplete="off"/>Double strand Donor<br>
-                <input type="radio" name="donorType" value="ss" autocomplete="off"/>Single strand Donor<br>
-            </div>
-        </div>
-       <div style="margin-top:32px; display:flex; gap:12px;">
-            <input type="range" id="armLen" name="armLen" value="800" min="50" max="2000" oninput="updateValues('range', this.value)" style="width:80%;">
-            <input type="number" id="armLenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
-
-        </div>
         </div>
         </div>""")
 
@@ -12155,7 +12132,7 @@ function changeSeqCase(value) {
         <div style="flex:1; display:flex; flex-direction:column;">
         <div class="windowstep subpanel" style="width:100%; grid-column:2; grid-row:1;">
             <div class="title" style="cursor:pointer; margin-bottom:4px;" onclick="$('#helpstep3').toggle('fast')">
-                Step 4
+                Step 3
             </div>
             <div style="display:flex; align-items:center;">
                 Choose one of the following methods : &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
@@ -12196,7 +12173,7 @@ function changeSeqCase(value) {
         """
             <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:100%; grid-column:2; grid-row:2;">
                 <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
-                    Step 5
+                    Step 4
                 </div>
                 <div id="endSeqDisplay" style="display: block; margin-bottom:12px; margin-top:12px;">
                     <div style="display: flex; flex-direction: row;">
@@ -12771,16 +12748,14 @@ def formatExonPos(exons, chrom, strand, pamlen):
     return multiseq
 
 
-def writeDonorSeq(org, seq, posStr, batchId):
+def getPosAndSeq(org, seq, posStr, batchId):
     """from an insert position, writes the sequence of the donor DNA in the batch params.
     additionnaly, returns the formatted sequence and coordinates of the target region
     """
 
     batchInfo = readBatchAsDict(batchId)
-    insertSeq = batchInfo["insertseq"]
     insertPos = batchInfo.get("insertpos")
     insertIdx = batchInfo["insertIdx"]
-    armLen = batchInfo["armLen"]
     codonTable = buildCodonTable(key="aa")
     kiType = batchInfo.get("kiType")
     # input is a sequence
@@ -12821,6 +12796,24 @@ def writeDonorSeq(org, seq, posStr, batchId):
 
     chrom, start, end, strand = parsePos(posStr)
 
+    writeBatchAsDict(batchInfo, batchId)
+
+    return seq, posStr
+
+
+def writeDonorSeq(params):
+
+    batchId = params["batchId"]
+    org = params["org"]
+    batchInfo = readBatchAsDict(batchId)
+    posStr = batchInfo["posStr"]
+    insertIdx = batchInfo["insertIdx"]
+    armLen = batchInfo["armLen"]
+    kiType = batchInfo.get("kiType")
+    insertSeq = batchInfo.get("insertSeq")
+
+    chrom, start, end, strand = parsePos(posStr)
+
     if strand == "+":
         insertCoord = int(start + insertIdx)
     else:
@@ -12840,10 +12833,6 @@ def writeDonorSeq(org, seq, posStr, batchId):
 
     donorSeq = HAseqs[0:HA5len].lower() + insertSeq.upper() + HAseqs[HA3len:].lower()
     batchInfo["donorSeq"] = donorSeq
-
-    writeBatchAsDict(batchInfo, batchId)
-
-    return seq, posStr
 
 
 def getTargetSeq(params):
@@ -14570,6 +14559,8 @@ def donorDesignPage(params):
 
     batchId = params["batchId"]
     pamId = params["pamId"]
+    doRecoding = params["doRecoding"]
+    cutUpstream = params["cutUpstream"]
     pamFullName = pamId.split(".")[0]
     pam = setupPamInfo(pamFullName)
 
@@ -14582,6 +14573,18 @@ def donorDesignPage(params):
     kiType = batchInfo["kiType"]
     tagNames = batchInfo.get("tagNames")
     donorSeq = batchInfo.get("donorSeq")
+
+    maxssLen = 200 - len(insertSeq)
+
+    # from CRISPRdesigner : use the genomic strand if the cut site is downstream of the insertion site,
+    # use the reverse complement if the cut site is upstream of the insertion site
+
+    if cutUpstream:
+        nonTargetChecked = "checked"
+        targetChecked = ""
+    else:
+        nonTargetChecked = ""
+        targetChekced = "checked"
 
     (
         guideSeq,
@@ -14599,26 +14602,65 @@ def donorDesignPage(params):
     <script>
     function updateValues(source, val, cursor, text) {
         let numVal = parseInt(val);
-        if (isNaN(numVal) || numVal < 50 || numVal > 2000) {
-            if (source === 'range') {
-                numVal = Math.max(150, Math.min(1200, numVal));
-            } else {
-                return;
+        const donorType = document.querySelector('input[name="donorType"]:checked').value;
+        let minVal = 50;
+        let maxVal = 2000;
+        let maxTotal = 100000;
+
+        if (donorType === 'ss') {
+            minVal = 20;
+            maxVal = %(maxssLen)s - minVal;
+            maxTotal = %(maxssLen)s;
+        }
+
+        if (isNaN(numVal)) return;
+
+        // Clamp
+        if (numVal < minVal) numVal = minVal;
+        if (numVal > maxVal) numVal = maxVal;
+
+        if (donorType === 'ss') {
+            let isArm5 = (cursor.indexOf('arm5') !== -1);
+            let otherTextId = isArm5 ? 'arm3LenText' : 'arm5LenText';
+            let otherRangeId = isArm5 ? 'arm3Len' : 'arm5Len';
+
+            let otherVal = parseInt(document.getElementById(otherTextId).value);
+            if (isNaN(otherVal)) otherVal = minVal;
+
+            if (numVal + otherVal > maxTotal) {
+                let newOtherVal = maxTotal - numVal;
+                if (newOtherVal < minVal) {
+                    newOtherVal = minVal;
+                    numVal = maxTotal - newOtherVal;
+                }
+                document.getElementById(otherTextId).value = newOtherVal;
+                document.getElementById(otherRangeId).value = newOtherVal;
             }
         }
+
         document.getElementById(cursor).value = numVal;
         document.getElementById(text).value = numVal;
-        document.querySelector('output').value = numVal;
     }
 
     function clampValue(el) {
-        let val = parseInt(el.value)
-        if (isNaN(val)) {
-            val = 800;
+        let val = parseInt(el.value);
+        const donorType = document.querySelector('input[name="donorType"]:checked').value;
+        let minVal = 50;
+        let maxVal = 2000;
+
+        if (donorType === 'ss') {
+            minVal = 20;
+            maxVal = %(maxssLen)s - minVal;
         }
-        val = Math.max(50, Math.min(2000, val));
+
+        if (isNaN(val)) {
+            val = (donorType === 'ss') ? Math.floor(maxVal/2) : 800;
+        }
+        val = Math.max(minVal, Math.min(maxVal, val));
         el.value = val;
-        updateValues('number', val);
+
+        let rangeId = el.id.replace('Text', '');
+        updateValues('number', val, rangeId, el.id);
     }
 
     // prevents the form from submitting if the enter key is pressed
@@ -14628,14 +14670,82 @@ def donorDesignPage(params):
             event.target.blur();
         }
     }
+
+    function toggleTemplateStrand() {
+        const donorType = document.getElementsByName('donorType')
+        const strandDisplay = document.getElementById('templateStrandDisplay')
+        const ssODNmsg = document.getElementById('ssODNmsg')
+
+        const arm5Range = document.getElementById('arm5Len');
+        const arm5Number = document.getElementById('arm5LenText');
+        const arm3Range = document.getElementById('arm3Len');
+        const arm3Number = document.getElementById('arm3LenText');
+
+        let selectedValue
+        for (const type of donorType) {
+            if (type.checked) {
+                selectedValue = type.value;
+                break;
+                }
+        }
+
+        if (selectedValue === 'ss') {
+            strandDisplay.style.display = 'block';
+            ssODNmsg.style.display = 'block';
+
+            const minVal = 20;
+            const maxVal = %(maxssLen)s - minVal;
+
+            [arm5Range, arm5Number, arm3Range, arm3Number].forEach(el => {
+                el.min = minVal;
+                el.max = maxVal;
+            });
+
+            let val5 = parseInt(arm5Number.value);
+            let val3 = parseInt(arm3Number.value);
+
+            if (val5 < minVal) val5 = minVal;
+            if (val3 < minVal) val3 = minVal;
+
+            if (val5 + val3 > maxVal) {
+                if (val5 > maxVal - minVal) val5 = maxVal - minVal;
+                if (val3 > maxVal - val5) val3 = maxVal - val5;
+            }
+
+            updateValues('number', val5, 'arm5Len', 'arm5LenText');
+            updateValues('number', val3, 'arm3Len', 'arm3LenText');
+
+        } else {
+            strandDisplay.style.display = 'none';
+            ssODNmsg.style.display = 'none';
+
+            const minVal = 50;
+            const maxVal = 2000;
+
+            [arm5Range, arm5Number, arm3Range, arm3Number].forEach(el => {
+                el.min = minVal;
+                el.max = maxVal;
+            });
+
+            let val5 = parseInt(arm5Number.value);
+            let val3 = parseInt(arm3Number.value);
+            if (val5 < minVal) val5 = minVal;
+            if (val3 < minVal) val3 = minVal;
+
+            updateValues('number', val5, 'arm5Len', 'arm5LenText');
+            updateValues('number', val3, 'arm3Len', 'arm3LenText');
+        }
+    }
+
     </script>
-    """)
+    """ % locals())
     print(
             """<div style='width: 80%; margin-top: 54px; margin-left:10%; margin-right:10%; text-align:left;'>"""
     )
 
     print("""<h2>guide Sequence : %s</h2>""" % guideSeqHtml)
-    print("<hr>")
+
+    # showDonor(donorSeq, armLen, insertPos, geneId, inSeq, kiType)
 
     if geneModel:
         if "ENST" in geneId:
@@ -14648,41 +14758,94 @@ def donorDesignPage(params):
         elif insertPos == "Cter":
             insertText = "C-terminal"
 
-        showDonor(donorSeq)
-
         print("<p>Insertion of a %sbp sequence in %s</p>" % (len(insertSeq), insertText))
         exonSeqsPlaceholder = []
         printGeneModel(geneModel, exonSeqsPlaceholder, pam, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
 
+        if doRecoding == "True":
+            print("""<p style="color:red; font-style: italic;">Warning : Using this guide will likely result in the cleavage of the donor DNA if no mutations are introduced in its sequence</p>""")
+
+    print("<hr>")
     print("<form>")
 
     print("""
-         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:3;">
-        <div style="display:flex;">
-           <p>Enter the length of the homology arms to design the donor DNA&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</p>
-            <div>
-                <input type="radio" checked name="donorType" value="ds" autocomplete="off"/>Double strand Donor<br>
-                <input type="radio" name="donorType" value="ss" autocomplete="off"/>Single strand Donor<br>
+    <h2>Global options</h2>
+    <div style="display: flex; flex-direction: column; margin-bottom: 24px;">
+        <div style="display: flex; margin-bottom: 24px;">
+            <div style="border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px;">
+                Select donor type INFO<br>
+                <input type="radio" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double strand Donor<br>
+                <input type="radio" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single strand Donor<br>
+            </div>
+            <div id="templateStrandDisplay" style="margin-left: 15%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
+                Select which strand to use as template INFO<br>
+                <input type="radio" %(targetChecked)s name="templateStrand" value="target" autocomplete="off"/>Target strand<br>
+                <input type="radio" %(nonTargetChecked)s name="templateStrand" value="nontarget" autocomplete="off"/>Non-target strand
+            </div>
+            <div id="ssODNmsg" style="display: none;">
+                The maximum length of a single strand donor DNA is 200bp.<br>
+                Using this insert sequence, the homology arms can be %(maxssLen)s bp at maximum<br>
             </div>
         </div>
+    <div style="margin-top: 24px;">
+        Select the number of different designs to output:&nbsp
+        <select id="nDonors" autocomplete="off">
+            <option value=1>1</option>
+            <option value=2>2</option>
+            <option value=3>3</option>
+            <option value=4>4</option>
+        </select> INFO
+    </div>
+    <div style="display:flex; margin-bottom:12px; flex-direction: column;">
+       <p>Choose the length of the homology arms</p>
         5' homology arm
-       <div style="margin-top:32px; display:flex; gap:12px;">
-            <input type="range" id="arm5Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%;">
-            <input type="number" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+        <div style="margin-top:12px; display:flex; gap:12px;">
+            <input type="range" id="arm5Len" name="arm5Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%%;">
+            <input type="number" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm5Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
         <br>
         3' homology arm
-       <div style="margin-top:32px; display:flex; gap:12px;">
-            <input type="range" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%;">
-            <input type="number" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value)" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
-
+       <div style="margin-top:12px; display:flex; gap:12px;">
+            <input type="range" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%%;">
+            <input type="number" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm3Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
-        </div>
-        </div>""")
+    </div>
+          """ % locals())
 
-    print("""<button style="align-self:center;" type="submit" name="submit" value="SUBMIT">Design Donor DNA</button>""")
-    print("</div>")
-    print("</form>")
+    if doRecoding == "True":
+        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will be identical. The donor will likely be cleaved by the nuclease, so recoding is recommended in this case."
+
+    else:
+        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will differ. The donor will not be re-cleaved by the nuclease, so recoding is not needed in this case."
+
+    print("""
+    <div id="recodingOptions">
+        <hr>
+        <h2>Recoding Options</h2>
+        <small> %(recodingMsg)s </small>
+        <p>Choose below which regions of the donor DNA to recode </p>
+        <div style="display: flex; gap: 25%%; align-items: center;">
+            <div>
+                <strong>Recode the donor to avoid re-cleavage</strong><br>
+                <input type="checkbox" checked id="recodePam" value=1 autocomplete="off"/>Recode the PAM motif<br>
+                <input type="checkbox" id="recodeSeed" value=1 autocomplete="off"/>Recode PAM proximal end the guide<br>
+                <input type="checkbox" id="recodeGap" value=1 autocomplete="off"/>Recode between the cut site and insertion site<br>
+            </div>
+            <div>
+                <strong>Trim the donor to facilitate its synthesis</strong><br>
+                <input type="checkbox" id="recodeHomopolymers" value=1 autocomplete="off"/>Trim homopolymers<br>
+                <input type="checkbox" id="recodeGC" value=1 autocomplete="off"/>Trim regions with high GC content<br>
+                <input type="checkbox" id="recodeRepeat" value=1 autocomplete="off"/>Trim repeated sequences<br>
+            </div>
+        </div>
+    </div>
+    """ % locals())
+    print("""
+       <button style="align-self:center; margin-top: 50px; width:250px; height:50px;" type="submit" name="submit" value="SUBMIT">Design Donor DNA</button>
+       </div>
+     </div>
+    </form>
+     """)
 
 
 def runTests():
@@ -15071,7 +15234,6 @@ def runQueueWorker(noFork):
 
         elif jobType == "multipam" or jobType == "multiseq":
             # search for multiple pams
-            # Work in progress
             print("found job - multi sequence mode")
             logging.info("executed multisearch job")
             jobError = False
@@ -15091,7 +15253,7 @@ def runQueueWorker(noFork):
             batchBase = join(batchDir, batchId)
             if jobType == "multipam":
                 try:
-                    seq, posStr = writeDonorSeq(org, seq, position, batchId)
+                    seq, posStr = getPosAndSeq(org, seq, position, batchId)
                     processMultiPamSubmission(
                         org, seq, posStr, multipam, batchBase, batchId, q
                     )
