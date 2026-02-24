@@ -53,8 +53,8 @@ sys.path.append(cctopDir)
 lindelDir = join(myDir, "bin/src/lindel")
 sys.path.append(lindelDir)
 
-RNAstructureDataPath = join(myDir, "bin/src/RNAstructure/data_tables")
-os.environ["DATAPATH"] = RNAstructureDataPath
+# RNAstructureDataPath = join(myDir, "bin/src/RNAstructure/data_tables")
+# os.environ["DATAPATH"] = RNAstructureDataPath
 
 # global that points to the crispor 'bin' directory with the external executables
 # like libsvm and svmlight
@@ -859,7 +859,7 @@ def forceWrapper(func, seqs):
     except:
         return [-1]*len(seqs)
 
-def calcFreeEnergyViennaRNA(seq, temperature = 37):
+def calcFreeEnergyViennaRNA(seq, temperature=37):
     """ With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float
     >>> print(calcFreeEnergyViennaRNA("TGAACGTGGCTATGCCTTCA"))
     -2.5
@@ -889,9 +889,9 @@ def calcFreeEnergyRNAStructure(seq):
     -8.5
     """
 
-    RNAstructureBinDir = getBinPath("RNAstructure", isDir=True)
-    sys.path.append(RNAstructureBinDir)
-    import RNAstructure
+    # RNAstructureBinDir = getBinPath("RNAstructure", isDir=True)
+    # sys.path.append(RNAstructureBinDir)
+    # import RNAstructure
 
     guideStructure = RNAstructure.RNA.fromString(seq)
     guideStructure.FoldSingleStrand(mfeonly=True)
@@ -932,7 +932,7 @@ def calcEvaLikeScore(seqs):
 
     scores = []
     for seq in seqs:
-        freeEnergy = calcFreeEnergyRNAStructure(seq)
+        freeEnergy = calcFreeEnergyViennaRNA(seq)
         if freeEnergy >= -3:
             freeEnergy = -3
 
