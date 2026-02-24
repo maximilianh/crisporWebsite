@@ -3609,13 +3609,13 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
 
     # insertDistance should be 0 if the cut site is whithin the deletion
     if kiType == "deletion":
-        if cutPos > insertIdx and cutPos < deletionEnd:
+        if cutPos >= insertIdx and cutPos <= deletionEnd:
             insertDistance = 0
             cutUpstream = False
-        elif cutPos <= insertIdx:
+        elif cutPos < insertIdx:
             insertDistance = insertIdx - cutPos
             cutUpstream = True
-        elif cutPos >= deletionEnd:
+        elif cutPos > deletionEnd:
             insertDistance = cutPos - deletionEnd
             cutUpstream = False
     else:
@@ -6986,7 +6986,7 @@ def printForm(params):
     )
     print(
         """
-    <small>Currenlty, %d out of %d genomes are annotated.</small>
+    <small>Currenlty, %d out of %d genomes are annotated. If yours isn't included, paste a sequence above.</small>
 </details>
 <div style="width:100%%; margin-top: 25px; margin-left:50px; text-align:center; display:block">
     <input type="submit" name="submit" value="SUBMIT" tabindex="4" style="height:40px; width:100px;"/>
@@ -7223,7 +7223,7 @@ def readBatchParams(batchId):
     if "extSeq" in seqs:
         extSeq = seqs["extSeq"]
 
-    return inSeq, genome, pamSeq, position, extSeq
+    return inSeq, genome, pamSeq, position, extSeq, None, None, None, None, None
 
 
 def gzipStr(s):
@@ -8748,8 +8748,9 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
 
 
 def showDonor(donorSeq, params):
-    """Dispays the unmodified donor DNA sequence"""
+    """Dispays the DNA sequence"""
 
+    donorType = params["donorType"]
     batchId = params["batchId"]
     batchInfo = readBatchAsDict(batchId)
 
@@ -8757,11 +8758,24 @@ def showDonor(donorSeq, params):
     geneId = batchInfo.get("ko_geneid")
     kiType = batchInfo.get("kiType")
     org = batchInfo["org"]
+    seq = batchInfo["seq"]
+    posStr = batchInfo["posStr"]
+    insertIdx = int(batchInfo["insertIdx"])
     taggingSeqs = batchInfo.get("taggingSeqs")
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
 
-    donorName = "Don_%s_%s" % (org, kiType)
+    chrom, start, end, strand = parsePos(posStr)
+    insertCoord = "%s:%s" % (chrom, start+insertIdx)
+    if kiType == "substitution":
+        kiTypeStr = "%s-%ssubst" % (seq[insertIdx], insertSeq)
+    elif kiType == "deletion":
+        kiTypeStr = "del%sbp" % (len(insertSeq))
+    else:
+        kiTypeStr = "insert%sbp" % (len(insertSeq))
+
+    donorName = "Don_%s_%s_%s" % (org, insertCoord, kiTypeStr)
+    donorTypeText = "ssODN" if donorType == "ss" else "double stranded donor DNA"
 
     if geneId and insertPos == "Cter":
         stop = ''.join([base for base in seq if base.isupper()])
@@ -8795,7 +8809,7 @@ def showDonor(donorSeq, params):
     )
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
-    
+
     '''
     print(
         """<div style="
@@ -8836,9 +8850,16 @@ def showDonor(donorSeq, params):
     '''
 
     print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
-    print("""<button onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>""")
 
-    print("""<div style="font-family: Source Code Pro; justify-self:center;">""")
+    print(
+            """<div style='width: 80%; margin-top: 54px; margin-left:25%; margin-right:25%; text-align:left;'>"""
+    )
+
+    print("""
+          <div class="title" style="margin-bottom:24px;">Below is the sequence of the %s </div>
+          <button style="margin-bottom:24px;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>""" % donorTypeText)
+
+    print("""<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">""")
 
     fastaWidth = 80
     if len(donorSeq) > fastaWidth:
@@ -8858,7 +8879,8 @@ def showDonor(donorSeq, params):
         print("<br>")
         print(donorSeq)
 
-    print("</div>")
+    print("""</div>
+          </div>""")
 
 
 def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
@@ -8937,11 +8959,11 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
             globEffScore=globEffScore,
         )
 
-        if not download:
-            allGuideData.extend(guideData)
-            allGuideScores.update(guideScores.copy())
-            allPamIdToSeq.update(pamIdToSeq.copy())
+        allGuideData.extend(guideData)
+        allGuideScores.update(guideScores.copy())
+        allPamIdToSeq.update(pamIdToSeq.copy())
 
+        if not download:
             chrom, start, end, strand = parsePos(posStr)
             start = str(int(start) + 1)
             chrom = applyChromAlias(org, chrom)
@@ -8972,8 +8994,8 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
                 browserLink,
             )
 
-    if download == False:
-        sortGuideData(allGuideData, sortBy)
+    sortGuideData(allGuideData, sortBy)
+    if download is False:
         showGuideTable(
             allGuideData,
             pam,
@@ -8987,7 +9009,7 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
             koMethod=koMethod,
         )
     else:
-        return exonSeqs, org, pam, exonPosStr, guideData
+        return exonSeqs, org, pam, exonPosStr, allGuideData
 
 
 def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
@@ -10530,13 +10552,20 @@ def downloadFile(params):
 
     batchId = params["batchId"]
     batchInfo = readBatchAsDict(batchId)
-    multiseq = batchInfo.get("multiseq")
-    multipam = batchInfo.get("multipam")
+    if batchInfo:
+        multiseq = batchInfo.get("multiseq")
+        multipam = batchInfo.get("multipam")
+    else:
+        multiseq = None
+        multipam = None
 
     if multiseq:
-        exonSeqs, org, pam, exonPos, guideData = parseAndPrintMultiSeqInfo(
-            params, batchId, None, download=True
+        koGeneId = batchInfo.get("koGeneId")
+        exonSeqs, org, pam, exonPosStr, guideData = parseAndPrintMultiSeqInfo(
+            params, batchId, koGeneId, download=True
         )
+        seq = "//".join([s[1] for s in exonSeqs])
+        position = koGeneId if koGeneId else ""
     elif multipam:
         seq, org, pam, position, guideData = parseAndPrintMultiPamInfo(
                 params, batchId, download=True
@@ -10550,7 +10579,7 @@ def downloadFile(params):
     else:
         queryDesc = ""
 
-    if position == "?":
+    if position is None or position == "?":
         queryDesc += org + "-unknownLoc"
     else:
         queryDesc += org + "-" + position.strip(":+-").replace(":", "-")
@@ -11803,7 +11832,7 @@ def printKoForm(params):
     print(
         """
                 <div style="margin-top:12px;">
-                    <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, paste a sequence below.</small><br>
+                    <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, use CRISPOR classic.</small><br>
                 </div>
             <p style="margin-top:50px">Select one of the following approaches to inactivate your gene</p>
 
@@ -12251,7 +12280,7 @@ function changeSeqCase(value) {
     print(
         """
                 <div style="margin-top:20px;">
-                    <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, Enter a sequence manually.</small><br>
+                    <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, select "Enter a sequence" above.</small><br>
                 </div>
                 <div style="margin-top: 37px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
                 Select the position of insertion :
@@ -14464,10 +14493,11 @@ def primerDetailsPage(params):
     exonSeqs = batchInfo.get("exonSeqs")
 
     # get the pam in multipam mode
-    pamPrefix = pamId.split('.')[0]
-    if pamPrefix not in ['0-9']:
-        pamFullName = pamPrefix
-        pam = setupPamInfo(pamFullName)
+    if multiseq or multipam:
+        pamPrefix = pamId.split('.')[0]
+        if pamPrefix not in ['0-9']:
+            pamFullName = pamPrefix
+            pam = setupPamInfo(pamFullName)
     else:
         pamFullName = None
     # get the exonID and its sequence if in multiseq mode
@@ -14492,7 +14522,7 @@ def primerDetailsPage(params):
         guideSeqHtml,
         guideStart,
         guideEnd,
-    ) = findGuideSeq(inSeq, pam, pamId, exonId, pamFullName)
+    ) = findGuideSeq(inSeq, pam, pamId, exonId=exonId, pamFullName=pamFullName)
 
     # search for restriction enzymes that overlap the mutation site
     allEnzymes = readRestrEnzymes()

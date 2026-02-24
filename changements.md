@@ -823,6 +823,10 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 24/02/26
 
+## divers
+
+- déplacement des binaires RNAstructure dans le dossier approprié (bin/Linux-x86_64)
+
 ## mode knock-in
 
 - ajout de tooltips dans donorDesignPage()

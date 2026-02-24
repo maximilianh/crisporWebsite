@@ -53,10 +53,7 @@ sys.path.append(cctopDir)
 lindelDir = join(myDir, "bin/src/lindel")
 sys.path.append(lindelDir)
 
-RNAstructureDir = join(myDir, "bin/src/RNAstructure/")
-RNAstructureExeDir = join(RNAstructureDir, "exe")
-RNAstructureDataPath = join(RNAstructureDir, "data_tables")
-sys.path.append(RNAstructureExeDir)
+RNAstructureDataPath = join(myDir, "bin/src/RNAstructure/data_tables")
 os.environ["DATAPATH"] = RNAstructureDataPath
 
 # global that points to the crispor 'bin' directory with the external executables
@@ -863,8 +860,8 @@ def forceWrapper(func, seqs):
         return [-1]*len(seqs)
 
 def calcFreeEnergyViennaRNA(seq, temperature = 37):
-    """ With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float 
-    >>> print(calcFreeEnergyViennaRNA("TGAACGTGGCTATGCCTTCA")) 
+    """ With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float
+    >>> print(calcFreeEnergyViennaRNA("TGAACGTGGCTATGCCTTCA"))
     -2.5
     >>> print(calcFreeEnergyViennaRNA("GCCCAGGGTGCGGTGGGCCC"))
     -8.5
@@ -874,14 +871,15 @@ def calcFreeEnergyViennaRNA(seq, temperature = 37):
     cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), binDir, temperature)
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
     vienna = proc.stdout.read()
-    proc.wait() #useless in this case ? 
+    proc.wait()  #useless in this case ? 
     viennaouts = [out for out in vienna.split(' ')]
     deltaG = viennaouts.pop()
     #structure (unused for now, needs to be displayed with a monospaced font)
     #seqStructure = ''.join(viennaouts)
-    
+
     return float(deltaG.strip().replace(')', '').replace('(', ''))
-    
+
+
 def calcFreeEnergyRNAStructure(seq):
     """ Using RNAstructure (https://rna.urmc.rochester.edu/Releases/6.0.1/manual/RNA_class/html/index.html)
     returns the minimum free energy (in kcal/mol) of a sequence
@@ -891,6 +889,8 @@ def calcFreeEnergyRNAStructure(seq):
     -8.5
     """
 
+    RNAstructureBinDir = getBinPath("RNAstructure", isDir=True)
+    sys.path.append(RNAstructureBinDir)
     import RNAstructure
 
     guideStructure = RNAstructure.RNA.fromString(seq)
@@ -900,17 +900,17 @@ def calcFreeEnergyRNAStructure(seq):
     return freeEnergy
 
 def calcEvaLikeScore(seqs):
-    """ 
+    """
     Returns the EVA score without the MIT weigth.
     from Riesenberg et al. 2025.
-    Predicts the activity of synthetic guides   
+    Predicts the activity of synthetic guides
 
     EVA score model:
-        Pearson's r:            0.8308		
-        Adjusted R-squared:     0.6703		
-        AIC:                    583.6613		
-		
-    Coefficients:		
+        Pearson's r:            0.8308
+        Adjusted R-squared:     0.6703
+        AIC:                    583.6613
+
+    Coefficients:
         (Intercept)	            83.5821
         20mer_free energy	    6.5242
         MIT_specificity_score	0.1784
@@ -935,7 +935,7 @@ def calcEvaLikeScore(seqs):
         freeEnergy = calcFreeEnergyRNAStructure(seq)
         if freeEnergy >= -3:
             freeEnergy = -3
-            
+
         nGA = seq.upper().count('GA')
         if len(seq) > 17 and seq[16] == 'G':
             G17 = 1
@@ -948,6 +948,7 @@ def calcEvaLikeScore(seqs):
         score = 83.5821 + 6.5242*freeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
         scores.append(score)
     return scores
+
 
 def inList(l, name):
     " return true if name is in list l  "
