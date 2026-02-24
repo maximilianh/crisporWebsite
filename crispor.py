@@ -2422,7 +2422,7 @@ def showSeqAndPams(
             delRange = ''.join(["x" for i in range(len(insertSeq))])
             rangeChar = '-'
             insertChar = "\%s/" % delRange
-            insertIdx += 1
+            chrom, start, end, strand = parsePos(position)
         else:
             rangeChar = '-'
             insertChar = '\/'
@@ -3611,7 +3611,7 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
     if kiType == "deletion":
         if cutPos > insertIdx and cutPos < deletionEnd:
             insertDistance = 0
-            cutUpstream = True
+            cutUpstream = False
         elif cutPos <= insertIdx:
             insertDistance = insertIdx - cutPos
             cutUpstream = True
@@ -3620,7 +3620,7 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
             cutUpstream = False
     else:
         insertDistance = abs(insertIdx - cutPos)
-        cutUpstream = insertIdx - cutPos >= 0
+        cutUpstream = insertIdx - cutPos > 0
 
     return insertDistance, doRecoding, cutUpstream
 
@@ -4120,7 +4120,7 @@ def printTableHead(
 
     if pamFullName:
         print(
-            """ <th style="width:110px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1). Click to sort this table by this distance (default)">Distance between cut site and insertion site</a><br></th>"""
+            """ <th style="width:110px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edition site. Click to sort this table by this distance (default)">Distance between cut site and edition site</a><br></th>"""
             % batchId
         )
         isDefaultText = ""
@@ -4686,8 +4686,8 @@ def showGuideTable(
         if pamFullName:
             print(
                 (
-                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
-                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream)
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s&insertDistance=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
+                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream, effScores.get("insertDistance"))
                 )
             )
             print("<br>")
@@ -7191,8 +7191,7 @@ def readBatchParams(batchId):
             params.get("koMethod"),
             params.get("geneModel"),
             params.get("koGeneId"),
-            params.get("multipam"),
-            params.get("donorSeq"),
+            params.get("multipam")
         )
 
     # FROM HERE UP TO END OF FUNCTION: legacy cold for old batches pre-end-2016 (no json files back then)
@@ -7631,7 +7630,7 @@ def showNoGenomeWarning(dbInfo):
         )
 
 
-def getSeq(db, posStr, maxlen=True):
+def getSeq(db, posStr, maxlen=True, minlen=True):
     """
     given a database name and a string with the position as chrom:start-end, return the sequence as
     a string.
@@ -7681,7 +7680,7 @@ def getSeq(db, posStr, maxlen=True):
     if len(lines) > 0:
         lines.pop(0)
     seq = "".join(lines)
-    if len(seq) < 23:
+    if minlen and len(seq) < 23:
         errAbort(
             "Sorry, the sequence range %s on genome %s is not longer than 23bp. To find a valid CRISPR/Cas9 site, one needs at least a 23bp long sequence."
             % (db, posStr)
@@ -7975,6 +7974,11 @@ def makeCustomTrack(
             mutEnzymes,
             ontargetDesc,
             repCount,
+            gcFrac,
+            freeEnergy,
+            doRecoding,
+            cutUpstream,
+            mainScore,
         ) = guideRow
 
         rgb = hexToRgb(scoreToColor(guideScore)[0])
@@ -8307,8 +8311,7 @@ def crisprSearch(params):
             koMethod,
             geneModel,
             koGeneId,
-            multipam,
-            donorSeq,
+            multipam
         ) = readBatchParams(batchId)
         if multiseq:
             params["multiseq"] = multiseq
@@ -8623,7 +8626,7 @@ def crisprSearch(params):
         # makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
 
 
-def parseAndPrintMultiPamInfo(params, batchId):
+def parseAndPrintMultiPamInfo(params, batchId, download=False):
 
     batchInfo = readBatchAsDict(batchId)
     org = batchInfo["org"]
@@ -8635,6 +8638,8 @@ def parseAndPrintMultiPamInfo(params, batchId):
     insertIdx = batchInfo["insertIdx"]
     insertPos = batchInfo["insertpos"]
     geneId = batchInfo.get("koGeneId")
+    geneModel = batchInfo.get("geneModel")
+    tagNames = batchInfo.get("tagNames")
     kiType = batchInfo.get("kiType")
     if kiType:
         insertSeq = batchInfo["insertseq"]
@@ -8654,32 +8659,36 @@ def parseAndPrintMultiPamInfo(params, batchId):
     allGuideScores = {}
     allPamIdToSeq = {}
 
-    if kiType == "substitution":
-        seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
-    elif kiType == "deletion":
-        seqMsg = "%dbp deletion" % (len(batchInfo["insertseq"]))
-    else:
-        seqMsg = "knock-in of a %s bp sequence" % len(batchInfo["insertseq"])
-
-    if geneId:
-        if "ENST" in geneId:
-            transcriptUrl = (
-                """in %s of <a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a> """
-                % (insertPos, geneId.split("_")[0], geneId.split("_")[0])
-            )
+    if not download:
+        if kiType == "substitution":
+            seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
+        elif kiType == "deletion":
+            seqMsg = "%dbp deletion" % (len(batchInfo["insertseq"]))
         else:
-            transcriptUrl = (
-                """in %s of <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="blank">%s</a> """
-                % (insertPos, geneId, geneId)
-            )
-    else:
-        transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
+            seqMsg = "knock-in of a %s bp sequence" % len(batchInfo["insertseq"])
 
-    print(
-        """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
-        % (dbInfo.scientificName, seqMsg, transcriptUrl)
-    )
+        if geneId:
+            if "ENST" in geneId:
+                transcriptUrl = (
+                    """in %s of <a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a> """
+                    % (insertPos, geneId.split("_")[0], geneId.split("_")[0])
+                )
+            else:
+                transcriptUrl = (
+                    """in %s of <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="blank">%s</a> """
+                    % (insertPos, geneId, geneId)
+                )
+        else:
+            transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
 
+        print(
+            """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
+            % (dbInfo.scientificName, seqMsg, transcriptUrl)
+        )
+
+        if geneModel:
+            exonSeqsPlaceholder = []
+            printGeneModel(geneModel, exonSeqsPlaceholder, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
 
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
@@ -8706,41 +8715,53 @@ def parseAndPrintMultiPamInfo(params, batchId):
         allGuideScores.update(guideScores.copy())
         allPamIdToSeq.update(pamIdToSeq.copy())
 
-    showSeqAndPams(
-        org,
-        seq,
-        None,
-        None,
-        allGuideScores,
-        None,
-        None,
-        None,
-        0.0,
-        posStr,
-        allPamIdToSeq,
-        multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
-    )
     sortGuideData(allGuideData, sortBy=sortBy)
-    showGuideTable(
-        allGuideData,
-        pam,
-        otMatches,
-        dbInfo,
-        batchId,
-        org,
-        chrom,
-        None,
-        geneId=None,
-        pamFullName="multipam",
-    )
+    if download:
+        return seq, org, pam, posStr, allGuideData
+    else:
+        showSeqAndPams(
+            org,
+            seq,
+            None,
+            None,
+            allGuideScores,
+            None,
+            None,
+            None,
+            0.0,
+            posStr,
+            allPamIdToSeq,
+            multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
+        )
+        showGuideTable(
+            allGuideData,
+            pam,
+            otMatches,
+            dbInfo,
+            batchId,
+            org,
+            chrom,
+            None,
+            geneId=None,
+            pamFullName="multipam",
+        )
 
 
-def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
+def showDonor(donorSeq, params):
     """Dispays the unmodified donor DNA sequence"""
 
-    insertSeq = re.sub('[atgcn]', '', donorSeq)
-    leftLen = len(donorSeq.split(insertSeq)[0])
-    rightLen = len(donorSeq.split(insertSeq)[1])
+    batchId = params["batchId"]
+    batchInfo = readBatchAsDict(batchId)
+
+    insertSeq = batchInfo["insertseq"]
+    geneId = batchInfo.get("ko_geneid")
+    kiType = batchInfo.get("kiType")
+    org = batchInfo["org"]
+    taggingSeqs = batchInfo.get("taggingSeqs")
+    insertPos = batchInfo["insertpos"]
+    seq = batchInfo["seq"]
+
+    donorName = "Don_%s_%s" % (org, kiType)
 
     if geneId and insertPos == "Cter":
         stop = ''.join([base for base in seq if base.isupper()])
@@ -8773,14 +8794,8 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
           """
     )
 
-    print("Here is the unmodified donor DNA sequence : ")
-
-    print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
-    print(
-        """<button onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>"""
-    )
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
-
+    
     '''
     print(
         """<div style="
@@ -8819,6 +8834,31 @@ def showDonor(donorSeq, armLen, insertPos, geneId, seq, kiType):
     print("<p>3'</p>")
     print("</div>")
     '''
+
+    print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
+    print("""<button onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>""")
+
+    print("""<div style="font-family: Source Code Pro; justify-self:center;">""")
+
+    fastaWidth = 80
+    if len(donorSeq) > fastaWidth:
+        maxStrCount = len(str(len(donorSeq)))
+        last = 0
+        print(''.join([" " for i in range(maxStrCount)]) + ">%s" % donorName)
+        print("<br>")
+        for i in range(fastaWidth, len(donorSeq), fastaWidth):
+            print(donorSeq[last:i])
+            print("<br>")
+            last = i
+        if i < len(donorSeq):
+            print(donorSeq[i:len(donorSeq)])
+            print("<br>")
+    else:
+        print(">%s" % donorName)
+        print("<br>")
+        print(donorSeq)
+
+    print("</div>")
 
 
 def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
@@ -8873,7 +8913,7 @@ def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
         print("""</div>""")
 
         if koMethod == "frameshift":
-            printGeneModel(geneModel, exonSeqs, pam, koMethod)
+            printGeneModel(geneModel, exonSeqs, koMethod)
         print(
             """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (for hybridization of the guides).</p>"""
         )
@@ -8984,7 +9024,7 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
     return varHtmls, varDbs
 
 
-def printGeneModel(geneModel, exonSeqs, pam, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None):
+def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None):
     "displays the gene model, from CDS start to CDS end"
 
     if koMethod == "frameshift" and exonSeqs:
@@ -9103,7 +9143,7 @@ function toggleExonSeq(selectedValue) {
             for tagName, tagSeq in tagSeqList:
                 color = tagToColor[tagName]
                 tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
-                if len(tagSeq) < 25:
+                if len(tagSeq) < 25 and len(tagName) > 10:
                     tagName = ""
 
                 tagBox = (
@@ -9418,13 +9458,31 @@ pamIdRe = re.compile(r"s([0-9]+)([+-])g?([0-9]*)")
 
 
 def intToExtPamId(pamId):
-    "convert the internal pam Id like s20+ to the external one, like 21Forw"
-    pamPos, strand, rest = pamIdRe.match(pamId).groups()
+    "convert the internal pam Id like s20+ to the external one, like 21Forw. Handles multiseq/multipam prefixes."
+    parts = pamId.split('.')
+    if len(parts) > 1:
+        pamPrefix = parts[0]
+        pamIdCore = parts[1]
+    else:
+        pamPrefix = ""
+        pamIdCore = pamId
+
+    match = pamIdRe.match(pamIdCore)
+    if not match:
+        return pamId  # should not happen with current pamId formats
+
+    pamPos, strand, rest = match.groups()
     if strand == "+":
         strDesc = "forw"
     else:
         strDesc = "rev"
     guideDesc = str(int(pamPos) + 1) + strDesc
+
+    if pamPrefix:
+        if pamPrefix.isdigit():
+            return "exon%d_%s" % (int(pamPrefix) + 1, guideDesc)
+        else:
+            return "%s_%s" % (pamPrefix, guideDesc)
     return guideDesc
 
 
@@ -9436,7 +9494,7 @@ def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
         return guideSeq + pamSeq + pamPlusSeq
 
 
-def makeGuideHeaders():
+def makeGuideHeaders(multipam=None):
     "return list of the headers of the guide output file"
     headers = list(tuple(guideHeaders))  # make a copy of the list
 
@@ -9445,8 +9503,15 @@ def makeGuideHeaders():
     if not pamIsFirst:
         tableScoreNames.extend(mutScoreNames)
 
+    headers.append("global-Score")
+
+    if multipam:
+        tableScoreNames.insert(0, "insertDistance")
+        headers.append("insertDistance")
+
     for scoreName in tableScoreNames:
-        headers.append(scoreDescs[scoreName][0] + "-Score")
+        if scoreName != "insertDistance":
+            headers.append(scoreDescs[scoreName][0] + "-Score")
 
     if not pamIsFirst:
         headers.append("GrafEtAlStatus")
@@ -9467,10 +9532,10 @@ def effScorePass(effScores, minFusi):
 
 
 def iterGuideRows(
-    guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None
+    guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None, multipam=None
 ):
     "yield rows from guide data. Need to know if for Cpf1 or not"
-    headers, tableScoreNames = makeGuideHeaders()
+    headers, tableScoreNames = makeGuideHeaders(multipam=multipam)
 
     if satMutOpt:
         headers.append("Oligonucleotide")
@@ -9509,7 +9574,7 @@ def iterGuideRows(
             guideScore,
             guideCfdScore,
             effScores,
-            startPos,
+            pamStart,
             guideStart,
             strand,
             pamId,
@@ -9521,6 +9586,11 @@ def iterGuideRows(
             mutEnzymes,
             ontargetDesc,
             repCount,
+            gcFrac,
+            freeEnergy,
+            doRecoding,
+            cutUpstream,
+            mainScore,
         ) = guideRow
         if minSpec and guideScore < minSpec:
             continue
@@ -9536,6 +9606,7 @@ def iterGuideRows(
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [guideDesc, fullSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
+        row.append(mainScore)
 
         for scoreName in tableScoreNames:
             row.append(effScores.get(scoreName, "NotEnoughFlankSeq"))
@@ -9703,6 +9774,7 @@ def xlsWrite(
     position,
     batchId,
     optFields=None,
+    multipam=None
 ):
     """given rows, writes a XLS binary stream to outFile, if xlwt is available
     Otherwise writes a tab-sep file.
@@ -9718,8 +9790,13 @@ def xlsWrite(
         ws.write(0, 1, batchName)
         ws.write(1, 0, "# Sequence")
         ws.write(1, 1, seq)
-        ws.write(3, 0, "# PAM")
-        ws.write(3, 1, pam)
+        if multipam:
+            ws.write(3, 0, "#PAMS")
+            pamList = multiPamDict[multipam]
+            ws.write(3, 1, ', '.join([pam for pam in pamList]))
+        else:
+            ws.write(3, 0, "# PAM")
+            ws.write(3, 1, pam)
         ws.write(2, 0, "# Genome")
         ws.write(2, 1, org)
         ws.write(4, 0, "# Position")
@@ -9910,7 +9987,7 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             guideScore,
             guideCfdScore,
             effScores,
-            startPos,
+            pamStart,
             guideStart,
             strand,
             pamId,
@@ -9922,6 +9999,11 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             mutEnzymes,
             ontargetDesc,
             repCount,
+            gcFrac,
+            freeEnergy,
+            doRecoding,
+            cutUpstream,
+            mainScore,
         ) = guideRow
 
         guideUrl = batchUrl + "&pamId=" + urllib.parse.quote(pamId) + "&pam=" + pam
@@ -10219,14 +10301,13 @@ def readBatchAndGuides(batchId):
         koMethod,
         geneModel,
         koGeneId,
-        multipam,
-        donorSeq,
+        multipam
     ) = readBatchParams(batchId)
     chrom, _, _, _ = parsePos(position)
     pam = setupPamInfo(pam)
     uppSeq = seq.upper()
 
-    startDict, endSet = findAllPams(uppSeq, pam)
+    startDict, endSet = findAllPams(uppSeq, pam, multipam=multipam)
 
     effScoreFname = join(batchDir, batchId + ".effScores.tab")
 
@@ -10254,8 +10335,7 @@ def writeOntargetAmpliconFile(
         koMethod,
         geneModel,
         koGeneId,
-        multipam,
-        donorSeq,
+        multipam
     ) = readBatchParams(batchId)
     chrom, _, _, _ = parsePos(position)
     otMatches = parseOfftargets(db, batchId, chrom)
@@ -10349,7 +10429,7 @@ def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
             guideScore,
             guideCfdScore,
             effScores,
-            startPos,
+            pamStart,
             guideStart,
             strand,
             pamId,
@@ -10361,6 +10441,11 @@ def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
             mutEnzymes,
             ontargetDesc,
             repCount,
+            gcFrac,
+            freeEnergy,
+            doRecoding,
+            cutUpstream,
+            mainScore,
         ) = guideRow
         if minSpec and guideScore < minSpec:
             continue
@@ -10387,7 +10472,7 @@ def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=
             guideScore,
             guideCfdScore,
             effScores,
-            startPos,
+            pamStart,
             guideStart,
             guideStrand,
             pamId,
@@ -10398,7 +10483,12 @@ def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=
             last12Desc,
             mutEnzymes,
             ontargetDesc,
-            totalAlnCount,
+            repCount,
+            gcFrac,
+            freeEnergy,
+            doRecoding,
+            cutUpstream,
+            mainScore,
         ) = guideRow
         if minSpec and guideScore < minSpec:
             continue
@@ -10406,7 +10496,7 @@ def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=
             continue
 
         chromStart, chromEnd, _, _, chromStrand = mapToGenome(
-            seqStart, seqStrand, startPos, guideStart, guideStrand
+            seqStart, seqStrand, pamStart, guideStart, guideStrand
         )
 
         row = [seqChrom, chromStart, chromEnd, chromStrand, guideSeq, "observation"]
@@ -10439,10 +10529,19 @@ def downloadFile(params):
     global scoreNames
 
     batchId = params["batchId"]
-    if "multiseq" in params:
+    batchInfo = readBatchAsDict(batchId)
+    multiseq = batchInfo.get("multiseq")
+    multipam = batchInfo.get("multipam")
+
+    if multiseq:
         exonSeqs, org, pam, exonPos, guideData = parseAndPrintMultiSeqInfo(
             params, batchId, None, download=True
         )
+    elif multipam:
+        seq, org, pam, position, guideData = parseAndPrintMultiPamInfo(
+                params, batchId, download=True
+        )
+
     else:
         seq, org, pam, position, guideData = readBatchAndGuides(batchId)
 
@@ -10479,7 +10578,7 @@ def downloadFile(params):
                 scoreNames = allScoreNames
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat), doDownload)
         xlsWrite(
-            iterGuideRows(guideData, addHeaders=True),
+            iterGuideRows(guideData, addHeaders=True, multipam=multipam),
             "guides",
             sys.stdout,
             [9, 28, 10, 10],
@@ -10489,6 +10588,7 @@ def downloadFile(params):
             pam,
             position,
             batchId,
+            multipam=multipam
         )
 
     elif fileType == "offtargets":
@@ -10750,8 +10850,7 @@ def writeAmpliconFile(params, batchId, pamId, outFh):
         koMethod,
         geneModel,
         koGeneId,
-        multipam,
-        donorSeq,
+        multipam
     ) = readBatchParams(batchId)
 
     pamOtMatches = parseOfftargets(db, batchId)
@@ -10784,8 +10883,7 @@ def otPrimerPage(params):
         koMethod,
         geneModel,
         koGeneId,
-        multipam,
-        donorSeq,
+        multipam
     ) = readBatchParams(batchId)
     pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
@@ -10945,8 +11043,7 @@ def microHomPage(params):
         koMethod,
         geneModel,
         koGeneId,
-        multipam,
-        donorSeq,
+        multipam
     ) = readBatchParams(batchId)
     pam = setupPamInfo(pam)
 
@@ -12069,7 +12166,7 @@ function changeSeqCase(value) {
 
     print(
         """
-    <form id="KiForm" method="get">
+    <form id="KiForm" method="GET">
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ki">
 
@@ -12334,6 +12431,10 @@ def printBody(params):
 
     if "batchId" in params and "satMut" not in params:
         printCrisporBodyStart()
+
+        if "donorType" in params:
+            donorSeq = writeDonorSeq(params)
+            showDonor(donorSeq, params)
         if "pamId" in params:
             if "doRecoding" in params:
                 donorDesignPage(params)
@@ -12345,7 +12446,7 @@ def printBody(params):
                 microHomPage(params)
             else:
                 errAbort("Unrecognized CGI parameters.")
-        else:
+        elif "donorType" not in params:
             try:
                 crisprSearch(params)
             except ValueError:
@@ -12802,16 +12903,30 @@ def getPosAndSeq(org, seq, posStr, batchId):
 
 
 def writeDonorSeq(params):
+    """From the parameters in the donor design from,
+    returns the sequence of the donor DNA
+    """
 
     batchId = params["batchId"]
-    org = params["org"]
     batchInfo = readBatchAsDict(batchId)
+
+    arm5Len = int(params["arm5Len"])
+    arm3Len = int(params["arm3Len"])
+    polarity = params.get("polarity")
+    doBarcode = params.get("doBarcode")
+    donorType = params["donorType"]
+    recodePam = params.get("recodePam")
+    recodeSeed = params.get("recodeSeed")
+    recodeGap = params.get("recodeGap")
+    trimGC = params.get("trimGC")
+    trimHomopolymers = params.get("trimHomopolymers")
+    trimRepeat = params.get("trimRepeats")
+
+    org = batchInfo["org"]
     posStr = batchInfo["posStr"]
     insertIdx = batchInfo["insertIdx"]
-    armLen = batchInfo["armLen"]
     kiType = batchInfo.get("kiType")
-    insertSeq = batchInfo.get("insertSeq")
-
+    insertSeq = batchInfo.get("insertseq")
     chrom, start, end, strand = parsePos(posStr)
 
     if strand == "+":
@@ -12819,20 +12934,46 @@ def writeDonorSeq(params):
     else:
         insertCoord = int(end - insertIdx)
 
-    HAstart, HAend, HA5len, HA3len = checkCoords(insertCoord - armLen, insertCoord + armLen, org, chrom, insertCoord=insertCoord)
+    if polarity == "positive" and strand == "-":
+        insertSeq = revComp(insertSeq)
+        templateStrand = "+"
+    elif polarity == "negative" and strand == "+":
+        insertSeq = revComp(insertSeq)
+        templateStrand = "-"
+    else:
+        templateStrand = strand
+
+    if kiType == "deletion":
+        if strand == "+":
+            deletionEnd = insertCoord + len(insertSeq)
+            arm5start, arm5end = checkCoords(insertCoord - arm5Len, insertCoord, org, chrom)
+            arm3start, arm3end = checkCoords(deletionEnd, deletionEnd + arm3Len, org, chrom)
+        else:
+            deletionEnd = insertCoord - len(insertSeq)
+            arm5start, arm5end = checkCoords(deletionEnd - arm5Len, deletionEnd, org, chrom)
+            arm3start, arm3end = checkCoords(insertCoord, insertCoord + arm3Len, org, chrom)
+        newInsertSeq = ""
+    else:
+        arm5start, arm5end = checkCoords(insertCoord - arm5Len, insertCoord, org, chrom)
+        arm3start, arm3end = checkCoords(insertCoord, insertCoord + arm3Len, org, chrom)
+        newInsertSeq = insertSeq.upper()
 
     # for substitutions, remove the edited based in the homology arm and extend the arm by 1bp
     if kiType == "substitution":
-        HA3len += 1
-        if strand == "+":
-            HAend += 1
+        arm3len += 1
+        if strand == "+":  # à vérifier !!
+            arm3end += 1
         else:
-            HAstart -= 1
+            arm3start -= 1
 
-    HAseqs = getSeq(org, "%s:%s-%s:%s" % (chrom, HAstart, HAend, strand), maxlen=False)
+    HA5 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm5start, arm5end, templateStrand), maxlen=False, minlen=False)
+    HA3 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm3start, arm3end, templateStrand), maxlen=False, minlen=False)
+    if templateStrand == "+":
+        donorSeq = HA5.lower() + newInsertSeq + HA3.lower()
+    else:
+        donorSeq = HA3.lower() + newInsertSeq + HA5.lower()
 
-    donorSeq = HAseqs[0:HA5len].lower() + insertSeq.upper() + HAseqs[HA3len:].lower()
-    batchInfo["donorSeq"] = donorSeq
+    return donorSeq
 
 
 def getTargetSeq(params):
@@ -12887,9 +13028,8 @@ def getTargetSeq(params):
     return targetSeq, targetPos, insertIdx, geneModel
 
 
-def checkCoords(start, end, org, chrom, insertCoord=None):
+def checkCoords(start, end, org, chrom):
     """clip coordinates to chromosome boundaries
-    and returns the length of the homolohy arms
     """
 
     chromSize = parseChromSizes(org)[chrom]
@@ -12898,13 +13038,7 @@ def checkCoords(start, end, org, chrom, insertCoord=None):
     if end > chromSize:
         end = chromSize
 
-    if insertCoord:
-        HA5len = insertCoord - start
-        HA3len = end - insertCoord
-
-        return start, end, HA5len, HA3len
-    else:
-        return start, end
+    return start, end
 
 
 def processDonor(DonorSeq):
@@ -14324,8 +14458,7 @@ def primerDetailsPage(params):
         koMethod,
         geneModel,
         koGeneId,
-        multipam,
-        donorSeq,
+        multipam
     ) = readBatchParams(batchId)
     batchInfo = readBatchAsDict(batchId)
     exonSeqs = batchInfo.get("exonSeqs")
@@ -14485,7 +14618,7 @@ def primerDetailsPage(params):
     doDonorGuide = cgiGetStr(params, "donorGuide", "off")
     if doDonorGuide == "on":
         # print("Guide sequence without PAM is: <tt>%s</tt><p>" % guideSeq)
-        # inSeq, genome, pamSeq, position, extSeq, multiseq, koMethod, geneModel, koGeneId, multipam, donorSeq = readBatchParams(batchId)
+        # inSeq, genome, pamSeq, position, extSeq, multiseq, koMethod, geneModel, koGeneId, multipam = readBatchParams(batchId)
         seq, org, pam, position, guideData = readBatchAndGuides(batchId)
         for guideRow in guideData:
             (
@@ -14561,6 +14694,7 @@ def donorDesignPage(params):
     pamId = params["pamId"]
     doRecoding = params["doRecoding"]
     cutUpstream = params["cutUpstream"]
+    insertDistance = params["insertDistance"]
     pamFullName = pamId.split(".")[0]
     pam = setupPamInfo(pamFullName)
 
@@ -14574,17 +14708,25 @@ def donorDesignPage(params):
     tagNames = batchInfo.get("tagNames")
     donorSeq = batchInfo.get("donorSeq")
 
+    htmlprefix = HTMLPREFIX
+
     maxssLen = 200 - len(insertSeq)
+    if maxssLen < 40 and kiType != "deletion":
+        donorTypeDisplay = "none"
+        donorTypeMsg = "the insert sequence is too long to use a single stranded oligonucleotide as the HDR template"
+    else:
+        donorTypeDisplay = "block"
+        donorTypeMsg = ""
 
     # from CRISPRdesigner : use the genomic strand if the cut site is downstream of the insertion site,
     # use the reverse complement if the cut site is upstream of the insertion site
 
-    if cutUpstream:
-        nonTargetChecked = "checked"
-        targetChecked = ""
+    if cutUpstream == "True":
+        antisenseChecked = "checked"
+        senseChecked = ""
     else:
-        nonTargetChecked = ""
-        targetChekced = "checked"
+        antisenseChecked = ""
+        senseChecked = "checked"
 
     (
         guideSeq,
@@ -14701,19 +14843,10 @@ def donorDesignPage(params):
                 el.max = maxVal;
             });
 
-            let val5 = parseInt(arm5Number.value);
-            let val3 = parseInt(arm3Number.value);
+            let halfVal = maxVal / 2
 
-            if (val5 < minVal) val5 = minVal;
-            if (val3 < minVal) val3 = minVal;
-
-            if (val5 + val3 > maxVal) {
-                if (val5 > maxVal - minVal) val5 = maxVal - minVal;
-                if (val3 > maxVal - val5) val3 = maxVal - val5;
-            }
-
-            updateValues('number', val5, 'arm5Len', 'arm5LenText');
-            updateValues('number', val3, 'arm3Len', 'arm3LenText');
+            updateValues('number', halfVal, 'arm5Len', 'arm5LenText');
+            updateValues('number', halfVal, 'arm3Len', 'arm3LenText');
 
         } else {
             strandDisplay.style.display = 'none';
@@ -14727,13 +14860,8 @@ def donorDesignPage(params):
                 el.max = maxVal;
             });
 
-            let val5 = parseInt(arm5Number.value);
-            let val3 = parseInt(arm3Number.value);
-            if (val5 < minVal) val5 = minVal;
-            if (val3 < minVal) val3 = minVal;
-
-            updateValues('number', val5, 'arm5Len', 'arm5LenText');
-            updateValues('number', val3, 'arm3Len', 'arm3LenText');
+            updateValues('number', 800, 'arm5Len', 'arm5LenText');
+            updateValues('number', 800, 'arm3Len', 'arm3LenText');
         }
     }
 
@@ -14744,6 +14872,15 @@ def donorDesignPage(params):
     )
 
     print("""<h2>guide Sequence : %s</h2>""" % guideSeqHtml)
+    if insertDistance != "None":
+        if insertDistance == "0":
+            print("<small>DSB at the edition site</small>")
+        else:
+            if cutUpstream == "True":
+                positionText = "upstream"
+            else:
+                positionText = "downstream"
+            print("<small>DSB %s bp  %s of the edition site</small>" % (insertDistance, positionText))
 
     # showDonor(donorSeq, armLen, insertPos, geneId, inSeq, kiType)
 
@@ -14759,52 +14896,56 @@ def donorDesignPage(params):
             insertText = "C-terminal"
 
         print("<p>Insertion of a %sbp sequence in %s</p>" % (len(insertSeq), insertText))
-        exonSeqsPlaceholder = []
-        printGeneModel(geneModel, exonSeqsPlaceholder, pam, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
-
-        if doRecoding == "True":
-            print("""<p style="color:red; font-style: italic;">Warning : Using this guide will likely result in the cleavage of the donor DNA if no mutations are introduced in its sequence</p>""")
+    if doRecoding == "True":
+        print("""<p style="color:#ff6000; font-style: italic;">Warning : Using this guide will likely result in the cleavage of the donor DNA if no mutations are introduced in its sequence</p>""")
+        recodeChecked = "checked"
+    else:
+        recodeChecked = ""
 
     print("<hr>")
-    print("<form>")
+    print("""<form action="%s?%s" method="GET">""" % (basename(__file__), batchId))
+
+    # need a better way to handle this
+    print("""<input type="hidden" name="batchId" value="%s"/>""" % batchId)
 
     print("""
     <h2>Global options</h2>
+    <small> %(donorTypeMsg)s </small>
     <div style="display: flex; flex-direction: column; margin-bottom: 24px;">
         <div style="display: flex; margin-bottom: 24px;">
-            <div style="border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px;">
-                Select donor type INFO<br>
+            <div style="display: %(donorTypeDisplay)s; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px;">
+                Select donor type  <img src=" %(htmlprefix)s image/info-small.png" title="Choose between a single stranded oligodeoxyribonucleotide (ssODN), recommended for small (<50bp) edits, and a double stranded donor DNA, recommended for knock-in of large sequences. The maximum length of the ssODN can't exceed 200 bases" class="tooltipsterInteract"><br>
+
+
                 <input type="radio" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double strand Donor<br>
                 <input type="radio" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single strand Donor<br>
             </div>
-            <div id="templateStrandDisplay" style="margin-left: 15%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
-                Select which strand to use as template INFO<br>
-                <input type="radio" %(targetChecked)s name="templateStrand" value="target" autocomplete="off"/>Target strand<br>
-                <input type="radio" %(nonTargetChecked)s name="templateStrand" value="nontarget" autocomplete="off"/>Non-target strand
+            <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
+                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position. If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template. Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
+<br>
+                <input type="radio" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand<br>
+                <input type="radio" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
             </div>
             <div id="ssODNmsg" style="display: none;">
                 The maximum length of a single strand donor DNA is 200bp.<br>
                 Using this insert sequence, the homology arms can be %(maxssLen)s bp at maximum<br>
             </div>
         </div>
-    <div style="margin-top: 24px;">
-        Select the number of different designs to output:&nbsp
-        <select id="nDonors" autocomplete="off">
-            <option value=1>1</option>
-            <option value=2>2</option>
-            <option value=3>3</option>
-            <option value=4>4</option>
-        </select> INFO
+    <div style="margin-bottom: 24px;">
+        Output a second DNA donor with a barcode to check for homozygous editing:&nbsp
+        <input type="checkbox" style="-webkit-box-shadow:  0px 0px 0px 2px #ff6000;
+-moz-box-shadow: 0px 0px 0px 2px #ff6000;
+box-shadow: 0px 0px 0px 2px #ff6000;" id="doBarcode" autocomplete="off"/> <img src=" %(htmlprefix)s image/info-small.png" title="With this option, a second donor DNA with a few mutations will be displayed, so that homozygous editing can be detected by PCR or NGS." class="tooltipsterInteract"><br>
+
     </div>
     <div style="display:flex; margin-bottom:12px; flex-direction: column;">
-       <p>Choose the length of the homology arms</p>
-        5' homology arm
+        5' homology arm length
         <div style="margin-top:12px; display:flex; gap:12px;">
             <input type="range" id="arm5Len" name="arm5Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%%;">
             <input type="number" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm5Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
         <br>
-        3' homology arm
+        3' homology arm length
        <div style="margin-top:12px; display:flex; gap:12px;">
             <input type="range" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%%;">
             <input type="number" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm3Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
@@ -14827,23 +14968,22 @@ def donorDesignPage(params):
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
                 <strong>Recode the donor to avoid re-cleavage</strong><br>
-                <input type="checkbox" checked id="recodePam" value=1 autocomplete="off"/>Recode the PAM motif<br>
+                <input type="checkbox" %(recodeChecked)s id="recodePam" value=1 autocomplete="off"/>Recode the PAM motif<br>
                 <input type="checkbox" id="recodeSeed" value=1 autocomplete="off"/>Recode PAM proximal end the guide<br>
                 <input type="checkbox" id="recodeGap" value=1 autocomplete="off"/>Recode between the cut site and insertion site<br>
             </div>
             <div>
                 <strong>Trim the donor to facilitate its synthesis</strong><br>
-                <input type="checkbox" id="recodeHomopolymers" value=1 autocomplete="off"/>Trim homopolymers<br>
-                <input type="checkbox" id="recodeGC" value=1 autocomplete="off"/>Trim regions with high GC content<br>
-                <input type="checkbox" id="recodeRepeat" value=1 autocomplete="off"/>Trim repeated sequences<br>
+                <input type="checkbox" id="trimHomopolymers" value=1 autocomplete="off"/>Trim homopolymers<br>
+                <input type="checkbox" id="trimGC" value=1 autocomplete="off"/>Trim regions with high GC content<br>
+                <input type="checkbox" id="trimRepeat" value=1 autocomplete="off"/>Trim repeated sequences<br>
             </div>
         </div>
     </div>
     """ % locals())
     print("""
-       <button style="align-self:center; margin-top: 50px; width:250px; height:50px;" type="submit" name="submit" value="SUBMIT">Design Donor DNA</button>
+       <button style="align-self:center; margin-top: 50px; width:250px; height:50px;" type="submit" id="submit" name="submit" value="SUBMIT">Design Donor DNA</button>
        </div>
-     </div>
     </form>
      """)
 
@@ -15213,8 +15353,7 @@ def runQueueWorker(noFork):
                     _,
                     _,
                     koGeneId,
-                    multipam,
-                    donorSeq,
+                    multipam
                 ) = readBatchParams(batchId)
                 pam = setupPamInfo(pamDesc)  # pamDesc includes info on guidelen, etc
                 assert "-" not in pam
@@ -15247,8 +15386,7 @@ def runQueueWorker(noFork):
                 koMethod,
                 geneModel,
                 koGeneId,
-                multipam,
-                donorSeq,
+                multipam
             ) = readBatchParams(batchId)
             batchBase = join(batchDir, batchId)
             if jobType == "multipam":
@@ -15505,8 +15643,7 @@ def mainCommandLine():
                     koMethod,
                     geneModel,
                     koGeneId,
-                    multipam,
-                    donorSeq,
+                    multipam
                 ) = readBatchParams(batchId)
                 scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = (
                     designOfftargetPrimers(

@@ -784,7 +784,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## knock-in mode
 
-- formulaire design donor DNA
+- ajout du formulaire pour design donor DNA
     - sélection ssODN / dsODN
     - si ssODN : 
         - choix du brin template
@@ -804,3 +804,27 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - afficher lien ucsc correspondnat au bras d'homologie
 - si pas de geneID -> annoter sq avec exons : ne pas recoder 5'UTR et splicing sites
 - minVal à -564 pour si ssODN sélectionné ?!
+
+# 23/02/26
+
+# divers
+
+- correction bug téléchargement des données en mode ko / ki
+    - dans downloadFile() : parseAndPrintMulti(pam/seq)Info retourne les données nécéssaires au téléchargement
+    - modification de xlsWrite(), iterGuideRows(), makeGuideHeaders() et intToExtPamId()
+    - prise en compte des pamIds avec préfixe et ajout du global score / distance site de coupure - site d'insertion
+
+## mode knock-in
+
+- corrections dans writeDonorSeq() : 
+    - prise en compte du mode délétion + recherche des bras d'homologie 5' et 3' indépendamment
+    - choix du brin target / non-target
+- modification de showDonor() : affiche la séquence du donneur en FASTA (bras d'homologie en lowercase, insert en uppercase)
+
+# 24/02/26
+
+## mode knock-in
+
+- ajout de tooltips dans donorDesignPage()
+- changement de la sélection du brin modèle pour ssODN, selon Paix et al., 2017
+- affichage de la distance / direction site de coupure / site d'insertion 
