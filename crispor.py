@@ -1403,7 +1403,7 @@ def showSecondaryStructure(params):
     temperature = 37  # get input temperature later ? or other params
 
     progDir = binDir
-    tmpdir = tempfile.mkdtemp(dir="/data/temp")
+    tmpdir = tempfile.mkdtemp(dir=batchDir)
 
     printBackLink()
 
