@@ -826,9 +826,14 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## divers
 
 - déplacement des binaires RNAstructure dans le dossier approprié (bin/Linux-x86_64)
+- utilisation de RNAfold pour le calcul du EVA score (temporaire ? / pour permettre à crisporTest de fonctionner)
 
 ## mode knock-in
 
 - ajout de tooltips dans donorDesignPage()
 - changement de la sélection du brin modèle pour ssODN, selon Paix et al., 2017
 - affichage de la distance / direction site de coupure / site d'insertion 
+
+## bugs
+
+- internal server error si downloadFile() est éxécuté en mode classic

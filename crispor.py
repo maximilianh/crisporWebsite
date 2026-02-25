@@ -1394,6 +1394,26 @@ def getFreeEnergy(seq, temperature=37):
         return float(deltaG.strip().replace(")", "").replace("(", ""))
 
 
+def showSecondaryStructure(params):
+    "Using ViennaRNA, displays MFE structure as a plot"
+
+    batchId = params["batchId"]
+    guideSeq = params["guideSeq"]
+    temperature = 37  # get input temperature later ? or other params
+    pamId = params["pamId"]
+
+    progDir = binDir
+    # directory of the plotting perl scripts
+    viennaRNAutils = join(baseDir, "bin/src/ViennaRNA-2.1.9/Utils/")
+    outFile = join("/data/temp/", "%s_%s.ps" % (batchId, pamId))
+
+    cmd = "echo %s | %s/RNAfold -p -T %s | %s/relplot.pl > %s" % (guideSeq.lower(), progDir, temperature, viennaRNAutils, outFile)
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
+    proc.wait()
+
+    print("""<meta http-equiv="refresh" content="0; url=""/>""")
+
+
 def findHomopolymers(seq, basesCount):
     """
     find homopolymers of a given length for the specified bases, in the input sequence
@@ -4694,11 +4714,17 @@ def showGuideTable(
         if otData is not None and repCount == 0:
             print(
                 (
-                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>Cloning / PCR primers</strong></a>'
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s" target="_blank"><strong>Cloning / PCR primers</strong></a><br>'
                     % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam)
                 )
             )
-
+            # Display RNAfold secondary structure plot
+            print(
+                (
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s" target="_blank"><strong>Show secondary structure</strong></a>'
+                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq)
+                )
+            )
         print("</small>")
         print("</td>")
 
@@ -9479,14 +9505,13 @@ $('.tooltipsterInteract').tooltipster({
 pamIdRe = re.compile(r"s([0-9]+)([+-])g?([0-9]*)")
 
 
-def intToExtPamId(pamId):
+def intToExtPamId(pamId, multiseq=None, multipam=None):
     "convert the internal pam Id like s20+ to the external one, like 21Forw. Handles multiseq/multipam prefixes."
-    parts = pamId.split('.')
-    if len(parts) > 1:
-        pamPrefix = parts[0]
-        pamIdCore = parts[1]
+    if multiseq or multipam:
+        pamInfo = pamId.split('.')
+        pamPrefix = pamInfo[0]
+        pamIdCore = pamInfo[1]
     else:
-        pamPrefix = ""
         pamIdCore = pamId
 
     match = pamIdRe.match(pamIdCore)
@@ -9500,12 +9525,12 @@ def intToExtPamId(pamId):
         strDesc = "rev"
     guideDesc = str(int(pamPos) + 1) + strDesc
 
-    if pamPrefix:
-        if pamPrefix.isdigit():
-            return "exon%d_%s" % (int(pamPrefix) + 1, guideDesc)
-        else:
-            return "%s_%s" % (pamPrefix, guideDesc)
-    return guideDesc
+    if multiseq:
+        return "exon%d_%s" % (int(pamPrefix) + 1, guideDesc)
+    elif multipam:
+        return "%s_%s" % (pamPrefix, guideDesc)
+    else:
+        return guideDesc
 
 
 def concatGuideAndPam(guideSeq, pamSeq, pamPlusSeq=""):
@@ -9554,7 +9579,7 @@ def effScorePass(effScores, minFusi):
 
 
 def iterGuideRows(
-    guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None, multipam=None
+    guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None, multipam=None, multiseq=None
 ):
     "yield rows from guide data. Need to know if for Cpf1 or not"
     headers, tableScoreNames = makeGuideHeaders(multipam=multipam)
@@ -9624,7 +9649,7 @@ def iterGuideRows(
         if otData != None:
             otCount = len(otData)
 
-        guideDesc = intToExtPamId(pamId)
+        guideDesc = intToExtPamId(pamId, multipam=multipam, multiseq=multiseq)
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [guideDesc, fullSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
@@ -10329,9 +10354,9 @@ def readBatchAndGuides(batchId):
     pam = setupPamInfo(pam)
     uppSeq = seq.upper()
 
-    startDict, endSet = findAllPams(uppSeq, pam, multipam=multipam)
+    startDict, endSet = findAllPams(uppSeq, pam)
 
-    effScoreFname = join(batchDir, batchId + ".effScores.tab")
+    # effScoreFname = join(batchDir, batchId + ".effScores.tab")
 
     otMatches = parseOfftargets(org, batchId, chrom)
     effScores = readEffScores(batchId)
@@ -10564,7 +10589,7 @@ def downloadFile(params):
         exonSeqs, org, pam, exonPosStr, guideData = parseAndPrintMultiSeqInfo(
             params, batchId, koGeneId, download=True
         )
-        seq = "//".join([s[1] for s in exonSeqs])
+        seq = ", ".join(["exon %s: %s" % (int(s[0]) + 1, s[1]) for s in exonSeqs])
         position = koGeneId if koGeneId else ""
     elif multipam:
         seq, org, pam, position, guideData = parseAndPrintMultiPamInfo(
@@ -10607,7 +10632,7 @@ def downloadFile(params):
                 scoreNames = allScoreNames
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat), doDownload)
         xlsWrite(
-            iterGuideRows(guideData, addHeaders=True, multipam=multipam),
+            iterGuideRows(guideData, addHeaders=True, multipam=multipam, multiseq=multiseq),
             "guides",
             sys.stdout,
             [9, 28, 10, 10],
@@ -12467,6 +12492,8 @@ def printBody(params):
         if "pamId" in params:
             if "doRecoding" in params:
                 donorDesignPage(params)
+            elif "guideSeq" in params:
+                showSecondaryStructure(params)
             elif "pam" in params:
                 primerDetailsPage(params)
             elif "otPrimers" in params:
