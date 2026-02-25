@@ -837,3 +837,16 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## bugs
 
 - internal server error si downloadFile() est éxécuté en mode classic
+
+# 25/02/26
+
+## divers
+
+- correction (définitive ?) de downloadFile()
+- ajout de showSecondaryStructure() : exécute RNAfold et affiche une représentation graphique de la structure secondaire (lien depuis "Guide sequence + PAM")
+
+## à faire
+- lien -> vérification épissage
+- masquer barcode pour substitutions
+- ajout option donorName
+- ajouter remplacement : définir taille remplacement -> 1 ou 2 guides (cf. double nicking)

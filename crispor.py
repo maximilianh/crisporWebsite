@@ -1397,22 +1397,48 @@ def getFreeEnergy(seq, temperature=37):
 def showSecondaryStructure(params):
     "Using ViennaRNA, displays MFE structure as a plot"
 
-    batchId = params["batchId"]
     guideSeq = params["guideSeq"]
+    freeEnergy = params["freeEnergy"]
+
     temperature = 37  # get input temperature later ? or other params
-    pamId = params["pamId"]
 
     progDir = binDir
-    # directory of the plotting perl scripts
-    viennaRNAutils = join(baseDir, "bin/src/ViennaRNA-2.1.9/Utils/")
-    outFile = join("/data/temp/", "%s_%s.ps" % (batchId, pamId))
+    tmpdir = tempfile.mkdtemp(dir="/data/temp")
 
-    cmd = "echo %s | %s/RNAfold -p -T %s | %s/relplot.pl > %s" % (guideSeq.lower(), progDir, temperature, viennaRNAutils, outFile)
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
-    proc.wait()
+    printBackLink()
 
-    print("""<meta http-equiv="refresh" content="0; url=""/>""")
+    print("""<div style="margin-left:35%; margin-bottom:10%;">""")
+    print("""<div class="title"">Guide sequence : %s</div>""" % guideSeq)
+    print("""<p>Free energy of this structure : %s kcal/mol</p>""" % freeEnergy)
+    try:
 
+        RNAfoldCmd = os.path.join(progDir, "RNAfold")
+        RNAplotCmd = os.path.join(progDir, "RNAplot")
+
+        cmd = "echo %s | %s -p -T %s | %s -o svg" % (guideSeq.upper(), RNAfoldCmd, temperature, RNAplotCmd)
+
+        subprocess.run(
+            cmd,
+            shell=True,
+            cwd=tmpdir,
+            capture_output=True
+        )
+
+        files = os.listdir(tmpdir)
+        for file in files:
+            if file.endswith('.svg'):
+                rnaPath = (join(tmpdir, file))
+                rnaPlot = rnaPath
+
+        with open(rnaPlot, "r") as f:
+            svgPlot = f.read()
+
+        print("""<div> %s </div>""" % svgPlot)
+        print("</div>")
+
+    finally:
+        # Cleanup
+        shutil.rmtree(tmpdir)
 
 def findHomopolymers(seq, basesCount):
     """
@@ -3736,16 +3762,22 @@ def mergeGuideInfo(
             cutUpstream = None
 
         if effScoring:
-            mainScore = calcGlobScore(
-                guideSeq,
-                pamSeq,
-                guideScore,
-                guideCfdScore,
-                effScoring,
-                gcFrac,
-                freeEnergy,
-                globEffScore,
-            )
+            if globEffScore is None:
+                globEffScore = "rs3"
+
+            if globEffScore in effScoring:
+                mainScore = calcGlobScore(
+                    guideSeq,
+                    pamSeq,
+                    guideScore,
+                    guideCfdScore,
+                    effScoring,
+                    gcFrac,
+                    freeEnergy,
+                    globEffScore,
+                )
+            else:
+                mainScore = "NA"
         else:
             mainScore = "NA"
 
@@ -4720,10 +4752,10 @@ def showGuideTable(
             )
             # Display RNAfold secondary structure plot
             print(
-                (
-                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s" target="_blank"><strong>Show secondary structure</strong></a>'
-                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq)
-                )
+               (
+                   '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s&freeEnergy=%s" target="_blank"><strong>Show secondary structure</strong></a>'
+                   % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq, freeEnergy)
+               )
             )
         print("</small>")
         print("</td>")
@@ -10336,7 +10368,7 @@ def writeSatMutFile(
     )
 
 
-def readBatchAndGuides(batchId):
+def readBatchAndGuides(batchId, globEffScore=None):
     "parse the input file, the batchId-json file and the offtargets and link everything together"
     (
         seq,
@@ -10361,7 +10393,7 @@ def readBatchAndGuides(batchId):
     otMatches = parseOfftargets(org, batchId, chrom)
     effScores = readEffScores(batchId)
     guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(
-        uppSeq, startDict, pam, otMatches, position, effScores, org=org
+        uppSeq, startDict, pam, otMatches, position, effScores, org=org, globEffScore=globEffScore
     )
     return seq, org, pam, position, guideData
 
@@ -10597,7 +10629,8 @@ def downloadFile(params):
         )
 
     else:
-        seq, org, pam, position, guideData = readBatchAndGuides(batchId)
+        globEffScore = params.get("globEffScore")
+        seq, org, pam, position, guideData = readBatchAndGuides(batchId, globEffScore=globEffScore)
 
     if batchName != "":
         queryDesc = batchName + "_"
