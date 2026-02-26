@@ -3654,19 +3654,38 @@ def calcInsertDistance(insertIdx, pamStart, pamSeq, guideStart, guideSeq, strand
         doRecoding = True
 
     # insertDistance should be 0 if the cut site is whithin the deletion
+    # cutUpstream is to determine the template strand for ssODN design
+    # onPosupstream/downstream is to display insertDistance even
+    # if there is no need for strand selection
+
     if kiType == "deletion":
         if cutPos >= insertIdx and cutPos <= deletionEnd:
             insertDistance = 0
-            cutUpstream = False
+            cutUpstream = "onPos"
         elif cutPos < insertIdx:
             insertDistance = insertIdx - cutPos
-            cutUpstream = True
+            if insertIdx - cutPos <= 10:
+                cutUpstream = "onPosupstream"
+            else:
+                cutUpstream = "upstream"
         elif cutPos > deletionEnd:
             insertDistance = cutPos - deletionEnd
-            cutUpstream = False
+            if cutPos - deletionEnd <= 10:
+                cutUpstream = "onPosdownstream"
+            else:
+                cutUpstream = "downsteam"
     else:
         insertDistance = abs(insertIdx - cutPos)
-        cutUpstream = insertIdx - cutPos > 0
+        if insertIdx - cutPos > 10:
+            cutUpstream = "upstream"
+        elif insertIdx - cutPos < -10:
+            cutUpstream = "downstream"
+        elif insertIdx - cutPos < 10 and insertDistance != 0:
+            cutUpstream = "onPosupstream"
+        elif insertIdx - cutPos > -10 and insertDistance != 0:
+            cutUpstream = "onPosdownstream"
+        else:
+            cutUpstream = "onPos"
 
     return insertDistance, doRecoding, cutUpstream
 
@@ -8713,6 +8732,8 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
     pamList = multiPamDict[multipam]
     chrom, start, end, strand = parsePos(posStr)
 
+    minFreq, varDb = checkOtherArgs(params)
+
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
@@ -8772,11 +8793,46 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
         allGuideData.extend(guideData)
         allGuideScores.update(guideScores.copy())
         allPamIdToSeq.update(pamIdToSeq.copy())
-
     sortGuideData(allGuideData, sortBy=sortBy)
+
     if download:
         return seq, org, pam, posStr, allGuideData
     else:
+        genomePosStr = ":".join(posStr.split(":")[:2])
+        chrom, start, end, strand = parsePos(posStr)
+        start = str(int(start) + 1)
+        chrom = applyChromAlias(org, chrom)
+        oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
+
+        print("<div>")
+        print("%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name))
+        print('<span style="text-decoration:underline">')
+        # mouseOver = "link to UCSC,Ensembl or Gbrowse Genome Browser"
+        mouseOver = None
+        if dbInfo.server == "manual":
+            mouseOver = "no genome browser link available for this organism"
+
+        varHtmls, varDbs = getVariants(
+            seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
+        )
+
+        print(
+            makeBrowserLink(
+                dbInfo,
+                genomePosStr,
+                oneBasedPosition,
+                mouseOver,
+                ["tooltipster"],
+                ctUrl=None,
+            )
+            + "</span>, "
+        )
+        if strand == "+":
+            print(" forward genomic strand")
+        else:
+            print(" reverse genomic strand")
+        print("</div>")
+
         showSeqAndPams(
             org,
             seq,
@@ -8811,6 +8867,8 @@ def showDonor(donorSeq, params):
     donorType = params["donorType"]
     batchId = params["batchId"]
     batchInfo = readBatchAsDict(batchId)
+    donorName = params.get("donorName")
+    guideSeq = params["guideSeq"]
 
     insertSeq = batchInfo["insertseq"]
     geneId = batchInfo.get("ko_geneid")
@@ -8823,7 +8881,9 @@ def showDonor(donorSeq, params):
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
 
+    dbInfo = readDbInfo(org)
     chrom, start, end, strand = parsePos(posStr)
+
     insertCoord = "%s:%s" % (chrom, start+insertIdx)
     if kiType == "substitution":
         kiTypeStr = "%s-%ssubst" % (seq[insertIdx], insertSeq)
@@ -8832,7 +8892,8 @@ def showDonor(donorSeq, params):
     else:
         kiTypeStr = "insert%sbp" % (len(insertSeq))
 
-    donorName = "Don_%s_%s_%s" % (org, insertCoord, kiTypeStr)
+    if not donorName:
+        donorName = "Don_%s_%s_%s" % (org, insertCoord, kiTypeStr)
     donorTypeText = "ssODN" if donorType == "ss" else "double stranded donor DNA"
 
     if geneId and insertPos == "Cter":
@@ -8842,6 +8903,8 @@ def showDonor(donorSeq, params):
         insertText = "substitution"
     else:
         insertText = "insert sequence"
+
+    printBackLink(toDonorPage=True)
 
     print(
         """
@@ -8864,6 +8927,32 @@ def showDonor(donorSeq, params):
         }
     </script>
           """
+    )
+
+    if kiType == "substitution":
+        seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
+    elif kiType == "deletion":
+        seqMsg = "%dbp deletion" % (len(batchInfo["insertseq"]))
+    else:
+        seqMsg = "knock-in of a %s bp sequence" % len(batchInfo["insertseq"])
+
+    if geneId:
+        if "ENST" in geneId:
+            transcriptUrl = (
+                """in %s of <a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a> """
+                % (insertPos, geneId.split("_")[0], geneId.split("_")[0])
+            )
+        else:
+            transcriptUrl = (
+                """in %s of <a href="https://www.ncbi.nlm.nih.gov/nuccore/%s/" target="blank">%s</a> """
+                % (insertPos, geneId, geneId)
+            )
+    else:
+        transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
+
+    print(
+        """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
+        % (dbInfo.scientificName, seqMsg, transcriptUrl)
     )
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
@@ -8913,9 +9002,13 @@ def showDonor(donorSeq, params):
             """<div style='width: 80%; margin-top: 54px; margin-left:25%; margin-right:25%; text-align:left;'>"""
     )
 
+    print("""<h2>Guide sequence : %s</h2> """ % guideSeq)
     print("""
-          <div class="title" style="margin-bottom:24px;">Below is the sequence of the %s </div>
-          <button style="margin-bottom:24px;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>""" % donorTypeText)
+          <div style="margin-top: 32px; margin-bottom: 24px; display: flex; align-items: flex-end;">
+              <h4 style="align-self: flex-end; margin: 0;">Sequence of the %s : </h4>&nbsp&nbsp
+              <button style="align-self: flex-end; margin: 0;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>
+          </div> """ % donorTypeText)
+
 
     print("""<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">""")
 
@@ -10826,7 +10919,7 @@ def makeCrispressoFname(batchName, batchId):
 
 
 def designOfftargetPrimers(
-    inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches
+    inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, pamFullName=None
 ):
     "return a list of off-target primers sorted by CFD score"
     targetChrom, targetStart, targetEnd, strand = parsePos(position)
@@ -10842,7 +10935,7 @@ def designOfftargetPrimers(
         guideSeqHtml,
         guideStart,
         guideEnd,
-    ) = findGuideSeq(inSeq, pam, pamId)
+    ) = findGuideSeq(inSeq, pam, pamId, pamFullName=pamFullName)
 
     # get the coords
     coords = []
@@ -10896,7 +10989,7 @@ def designOfftargetPrimers(
     ampRange = "%d-%d" % (ampMin, ampLen)
 
     primers = runPrimer3(
-        targetSeqs, flankSize, GUIDELEN + len(pamSeq), ampRange, tm, {}
+        targetSeqs, flankSize, GUIDELEN + len(pamSeq), ampRange, tm, {}, primerLen
     )
 
     # sort primers by CFD off-target score
@@ -10926,6 +11019,7 @@ def writeAmpliconFile(params, batchId, pamId, outFh):
     "create the table of off-target amplicons for crispressoPooled and write to outFh"
     ampLen = cgiGetNum(params, "ampLen", 140)
     tm = cgiGetNum(params, "tm", 60)
+    primerLen = cgiGetNum(params, "primerLen", 20)
 
     (
         inSeq,
@@ -10940,11 +11034,15 @@ def writeAmpliconFile(params, batchId, pamId, outFh):
         multipam
     ) = readBatchParams(batchId)
 
+    if multipam:
+        pamFullName = pamId.split('.')[0]
+        pam = setupPamInfo(pamFullName)
+
     pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = designOfftargetPrimers(
-        inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches
+        inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, pamFullName=pamFullName
     )
 
     for row in makeCrispressoOfftargetRows(scoredPrimers, nameToSeq, nameToOtScoreSeq):
@@ -10959,6 +11057,7 @@ def otPrimerPage(params):
 
     ampLen = cgiGetNum(params, "ampLen", 140)
     tm = cgiGetNum(params, "tm", 60)
+    primerLen = cgiGetNum(params, "primerLen", 20)
 
     (
         inSeq,
@@ -10972,11 +11071,16 @@ def otPrimerPage(params):
         koGeneId,
         multipam
     ) = readBatchParams(batchId)
+
+    if multipam:
+        pamFullName = pamId.split('.')[0]
+        pam = setupPamInfo(pamFullName)
+
     pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = designOfftargetPrimers(
-        inSeq, db, pam, position, extSeq, pamId, ampLen, tm, otMatches
+        inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, pamFullName=pamFullName
     )
 
     # primers -> table rows
@@ -11048,7 +11152,7 @@ def otPrimerPage(params):
 
     print(("""<form id="paramForm" action="%s" method="GET">""" % basename(__file__)))
 
-    printAmpLenAndTm(ampLen, tm)
+    printAmpLenAndTm(ampLen, primerLen, tm)
     printHiddenFields(params, {"batchId": batchId, "pamId": pamId, "otPrimers": "1"})
     print("""<input type="submit" name="submit" value="Update">""")
     print("</form>")
@@ -11103,17 +11207,30 @@ def otPrimerPage(params):
     )
 
 
-def printBackLink():
-    "print a link back to the main batch page"
+def printBackLink(toDonorPage=False):
+    """print a link back to the main batch page
+    optionally, print a link back to the donor design page
+    """
+
     newParams = {}
     newParams["batchId"] = cgiParams.get("batchId", "")
     if "batchName" in cgiParams:
         newParams["batchName"] = cgiParams["batchName"]
+    if toDonorPage:
+        newParams["pamId"] = urllib.parse.quote(str(cgiParams["pamId"]))
+        newParams["pam"] = cgiParams["pam"]
+        newParams["doRecoding"] = cgiParams["doRecoding"]
+        newParams["cutUpstream"] = cgiParams["cutUpstream"]
+        newParams["insertDistance"] = cgiParams["insertDistance"]
+        linkText = "return to donor DNA design"
+    else:
+        linkText = "return to the list of all guides"
+
     paramStrs = ["%s=%s" % (key, val) for key, val in newParams.items()]
     paramStr = "&".join(paramStrs)
     url = basename(__file__) + "?" + paramStr
 
-    print(("<p><a href='%s'>&larr; return to the list of all guides</a></p>" % url))
+    print(("<p><a href='%s'>&larr; %s </a></p>" % (url, linkText)))
 
 
 def microHomPage(params):
@@ -11296,7 +11413,8 @@ can be selectively amplified from the pool.<br>
     )
     ampLen = "150"
     tm = "60"
-    printAmpLenAndTm(ampLen, tm)
+    primerLen = "20"
+    printAmpLenAndTm(ampLen, primerLen, tm)
     print("</p>")
 
     print("<strong>3 - Filters</strong><br>Minimum specificity score: ")
@@ -12519,13 +12637,13 @@ def printBody(params):
     if "batchId" in params and "satMut" not in params:
         printCrisporBodyStart()
 
-        if "donorType" in params:
+        if "donorType" in params and submit:
             donorSeq = writeDonorSeq(params)
             showDonor(donorSeq, params)
-        if "pamId" in params:
-            if "doRecoding" in params:
-                donorDesignPage(params)
-            elif "guideSeq" in params:
+        elif "doRecoding" in params:
+            donorDesignPage(params)
+        elif "pamId" in params and "doRecoding" not in params:
+            if "guideSeq" in params:
                 showSecondaryStructure(params)
             elif "pam" in params:
                 primerDetailsPage(params)
@@ -13001,7 +13119,7 @@ def writeDonorSeq(params):
 
     arm5Len = int(params["arm5Len"])
     arm3Len = int(params["arm3Len"])
-    polarity = params.get("polarity")
+    donorType = params["donorType"]
     doBarcode = params.get("doBarcode")
     donorType = params["donorType"]
     recodePam = params.get("recodePam")
@@ -13023,12 +13141,16 @@ def writeDonorSeq(params):
     else:
         insertCoord = int(end - insertIdx)
 
-    if polarity == "positive" and strand == "-":
-        insertSeq = revComp(insertSeq)
-        templateStrand = "+"
-    elif polarity == "negative" and strand == "+":
-        insertSeq = revComp(insertSeq)
-        templateStrand = "-"
+    if donorType == "ss":
+        polarity = params["polarity"]
+        if polarity == "positive" and strand == "-":
+            insertSeq = revComp(insertSeq)
+            templateStrand = "+"
+        elif polarity == "negative" and strand == "+":
+            insertSeq = revComp(insertSeq)
+            templateStrand = "-"
+        else:
+            templateStrand = strand
     else:
         templateStrand = strand
 
@@ -13049,11 +13171,12 @@ def writeDonorSeq(params):
 
     # for substitutions, remove the edited based in the homology arm and extend the arm by 1bp
     if kiType == "substitution":
-        arm3len += 1
-        if strand == "+":  # à vérifier !!
+        if strand == "+":  # à vérifier !! -> OK
+            arm3start += 1
             arm3end += 1
         else:
-            arm3start -= 1
+            arm5end -= 1
+            arm5start -= 1
 
     HA5 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm5start, arm5end, templateStrand), maxlen=False, minlen=False)
     HA3 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm3start, arm3end, templateStrand), maxlen=False, minlen=False)
@@ -13176,7 +13299,7 @@ def iterParseBoulder(tmpOutFname):
         yield data
 
 
-def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm, addTags):
+def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm, addTags, primerLen):
     """
     input is a list of (seqId, seq)
     return dict seqId -> (primerseq1, tm1, pos1, primerseq2, tm2, pos2)
@@ -13187,6 +13310,10 @@ def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm, addTags):
     minTm = tm - 3
     maxTm = tm + 3
     optTm = tm
+
+    primerMinSize = primerLen - 3
+    primerOptSize = primerLen
+    primerMaxSize = primerLen + 5
 
     p3InFh = makeTempFile("primer3In", ".txt")
     # values from https://www.ncbi.nlm.nih.gov/tools/primer-blast/
@@ -13205,9 +13332,9 @@ PRIMER_MIN_TM=%(minTm)d
 PRIMER_OPT_TM=%(optTm)d
 PRIMER_MAX_TM=%(maxTm)d
 PRIMER_MAX_POLY_X=4
-PRIMER_MIN_SIZE=18
-PRIMER_OPT_SIZE=20
-PRIMER_MAX_SIZE=25
+PRIMER_MIN_SIZE=%(primerMinSize)d
+PRIMER_OPT_SIZE=%(primerOptSize)d
+PRIMER_MAX_SIZE=%(primerMaxSize)d
 PRIMER_MAX_END_STABILITY=9
 PRIMER_MAX_POLY=4
 PRIMER_PRODUCT_SIZE_RANGE=%(prodSizeRange)s
@@ -13534,8 +13661,10 @@ def designPrimer(
         guideStart, ampLen, hdrDist, strand
     )
 
+    primerLen = 20
+
     primers = runPrimer3(
-        [("seq1", flankSeq)], targetStart, targetLen, ampRange, tm, addTags
+        [("seq1", flankSeq)], targetStart, targetLen, ampRange, tm, addTags, primerLen
     )
     lSeq, lTm, lPos, rSeq, rTm, rPos = list(primers.values())[0]
 
@@ -14032,7 +14161,7 @@ def findOntargetPos(otMatches, pamId, position, absentOk=False):
     return chrom, start, end, strand, segName, isUnique
 
 
-def printAmpLenAndTm(ampLen, tm):
+def printAmpLenAndTm(ampLen, primerLen, tm):
     "print form fields for amplicon length and TM"
     print("Maximum amplicon length:")
     dropDownSizes = [
@@ -14049,6 +14178,28 @@ def printAmpLenAndTm(ampLen, tm):
     printDropDown(
         "ampLen", dropDownSizes, ampLen, onChange="""$('#submitPcrForm').click()"""
     )
+
+    print("&nbsp;&nbsp;&nbsp; Primer length:")
+    primerLenList = [
+        ("15", "15 bases"),
+        ("16", "16 bases"),
+        ("17", "17 bases"),
+        ("18", "18 bases"),
+        ("19", "19 bases"),
+        ("20", "20 bases"),
+        ("21", "21 bases"),
+        ("22", "22 bases"),
+        ("23", "23 bases"),
+        ("24", "24 bases"),
+        ("25", "25 bases"),
+        ("26", "26 bases"),
+        ("27", "27 bases"),
+        ("28", "28 bases"),
+        ("29", "29 bases"),
+        ("30", "30 bases"),
+
+    ]
+    printDropDown("primerLen", primerLenList, primerLen, onChange="""$('#submitPcrForm').click()""")
 
     print("&nbsp;&nbsp;&nbsp; Primer Tm:")
     tmList = [
@@ -14088,6 +14239,11 @@ def printValidationPcrSection(
     if not ampLen.isdigit():
         errAbort("ampLen parameter must be a number")
     ampLen = int(ampLen)
+
+    primerLen = params.get("primerLen", "20")
+    if not primerLen.isdigit():
+        errAbort("primerLen parameter must be a number")
+    primerLen = int(primerLen)
 
     tm = params.get("tm", "60")
     if not tm.isdigit():
@@ -14188,7 +14344,7 @@ def printValidationPcrSection(
 
     print(("""<form id="ampLenForm" action="%s" method="GET">""" % basename(__file__)))
 
-    printAmpLenAndTm(ampLen, tm)
+    printAmpLenAndTm(ampLen, primerLen, tm)
 
     printHiddenFields(params, {"ampLen": None, "tm": None})
 
@@ -14797,6 +14953,8 @@ def donorDesignPage(params):
     kiType = batchInfo["kiType"]
     tagNames = batchInfo.get("tagNames")
     donorSeq = batchInfo.get("donorSeq")
+    posStr = batchInfo["posStr"]
+    chrom, start, end, strand = parsePos(posStr)
 
     htmlprefix = HTMLPREFIX
 
@@ -14810,13 +14968,28 @@ def donorDesignPage(params):
 
     # from CRISPRdesigner : use the genomic strand if the cut site is downstream of the insertion site,
     # use the reverse complement if the cut site is upstream of the insertion site
+    # if the cut site is within 10bp of the insertion site, use the target strand as a template
 
-    if cutUpstream == "True":
+    if cutUpstream == "upstream" or ("onPos" in cutUpstream and strand == "-"):
         antisenseChecked = "checked"
         senseChecked = ""
     else:
         antisenseChecked = ""
         senseChecked = "checked"
+
+    # don't show the barcoding option for substitutions
+    if kiType != "substitution":
+        barcodeOption = """
+        <div style="margin-bottom: 24px;">
+            Output a second DNA donor with a barcode to check for homozygous editing:&nbsp
+            <input type="checkbox" style="-webkit-box-shadow:  0px 0px 0px 2px #ff6000;
+    -moz-box-shadow: 0px 0px 0px 2px #ff6000;
+    box-shadow: 0px 0px 0px 2px #ff6000;" id="doBarcode" autocomplete="off"/> <img src=" %s image/info-small.png" title="With this option, a second donor DNA with a few mutations will be displayed, so that homozygous editing can be detected by PCR or NGS." class="tooltipsterInteract"><br>
+
+        </div>
+        """ % HTMLPREFIX
+    else:
+        barcodeOption = ""
 
     (
         guideSeq,
@@ -14828,6 +15001,7 @@ def donorDesignPage(params):
         guideStart,
         guideEnd,
     ) = findGuideSeq(inSeq, pam, pamId, pamFullName=pamFullName)
+
     printBackLink()
 
     print("""
@@ -14912,6 +15086,7 @@ def donorDesignPage(params):
         const arm5Number = document.getElementById('arm5LenText');
         const arm3Range = document.getElementById('arm3Len');
         const arm3Number = document.getElementById('arm3LenText');
+        const trimOptions = document.getElementById('trimOptions');
 
         let selectedValue
         for (const type of donorType) {
@@ -14924,6 +15099,7 @@ def donorDesignPage(params):
         if (selectedValue === 'ss') {
             strandDisplay.style.display = 'block';
             ssODNmsg.style.display = 'block';
+            trimOptions.style.display = 'none';
 
             const minVal = 20;
             const maxVal = %(maxssLen)s - minVal;
@@ -14934,13 +15110,19 @@ def donorDesignPage(params):
             });
 
             let halfVal = maxVal / 2
+            if (halfVal < 45) {
+                resetVal = halfVal;
+                } else {
+                resetVal = 45;
+                };
 
-            updateValues('number', halfVal, 'arm5Len', 'arm5LenText');
-            updateValues('number', halfVal, 'arm3Len', 'arm3LenText');
+            updateValues('number', resetVal, 'arm5Len', 'arm5LenText');
+            updateValues('number', resetVal, 'arm3Len', 'arm3LenText');
 
         } else {
             strandDisplay.style.display = 'none';
             ssODNmsg.style.display = 'none';
+            trimOptions.style.display = 'block';
 
             const minVal = 50;
             const maxVal = 2000;
@@ -14960,17 +15142,12 @@ def donorDesignPage(params):
     print(
             """<div style='width: 80%; margin-top: 54px; margin-left:10%; margin-right:10%; text-align:left;'>"""
     )
-
     print("""<h2>guide Sequence : %s</h2>""" % guideSeqHtml)
     if insertDistance != "None":
         if insertDistance == "0":
             print("<small>DSB at the edition site</small>")
         else:
-            if cutUpstream == "True":
-                positionText = "upstream"
-            else:
-                positionText = "downstream"
-            print("<small>DSB %s bp  %s of the edition site</small>" % (insertDistance, positionText))
+            print("<small>DSB %s bp  %s of the edition site</small>" % (insertDistance, cutUpstream.lstrip("onPos")))
 
     # showDonor(donorSeq, armLen, insertPos, geneId, inSeq, kiType)
 
@@ -14997,10 +15174,19 @@ def donorDesignPage(params):
 
     # need a better way to handle this
     print("""<input type="hidden" name="batchId" value="%s"/>""" % batchId)
+    print("""<input type="hidden" name="guideSeq" value="%s"/> """ % guideSeq)
+    print("""<input type="hidden" name="pam" value="%s"/> """ % pam)
+    print("""<input type="hidden" name="pamId" value="%s"/> """ % pamId)
+    print("""<input type="hidden" name="doRecoding" value="%s"/> """ % doRecoding)
+    print("""<input type="hidden" name="insertDistance" value="%s"/> """ % insertDistance)
+    print("""<input type="hidden" name="cutUpstream" value="%s"/> """ % cutUpstream)
 
     print("""
     <h2>Global options</h2>
     <small> %(donorTypeMsg)s </small>
+    <div style="margin-bottom:24px; margin-top:12px;">
+        Specify the fasta header for the donor sequence (optional) : &nbsp<input name="donorName"/><br>
+    </div>
     <div style="display: flex; flex-direction: column; margin-bottom: 24px;">
         <div style="display: flex; margin-bottom: 24px;">
             <div style="display: %(donorTypeDisplay)s; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px;">
@@ -15021,13 +15207,7 @@ def donorDesignPage(params):
                 Using this insert sequence, the homology arms can be %(maxssLen)s bp at maximum<br>
             </div>
         </div>
-    <div style="margin-bottom: 24px;">
-        Output a second DNA donor with a barcode to check for homozygous editing:&nbsp
-        <input type="checkbox" style="-webkit-box-shadow:  0px 0px 0px 2px #ff6000;
--moz-box-shadow: 0px 0px 0px 2px #ff6000;
-box-shadow: 0px 0px 0px 2px #ff6000;" id="doBarcode" autocomplete="off"/> <img src=" %(htmlprefix)s image/info-small.png" title="With this option, a second donor DNA with a few mutations will be displayed, so that homozygous editing can be detected by PCR or NGS." class="tooltipsterInteract"><br>
-
-    </div>
+    %(barcodeOption)s
     <div style="display:flex; margin-bottom:12px; flex-direction: column;">
         5' homology arm length
         <div style="margin-top:12px; display:flex; gap:12px;">
@@ -15062,7 +15242,7 @@ box-shadow: 0px 0px 0px 2px #ff6000;" id="doBarcode" autocomplete="off"/> <img s
                 <input type="checkbox" id="recodeSeed" value=1 autocomplete="off"/>Recode PAM proximal end the guide<br>
                 <input type="checkbox" id="recodeGap" value=1 autocomplete="off"/>Recode between the cut site and insertion site<br>
             </div>
-            <div>
+            <div id="trimOptions">
                 <strong>Trim the donor to facilitate its synthesis</strong><br>
                 <input type="checkbox" id="trimHomopolymers" value=1 autocomplete="off"/>Trim homopolymers<br>
                 <input type="checkbox" id="trimGC" value=1 autocomplete="off"/>Trim regions with high GC content<br>
@@ -15722,6 +15902,7 @@ def mainCommandLine():
                 )
                 ampLen = options.ampLen
                 tm = options.tm
+                primerLen = 20  # Need to add to the options
 
                 (
                     seq,
@@ -15744,6 +15925,7 @@ def mainCommandLine():
                         extSeq,
                         pamId,
                         ampLen,
+                        primerLen,
                         tm,
                         otMatches[pamId],
                     )

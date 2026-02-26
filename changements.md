@@ -844,9 +844,38 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - correction (définitive ?) de downloadFile()
 - ajout de showSecondaryStructure() : exécute RNAfold et affiche une représentation graphique de la structure secondaire (lien depuis "Guide sequence + PAM")
+- ajout du lien vers le genome browser en mode knock-in
 
 ## à faire
 - lien -> vérification épissage
 - masquer barcode pour substitutions
 - ajout option donorName
 - ajouter remplacement : définir taille remplacement -> 1 ou 2 guides (cf. double nicking)
+- dans input "edited sequence" -> option pour afficher les 3 cadres de lecture, puis sélection 
+- dans showDonor() -> ajouter séquence du guide (+ guides compatibles) + récap but de l'expérience
+- ajouter bouton téléchargement fasta
+
+# 26/02/26
+
+## divers
+
+- correction de la page off-target PCR (prise en compte du pamId complet en mode multipam)
+- ajout sélection de la longueur du primer (15-30 bases)
+
+## knock-in mode
+
+- dans donorDesignPage() : 
+    - ajout input fasta header pour ADN donneur
+    - masquage des options "trim the donor to facilitate its synthesis" pour ssODN
+    - masquage de l'option "barcode" en mode substitution
+    - si distance site d'insertion / site de coupure < 10bp : sélection du brin target pour template ssOND
+
+- dans showDonor() :
+    - ajout de la séquence du guide + résumé de l'expérience
+    - ajout d'un lien de retour vers la page de design du donneur (modification de printBackLink())
+- correction d'un bug dans writeDonorSeq() : polarité assignée au donneur double brin + correcion coordonnées substitution
+
+## à faire
+
+- dans processMultiPamSubmission retourne une erreur si la séquence n'est pas dans le génomes -> afficher message à la place
+- si rechargement de la page off-target primers -> "primers not found at this Tm"
