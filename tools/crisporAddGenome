@@ -792,7 +792,7 @@ def selectManualGenome(taxIds, options):
     Rec = namedtuple("genomeDesc", headers)
     return [Rec(name, description, commonName, scName, url, server)]
 
-def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
+def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg, skipNonChromGenes=False):
     " convert gff3 to genePred and segments "
     global binDir
     if gff3Fname.endswith(".gz"):
@@ -818,7 +818,10 @@ def convertGff3(chromSizesFname, gff3Fname, gpFname, segFname, useAltProg):
 
     # genePredTo cannot deal with spaces, so replace these with underscores. 
     # No idea why NCBI has spaces in gene identifiers, in some obscure cases
-    cmd = f"""cat {gpFname} | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {chromSizesFname} | {binDir}/bedSort stdin {segFname}"""
+    bedBetweenOpt = ""
+    if skipNonChromGenes:
+        bedBetweenOpt = "--skipInvalidChroms"
+    cmd = f"""cat {gpFname} | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {chromSizesFname} {bedBetweenOpt} | {binDir}/bedSort stdin {segFname}"""
     logging.info("converting genePred to segment names: %s" % cmd)
     runCmd(cmd)
 
@@ -853,29 +856,16 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
 
         # download file
         outFnames = []
+        liftFname = None
         if not options.onlyGenes:
             liftFname = copyCheckFa(row.url, faTmp)
             if liftFname:
                 outFnames.append(liftFname)
-            #if row.url.startswith("http://") or row.url.startswith("ftp://"):
-                #if row.url.endswith(".gz"):
-                    #cmd = "wget %s -O - | zcat > %s" % (row.url, faTmp)
-                #else:
-                    #cmd = "wget %s -O %s" % (row.url, faTmp)
-                #runCmd(cmd)
-            #else:
-                # local file, just copy
-                #if row.url.endswith(".gz"):
-                    #faTmp += ".gz"
-                #print("Copy %s to %s" % (row.url, faTmp))
-                #shutil.copy(row.url, faTmp)
-
 
         twoBitTmp = join(dbTmpDir, db+".2bit")
         sizesTmp = join(dbTmpDir, db+".sizes")
         indexFasta(faTmp, db, twoBitTmp, sizesTmp, outFnames)
         outFnames.extend([sizesTmp, twoBitTmp])
-
 
         if gff3Fname:
             #printMsg("Making chrom sizes")
@@ -978,7 +968,7 @@ def getGenbankInfo(acc):
     server = "genbank"
     commonName = getNameForTaxId(taxId)
     if commonName is None:
-        logging.info("NCBI Taxonomy has no common name for tax ID %s" % row.taxid)
+        logging.info("NCBI Taxonomy has no common name for tax ID %s" % taxid)
         commonName = scName
     if len(acronyms)!=0:
         commonName = commonName + " ("+(", ".join(acronyms))+")"
@@ -1022,11 +1012,11 @@ def getGenbankGenome(genomeInfo):
 
 def makeChrUn(fname):
     " create a chrUn and a lift file for it "
-    cmd = "faFilter -maxSize=%d %s /tmp/smallSeqs.fa" % (smallCutoff, fname)
+    cmd = "%s/faFilter -maxSize=%d %s /tmp/smallSeqs.fa" % (binDir, smallCutoff, fname)
     runCmd(cmd)
-    cmd = "faFilter -v -maxSize=%d %s /tmp/bigSeqs.fa" % (smallCutoff, fname)
+    cmd = "%s/faFilter -v -maxSize=%d %s /tmp/bigSeqs.fa" % (binDir, smallCutoff, fname)
     runCmd(cmd)
-    cmd = "faCat /tmp/smallSeqs.fa /tmp/chrUn /tmp/chrUnLft -gapSize=100 -maxOutputSize=99999999999"
+    cmd = "%s/faCat /tmp/smallSeqs.fa /tmp/chrUn /tmp/chrUnLft -gapSize=100 -maxOutputSize=99999999999" % binDir
     runCmd(cmd)
     cmd = "sed -i s/chrUn\\.1/chrUn/ /tmp/chrUn.1.fa"
     runCmd(cmd)
@@ -1046,6 +1036,7 @@ def copyCheckFa(inUrlOrFname, faFname):
     """ validate fasta file:
     - make sure that seqIds contains only alnum characters, merge contigs into chrUn if needed
     - exit with err code one if not.
+    - if fasta has more than 100k or so sequences, create a chrUn and a liftFile for it.
     """
     print(("Copying fasta file %s to %s" % (inUrlOrFname, faFname)))
     if inUrlOrFname.startswith("http") or inUrlOrFname.startswith("ftp"):
@@ -1111,10 +1102,9 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
 
     hasChrUn = False
 
+    liftFname = None
     if not isfile(sizesTmp) or FORCE:
         printMsg("Downloading genome and uncompressing (for bwa)")
-        #cmd = "wget %s -O - | zcat > %s" % (faFtpUrl, faTmp)
-        #runCmd(cmd)
         liftFname = copyCheckFa(faFtpUrl, faTmp)
         if liftFname:
             hasChrUn = True
@@ -1155,7 +1145,7 @@ def getNcbiGenome(ftpUrl, genomeInfo, options):
     if gffTmp is None:
         hasGff = False
     else:
-        hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, useAltProg)
+        hasGff = convertGff3(sizesTmp, gffTmp, gpTmp, segTmp, useAltProg, skipNonChromGenes=hasChrUn)
 
     if hasGff:
         outFnames.extend([gpTmp, segTmp])

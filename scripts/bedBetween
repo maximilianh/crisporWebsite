@@ -7,6 +7,11 @@ import sys
 from optparse import OptionParser
 import logging
 
+skipInvalidChroms = False
+invalidChromCount = 0
+dublCount = 0
+outCount = 0
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = OptionParser("usage: %prog [options] inSortedBedFile outfile (stdout ok): given sorted feats., create features between them and annotated these with the neighboring bednames. Regions around chromosomes are limited to 50kbp.") 
 
@@ -14,6 +19,8 @@ parser.add_option("-d", "", dest="debug", action="store_true", \
         help="show debug messages")
 parser.add_option("-s", "--chromSizes", dest="chromSizes", action="store", \
         help="use this file with chrom <tab> size - lines to get chrom sizes") 
+parser.add_option("", "--skipInvalidChroms", dest="skipInvalidChroms", action="store_true", \
+        help="Skip any transcripts on chromosomes that are not in the chrom.sizes file")
 parser.add_option("-u", "--upstream", dest="upstream", action="store_true", \
         help="only report intergenic regions that are upstream (if between -/+ neighbors, two features are created)", default=False)
 parser.add_option("-l", "--limit", dest="limit", action="store", \
@@ -26,6 +33,8 @@ parser.add_option("-a", "--all", dest="all", action="store_true", \
 (options, args) = parser.parse_args()
 
 doAll = False
+
+skipInvalidChroms = options.skipInvalidChroms
 
 # ==== FUNCTIONs =====
 
@@ -52,8 +61,19 @@ def output(fh, left, right, upstream, limit, type, chromSizes=None):
 
     global outCount
     global dublCount
+    global invalidChromCount
+    global skipInvalidChroms
+
     names = []
     posList = []
+
+    if chromSizes and skipInvalidChroms:
+        if left and left.chrom not in chromSizes:
+            invalidChromCount+=1
+            return
+        if right and right.chrom not in chromSizes:
+            invalidChromCount+=1
+            return
 
     # basic info
     if left==None:
@@ -99,14 +119,14 @@ def output(fh, left, right, upstream, limit, type, chromSizes=None):
             dublCount+=1
         elif left!=None and left.strand=="-":
             start, end = truncSize(start, end, limit, True)
-            posList = [ (start, end) ] 
+            posList = [ (start, end) ]
             names = [leftname]
         elif right!=None and right.strand=="+":
             start, end = truncSize(start, end, limit, False)
-            posList = [ (start, end) ] 
+            posList = [ (start, end) ]
             names = [rightname]
         else:
-            return 
+            return
 
     writeBeds(fh, chrom, posList, names, type)
     outCount += len(names)
@@ -181,18 +201,18 @@ class Features(list):
         return len(chroms)
 
 class Feature:
-    def __init__(self, line):
-        l = line.split()
-        count = len(l)
-        self.chrom = l[0]
-        self.start = int(l[1])
-        self.end = int(l[2])
-        if count >= 4:
-            self.name = l[3]
-        if count >= 5:
-            self.strand= l[4] 
-        if count >= 6:
-            self.score = int(l[5])
+    #def __init__(self, line):
+    #    l = line.split()
+    #    count = len(l)
+    #    self.chrom = l[0]
+    #    self.start = int(l[1])
+    #    self.end = int(l[2])
+    #    if count >= 4:
+    #        self.name = l[3]
+    #    if count >= 5:
+    #        self.strand= l[4] 
+    #    if count >= 6:
+    #        self.score = int(l[5])
 
     def __init__(self,seqid="",start=0,end=0,name="",score=0,strand="+"):
         self.chrom = seqid
@@ -308,8 +328,6 @@ else:
 
 # init stats counters
 sizeMissing=0
-outCount = 0
-dublCount = 0
 lastLeft=None
 included = 0
 # output flank around first feature
@@ -358,4 +376,6 @@ stderr.write("%d genes/exons were dropped because one includes the other\n" % in
 if chromSize==None:
     stderr.write("%d features are missing because of missing chromSizes file\n" % sizeMissing)
 if upstream:
-    stderr.write("%d features are dublicated because of bidirectional genes and upstream option\n" % dublCount)
+    stderr.write("%d features are duplicated because of bidirectional genes and upstream option\n" % dublCount)
+if invalidChromCount!=0:
+    stderr.write("%d features dropped because chrom is not in chrom.sizes file\n" % invalidChromCount)
