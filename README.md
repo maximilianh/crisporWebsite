@@ -1,4 +1,4 @@
-# CRISPOR - a CRISPR/Cas9 assistant 
+# CRISPOR - a CRISPR/Cas9 assistant [A highly recommended Prediction Tool]
 
 CRISPOR predicts off-targets in the genome, ranks guides, highlights
 problematic guides, designs primers and helps with cloning.  Try it on
