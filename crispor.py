@@ -188,10 +188,7 @@ batchArchive = "/data/crisporJobArchive.db"
 
 # the file where the sqlite job queue is stored
 # JOBQUEUEDB = join(TEMPDIR, "crisporJobs.db") # TEMPDIR is mapped away for security reasons under Redhat/Centos for CGIs
-# JOBQUEUEDB = "/data/www/temp/crisporJobs.db"
-
-# TEMPORARY : the database is placed in separate tempdir
-JOBQUEUEDB = join(baseDir, "temp/crisporJobs.db")
+JOBQUEUEDB = "/data/www/temp/crisporJobs.db"
 
 # alternatively: connection info for mysql
 jobQueueMysqlConn = {"socket": None, "host": None, "user": None, "password": None}
@@ -609,8 +606,8 @@ tagToColor = {
         "Zeo": "#bfbfbf",
         "moxGFP": "#66ff33",
         "mScarlet": "#ff3300",
-        "2A": "#bfbfbf",
-        "EF1": "#bfbfbf",
+        "2A ribosomal skipping peptide": "#bfbfbf",
+        "EF1α promoter": "#bfbfbf",
         "mStrayGold": "#ffcc66",
         "mNeon": "#99ff66",
         "moxGFP": "#66ff33",
@@ -627,7 +624,7 @@ tagToColor = {
         "SBP": "#bfbfbf",
         "HA": "#bfbfbf",
         "V5": "#bfbfbf",
-        "lox": "#bfbfbf",
+        "loxP": "#ffff66",
         "none": "#bfbfbf"
         }
 # labels and descriptions of eff. scores
@@ -665,7 +662,7 @@ scoreDescs = {
         "The original implementation of the Doench 2016 score, as received from John Doench. The scores are similar, but not exactly identical to the 'Azimuth' version of the Doench 2016 model that is currently the default on this site, since Apr 2018.",
     ),
     "rs3": (
-        "Doench-RuleSet3",
+        "Doench-RS3",
         "The Doench Rule Set 3 (RS3) score (-200-+200). Similar to the Doench 2014 and Doench 2016/Fusi/Azimuth score, but updated and more accurate. See <a href='https://www.nature.com/articles/s41467-022-33024-2' target=_blank>. Scores shown are multiplied with 100 for easier display. RS3 is configured here to use the Hsu-TRACR sequence.",
     ),
     "najm": (
@@ -9355,7 +9352,9 @@ function toggleExonSeq(selectedValue) {
             for tagName, tagSeq in tagSeqList:
                 color = tagToColor[tagName]
                 tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
-                if len(tagSeq) < 25 and len(tagName) > 10:
+                if len(tagSeq) < 10:
+                    tagName = ""
+                elif len(tagSeq) < 25 and len(tagName) > 10:
                     tagName = ""
 
                 tagBox = (

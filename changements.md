@@ -930,10 +930,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
     - pam less / engeneered pam variants with low specificity
 - + custom list (max 5) 
 
-- revoir terminologie du menu qTAG
-ordre : tag / marker / expression
 - obtenir les séquences des tags / linkers listés dans taggingSeqs
-- ajouter sq tags 3FLAGSBP / SBP3FLAG
+- ajouter sq tags 3FLAGSBP / SBP3FLAG DONE
 - annoter la région de l'ADN donneur avec séquences codantes / 5'UTR:
     - soit depuis fichier genePred
     - soit en convertissant genePred en bigBed -> getGeneModels()
@@ -967,4 +965,10 @@ ordre : tag / marker / expression
 ## global
 
 - correction de otPrimerPage(), primerDetailsPage(), printValidationPcrSection() et designOffTargetPrimers()
+- merge des changements dans la classe queue + adaptation de runQueueWorker()
 - dans crisporTest : séparation du répertoire temp / crisporJobs.db avec la version publique
+- /!\ changement temporaire dans crispor.py -> chemin d'accès de crisporJobs.db relatif au répertoire temp
+
+## bugs 
+
+- en mode classic, "guideScores" referenced before assignment dans crispor.py en mode classic (en + du message "not found in genome")
