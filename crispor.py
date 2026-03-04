@@ -900,23 +900,22 @@ class JobQueue:
     # " no inheritance needed here "
     # self.openSqlite(JOBQUEUEDB)
 
-    def openSqlite(self, dbName=JOBQUEUEDB, doWal=False):
+    def openSqlite(self, dbName=JOBQUEUEDB):
         self.dbName = dbName
-        self.conn = sqlite3.connect(dbName, timeout=1)
-        # trying to increase stability and locks?
-        if sqlite3.version_info[0] >= 3 and doWal:
-            logging.info("Setting WAL mode for sqlite")
-            self.conn.execute("PRAGMA journal_mode=WAL;")
-            self.conn.commit()
-        # self.conn.set_trace_callback(print) # for debugging: print all sql statements
+        # isolation_level=None = autocommit mode: we manage transactions explicitly
+        # timeout=30: wait up to 30s for locks (multiple daemons + CGI share this DB)
+        self.conn = sqlite3.connect(dbName, timeout=30, isolation_level=None)
+        # WAL mode allows concurrent readers + writer, essential for CGI + daemon(s)
+        result = self.conn.execute("PRAGMA journal_mode=WAL;").fetchone()
+        if result[0] != "wal":
+            logging.warn("Could not set WAL mode, journal_mode is: %s (is another connection open with the old mode?)" % result[0])
+        #self.conn.set_trace_callback(print) # for debugging: print all sql statements
         self._chmodJobDb()
 
         try:
             self.conn.execute(self._queueDef % ("queue", "PRIMARY KEY"))
-            self.conn.commit()
         except SQLITEERROR as ex:
             errAbort("cannot open the sqlite jobs file %s: %s" % (JOBQUEUEDB, ex))
-        # self.commitRetry()
 
     def _chmodJobDb(self):
         # umask is not respected by sqlite, bug http://www.mail-archive.com/sqlite-users@sqlite.org/msg59080.html
@@ -948,14 +947,11 @@ class JobQueue:
             "startTime": now,
         }
         try:
-            self.execute(sql, values)
-            self.commitRetry()
+            # in autocommit mode, this INSERT commits immediately
+            self.conn.execute(sql, values)
             return True
-        except sqlite3.IntegrityError as ev:
-            # if the job is already in the queue, on Python3 (not Python2!) an integrity error will be thrown.
-            # so this actually means that all is fine.
-            # instead of checking if the job exists and then add it, we just add it and tolerate the error, saves one query.
-            # (if the pipeline crashed or server was restarted, jobs may be on disk but not in the queue)
+        except sqlite3.IntegrityError:
+            # job already in queue (e.g. resubmit, or daemon restart) - that's fine
             return True
         except SQLITEERROR:
             errAbort(
@@ -967,12 +963,14 @@ class JobQueue:
         "return current job status label or None if job is not in queue"
         sql = "SELECT stepLabel FROM queue WHERE jobId=?"
         try:
-            status = self.conn.execute(sql, (jobId,)).fetchmany(1)[0][0]
-        except StopIteration:
-            logging.debug("getStatus got StopIteration")
+            rows = self.conn.execute(sql, (jobId,)).fetchmany(1)
+            if len(rows) == 0:
+                status = None
+            else:
+                status = rows[0][0]
+        except (StopIteration, IndexError):
+            logging.debug("getStatus: job %s not found" % jobId)
             status = None
-        # self.commitRetry()
-        # self.conn.commit()
         return status
 
     def dump(self):
@@ -994,100 +992,54 @@ class JobQueue:
             return []
         return row
 
-    def commitRetry(self):
-        "try to commit 10 times"
-        logging.debug("JobQueue: committing transaction")
-        tryCount = 0
-        while tryCount < 10:
-            try:
-                self.conn.execute("COMMIT")
-                break
-            except SQLITEERROR:
-                time.sleep(3)
-                tryCount += 1
-
-        if tryCount >= 10:
-            raise Exception("COMMIT: Database locked for a long time")
-
-    def execute(self, cmd, *args):
-        "try to execute command 10 times"
-        maxTries = 20
-        tryCount = 0
-        while True:
-            try:
-                res = self.conn.execute(cmd, *args)
-                # self.commitRetry()
-                return res
-            except SQLITEERROR:
-                time.sleep(3 + random.random() / 10)
-                tryCount += 1
-
-            if tryCount >= maxTries:
-                raise Exception(
-                    "Cannot execute %s, Database locked for a long time" % cmd
-                )
-
     def startStep(self, jobId, newName, newLabel):
-        "start a new step. Update lastUpdate, status and stepTime"
-        # self.startTransaction()
-        sql = "SELECT lastUpdate, stepTimes, stepName FROM queue WHERE jobId=?"
-        logging.debug(sql)
-        rows = self.execute(sql, (jobId,)).fetchmany(1)
-        if len(rows) > 0:
-            result = rows[0]
-        else:
-            logging.error(
-                "Got %s results for query %s. What is going on?" % (rows, sql)
-            )
-            exit(1)
-        # self.commitRetry()
+        " start a new step. Update lastUpdate, status and stepTime "
+        try:
+            self.conn.execute('BEGIN IMMEDIATE')
 
-        logging.debug(result)
-        lastTime, timeStr, lastStep = result
-        logging.debug("end")
-        lastTime = float(lastTime)
+            sql = 'SELECT lastUpdate, stepTimes, stepName FROM queue WHERE jobId=?'
+            logging.debug(sql)
+            rows = self.conn.execute(sql, (jobId,)).fetchmany(1)
+            if len(rows)==0:
+                logging.error("startStep: no row for jobId %s" % jobId)
+                self.conn.commit()
+                return
 
-        # append a string in format "stepName:milliSecs" to the timeStr
-        now = time.time()
-        timeDiff = "%d" % int((1000.0 * (now - lastTime)))
-        newTimeStr = timeStr + "%s=%s" % (lastStep, timeDiff) + ","
+            lastTime, timeStr, lastStep = rows[0]
+            lastTime = float(lastTime)
 
-        sql = "UPDATE queue SET lastUpdate=?, stepName=?, stepLabel=?, stepTimes=?, isRunning=? WHERE jobId=?"
-        self.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
+            # append a string in format "stepName:milliSecs" to the timeStr
+            now = time.time()
+            timeDiff = "%d" % int((1000.0*(now - lastTime)))
+            newTimeStr = timeStr+"%s=%s" % (lastStep, timeDiff)+","
+            sql = 'UPDATE queue SET lastUpdate=?, stepName=?, stepLabel=?, stepTimes=?, isRunning=? WHERE jobId=?'
+            self.conn.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
 
-        self.commitRetry()
-
-    def startTransaction(self):
-        logging.debug("Starting transaction")
-        tryCount = 0
-        while tryCount < 10:
-            try:
-                self.conn.execute("BEGIN")  # indicate that transaction should start now
-                break
-            except SQLITEERROR:
-                logging.debug("Waiting since transaction start failed")
-                time.sleep(3 + random.random() / 10)
-                tryCount += 1
-
-        if tryCount >= 10:
-            raise Exception("BEGIN: Database locked for a long time")
+            self.conn.commit()
+        except:
+            self.conn.rollback()
+            raise
 
     def jobDone(self, jobId):
         "remove the job from the queue and add it to the queue log"
         print("job done<br>")
-        self.startTransaction()
-        sql = "SELECT * FROM queue WHERE jobId=?"
         try:
-            row = next(self.execute(sql, (jobId,)))
-        except StopIteration:
-            # return if the job has already been removed
-            logging.warn("jobDone - jobs %s has been removed already" % jobId)
-            self.commitRetry()  # release lock
-            return
+            self.conn.execute('BEGIN IMMEDIATE')
 
-        sql = "DELETE FROM queue WHERE jobId=?"
-        self.conn.execute(sql, (jobId,))
-        self.commitRetry()  # release lock
+            sql = 'SELECT * FROM queue WHERE jobId=?'
+            row = self.conn.execute(sql, (jobId,)).fetchone()
+            if row is None:
+                logging.warn("jobDone - job %s has been removed already" % jobId)
+                self.conn.commit()
+                return
+
+            sql = 'DELETE FROM queue WHERE jobId=?'
+            self.conn.execute(sql, (jobId,))
+
+            self.conn.commit()
+        except:
+            self.conn.rollback()
+            raise
 
         # good to have a log file of the old jobs
         with open(
@@ -1099,39 +1051,38 @@ class JobQueue:
             ofh.write("\n")
 
     def waitCount(self):
-        "return number of waiting jobs, wait until database is ready"
-        sql = "SELECT count(*) FROM queue WHERE isRunning=0"
-        count = None
-        while count is None:
-            try:
-                count = self.execute(sql).fetchall()[0][0]
-            except SQLITEERROR:
-                logging.debug("OperationalError on waitCount()")
-                time.sleep(1 + random.random() / 10)
-        return count
+        " return number of waiting jobs "
+        sql = 'SELECT count(*) FROM queue WHERE isRunning=0'
+        return self.conn.execute(sql).fetchone()[0]
 
     def popJob(self):
-        "return (jobType, jobId, params) of first waiting job and set it to running state"
-        print("pop job<br>")
-        self.startTransaction()
-        sql = "SELECT jobType, jobId, paramStr FROM queue WHERE isRunning=0 ORDER BY lastUpdate LIMIT 1"
+        " return (jobType, jobId, params) of first waiting job and set it to running state "
+        print('pop job<br>')
         try:
-            jobType, jobId, paramStr = next(self.execute(sql))
-        except StopIteration:
-            logging.debug("No data for '%s'" % sql)
-            self.commitRetry()  # unlock db
-            return None, None, None
+            self.conn.execute('BEGIN IMMEDIATE')
 
-        sql = "UPDATE queue SET isRunning=1 where jobId=?"
-        self.execute(sql, (jobId,))
-        self.commitRetry()  # unlock db
+            sql = 'SELECT jobType, jobId, paramStr FROM queue WHERE isRunning=0 ORDER BY lastUpdate LIMIT 1'
+            row = self.conn.execute(sql).fetchone()
+            if row is None:
+                logging.debug("popJob: no waiting jobs")
+                self.conn.commit()
+                return None, None, None
+
+            jobType, jobId, paramStr = row
+
+            sql = 'UPDATE queue SET isRunning=1 where jobId=?'
+            self.conn.execute(sql, (jobId,))
+
+            self.conn.commit()
+        except:
+            self.conn.rollback()
+            raise
 
         return jobType, jobId, paramStr
 
     def clearJobs(self):
         "clear the job table, removing running jobs, too"
         self.conn.execute("DELETE from queue")
-        self.commitRetry()
 
     def close(self):
         " "
@@ -7719,7 +7670,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
             if not wasOk:
                 print("CRISPOR job %s failed-running..." % batchId)
                 pass
-            # q.close()
+            q.close()
             return None
 
     return otBedFname
@@ -15765,7 +15716,11 @@ def runQueueWorker(noFork):
                 exStr = traceback.format_exc()
                 print(" - WORKER CRASHED WITH EXCEPTION -")
                 print(exStr)
-                q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                try:
+                    q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                except:
+                    print(" - ALSO COULD NOT UPDATE DB WITH CRASH STATUS -")
+                    print(traceback.format_exc())
                 jobError = True
 
             if not jobError:
@@ -15801,8 +15756,13 @@ def runQueueWorker(noFork):
                     exStr = traceback.format_exc()
                     print(" - WORKER CRASHED WITH EXCEPTION -")
                     print(exStr)
-                    q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                    try:
+                        q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                    except:
+                        print(" - ALSO COULD NOT UPDATE DB WITH CRASH STATUS -")
+                        print(traceback.format_exc())
                     jobError = True
+
             elif jobType == "multiseq":
                 try:
                     processMultiSeqSubmission(
@@ -15813,21 +15773,30 @@ def runQueueWorker(noFork):
                     exStr = traceback.format_exc()
                     print(" - WORKER CRASHED WITH EXCEPTION -")
                     print(exStr)
-                    q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                    try:
+                        q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                    except:
+                        print(" - ALSO COULD NOT UPDATE DB WITH CRASH STATUS -")
+                        print(traceback.format_exc())
                     jobError = True
 
             if not jobError:
-                q.jobDone(batchId)
+                try:
+                    q.jobDone(batchId)
+                except:
+                    print(" - COULD NOT MARK JOB AS DONE -")
+                    print(traceback.format_exc())
 
         elif jobType is None:
             logging.debug("No job")
             time.sleep(1 + random.random() / 10)
         else:
-            # raise Exception()
-            logging.error(
-                "Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId)
-            )
-            q.jobDone(batchId)
+            logging.error("Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId))
+            try:
+                q.jobDone(batchId)
+            except:
+                print(" - COULD NOT MARK ILLEGAL JOB AS DONE -")
+                print(traceback.format_exc())
     q.close()
 
 

@@ -214,7 +214,30 @@ Check that your worker is indeed running:
     cat log/worker1.log
     ps aux | grep crispor
 
+If you want to see what's going on, start the worker process without it going in the background, you can 
+then see what exactly on stdout is submitted and what the daemon is doing, this can be combined with -d for
+even more transparency. The option --noFork is excellent for debugging:
+
+    ./crispor.py --worker --noFork
+
 Now try to access the script from a webbrowser, http://localhost/crispor.py and click "Submit"
+
+When a job crashes, it is not run again, as it's still in the job queue with the status 'crashes'. To clear the job queue,
+note the name of the job queue database file written by --worker to stdout or in the log/worker1.log file and clear it:
+
+    sqlite3 /tmp/crisporJobs.db
+
+Clear it:
+
+    delete from queue;
+
+Or like this:
+
+    ./crispor.py --clear
+
+Then refresh the results page that shows the errror message at
+http://localhost/crispor.py?batchId=xxxxxx and you should be able to see the
+worker processing the job.
 
 # Adding a genome
 

@@ -967,3 +967,4 @@ ordre : tag / marker / expression
 ## global
 
 - correction de otPrimerPage(), primerDetailsPage(), printValidationPcrSection() et designOffTargetPrimers()
+- dans crisporTest : séparation du répertoire temp / crisporJobs.db avec la version publique
