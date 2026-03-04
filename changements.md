@@ -879,3 +879,91 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - dans processMultiPamSubmission retourne une erreur si la séquence n'est pas dans le génomes -> afficher message à la place
 - si rechargement de la page off-target primers -> "primers not found at this Tm"
+
+# 02/03/26
+
+## divers
+
+- les en-têtes du tableau sont figées lors du défilement de la page (suggestion d'Axel Benchetrit)
+- dans showSecondaryStructure : ajout d'un formulaire pour définir le température + extension de la séquence du guide en 3'
+- correction du bug dans otPrimerPage() : ampLen, Tm et primerLen = None dans printHiddenFields()
+
+## knock-in mode
+
+- dans showDonor() : ajout d'un bouton pour le téléchargement des séquences du guide + ADN donneur en fasta
+
+## à faire (avant lancement de la phase de test)
+
+### global
+
+- vérifier le workflow
+- vérifier tous les textes (y compris tooltips!)
+- vérifier qu'aucune information importante ne manque en mode knock-out / knock-in :
+    - affichage des variants
+    - affichage des coordonnées ucsc
+- rendre tableau scrollable au lieu de figer les en têtes
+- corriger surlignage du PAM sur la séquence si sélection depuis le tableau
+- "faux" off targets en fonction de l'assemblage
+- ajouter message pour type d'exp sélectionné (surbrillance + explication)
+- description au dessus -> sélection
+
+- ajouter génomes lignées cellulaires
+
+### knock-out
+
+- ajouter "knock-out par délétion du promoteur"
+- ajouter surlignage du MANE transcript (cf. notes 27/01/26)
+- ajouter affichage getGeneModels()
+- alerter si un gène essentiel est ciblé (humain / souris)
+- surligner ATG dans showSeqAndPams()
+
+### knock-in
+
+- créer les listes de PAMs + lien CasPedia
+    - commercially available recombinant nucleases
+        - spCas9 (NGG)
+        - Cpf1 
+        - Cas12f
+        - saCas9
+    - expression plasmid available from addGene
+        (to be completed)
+    - pam less / engeneered pam variants with low specificity
+- + custom list (max 5) 
+
+- revoir terminologie du menu qTAG
+ordre : tag / marker / expression
+- obtenir les séquences des tags / linkers listés dans taggingSeqs
+- ajouter sq tags 3FLAGSBP / SBP3FLAG
+- annoter la région de l'ADN donneur avec séquences codantes / 5'UTR:
+    - soit depuis fichier genePred
+    - soit en convertissant genePred en bigBed -> getGeneModels()
+- implémenter recodage
+- implémenter le mode "remplacement" (à préciser)
+- ajouter custom track pour les bras d'homologie
+
+# 03/03/26
+
+## global
+
+- Global score :
+    - les pénalités varient en fonction du type de delivery (transcription in vivo / vitro / synthèse)
+    - Description du calcul du global score plus détaillée (ajouter refs)
+
+## bugs
+
+- Tm 64 par défaut sur on target PCR 
+- primerLen 22 par défaut 
+
+## à faire
+
+- trackHub : customisation couleur / épaisseur..
+- ou customtrack
+- lignées cell : cellosaurus
+- automatisation submission genome
+- formulaire : tableau paramètres -> stock db -> exécution scripts
+
+# 04/03/26
+
+## global
+
+- correction de otPrimerPage(), primerDetailsPage(), printValidationPcrSection() et designOffTargetPrimers()

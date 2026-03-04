@@ -188,7 +188,10 @@ batchArchive = "/data/crisporJobArchive.db"
 
 # the file where the sqlite job queue is stored
 # JOBQUEUEDB = join(TEMPDIR, "crisporJobs.db") # TEMPDIR is mapped away for security reasons under Redhat/Centos for CGIs
-JOBQUEUEDB = "/data/www/temp/crisporJobs.db"
+# JOBQUEUEDB = "/data/www/temp/crisporJobs.db"
+
+# TEMPORARY : the database is placed in separate tempdir
+JOBQUEUEDB = join(baseDir, "temp/crisporJobs.db")
 
 # alternatively: connection info for mysql
 jobQueueMysqlConn = {"socket": None, "host": None, "user": None, "password": None}
@@ -570,9 +573,8 @@ taggingSeqs = {
         "Zeo": "ATGC",
         "moxGFP": "ATGC",
         "mScarlet": "ATGC",
-        "2A": "ATGC",
-        "EF1": "ATGC",
-        "Fluorescent proteins": "ATGC",
+        "2A ribosomal skipping peptide": "ATGC",
+        "EF1α promoter": "ATGC",
         "mStrayGold": "ATGC",
         "mNeon": "ATGC",
         "moxGFP": "ATGC",
@@ -585,7 +587,7 @@ taggingSeqs = {
         "FLAG": "ATGC",
         "HA": "ATGC",
         "V5": "ATGC",
-        "lox": "ATGC",
+        "loxP": "ATAACTTCGTATAGCATACATTATACGAAGTTAT",
         "none": ""
         }
 
@@ -1215,7 +1217,7 @@ def cgiGetParams():
         if val != None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "cassetteseq"]:
+            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq"]:
                 checkVal(key, val)
             cgiParams[key] = val
 
@@ -1398,24 +1400,63 @@ def showSecondaryStructure(params):
     "Using ViennaRNA, displays MFE structure as a plot"
 
     guideSeq = params["guideSeq"]
-    freeEnergy = params["freeEnergy"]
+    batchId = params["batchId"]
+    pamId = params["pamId"]
+    temperature = params.get("temperature", "37")
+    addSeq = params.get("addSeq")
 
-    temperature = 37  # get input temperature later ? or other params
+    if addSeq and len(addSeq) < 100:
+        legalBases = ["A", "T", "G", "C", "U"]
+        for base in addSeq:
+            if base not in legalBases:
+                doAdd = False
+                strSeq = guideSeq
+                break
+        else:
+            strSeq = guideSeq + addSeq
+    else:
+        strSeq = guideSeq
+
+    freeEnergy = getFreeEnergy(strSeq, temperature)
 
     progDir = binDir
     tmpdir = tempfile.mkdtemp(dir=batchDir)
 
     printBackLink()
 
-    print("""<div style="margin-left:35%; margin-bottom:10%;">""")
-    print("""<div class="title"">Guide sequence : %s</div>""" % guideSeq)
+    print("""<div style="margin-left:35%; margin-right:25%; margin-bottom:10%;"> """)
+    print("""<div class="title">Spacer sequence of the guide : %s</div>""" % guideSeq)
+    if addSeq and strSeq != guideSeq:
+        print("<p>3' sequence : %s</p>" % addSeq)
+    print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is taken into account to calculate the EVA activity score. Strucutres with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracr RNA sequence in 3' to check the predicted structure of the guide, and potential issues of guide RNA folding</p>
+    """)
     print("""<p>Free energy of this structure : %s kcal/mol</p>""" % freeEnergy)
+
+    print("<form>")
+
+    print("""
+    <input type="hidden" name="batchId" value="%(batchId)s"/>
+    <input type="hidden" name="guideSeq" value="%(guideSeq)s"/>
+    <input type="hidden" name="pamId" value="%(pamId)s"/>
+    """ % locals())
+
+    print(
+        """
+        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 45px;">
+            <input type="range" id="temperature" name="temperature" value="%(temperature)s" min="5" max="75" style="vertical-align:middle; width:15%%;" oninput="this.nextElementSibling.value = this.value"/>
+            at<output>%(temperature)s</output> &#8451
+            <textarea style="margin-left: 12px;" name="addSeq" placeholder="Add a sequence in 3' here."></textarea>
+            <button style="align-self: center; margin-left: 12px;" type="submit" name="submit" value="SUBMIT">update</button>
+        </div>
+        """ % locals()
+    )
+
     try:
 
         RNAfoldCmd = os.path.join(progDir, "RNAfold")
         RNAplotCmd = os.path.join(progDir, "RNAplot")
 
-        cmd = "echo %s | %s -p -T %s | %s -o svg" % (guideSeq.upper(), RNAfoldCmd, temperature, RNAplotCmd)
+        cmd = "echo %s | %s -p -T %s | %s -o svg" % (strSeq.upper(), RNAfoldCmd, temperature, RNAplotCmd)
 
         subprocess.run(
             cmd,
@@ -1434,11 +1475,14 @@ def showSecondaryStructure(params):
             svgPlot = f.read()
 
         print("""<div> %s </div>""" % svgPlot)
-        print("</div>")
 
     finally:
         # Cleanup
         shutil.rmtree(tmpdir)
+
+    print("</div>")
+    print("</form>")
+
 
 def findHomopolymers(seq, basesCount):
     """
@@ -3552,21 +3596,25 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, GC, freeE, globEff
 
     mainScore = 100 * (
         0.60 * MitScaled + 0.40 * effScore
-    )  # coefficients will need to be adjusted
+    )
+    # coefficients will need to be adjusted
 
     # penalties
 
     grafType = crisporEffScores.getGrafType(guideSeq)
 
     if grafType:
-        if grafType == "tt":
-            mainScore -= 10
+        if grafType == "tt" and globEffScore == "rs3":
+            mainScore -= 25
         elif grafType == "gcc":
             mainScore -= 40
 
+    if "TTTT" in guideSeq and globEffScore == "rs3":
+        mainScore -= 25
+
     if GC < 0.25 or GC > 0.75:
-        mainScore -= 30
-    if freeE < -3:
+        mainScore -= 25
+    if freeE < -5:
         mainScore -= 15
 
     return mainScore
@@ -4142,16 +4190,16 @@ def printTableHead(
     )
 
     print(
-        '<table id="otTable" style="background:white;table-layout:fixed; overflow:scroll; width:100%">'
+            '<table id="otTable" style=" background:white;table-layout:fixed; overflow:scroll; width:100%">'
     )
 
     print("<thead>")
     print(
-        '<tr style="border-bottom:none; border-left:5px solid black; background-color:#F0F0F0">'
+            '<tr style="position: sticky; top: 1px; z-index:2; box-shadow: inset 0 1px black; width:80px; border-left:5px solid black; border-bottom: none; background-color:#F0F0F0; background-clip: padding-box;">'
     )
 
     print(
-        '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
+            '<th style="position: sticky; top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
         % batchId
     )
     htmlHelp(
@@ -4159,7 +4207,7 @@ def printTableHead(
     )
     print("</th>")
 
-    print('<th style="width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
+    print('<th style="position: sticky; top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
 
     print("+ Restriction Enzymes")
     htmlHelp(
@@ -4191,24 +4239,45 @@ def printTableHead(
 
     if pamFullName:
         print(
-            """ <th style="width:110px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edition site. Click to sort this table by this distance (default)">Distance between cut site and edition site</a><br></th>"""
+            """ <th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:110px; border-bottom:none;">
+            <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edition site. Click to sort this table by this distance (default)">Distance between cut site and edition site</a><br>
+            </th>"""
             % batchId
         )
         isDefaultText = ""
     else:
         isDefaultText = " (default)"
     print(
-        '<th style="width:80px; border-bottom:none;"><a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score%s. Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a><br>'
+        """<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:150px; border-bottom:none;">
+        <a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score%s. Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a>"""
         % (batchId, isDefaultText)
     )
     htmlHelp(
-        "This global score serves to rank the guides based on their specificity and efficiency. It ranges from 0 to 100 and contains of 60% of the CFD specificity score and 40% of the chosen efficiency score (select below which one to use).<br>Each score is normalized before calculation.<br>A penaly of -40 and -20 are given for abnormal GC contents (<25% or >75%) and a minimum free energy of the guide structure < -3 kcal/mol, respectively."
+            """The global score is used to rank the guides based on their specificity and efficiency. It ranges from 0 to 100 and is calculated as :<br><br>
+            <i>0.6*MIT specificity + 0.4*efficiency - penalties</i><br><br>
+Each score is normalized before calculation.<br>
+You can adapt the global score to your delivery method (select below), which changes the efficiency score and the penalties.<br><br>
+
+<u>Efficiency scores :</u>
+    <ul>
+        <li>Rule set 3 is used for guides transcribed <i>in vivo</i>.</li>
+        <li>Moreno-Mateos is used for guides transcribed <i>in vitro</i>.</li>
+        <li>EVA activity score is used for synthetic guides.</li>
+    </ul>
+<u>Penalties :</u>
+    <ul>
+        <li>GC content of <25% or >75% : -25.</li>
+        <li>Minimum free energy of < -5 kcal/mol : -15.</li>
+        <li>Presence of a a stretch of four T that terminaltes transcription : -25 (only for guides transcribed <i>in vivo</i>).
+        <li>Presence of a 'TT' motif : -25 (only for guides transcribed <i>in vivo</i>)</li>
+        <li>presence of a 'GCC' motif -40.</li>
+    """
     )
 
-    print(""" <br><small style="margin-top:20px;"> """)
-    print("<small>select effscore to use for calculation</small><br>")
+    print("""<small style="align-text: bottom;"><br> """)
+    print("""<small>Select a production method</small><br>""")
     globEffScore = cgiParams.get("globEffScore", "rs3")
-    scores = [("rs3", "rs3"), ("EVA", "EVA"), ("crisprScan", "MM")]
+    scores = [("rs3", "<i>In vivo</i> transcription"), ("crisprScan", "<i>In vitro</i> transcription"), ("EVA", "Chemical synthesis")]
     for scoreVal, scoreLabel in scores:
         checked = "checked" if scoreVal == globEffScore else ""
         print(
@@ -4219,7 +4288,7 @@ def printTableHead(
 
     if not pamIsCpf1(pam):
         print(
-            '<th style="width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
+            '<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
             % batchId
         )
         if pamIsSaCas9(pam):
@@ -4238,7 +4307,7 @@ def printTableHead(
 
     if "cfdGuideScore" in showColumns:
         print(
-            '<th style="width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>'
+            '<th style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>'
             % batchId
         )
         htmlHelp(
@@ -4248,12 +4317,12 @@ def printTableHead(
 
     if len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam):
         print(
-            '<th style="width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
+            '<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
             % (len(scoreNames))
         )
     else:
         print(
-            '<th style="width:270px; border-bottom:none" colspan="%d">Predicted Efficiency'
+            '<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:270px; border-bottom:none" colspan="%d">Predicted Efficiency'
             % (len(scoreNames))
         )  # -1 because proxGc is in scoreNames but has no column
 
@@ -4293,7 +4362,7 @@ def printTableHead(
 
         colSpan = len(mutScoreNames)
         print(
-            '<th colspan=%d style="width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>'
+            '<th colspan=%d style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>'
             % (colSpan, oofWidth, batchId, mhColName)
         )
         # htmlHelp(scoreDescs["oof"][1])
@@ -4301,7 +4370,7 @@ def printTableHead(
         print("</th>")
 
     print(
-        '<th style="width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>'
+        '<th style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>'
         % (batchId)
     )
 
@@ -4316,7 +4385,7 @@ def printTableHead(
 
     print("</th>")
     print(
-        '<th style="width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
+        '<th style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
     )
     htmlHelp(
         "For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.<br>On most organisms, you can click the links below to open a window with a genome browser at this position."
@@ -4350,35 +4419,35 @@ def printTableHead(
 
     # subheaders
     print(
-        '<tr style="border-top:none; border-left: solid black 5px; background-color:#F0F0F0">'
+            '<tr style="position: sticky; top: 125px; z-index:25; box-shadow: inset 0 -1px black; width:80px; border-top:none; border-bottom: none; border-left: solid black 5px; background-color:#F0F0F0">'
     )
 
     # offset subheaders
     if pamFullName:
-        print('<th style="border-top:none"></th>')
-    print('<th style="border-top:none"></th>')
-    print('<th style="border-top:none"></th>')
-    print('<th style="border-top:none"></th>')
+        print('<th style="position: sticky; top: 125px; box-shadow: inset -1px 0 black; z-index:25; border-top:none"></th>')
+    print('<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>')
+    print('<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>')
+    print('<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>')
 
     if "cfdGuideScore" in showColumns:
-        print('<th style="border-top:none"></th>')
+        print('<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>')
 
     if not pamIsCpf1(pam):
-        print('<th style="border-top:none"></th>')
+        print('<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>')
 
     for scoreName in scoreNames:
         if scoreName in ["oof", "proxGc"] or "oof" in scoreName:
             continue
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print(
-            '<th style="width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
+            '<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterinteract" href="crispor.py?batchid=%s&sortby=%s">%s</a></span></div></th>'
             % (scoreDesc, batchId, scoreName, scoreLabel)
         )
 
     if "proxGc" in scoreNames:
         # the ProxGC score comes next
         print(
-            """<th style="border: none; border-top:none; border-right: none; border-left:none" class="rotate">"""
+            """<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border: none; border-top:none; border-right: none; border-left:none" class="rotate">"""
         )
         print("""<div><span style="border-bottom:none">""")
         print(
@@ -4390,12 +4459,12 @@ def printTableHead(
     for scoreName in mutScoreNames:
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print(
-            '<th style="width: 10px; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
+            '<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
             % (scoreDesc, batchId, scoreName, scoreLabel)
         )
 
-    print('<th style="border-top:none"></th>')
-    print('<th style="border-top:none"></th>')
+    print('<th style="position: sticky; top: 125px; box-shadow: inset -1px 0 black; z-index:25; border-top:none"></th>')
+    print('<th style="position: sticky; top: 125px; box-shadow: inset -1px 0 black; z-index:25; border-top:none"></th>')
 
     print("</tr>")
     print("</thead>")
@@ -4772,7 +4841,7 @@ def showGuideTable(
             # Display RNAfold secondary structure plot
             print(
                (
-                   '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s&freeEnergy=%s" target="_blank"><strong>Show secondary structure</strong></a>'
+                   '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s&freeEnergy=%s" target="_blank"><strong>Predicted secondary structure</strong></a>'
                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq, freeEnergy)
                )
             )
@@ -8868,6 +8937,7 @@ def showDonor(donorSeq, params):
     batchId = params["batchId"]
     batchInfo = readBatchAsDict(batchId)
     donorName = params.get("donorName")
+    pamId = params["pamId"]
     guideSeq = params["guideSeq"]
 
     insertSeq = batchInfo["insertseq"]
@@ -9002,13 +9072,19 @@ def showDonor(donorSeq, params):
             """<div style='width: 80%; margin-top: 54px; margin-left:25%; margin-right:25%; text-align:left;'>"""
     )
 
-    print("""<h2>Guide sequence : %s</h2> """ % guideSeq)
+    print("""<h2>Guide sequence : %s</h2> """ % guideSeq.upper())
     print("""
           <div style="margin-top: 32px; margin-bottom: 24px; display: flex; align-items: flex-end;">
               <h4 style="align-self: flex-end; margin: 0;">Sequence of the %s : </h4>&nbsp&nbsp
-              <button style="align-self: flex-end; margin: 0;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br>
-          </div> """ % donorTypeText)
+              <button style="align-self: flex-end; margin: 0;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br> """ % donorTypeText)
 
+    print("<form>")
+    printHiddenFields(params, {"batchId": batchId, "donorSeq": donorSeq, "pamId": pamId, 
+                               "guideSeq": guideSeq, "donorName": donorName})
+    print("""
+              <button name="downloadDonor" value="download" style="align-self: flex-end; margin: 0; margin-left: 12px;"><small>Download fasta (guide + donor DNA)</small></button>
+          </form>
+          </div> """)
 
     print("""<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">""")
 
@@ -10696,6 +10772,19 @@ def fastaWrite(seqId, seq, fh, width=80):
     fh.write("\n")
 
 
+def downloadDonor(params):
+
+    donorSeq = params["donorSeq"]
+    guideSeq = params["guideSeq"]
+    pamId = params["pamId"]
+    donorName = params["donorName"]
+
+    writeHttpAttachmentHeader(donorName + ".fa")
+    fastaWrite(pamId, guideSeq.upper(), sys.stdout)
+    print(" ")
+    fastaWrite(donorName, donorSeq, sys.stdout)
+
+
 def downloadFile(params):
     " "
     global scoreNames
@@ -10919,7 +11008,7 @@ def makeCrispressoFname(batchName, batchId):
 
 
 def designOfftargetPrimers(
-    inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, pamFullName=None
+    inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, exonId=None, pamFullName=None
 ):
     "return a list of off-target primers sorted by CFD score"
     targetChrom, targetStart, targetEnd, strand = parsePos(position)
@@ -10935,7 +11024,7 @@ def designOfftargetPrimers(
         guideSeqHtml,
         guideStart,
         guideEnd,
-    ) = findGuideSeq(inSeq, pam, pamId, pamFullName=pamFullName)
+    ) = findGuideSeq(inSeq, pam, pamId, exonId=exonId, pamFullName=pamFullName)
 
     # get the coords
     coords = []
@@ -11074,13 +11163,27 @@ def otPrimerPage(params):
 
     if multipam:
         pamFullName = pamId.split('.')[0]
+        exonId = None
         pam = setupPamInfo(pamFullName)
+    elif multiseq:
+        pamFullName = None
+        exonId = int(pamId.split('.')[0])
+        batchInfo = readBatchAsDict(batchId)
+        exonSeqs = batchInfo["exonSeqs"]
+        for ((exonIdx, exonSeq), (posStrIdx, exonPosStr)) in zip(exonSeqs, multiseq):
+            if exonId == exonIdx and exonId == posStrIdx:
+                inSeq = exonSeq
+                position = exonPosStr
+                break
+    else:
+        exonId = None
+        pamFullName = None
 
     pamOtMatches = parseOfftargets(db, batchId)
     otMatches = pamOtMatches[pamId]
 
     scoredPrimers, nameToSeq, nameToOtScoreSeq, guideSeqHtml = designOfftargetPrimers(
-        inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, pamFullName=pamFullName
+        inSeq, db, pam, position, extSeq, pamId, ampLen, primerLen, tm, otMatches, exonId=exonId, pamFullName=pamFullName
     )
 
     # primers -> table rows
@@ -11153,7 +11256,7 @@ def otPrimerPage(params):
     print(("""<form id="paramForm" action="%s" method="GET">""" % basename(__file__)))
 
     printAmpLenAndTm(ampLen, primerLen, tm)
-    printHiddenFields(params, {"batchId": batchId, "pamId": pamId, "otPrimers": "1"})
+    printHiddenFields(params, {"batchId": batchId, "pamId": pamId, "otPrimers": "1", "ampLen": None, "tm": None, "primerLen": None})
     print("""<input type="submit" name="submit" value="Update">""")
     print("</form>")
     print("<p>")
@@ -12049,30 +12152,31 @@ def printTagsAndLinkers():
         $(document).ready(function() {
         $('.js-select-tag').select2({
             placeholder: 'select a tag',
-            width: '100%'
+            width: '200px'
             });
         });
         $(document).ready(function() {
         $('.js-select-linker').select2({
             placeholder: 'select a linker',
+            width: '200px'
             });
         });
         $(document).ready(function() {
         $('.js-select-marker').select2({
-            placeholder: 'select a marker',
-            width: '100%'
+            placeholder: 'Choose a selectable marker',
+            width: '200px'
             });
         });
         $(document).ready(function() {
-        $('.js-select-cassette').select2({
-            placeholder: 'select a selection method',
-            width: '100%'
+        $('.js-select-expression').select2({
+            placeholder: 'Choose an expression method',
+            width: '250px'
             });
         });
        $(document).ready(function() {
        $('.js-select-qtag').select2({
-           placeholder: 'select a tag',
-           width: '200%'
+           placeholder: 'Choose a tag',
+           width: '200px'
            });
        });
 
@@ -12097,7 +12201,7 @@ def printTagsAndLinkers():
                 }
             }
 
-    selectionCass = ["2A", "EF1"]
+    expressionSeqs = ["2A ribosomal skipping peptide", "EF1α promoter"]
 
     qTags = {
             "Fluorescent proteins": {
@@ -12157,7 +12261,24 @@ def printTagsAndLinkers():
     print("</div>")
 
     # qTAG options
-    print("""<div id="qTagDisplay" style="display:none; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
+    print("""<div id="qTagDisplay" style="display:none; flex-direction:row; align-items:center; gap:18px; padding: 12px;">""")
+
+    # TAG sequence
+    print("""
+    <div>
+    <select name="qTag" id="qTag" class="js-select-qtag" style="width:100%; margin-right: 24px;" autocomplete="off">""")
+    print("<option></option>")
+    for tagType in qTags:
+        print("""<optgroup label="%s">""" % tagType)
+        for tag in qTags[tagType]:
+            print("""<option value="%s">%s</option>""" % (tag, tag))
+        print("</optgroup>")
+    print("""
+    </select>
+    </div>
+    """)
+
+    print("<div>and</div>")
 
     # Markers
     print("""
@@ -12177,35 +12298,18 @@ def printTagsAndLinkers():
 
     print("<div>and</div>")
 
-    # selection cassette type
+    # Expression method
     print("""
     <div>
-    <select name="cassetteseq" id="cassetteseq" class="js-select-cassette" style="width:100%;" autocomplete="off">""")
+    <select name="expressionSeq" id="expressionSeq" class="js-select-expression" style="width:100%;" autocomplete="off">""")
     print("<option></option>")
-    print("""<option value="none">None</option>""")
-    for cassette in selectionCass:
-        if cassette == "EF1":
-            cassetteHtml = cassette + "&alpha;"
+    print("""<option value="none">in-frame fusion to target gene</option>""")
+    for expressionSeq in expressionSeqs:
+        if expressionSeq == "EF1":
+            expressionSeqHtml = expressionSeq + "&alpha;"
         else:
-            cassetteHtml = cassette
-        print("""<option value="%s">%s</option>""" % (cassette, cassetteHtml))
-    print("""
-    </select>
-    </div>
-    """)
-
-    print("<div>and</div>")
-
-    # TAG sequence
-    print("""
-    <div>
-    <select name="qTag" id="qTag" class="js-select-qtag" style="width:100%;" autocomplete="off">""")
-    print("<option></option>")
-    for tagType in qTags:
-        print("""<optgroup label="%s">""" % tagType)
-        for tag in qTags[tagType]:
-            print("""<option value="%s">%s</option>""" % (tag, tag))
-        print("</optgroup>")
+            expressionSeqHtml = expressionSeq
+        print("""<option value="%s">%s</option>""" % (expressionSeq, expressionSeqHtml))
     print("""
     </select>
     </div>
@@ -12295,7 +12399,7 @@ def printKiForm(params):
           const tagseq = document.getElementById('tagseq')
           const linkerseq = document.getElementById('linkerseq')
           const markerseq = document.getElementById('markerseq')
-          const cassetteseq = document.getElementById('cassetteseq')
+          const expressionSeq = document.getElementById('expressionSeq')
           const qTag = document.getElementById('qTag')
 
           let selectedValue;
@@ -12320,7 +12424,7 @@ def printKiForm(params):
            } else {
                 qTagDisplay.style.display = 'none';
                 $('#markerseq').val(null).trigger('change');
-                $('#cassetteseq').val(null).trigger('change');
+                $('#expressionSeq').val(null).trigger('change');
                 $('#qTag').val(null).trigger('change');
                };
             if (selectedValue === 'custom') {
@@ -12443,8 +12547,8 @@ function changeSeqCase(value) {
                     <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag  protein in Nter or Cter</div>
             </div>
             <div id="seqTarget" style="margin-top:20px;">
-                Enter the original (target) sequence
-                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                Enter the target sequence manually here
+                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp). This sequence should correspond to the locus around the knock-in position. It is recommended to extend no more than 60bp in 5' and 3' around this position, since is it critical to get a DSB as close as possible to the intended modification." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
@@ -12479,16 +12583,16 @@ function changeSeqCase(value) {
                 </div>
                 <div id="endSeqDisplay" style="display: block; margin-bottom:12px; margin-top:12px;">
                     <div style="display: flex; flex-direction: row;">
-                        <div style="margin-right:200px;">
-                            Enter the edited sequence<br>
-                            <small>(with edits in uppercase)</small>
+                        <div style="margin-right:20px;">
+                            Re-enter the target sequence and edit it<br>
+                            <small>modified bases in UPPERCASE, with the rest in lowercase</small>
                         </div>
                         <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%;">
                             <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
                             <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
                         </div>
                     </div>
-                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits (insertions or substitutions) should be in uppercase, with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
+                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
                 </div>
 
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
@@ -12595,7 +12699,7 @@ def printBody(params):
                         params["insertIdx"] = insertIdx
                         params["insertseq"] = insertSeq
                         params["seq"] = startSeq
-            elif targetRegion == "gene" and ko_geneid and (("tagseq" in params and "linkerseq" in params) or "insertseq" in params or ("markerseq" in params and "cassetteseq" in params and "qTag" in params)):
+            elif targetRegion == "gene" and ko_geneid and (("tagseq" in params and "linkerseq" in params) or "insertseq" in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params)):
                 insertPos = params["insertpos"]
                 params["kiType"] = "tagging"
 
@@ -12603,13 +12707,13 @@ def printBody(params):
                 tagseq = params.get("tagseq")
 
                 markerseq = params.get("markerseq")
-                cassetteseq = params.get("cassetteseq")
+                expressionSeq = params.get("expressionSeq")
                 qTag = params.get("qTag")
 
                 try:
                     targetSeq, targetPos, insertIdx, geneModel = getTargetSeq(params)
-                    if (linkerseq and tagseq) or (markerseq and cassetteseq and qTag):
-                        tagNames, insertseq = getInsertSeq(linkerseq, tagseq, markerseq, cassetteseq, qTag, insertPos)
+                    if (linkerseq and tagseq) or (markerseq and expressionSeq and qTag):
+                        tagNames, insertseq = getInsertSeq(linkerseq, tagseq, markerseq, expressionSeq, qTag, insertPos)
                         params["insertseq"] = insertseq
                         params["tagNames"] = tagNames
 
@@ -12849,12 +12953,12 @@ def processCustomInsertSeq(startSeq, endSeq):
     """
 
 
-def getInsertSeq(linkerSeq, tagSeq, markerSeq, cassetteSeq, qTag, insertPos):
+def getInsertSeq(linkerSeq, tagSeq, markerSeq, expressionSeq, qTag, insertPos):
     "from a tag and a linker sequence, return the insert sequence to be used for the HDR donor"
 
-    loxSeq = "lox"
+    loxSeq = "loxP"
 
-    if (linkerSeq and tagSeq) or (linkerSeq and tagSeq and markerSeq and cassetteSeq and qTag):
+    if (linkerSeq and tagSeq) or (linkerSeq and tagSeq and markerSeq and expressionSeq and qTag):
         if insertPos == "Nter":
             insertSeq = taggingSeqs[tagSeq] + taggingSeqs[linkerSeq]
             tagNames = [tagSeq, linkerSeq]
@@ -12862,13 +12966,13 @@ def getInsertSeq(linkerSeq, tagSeq, markerSeq, cassetteSeq, qTag, insertPos):
             insertSeq = taggingSeqs[linkerSeq] + taggingSeqs[tagSeq]
             tagNames = [linkerSeq, tagSeq]
 
-    elif markerSeq and cassetteSeq and qTag:
+    elif markerSeq and expressionSeq and qTag:
         if insertPos == "Nter":
-            insertSeq = taggingSeqs[loxSeq] + taggingSeqs[markerSeq] + taggingSeqs[cassetteSeq] + taggingSeqs[loxSeq] + taggingSeqs[qTag]
-            tagNames = [loxSeq, markerSeq, cassetteSeq, loxSeq, qTag]
+            insertSeq = taggingSeqs[loxSeq] + taggingSeqs[markerSeq] + taggingSeqs[expressionSeq] + taggingSeqs[loxSeq] + taggingSeqs[qTag]
+            tagNames = [loxSeq, markerSeq, expressionSeq, loxSeq, qTag]
         else:
-            insertSeq = taggingSeqs[qTag] + taggingSeqs[loxSeq] + taggingSeqs[cassetteSeq] + taggingSeqs[markerSeq] + taggingSeqs[loxSeq]
-            tagNames = [qTag, loxSeq, cassetteSeq, markerSeq, loxSeq]
+            insertSeq = taggingSeqs[qTag] + taggingSeqs[loxSeq] + taggingSeqs[expressionSeq] + taggingSeqs[markerSeq] + taggingSeqs[loxSeq]
+            tagNames = [qTag, loxSeq, expressionSeq, markerSeq, loxSeq]
 
     return tagNames, insertSeq
 
@@ -13311,8 +13415,8 @@ def runPrimer3(seqs, targetStart, targetLen, prodSizeRange, tm, addTags, primerL
     maxTm = tm + 3
     optTm = tm
 
-    primerMinSize = primerLen - 3
-    primerOptSize = primerLen
+    primerMinSize = primerLen - 5
+    primerOptSize = int(primerLen)
     primerMaxSize = primerLen + 5
 
     p3InFh = makeTempFile("primer3In", ".txt")
@@ -13650,6 +13754,7 @@ def designPrimer(
     ampLen,
     tm,
     hdrDist=None,
+    primerLen=20,
 ):
     "create primer for region around chrom:start-end, write output to batch"
     " returns (leftPrimerSeq, lTm, lPos, rightPrimerSeq, rTm, rPos, amplified sequence)"
@@ -13660,8 +13765,6 @@ def designPrimer(
     targetStart, targetLen, ampRange, addTags = getTargetForPrimerDesign(
         guideStart, ampLen, hdrDist, strand
     )
-
-    primerLen = 20
 
     primers = runPrimer3(
         [("seq1", flankSeq)], targetStart, targetLen, ampRange, tm, addTags, primerLen
@@ -14240,12 +14343,12 @@ def printValidationPcrSection(
         errAbort("ampLen parameter must be a number")
     ampLen = int(ampLen)
 
-    primerLen = params.get("primerLen", "20")
+    primerLen = params.get("primerLen", "22")
     if not primerLen.isdigit():
         errAbort("primerLen parameter must be a number")
     primerLen = int(primerLen)
 
-    tm = params.get("tm", "60")
+    tm = params.get("tm", "64")
     if not tm.isdigit():
         errAbort("tm parameter must be a number")
     tm = int(tm)
@@ -14283,7 +14386,7 @@ def printValidationPcrSection(
         print("</div>")
 
     lSeq, lTm, lPos, rSeq, rTm, rPos, targetSeq, ampRange, flankSeq, addTags = (
-        designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm, hdrDist)
+        designPrimer(genome, chrom, start, end, strand, 0, batchId, ampLen, tm, hdrDist, primerLen)
     )
 
     primerPosList = []
@@ -14346,7 +14449,7 @@ def printValidationPcrSection(
 
     printAmpLenAndTm(ampLen, primerLen, tm)
 
-    printHiddenFields(params, {"ampLen": None, "tm": None})
+    printHiddenFields(params, {"ampLen": None, "tm": None, "primerLen": None})
 
     print(
         """<input id="submitPcrForm" style="display:none" type="submit" name="submit" value="submit">"""
@@ -14374,7 +14477,7 @@ def printValidationPcrSection(
         print(
             "<strong>Warning: No primers were found at this Tm, please design them manually e.g. with NCBI PrimerBlast.</strong><br>"
         )
-    print("<br><tt>%s</tt><br>" % (targetHtml))
+        print("<br><tt>%s</tt><br>" % (targetHtml))
 
     print("""</div>""")
     if rPos is not None:
@@ -14708,23 +14811,25 @@ def primerDetailsPage(params):
     batchInfo = readBatchAsDict(batchId)
     exonSeqs = batchInfo.get("exonSeqs")
 
-    # get the pam in multipam mode
-    if multiseq or multipam:
-        pamPrefix = pamId.split('.')[0]
-        if pamPrefix not in ['0-9']:
-            pamFullName = pamPrefix
-            pam = setupPamInfo(pamFullName)
-    else:
-        pamFullName = None
+   # get the pam in multipam mode
+    if multipam:
+        pamFullName = pamId.split('.')[0]
+        exonId = None
+        pam = setupPamInfo(pamFullName)
     # get the exonID and its sequence if in multiseq mode
-    if exonSeqs:
-        exonId = int(pamPrefix)
-        for exonInfo in exonSeqs:
-            if exonInfo[0] == exonId:
-                inSeq = exonInfo[1]
+    elif multiseq:
+        pamFullName = None
+        exonId = int(pamId.split('.')[0])
+        batchInfo = readBatchAsDict(batchId)
+        exonSeqs = batchInfo["exonSeqs"]
+        for ((exonIdx, exonSeq), (posStrIdx, exonPosStr)) in zip(exonSeqs, multiseq):
+            if exonId == exonIdx and exonId == posStrIdx:
+                inSeq = exonSeq
+                position = exonPosStr
                 break
     else:
         exonId = None
+        pamFullName = None
 
     seqLen = len(inSeq)
     batchBase = join(batchDir, batchId)
@@ -15150,6 +15255,19 @@ def donorDesignPage(params):
             print("<small>DSB %s bp  %s of the edition site</small>" % (insertDistance, cutUpstream.lstrip("onPos")))
 
     # showDonor(donorSeq, armLen, insertPos, geneId, inSeq, kiType)
+
+    # custom track test
+
+    ctFname = join(batchDir, batchId + ".txt")  # custom track settings
+    ofh = open(ctFname, "w")
+    ofh.write("browser position %s\n" % posStr)
+    ofh.write(
+        'track type=bigBed name="CRISPOR %(batchId)s" description="CRISPOR Results %(batchId)s %(batchId)s" itemRgb=On visibility=pack\n'
+        % locals()
+    )
+    ofh.close()
+    ctUrl = batchDir + "/%s.txt" % batchId
+
 
     if geneModel:
         if "ENST" in geneId:
@@ -16116,6 +16234,10 @@ def mainCgi():
     # print "Content-type: text/html\n"
     if "batchId" in params and "download" in params:
         downloadFile(params)
+        return
+
+    if "downloadDonor" in params:
+        downloadDonor(params)
         return
 
     if "ajaxStatus" in params and "batchId" in params:
