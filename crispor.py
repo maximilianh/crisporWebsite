@@ -1177,7 +1177,7 @@ def cgiGetParams():
         if val != None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq"]:
+            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq", "exonInfo", "guideInfo"]:
                 checkVal(key, val)
             cgiParams[key] = val
 
@@ -9352,9 +9352,9 @@ function toggleExonSeq(selectedValue) {
             for tagName, tagSeq in tagSeqList:
                 color = tagToColor[tagName]
                 tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
-                if len(tagSeq) < 10:
+                if len(tagSeq) < 25:
                     tagName = ""
-                elif len(tagSeq) < 25 and len(tagName) > 10:
+                elif len(tagSeq) < 50 and len(tagName) > 5:
                     tagName = ""
 
                 tagBox = (
@@ -12082,10 +12082,10 @@ def printKoForm(params):
 
             <small id="flankLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
             <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
-            &nbsp&nbsp target&nbsp<output style="">500</output> bp uptream of the TSS and downstream of the TES
+            &nbsp&nbsp target&nbsp<output style="">500</output> bp upstream of the transcription start site (TSS) and downstream of the transcription end site (TES)
             </small>
 
-            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Disruption of splicing by targeting a splice site<br>
+            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Disruption of splicing by targeting a splice site <i>(not implemented yet)</i><br>
             """
         % (len(annGenomes), len(genomes))
     )
@@ -12125,13 +12125,13 @@ def printTagsAndLinkers():
         });
         $(document).ready(function() {
         $('.js-select-marker').select2({
-            placeholder: 'Choose a selectable marker',
+            placeholder: 'a selectable marker',
             width: '200px'
             });
         });
         $(document).ready(function() {
         $('.js-select-expression').select2({
-            placeholder: 'Choose an expression method',
+            placeholder: 'an expression method',
             width: '250px'
             });
         });
@@ -13183,24 +13183,40 @@ def writeDonorSeq(params):
     batchId = params["batchId"]
     batchInfo = readBatchAsDict(batchId)
 
+    guideInfo = params["guideInfo"]
+    guideSeq = params["guideSeq"]
     arm5Len = int(params["arm5Len"])
     arm3Len = int(params["arm3Len"])
     donorType = params["donorType"]
     doBarcode = params.get("doBarcode")
     donorType = params["donorType"]
     recodePam = params.get("recodePam")
+    pamId = params["pamId"]
     recodeSeed = params.get("recodeSeed")
     recodeGap = params.get("recodeGap")
     trimGC = params.get("trimGC")
     trimHomopolymers = params.get("trimHomopolymers")
     trimRepeat = params.get("trimRepeats")
-
     org = batchInfo["org"]
     posStr = batchInfo["posStr"]
     insertIdx = batchInfo["insertIdx"]
     kiType = batchInfo.get("kiType")
     insertSeq = batchInfo.get("insertseq")
     chrom, start, end, strand = parsePos(posStr)
+
+    # convert to string of the original list to a list again (not optimal at all)
+    guideInfo = guideInfo.strip("(").strip(")").replace("'", "").replace(" ", "").split(",")
+    pamPat = pamId.split(".")[0]
+    transId = params.get("transId")
+    selGeneModel = params.get("selGeneModel")
+    exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
+
+    # retreive the exon corresponding to the selected transcript
+    for transcriptInfo in exonInfo:
+        transcriptId, symbol = transcriptInfo
+        if transId == transcriptId:
+            selExon = exonInfo[transcriptInfo]
+            break
 
     if strand == "+":
         insertCoord = int(start + insertIdx)
@@ -13246,12 +13262,278 @@ def writeDonorSeq(params):
 
     HA5 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm5start, arm5end, templateStrand), maxlen=False, minlen=False)
     HA3 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm3start, arm3end, templateStrand), maxlen=False, minlen=False)
+
+    HA5 = HA5.lower()
+    HA3 = HA3.lower()
+
+    # recoding
+    if recodePam or recodeSeed or recodeGap:
+        # get the coding strand for recoding, revComp after
+        if templateStrand != strand:
+            HA5 = revComp(HA5)
+            HA3 = revComp(HA3)
+        if strand == "-":
+            HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm = \
+                getArmCoords(HA3, HA5, strand, templateStrand,
+                             insertIdx, guideSeq, guideInfo,
+                             kiType, insertSeq, selExon=selExon)
+        else:
+            HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm = \
+                getArmCoords(HA5, HA3, strand, templateStrand,
+                             insertIdx, guideSeq, guideInfo,
+                             kiType, insertSeq, selExon=selExon)
+
+        if recodeArm == "HA5":
+            HA5 = recodeDonor(HA5, HA5codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
+                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat)
+        else:
+            HA3 = recodeDonor(HA3, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
+                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat)
+
+        if templateStrand != strand:
+            HA5 = revComp(HA5)
+            HA3 = revComp(HA3)
+
     if templateStrand == "+":
-        donorSeq = HA5.lower() + newInsertSeq + HA3.lower()
+        donorSeq = HA5 + newInsertSeq + HA3
     else:
-        donorSeq = HA3.lower() + newInsertSeq + HA5.lower()
+        donorSeq = HA3 + newInsertSeq + HA5
 
     return donorSeq
+
+
+def getArmCoords(HA5, HA3, strand, templateStrand, insertIdx, guideSeq,
+                 guideInfo, kiType, insertSeq, selExon=None):
+    """
+    on both homology arms, get the coordinates of the codons
+    and the regions to recode
+
+    returns :
+    HA5codonPos = [codon starts]
+    HA3codonPos = [codon starts]
+    splittedCodonPos = [codonStart(HA5), codonEnd(HA3)]
+    pamCoords = [pamStart, pamEnd]
+    seedCoords = [seedStart, seedEnd]
+    cutPos = int
+    recodeArm = "HA5" or "HA3" : the homology arm to recode
+    """
+
+    # for ssODN, make sure to recode relative to the target region
+    if strand != templateStrand:
+        HA5 = revComp(HA5)
+        HA3 = revComp(HA3)
+        # then revComp at the end
+
+    # convert the coordinates of the guide and the exon relative to the homology arms
+    pamSeq, guideStart, guideStrand = guideInfo
+    guideStart = int(guideStart)
+
+    # convert exon coordinates
+    if selExon:
+
+        HA5codonPos = []
+        HA3codonPos = []
+        splittedCodonPos = []  # for codons that overlap with the edition site
+        lastBases = None
+
+        for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon:
+            if exonNumber == -1 and exonFrame == -1:
+                # this exon is 5'UTR : don't recode in it
+                pass
+
+            elif exonNumber != -1 and exonFrame == -1:
+                # 3' UTR
+                pass
+
+            else:
+                # coding exon
+                if exonStart < insertIdx and exonEnd < insertIdx:
+                    exonStartPos = len(HA5) - (insertIdx - exonStart)
+                    exonEndPos = len(HA5) - (insertIdx - exonEnd)
+
+                    # exon in the 5' homology arm (will rarely happen)
+                    for i in range(exonStart + exonFrame, exonEnd, 3):
+                        if i + 3 > exonEnd:
+                            break
+                        HA5codonPos.append(i)
+
+                elif exonStart > insertIdx and exonEnd > insertIdx:
+                    if kiType == "deletion" or kiType == "substitution":
+                        exonStartPos = (insertIdx + len(insertSeq)) + exonStart
+                        exonEndPos = (insertIdx + len(insertSeq)) + exonEnd
+                    else:
+                        exonStartPos = insertIdx + exonStart
+                        exonEndPos = insertIdx + exonEnd
+
+                    # exon in the 3' homology arm
+                    for i in range(exonStart + exonFrame, exonEnd, 3):
+                        if i + 3 > exonEnd:
+                            break
+                        else:
+                            HA3codonPos.append(i)
+
+                else:
+                    # edit site overlaps the exon
+                    exonStartPos = len(HA5) - (insertIdx - exonStart)
+                    if kiType == "deletion" or kiType == "substitution":
+                        exonEndPos = (insertIdx + len(insertSeq)) + exonEnd
+                    else:
+                        exonEndPos = exonEnd - insertIdx
+
+                    # get the start position of all codons in both homology arms
+                    for i in range(exonStartPos + exonFrame, len(HA5), 3):
+                        if i + 3 > len(HA5):
+                            # if the edit site is in a codon, store the last bases
+                            lastBases = HA5[i:]  # part of codon in HA5
+                            # store start in HA5 and length of part in HA3
+                            splittedCodonPos.append((i, 3-len(lastBases)))
+                            break
+                        if i + 3 == len(HA5):
+                            lastBases = None
+                        HA5codonPos.append(i)
+
+                    # Codons in HA3
+                    HA3start = 0
+                    if lastBases:
+                        HA3start = 3 - len(lastBases)
+
+                    for i in range(HA3start, exonEndPos - 2, 3):
+                        HA3codonPos.append(i)
+
+    # position of the PAM
+    if guideStrand == "+":
+        pamStart = guideStart + len(guideSeq)
+    else:
+        pamStart = guideStart - 3
+
+    if pamStart < insertIdx:
+        # get the position in HA5
+        # 5'-----<<NGG--------------3'
+        # 5'---------------\/-------3'
+
+        pamStartPos = len(HA5) - (insertIdx - pamStart)
+        pamEndPos = pamStartPos + len(pamSeq)
+        recodeArm = "HA5"
+        pamCoords = (pamStartPos, pamEndPos)
+    else:
+        # get the position in HA3
+        # 5'-----\/--------------3'
+        # 5'-------------<<NGG---3'
+
+        if kiType == "deletion" or kiType == "substitution":
+            # for deletions, the 3' homology arm starts after insertIdx
+            # for substituions, the edited base is removed from HA3
+            pamStartPos = pamStart - (insertIdx + len(insertSeq))
+
+        else:
+            pamStartPos = pamStart - insertIdx
+        pamEndPos = pamStartPos + len(pamSeq)
+        recodeArm = "HA3"
+        pamCoords = (pamStartPos, pamEndPos)
+
+    # position of the seed region (15 pam-proximal bases of the spacer)
+    if guideStrand == "+":
+        seedStartPos = pamStartPos - 15
+        if seedStartPos < 0:
+            seedStartPos = 0
+        seedEndPos = pamStartPos
+    else:
+        seedStartPos = pamEndPos
+        seedEndPos = pamEndPos + 15
+        # do not extent coord beyond the homology arm
+        if recodeArm == "HA5" and seedEndPos > len(HA5):
+            seedEndPos = len(HA5)
+        elif recodeArm == "HA3" and seedEndPos > len(HA3):
+            seedEndPos = len(HA3)
+
+    seedCoords = (seedStartPos, seedEndPos)
+
+    # position of the gap between cut site and insertion site
+    if guideStrand == "+":
+        cutPos = pamStartPos - 3
+    else:
+        cutPos = pamEndPos + 3
+
+    if recodeArm == "HA5" and cutPos < len(HA5):
+        gapStartPos = cutPos
+        gapEndPos = len(HA5)
+    elif recodeArm == "HA3" and cutPos > 0:
+        gapStartPos = 0
+        gapEndPos = cutPos
+    else:
+        gapCoords = None
+    gapCoords = (gapStartPos, gapEndPos)
+
+    return HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm
+
+
+def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
+                recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat):
+    """
+    from the coordinates in the homology arm to recode, introduce silent mutations
+    """
+
+    # could add an input to specify the number of mutations to introduce
+    _, _, guideStrand = guideInfo
+    codonTable = buildCodonTable()
+    revCodonTable = buildCodonTable(key="aa")
+    mutHA = list(HA)
+    recodeRegions = []
+
+    # get the regions to mutate and combine overlaps
+    if recodeSeed:
+        recodeRegions.append(seedCoords)
+    if recodeGap:
+        recodeRegions.append(gapCoords)
+
+    recodePos = set()
+    if recodePam:
+        pamStart, pamEnd = pamCoords
+        # make sure to mutate only the non N bases of the PAM
+        for i in range(pamStart, pamEnd):
+            # NGG / GGN
+            patPos = i - pamStart if guideStrand == "+" else pamEnd - i - 1
+            if pamPat[patPos] != "N":
+                recodePos.add(i)
+
+    for start, end in recodeRegions:
+        for i in range(start, end):
+            recodePos.add(i)
+
+    if not recodePos:
+        return HA
+
+    # list of codons to mutate
+    mutCodons = set()
+    for codonStart in HAcodonPos:
+        for pos in range(codonStart, codonStart + 3):
+            if pos in recodePos:
+                mutCodons.add(codonStart)
+                break
+
+    for codonStart in list(sorted(mutCodons)):
+        codon = HA[codonStart:codonStart + 3].upper()
+        aa = codonTable[codon]
+        if not aa:
+            continue
+        synCodons = revCodonTable.get(aa)
+
+        # check codons that introduce a mutation at recodePos
+        keep = False
+        for synCodon in synCodons:
+            if synCodon == codon:
+                continue
+            for i in range(3):
+                mutPos = codonStart + i
+                if mutPos in recodePos and codon[i] != synCodon[i]:
+                    keep = True
+                    break
+            if keep:
+                # mutate the homolgy arm with synCodon and flag the mutation in uppercase
+                for i in range(3):
+                    mutHA[codonStart + i] = synCodon[i].upper() if mutHA[codonStart + i].upper() != synCodon[i].upper() else synCodon[i].lower()
+                break
+    return ''.join(mutHA)
 
 
 def getTargetSeq(params):
@@ -15012,6 +15294,7 @@ def donorDesignPage(params):
     pam = setupPamInfo(pamFullName)
 
     batchInfo = readBatchAsDict(batchId)
+    org = batchInfo["org"]
     insertSeq = batchInfo["insertseq"]
     inSeq = batchInfo["seq"]
     geneId = batchInfo.get("koGeneId")
@@ -15068,6 +15351,9 @@ def donorDesignPage(params):
         guideStart,
         guideEnd,
     ) = findGuideSeq(inSeq, pam, pamId, pamFullName=pamFullName)
+
+    # save guide Info in params for recoding
+    guideInfo = (pamSeq, guideStart, guideStrand)
 
     printBackLink()
 
@@ -15230,7 +15516,6 @@ def donorDesignPage(params):
     ofh.close()
     ctUrl = batchDir + "/%s.txt" % batchId
 
-
     if geneModel:
         if "ENST" in geneId:
             transcriptUrl = """<a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a>""" % (geneId, geneId)
@@ -15252,15 +15537,16 @@ def donorDesignPage(params):
     print("<hr>")
     print("""<form action="%s?%s" method="GET">""" % (basename(__file__), batchId))
 
-    # need a better way to handle this
-    print("""<input type="hidden" name="batchId" value="%s"/>""" % batchId)
-    print("""<input type="hidden" name="guideSeq" value="%s"/> """ % guideSeq)
-    print("""<input type="hidden" name="pam" value="%s"/> """ % pam)
-    print("""<input type="hidden" name="pamId" value="%s"/> """ % pamId)
-    print("""<input type="hidden" name="doRecoding" value="%s"/> """ % doRecoding)
-    print("""<input type="hidden" name="insertDistance" value="%s"/> """ % insertDistance)
-    print("""<input type="hidden" name="cutUpstream" value="%s"/> """ % cutUpstream)
-
+    printHiddenFields(params,
+                      {"batchId": batchId,
+                       "guideSeq": guideSeq,
+                       "guideInfo": guideInfo,
+                       "pam": pam,
+                       "pamId": pamId,
+                       "doRecoding": doRecoding,
+                       "insertDistance": insertDistance,
+                       "cutUpstream": cutUpstream
+                       })
     print("""
     <h2>Global options</h2>
     <small> %(donorTypeMsg)s </small>
@@ -15312,21 +15598,47 @@ def donorDesignPage(params):
     print("""
     <div id="recodingOptions">
         <hr>
-        <h2>Recoding Options</h2>
+        <h2>Recoding Options <i>(not implemented yet)</i></h2>
         <small> %(recodingMsg)s </small>
+        """ % locals())
+
+    # Transcript model selection
+    geneModels, selGeneModel, selTransId = getSelGeneModel(org)
+    if geneModels:
+        print("""<p>Select a transcript ID to use as a model for recoding</p>""")
+        # get the first  available gene Model for now
+        for (model, modelStr) in geneModels:
+            if model != "noGenes":
+                selGeneModel = model
+        exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
+        # labelLen = max(labelLen, maxTransIdLen)
+
+        print("Transcript:")
+        transIdInfo = []
+        for transId, sym in list(exonInfo.keys()):
+            transIdInfo.append((transId, sym + " / " + transId))
+
+        printDropDown("transId", transIdInfo, selTransId, style="width:20em")
+        # exonLines = makeExonLines(exonInfo, inSeq, selTransId)
+        # params["exonLines"] = exonLines
+        # exonLines = []
+        printHiddenFields(params, {"transId": params.get("transId"), "selGeneModel": selGeneModel})
+        print("""<br>""")
+
+    print("""
         <p>Choose below which regions of the donor DNA to recode </p>
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
                 <strong>Recode the donor to avoid re-cleavage</strong><br>
-                <input type="checkbox" %(recodeChecked)s id="recodePam" value=1 autocomplete="off"/>Recode the PAM motif<br>
-                <input type="checkbox" id="recodeSeed" value=1 autocomplete="off"/>Recode PAM proximal end the guide<br>
-                <input type="checkbox" id="recodeGap" value=1 autocomplete="off"/>Recode between the cut site and insertion site<br>
+                <input type="checkbox" %(recodeChecked)s name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif<br>
+                <input type="checkbox" name="recodeSeed" value="True" autocomplete="off"/>Recode PAM proximal end the guide<br>
+                <input type="checkbox" name="recodeGap" value="True" autocomplete="off"/>Recode between the cut site and insertion site<br>
             </div>
             <div id="trimOptions">
                 <strong>Trim the donor to facilitate its synthesis</strong><br>
-                <input type="checkbox" id="trimHomopolymers" value=1 autocomplete="off"/>Trim homopolymers<br>
-                <input type="checkbox" id="trimGC" value=1 autocomplete="off"/>Trim regions with high GC content<br>
-                <input type="checkbox" id="trimRepeat" value=1 autocomplete="off"/>Trim repeated sequences<br>
+                <input type="checkbox" name="trimHomopolymers" value="True" autocomplete="off"/>Trim homopolymers<br>
+                <input type="checkbox" name="trimGC" value="True" autocomplete="off"/>Trim regions with high GC content<br>
+                <input type="checkbox" name="trimRepeat" value="True" autocomplete="off"/>Trim repeated sequences<br>
             </div>
         </div>
     </div>

@@ -969,6 +969,53 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - dans crisporTest : séparation du répertoire temp / crisporJobs.db avec la version publique
 - /!\ changement temporaire dans crispor.py -> chemin d'accès de crisporJobs.db relatif au répertoire temp
 
+## knock-in mode 
+
+- call de getExonInfo() dans donorDesignPage() pour annoter l'ADN donneur
+
 ## bugs 
 
 - en mode classic, "guideScores" referenced before assignment dans crispor.py en mode classic (en + du message "not found in genome")
+
+## à faire
+
+- lors de la sélection d'un PAM, center la rangée correspondante (sinon le header la masque)
+
+# 05/03/26
+
+## knock-in mode
+
+- ajout de getArmCoords() : pour chaque bras d'homologie, obtention des coordonnées
+    - du PAM
+    - des bases PAM-proximales du spacer
+    - de la région entre le sitre d'édition et le site de coupure
+    - des exons
+- ajout de recodeDonor(): 
+    - crée une liste des bases à muter, puis une liste des codons recoupant ces positions
+    - pour chaque codon, crée une liste des codons synonymes
+    - pour chaque base de chaque codon synonyme, vérifie si cette celle-ci correspond à une base à muter
+    - si oui, le codon synonyme est conservé, et est remplacé sur le bras d'homologie (base mutée en uppercase)
+
+## à faire
+
+- en mode knock-in, adapter la liste des effscores à la liste de pams sélectionnée
+
+## bugs
+
+- en mode knock-in, "show all" dans colonne off-target ne fonctionne pas
+
+# 06/03/26
+
+## knock-in mode 
+
+- dans recodeDonor() : dans les coordonnées du PAM, retrait des positions correspondant aux bases "N" du motif
+
+- ajout de codonFrequency.py dans /tools/usrLocalBin :
+    - pour chaque génome dans le répertoire /genomes, calcule l'occurence de chaque codon à paritr du fichier genePred
+    - mais :
+        - pour l'instant : chaque transcrit est pris en compte, donc biais pour gènes à épissage alternatif ++ ? 
+        - si prise en compte de tous les exons codants par gène -> risque de décalage du cardre de lecture ?
+        - si prise en compte d'un seul transcrit, lequel choisir ?
+        - script lent
+    - -> utilisation d'un outil dédié ?
+
