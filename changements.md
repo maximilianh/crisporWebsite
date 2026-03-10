@@ -967,7 +967,6 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - correction de otPrimerPage(), primerDetailsPage(), printValidationPcrSection() et designOffTargetPrimers()
 - merge des changements dans la classe queue + adaptation de runQueueWorker()
 - dans crisporTest : séparation du répertoire temp / crisporJobs.db avec la version publique
-- /!\ changement temporaire dans crispor.py -> chemin d'accès de crisporJobs.db relatif au répertoire temp
 
 ## knock-in mode 
 
@@ -975,7 +974,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## bugs 
 
-- en mode classic, "guideScores" referenced before assignment dans crispor.py en mode classic (en + du message "not found in genome")
+- en mode classic, "guideScores" referenced before assignment dans crispor.py (en + du message "not found in genome")
 
 ## à faire
 
@@ -1019,3 +1018,24 @@ réécriture de getDonorSeq() : séparation en deux fonctions
         - script lent
     - -> utilisation d'un outil dédié ?
 
+# 09/03/26
+
+## knock-in mode
+
+- ajout des listes de pams :
+    - "commercially available nucleases",
+    - "engineered pam variants with low specificity",
+    - "expression plasmid available from addGene"
+
+- codonFrequency.py : possiblité d'utiliser EMBOSS cusp (+ rapide)
+    - mais requiert input CDS
+    - donc, soit décompte des codons pour tous les transcrits, soit pour le transcrit le + long (ou MANE ou humain)
+
+# 10/03/26
+
+- tentative de centrer la rangée correspondant au guide sélectionné depuis le sequence viewer
+
+## knock-in mode 
+
+- finalisation de codonFrequency.py : calcul de la fréquence des codons pour tous les transcrits
+    - valeurs hg19 comparables aux données en lignes +- 0.01 -> OK pour classement des codons selon la fréquence

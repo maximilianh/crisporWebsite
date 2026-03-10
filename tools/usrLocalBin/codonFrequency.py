@@ -125,54 +125,6 @@ def parsePos(text):
     return chrom, start, end, strand
 
 
-def getSeq(db, posStr):
-    """
-    given a database name and a string with the position as chrom:start-end, return the sequence as
-    a string.
-    """
-    chrom, start, end, strand = parsePos(posStr)
-
-    genomeDir = genomesDir  # pull in global var
-    twoBitFname = getTwoBitFname(db)
-    binPath = join(binDir, "twoBitToFa")
-
-    chromSizes = parseChromSizes(db)
-    if chrom not in chromSizes:
-        print("chromosome not found in genome")
-    if start < 0 or end < 0 or start > chromSizes[chrom] or end > chromSizes[chrom]:
-        (
-            "Sorry, the coordinates '%d-%d' are not valid in the genome %s. Coordinates must not be outside chromosome boundaries or less than 0."
-            % (start, end, db)
-        )
-
-    cmd = [
-        binPath,
-        twoBitFname,
-        "-seq=" + chrom,
-        "-start=" + str(start),
-        "-end=" + str(end),
-        "stdout",
-    ]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    seqStr = proc.stdout.read()
-
-    retCode = proc.wait()
-    if retCode != 0:
-        print(
-            "Error on sequence retrieval. This looks like a bug. Please contact us and tell us the input and genome, we will fix this error."
-        )
-
-    # remove fasta header line
-    lines = seqStr.decode("utf8").splitlines()
-    if len(lines) > 0:
-        lines.pop(0)
-    seq = "".join(lines)
-    if strand == "-":
-        seq = revComp(seq)
-
-    return seq
-
-
 def getExonPos(org):
 
     genomeDir = genomesDir
@@ -183,7 +135,9 @@ def getExonPos(org):
 
     if gpFiles:
         transcriptExons = []
-        for gpFile in gpFiles:
+        for gpCount, gpFile in enumerate(gpFiles):
+            if gpCount > 0:
+                break
             gpFilePath = os.path.join(genomePath, gpFile)
             with open(gpFilePath, "r") as genePred:
 
@@ -213,7 +167,9 @@ def getExonPos(org):
                     exonEnds = geneInfo["exonEnds"]
                     cdsStart = geneInfo["cdsStart"]
                     cdsEnd = geneInfo["cdsEnd"]
+                    altName = geneInfo.get("altName")
 
+                    # remove non-coding transcripts
                     if cdsEnd - cdsStart < 3:
                         continue
                     else:
@@ -316,19 +272,17 @@ def fetch_exon_sequences(org, unique_exons):
 def readAllExons():
     """ for each genome, return a list of all exon sequences """
 
-    codonTable = buildCodonTable()
     aaTable = buildCodonTable(key="aa")
     allCodons = {}
     allGenomes = os.listdir(genomesDir)
     for genomeDir in allGenomes:
         if isdir(join(genomesDir, genomeDir)):
             org = genomeDir
-            # print(org)
             allCodons[org] = collections.Counter()
 
     for org in allCodons:
-        if org != "GCF_902806645.1":
-            continue
+        genomePath = join(genomesDir, org)
+
         # need to differenciate between overlapping genes and splicing variants!!
         # for now, remove duplicate exons
         transcriptExons = getExonPos(org)
@@ -353,24 +307,25 @@ def readAllExons():
                         allCodons[org][codon] += 1
                 else:
                     pass
-
-            # need to calculate the frequency of codons relative to each aa
-            """
-            codonAa = {}
+            print(allCodons[org])
+            # frequency of codons relative to each aa
             for aa in aaTable:
-                codonAa[aa] = []
-            for codon in allCodons[org]:
-                aa = codonTable[codon]
-                codonAa[aa].append((codon, allCodons[org][codon]))
-            for aa in codonAa:
-                count = 0
-                for codon, freq in codonAa[aa]:
-                    count += freq
-            """
-
-            print(json.dumps(allCodons[org], indent=4, sort_keys=True))
-
-    return allCodons
+                sumCodons = 0
+                refCodons = aaTable[aa]
+                for refCodon in refCodons:
+                    count = allCodons[org][refCodon]
+                    allCodons[org][refCodon] = []
+                    allCodons[org][refCodon].append(count)
+                    sumCodons += count
+                for refCodon in refCodons:
+                    codonInfo = allCodons[org][refCodon]
+                    freq = codonInfo[0] / sumCodons
+                    codonInfo.append(sumCodons)
+                    codonInfo.append(freq)
+            jsonFname = "%s_codonFrequency.json" % org
+            jsonPath = join(genomePath, jsonFname)
+            with open(jsonPath, "w", encoding="utf-8") as f:
+                json.dump(allCodons[org], f, indent=4, sort_keys=True)
 
 
 def main():
