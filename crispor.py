@@ -610,8 +610,8 @@ tagToColor = {
         "Zeo": "#bfbfbf",
         "moxGFP": "#66ff33",
         "mScarlet": "#ff3300",
-        "2A": "#bfbfbf",
-        "EF1": "#bfbfbf",
+        "2A ribosomal skipping peptide": "#bfbfbf",
+        "EF1α promoter": "#bfbfbf",
         "mStrayGold": "#ffcc66",
         "mNeon": "#99ff66",
         "moxGFP": "#66ff33",
@@ -628,7 +628,7 @@ tagToColor = {
         "SBP": "#bfbfbf",
         "HA": "#bfbfbf",
         "V5": "#bfbfbf",
-        "lox": "#bfbfbf",
+        "loxP": "#ffff66",
         "none": "#bfbfbf"
         }
 # labels and descriptions of eff. scores
@@ -1013,7 +1013,6 @@ class JobQueue:
             now = time.time()
             timeDiff = "%d" % int((1000.0*(now - lastTime)))
             newTimeStr = timeStr+"%s=%s" % (lastStep, timeDiff)+","
-
             sql = 'UPDATE queue SET lastUpdate=?, stepName=?, stepLabel=?, stepTimes=?, isRunning=? WHERE jobId=?'
             self.conn.execute(sql, (now, newName, newLabel, newTimeStr, 1, jobId))
 
@@ -1182,7 +1181,7 @@ def cgiGetParams():
         if val != None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq"]:
+            if key not in ["seq", "name", "customseq", "insertseq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq", "exonInfo", "guideInfo"]:
                 checkVal(key, val)
             cgiParams[key] = val
 
@@ -3986,21 +3985,6 @@ def printTableHead(
             console.info('Text:', e.text);
             console.info('Trigger:', e.trigger);
             e.clearSelection();
-        });
-
-        $('a[id^="list"]').click(function(e) {
-             // e.preventDefault();
-             var targetId = $(this).attr('href');
-             var target = $(targetId);
-             if (target.length) {
-                 var headerHeight = $('#otTable thead').outerHeight();
-                 var offset = 10; // small margin
-                 $('html, body').animate({
-                     scrollTop: target.offset().top - headerHeight - offset
-                 }, 500, function() {
-                    window.location.hash = targetId;
-                 });
-             }
         });
 
         $('d').mouseenter( onEditHover );
@@ -9372,7 +9356,9 @@ function toggleExonSeq(selectedValue) {
             for tagName, tagSeq in tagSeqList:
                 color = tagToColor[tagName]
                 tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
-                if len(tagSeq) < 25 and len(tagName) > 10:
+                if len(tagSeq) < 25:
+                    tagName = ""
+                elif len(tagSeq) < 50 and len(tagName) > 5:
                     tagName = ""
 
                 tagBox = (
@@ -12100,10 +12086,10 @@ def printKoForm(params):
 
             <small id="flankLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
             <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
-            &nbsp&nbsp target&nbsp<output style="">500</output> bp uptream of the TSS and downstream of the TES
+            &nbsp&nbsp target&nbsp<output style="">500</output> bp upstream of the transcription start site (TSS) and downstream of the transcription end site (TES)
             </small>
 
-            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Disruption of splicing by targeting a splice site<br>
+            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleFlankLen()"/> Disruption of splicing by targeting a splice site <i>(not implemented yet)</i><br>
             """
         % (len(annGenomes), len(genomes))
     )
@@ -12143,13 +12129,13 @@ def printTagsAndLinkers():
         });
         $(document).ready(function() {
         $('.js-select-marker').select2({
-            placeholder: 'Choose a selectable marker',
+            placeholder: 'a selectable marker',
             width: '200px'
             });
         });
         $(document).ready(function() {
         $('.js-select-expression').select2({
-            placeholder: 'Choose an expression method',
+            placeholder: 'an expression method',
             width: '250px'
             });
         });
@@ -13202,22 +13188,20 @@ def writeDonorSeq(params):
     batchId = params["batchId"]
     batchInfo = readBatchAsDict(batchId)
 
+    guideInfo = params["guideInfo"]
+    guideSeq = params["guideSeq"]
     arm5Len = int(params["arm5Len"])
     arm3Len = int(params["arm3Len"])
     donorType = params["donorType"]
-    # doBarcode = params.get("doBarcode")
+    doBarcode = params.get("doBarcode")
     donorType = params["donorType"]
     recodePam = params.get("recodePam")
+    pamId = params["pamId"]
     recodeSeed = params.get("recodeSeed")
     recodeGap = params.get("recodeGap")
-    guideSeq = params["guideSeq"]
-    pamId = params["pamId"]
-    guideInfo = params["guideInfo"]
-
     # trimGC = params.get("trimGC")
     # trimHomopolymers = params.get("trimHomopolymers")
     # trimRepeat = params.get("trimRepeats")
-
     org = batchInfo["org"]
     geneId = batchInfo.get("ko_geneid")
     posStr = batchInfo["posStr"]
@@ -15309,6 +15293,7 @@ def donorDesignPage(params):
     pam = setupPamInfo(pamFullName)
 
     batchInfo = readBatchAsDict(batchId)
+    org = batchInfo["org"]
     insertSeq = batchInfo["insertseq"]
     inSeq = batchInfo["seq"]
     geneId = batchInfo.get("koGeneId")
@@ -15365,6 +15350,9 @@ def donorDesignPage(params):
         guideStart,
         guideEnd,
     ) = findGuideSeq(inSeq, pam, pamId, pamFullName=pamFullName)
+
+    # save guide Info in params for recoding
+    guideInfo = (pamSeq, guideStart, guideStrand)
 
     printBackLink()
 
@@ -15527,7 +15515,6 @@ def donorDesignPage(params):
     ofh.close()
     ctUrl = batchDir + "/%s.txt" % batchId
 
-
     if geneModel:
         if "ENST" in geneId:
             transcriptUrl = """<a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a>""" % (geneId, geneId)
@@ -15549,15 +15536,16 @@ def donorDesignPage(params):
     print("<hr>")
     print("""<form action="%s?%s" method="GET">""" % (basename(__file__), batchId))
 
-    # need a better way to handle this
-    print("""<input type="hidden" name="batchId" value="%s"/>""" % batchId)
-    print("""<input type="hidden" name="guideSeq" value="%s"/> """ % guideSeq)
-    print("""<input type="hidden" name="pam" value="%s"/> """ % pam)
-    print("""<input type="hidden" name="pamId" value="%s"/> """ % pamId)
-    print("""<input type="hidden" name="doRecoding" value="%s"/> """ % doRecoding)
-    print("""<input type="hidden" name="insertDistance" value="%s"/> """ % insertDistance)
-    print("""<input type="hidden" name="cutUpstream" value="%s"/> """ % cutUpstream)
-
+    printHiddenFields(params,
+                      {"batchId": batchId,
+                       "guideSeq": guideSeq,
+                       "guideInfo": guideInfo,
+                       "pam": pam,
+                       "pamId": pamId,
+                       "doRecoding": doRecoding,
+                       "insertDistance": insertDistance,
+                       "cutUpstream": cutUpstream
+                       })
     print("""
     <h2>Global options</h2>
     <small> %(donorTypeMsg)s </small>
@@ -15609,7 +15597,7 @@ def donorDesignPage(params):
     print("""
     <div id="recodingOptions">
         <hr>
-        <h2>Recoding Options</h2>
+        <h2>Recoding Options <i>(not implemented yet)</i></h2>
         <small> %(recodingMsg)s </small>
         """ % locals())
 
@@ -15651,15 +15639,15 @@ def donorDesignPage(params):
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
                 <strong>Recode the donor to avoid re-cleavage</strong><br>
-                <input type="checkbox" %(recodeChecked)s id="recodePam" value=1 autocomplete="off"/>Recode the PAM motif<br>
-                <input type="checkbox" id="recodeSeed" value=1 autocomplete="off"/>Recode PAM proximal end the guide<br>
-                <input type="checkbox" id="recodeGap" value=1 autocomplete="off"/>Recode between the cut site and insertion site<br>
+                <input type="checkbox" %(recodeChecked)s name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif<br>
+                <input type="checkbox" name="recodeSeed" value="True" autocomplete="off"/>Recode PAM proximal end the guide<br>
+                <input type="checkbox" name="recodeGap" value="True" autocomplete="off"/>Recode between the cut site and insertion site<br>
             </div>
             <div id="trimOptions">
                 <strong>Trim the donor to facilitate its synthesis</strong><br>
-                <input type="checkbox" id="trimHomopolymers" value=1 autocomplete="off"/>Trim homopolymers<br>
-                <input type="checkbox" id="trimGC" value=1 autocomplete="off"/>Trim regions with high GC content<br>
-                <input type="checkbox" id="trimRepeat" value=1 autocomplete="off"/>Trim repeated sequences<br>
+                <input type="checkbox" name="trimHomopolymers" value="True" autocomplete="off"/>Trim homopolymers<br>
+                <input type="checkbox" name="trimGC" value="True" autocomplete="off"/>Trim regions with high GC content<br>
+                <input type="checkbox" name="trimRepeat" value="True" autocomplete="off"/>Trim repeated sequences<br>
             </div>
         </div>
     </div>
@@ -16056,19 +16044,74 @@ def runQueueWorker(noFork):
                 jobError = True
 
             if not jobError:
+                q.jobDone(batchId)
+
+        elif jobType == "multipam" or jobType == "multiseq":
+            # search for multiple pams
+            print("found job - multi sequence mode")
+            logging.info("executed multisearch job")
+            jobError = False
+            (
+                seq,
+                org,
+                pam,
+                position,
+                extSeq,
+                multiseq,
+                koMethod,
+                geneModel,
+                koGeneId,
+                multipam
+            ) = readBatchParams(batchId)
+            batchBase = join(batchDir, batchId)
+            if jobType == "multipam":
+                try:
+                    seq, posStr = getPosAndSeq(org, seq, position, batchId)
+                    processMultiPamSubmission(
+                        org, seq, posStr, multipam, batchBase, batchId, q
+                    )
+                    logging.info("executed processMultiPamSubmission()")
+                    q.jobDone(batchId)
+                except:
+                    exStr = traceback.format_exc()
+                    print(" - WORKER CRASHED WITH EXCEPTION -")
+                    print(exStr)
+                    try:
+                        q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                    except:
+                        print(" - ALSO COULD NOT UPDATE DB WITH CRASH STATUS -")
+                        print(traceback.format_exc())
+                    jobError = True
+
+            elif jobType == "multiseq":
+                try:
+                    processMultiSeqSubmission(
+                        multiseq, org, pam, batchBase, batchId, q, koMethod
+                    )
+                    logging.info("executed processMultiSeqSubmission()")
+                except:
+                    exStr = traceback.format_exc()
+                    print(" - WORKER CRASHED WITH EXCEPTION -")
+                    print(exStr)
+                    try:
+                        q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                    except:
+                        print(" - ALSO COULD NOT UPDATE DB WITH CRASH STATUS -")
+                        print(traceback.format_exc())
+                    jobError = True
+
+            if not jobError:
                 try:
                     q.jobDone(batchId)
                 except:
                     print(" - COULD NOT MARK JOB AS DONE -")
                     print(traceback.format_exc())
+
         elif jobType is None:
             logging.debug("No job")
             time.sleep(1 + random.random() / 10)
         else:
-            # raise Exception()
-            logging.error(
-                "Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId)
-            )
+            logging.error("Illegal jobtype: %s - %s. Marking as done." % (jobType, batchId))
             try:
                 q.jobDone(batchId)
             except:
