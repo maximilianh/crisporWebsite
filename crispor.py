@@ -13205,14 +13205,19 @@ def writeDonorSeq(params):
     arm5Len = int(params["arm5Len"])
     arm3Len = int(params["arm3Len"])
     donorType = params["donorType"]
-    doBarcode = params.get("doBarcode")
+    # doBarcode = params.get("doBarcode")
     donorType = params["donorType"]
     recodePam = params.get("recodePam")
     recodeSeed = params.get("recodeSeed")
     recodeGap = params.get("recodeGap")
+    guideSeq = params["guideSeq"]
+    pamId = params["pamId"]
+    guideInfo = params["guideInfo"]
+
     # trimGC = params.get("trimGC")
     # trimHomopolymers = params.get("trimHomopolymers")
     # trimRepeat = params.get("trimRepeats")
+
     org = batchInfo["org"]
     geneId = batchInfo.get("ko_geneid")
     posStr = batchInfo["posStr"]
