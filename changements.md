@@ -1031,11 +1031,20 @@ réécriture de getDonorSeq() : séparation en deux fonctions
     - mais requiert input CDS
     - donc, soit décompte des codons pour tous les transcrits, soit pour le transcrit le + long (ou MANE ou humain)
 
-# 10/03/26
+# 10/03/26
 
+- récupération/réécriture des données après bug git dans VScode (git reset au commit 06/03/26)
 - tentative de centrer la rangée correspondant au guide sélectionné depuis le sequence viewer
 
 ## knock-in mode 
 
 - finalisation de codonFrequency.py : calcul de la fréquence des codons pour tous les transcrits
     - valeurs hg19 comparables aux données en lignes +- 0.01 -> OK pour classement des codons selon la fréquence
+
+# 11/03/26
+
+## knock-in mode
+
+- correction de writeDonorSeq et getArmCoords : 
+    - prise en compte de la polarité pour les ssODN
+    - simplification de la conversion des coordonnées en fonction du brin
