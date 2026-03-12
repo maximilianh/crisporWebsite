@@ -1917,18 +1917,20 @@ def getGeneModels(org):
     return ret
 
 
-def getSelGeneModel(org):
+def getSelGeneModel(org, noGenes=True):
     "return (list of (name, desc) of models, selected gene model name)"
     geneModels = getGeneModels(org)
     selGeneModel = None
     selTransId = None
 
     if geneModels:
-        # selGeneModel = cgiParams.get("geneModel", geneModels[0][0])
-        selGeneModel = cgiParams.get("geneModelSelection", "noGenes")
-        geneModels.insert(0, ("noGenes", "Do not show"))
+        if noGenes:
+            selGeneModel = cgiParams.get("geneModelSelection", "noGenes")
+            geneModels.insert(0, ("noGenes", "Do not show"))
+        else:
+            selGeneModel = cgiParams.get("geneModelSelection", geneModels[0][0])
         possNames = [x for x, y in geneModels]
-        if not selGeneModel in possNames:
+        if selGeneModel not in possNames:
             errAbort(
                 "The gene model name specified with the argument geneModel is invalid"
             )
@@ -2011,13 +2013,23 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores):
     return ret, jsonData
 
 
-def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True):
+def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True, pamIdToRecode=None):
     for y in range(0, maxY + 1):
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId in lines[y]:
             guideSeq = pamIdToSeq.get(pamId)
-            if guideSeq == None:
+            if pamIdToRecode:
+                doRecoding = pamIdToRecode.get(pamId)
+                if doRecoding == True:
+                    recodeStr = ""
+                else:
+                    recodeStr = """, 0 0 10px #33ccff,
+                    0 0 20px #33ccff,
+                    0 0 30px #33ccff"""
+            else:
+                recodeStr = ""
+            if guideSeq is None:
                 # when there is an N in the guide, the PAM is valid, but the guide is not
                 continue
             classStr = cssClassesFromSeq(guideSeq, suffix="Seq")
@@ -2034,13 +2046,13 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True):
 
             if linkToTable:
                 texts.append(
-                    """<a class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s" href="#%s">"""
-                    % (classStr, color, pamId, pamId)
+                    """<a class='%s' style="text-shadow: 1px 1px 1px #bbb%s; color: %s " id="list%s" href="#%s">"""
+                    % (classStr, recodeStr, color, pamId, pamId)
                 )
             else:
                 texts.append(
-                    """<span class='%s' style="text-shadow: 1px 1px 1px #bbb; color: %s" id="list%s">"""
-                    % (classStr, color, pamId)
+                    """<span class='%s' style="text-shadow: 1px 1px 1px #bbb%s; color: %s" id="list%s">"""
+                    % (classStr,  recodeStr, color, pamId)
                 )
 
             texts.append(name)
@@ -2255,6 +2267,7 @@ def showSeqAndPams(
     pamIdToSeq,
     multiPamInfo=None,
     linkToTable=True,
+    pamIdToRecode=None
 ):
     "show the sequence and the PAM sites underneath in a sequence viewer"
 
@@ -2289,7 +2302,7 @@ def showSeqAndPams(
 
         # layout all lines
         lines, maxY = layoutPamLines(allPamLines, len(seq))
-        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable))
+        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable, pamIdToRecode=pamIdToRecode))
 
     posLabel = "Position"
     varLabel = "Variants"
@@ -3716,7 +3729,8 @@ def mergeGuideInfo(
     pamFullName=None,
     insertIdx=None,
     kiType=None,
-    insertSeq=None
+    insertSeq=None,
+    getRecode=False
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -3731,6 +3745,8 @@ def mergeGuideInfo(
     guideScores = {}
     hasNotFound = False
     pamIdToSeq = {}
+    if getRecode:
+        pamIdToRecode = {}
     if pamFullName:
         pamPat = setupPamInfo(pamFullName)
 
@@ -3837,10 +3853,16 @@ def mergeGuideInfo(
         guideData.append(guideRow)
         guideScores[pamId] = guideScore
         pamIdToSeq[pamId] = guideSeq
+        if getRecode:
+            pamIdToRecode[pamId] = doRecoding
 
     # when the function is not called in a loop, sort now
     if exonId is None and pamFullName is None and insertIdx is None:
         sortGuideData(guideData, sortBy)
+
+   # should return pamIdToRecode as None instead
+    if getRecode:
+        return guideData, guideScores, hasNotFound, pamIdToSeq, pamIdToRecode
 
     return guideData, guideScores, hasNotFound, pamIdToSeq
 
@@ -4164,7 +4186,7 @@ def printTableHead(
 
     print(
             '<th style="position: sticky; top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
-        % batchId
+            % batchId
     )
     htmlHelp(
         "You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page."
@@ -4173,11 +4195,12 @@ def printTableHead(
 
     print('<th style="position: sticky; top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
 
-    print("+ Restriction Enzymes")
-    htmlHelp(
-        "Restriction enzymes can be very useful for screening mutations induced by the guide RNA using PCR and Restrictrion frament length polymorphism (RFLP).<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing."
-    )
-    print("<br>")
+    if not pamFullName:
+        print("+ Restriction Enzymes")
+        htmlHelp(
+            "Restriction enzymes can be very useful for screening mutations induced by the guide RNA using PCR and Restrictrion frament length polymorphism (RFLP).<br>Enzyme sites shown here overlap the main cleavage site 3bp 5' to the PAM.<br>Digestion of the PCR product with these enzymes will not cut the product if the genome was mutated by Cas9. This is a lot easier than screening with the T7 assay, Surveyor or sequencing."
+        )
+        print("<br>")
 
     if varHtmls is not None:
         print(" + Variants")
@@ -4186,20 +4209,21 @@ def printTableHead(
         )
         print("<br>")
 
-    print("""<small>""")
-    print(
-        """<input type="checkbox" class="prefixBox" id="onlyWithGBox" onchange="onlyWith('G')">Only G-"""
-    )
-    print(
-        """<input type="checkbox" class="prefixBox" id="onlyWithGGBox" onchange="onlyWith('GG')">Only GG-"""
-    )
-    print(
-        """<input type="checkbox" class="prefixBox" id="onlyWithABox" onchange="onlyWith('A')">Only A-"""
-    )
-    htmlHelp(
-        "The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3."
-    )
-    print("""</small>""")
+    if not pamFullName:
+        print("""<small>""")
+        print(
+            """<input type="checkbox" class="prefixBox" id="onlyWithGBox" onchange="onlyWith('G')">Only G-"""
+        )
+        print(
+            """<input type="checkbox" class="prefixBox" id="onlyWithGGBox" onchange="onlyWith('GG')">Only GG-"""
+        )
+        print(
+            """<input type="checkbox" class="prefixBox" id="onlyWithABox" onchange="onlyWith('A')">Only A-"""
+        )
+        htmlHelp(
+            "The three checkboxes allow you to show only guides that start with GG-, G- or A-. While we recommend prefixing a 20bp guide with G for U6 expression with spCas9, some protocols recommend using only guides with a G- prefix for U6 and A- for U3."
+        )
+        print("""</small>""")
 
     if pamFullName:
         print(
@@ -4760,15 +4784,6 @@ def showGuideTable(
                 print(" Inefficient")
                 print("<br>")
 
-        if freeEnergy < -3:
-            text = (
-                "This sequence can form one or several secondary structures (minimum free energy = %(freeEnergy)s kcal/mol). This is of importance for synthetic gRNAs. For more information, read <a target=blank href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al, Nat. Commun. 2025</a>."
-                % locals()
-            )
-            htmlWarn(text)
-            print("secondary structure" % locals())
-            print("<br>")
-
         if gcFrac > 0.75:
             text = "This sequence has a GC content higher than 75%.<br>In the data of Tsai et al Nat Biotech 2015, the two guide sequences with a high GC content had almost as many off-targets as all other sequences combined. We do not recommend using guide sequences with such a high GC content."
             htmlWarn(text)
@@ -4781,10 +4796,12 @@ def showGuideTable(
             print(" Low GC content<br>")
             print("<br>")
 
-        if len(mutEnzymes) != 0:
+        if len(mutEnzymes) != 0 and not pamFullName:
             print("<div style='margin-top: 3px'>Enzymes: <i>", end=" ")
             print(", ".join([x.split("/")[0] for x, y, z in list(mutEnzymes.keys())]))
             print("</i></div>")
+        else:
+            print("<br>")
 
         scriptName = basename(__file__)
         if pamFullName:
@@ -4802,13 +4819,23 @@ def showGuideTable(
                     % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam)
                 )
             )
-            # Display RNAfold secondary structure plot
-            print(
+
+        # Display RNAfold secondary structure plot
+        print(
                (
                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s&freeEnergy=%s" target="_blank"><strong>Predicted secondary structure</strong></a>'
                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq, freeEnergy)
                )
             )
+        if freeEnergy < -3.6:
+            text = (
+                "This sequence can form one or several secondary structures (minimum free energy = %(freeEnergy)s kcal/mol). This is of importance for synthetic gRNAs. For more information, read <a target=blank href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al, Nat. Commun. 2025</a>."
+                % locals()
+            )
+            htmlWarn(text)
+        else:
+            print("""<nobr><small style="border-radius: 50%; height:8px; width: 8px; background-color: #00ff00; color: #00ff00;">----</small>""")
+
         print("</small>")
         print("</td>")
 
@@ -8806,7 +8833,7 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
         pam = setupPamInfo(pamFullName)
         startDict, endSet = findAllPams(uppSeq, pam)
 
-        guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(
+        guideData, guideScores, hasNotFound, pamIdToSeq, pamIdToRecode = mergeGuideInfo(
             uppSeq,
             startDict,
             pam,
@@ -8820,7 +8847,8 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
             pamFullName=pamFullName,
             insertIdx=insertIdx,
             kiType=kiType,
-            insertSeq=insertSeq
+            insertSeq=insertSeq,
+            getRecode=True
         )
 
         allGuideData.extend(guideData)
@@ -8879,6 +8907,7 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
             posStr,
             allPamIdToSeq,
             multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
+            pamIdToRecode=pamIdToRecode
         )
         showGuideTable(
             allGuideData,
@@ -12565,7 +12594,7 @@ function changeSeqCase(value) {
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
                     Enter the sequence to insert<br>
                     <input type="radio" checked style="margin-top:13px;" name="insertype" value="tagLinker" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
-<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG
+<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG <i>(sequences not available yet)</i>
 
                     <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
                     <textarea id="insertseq" name="insertseq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
@@ -13193,12 +13222,13 @@ def writeDonorSeq(params):
     arm5Len = int(params["arm5Len"])
     arm3Len = int(params["arm3Len"])
     donorType = params["donorType"]
-    doBarcode = params.get("doBarcode")
+    # doBarcode = params.get("doBarcode")
     donorType = params["donorType"]
     recodePam = params.get("recodePam")
     pamId = params["pamId"]
     recodeSeed = params.get("recodeSeed")
     recodeGap = params.get("recodeGap")
+    selGeneModel = params.get("geneModelSelection")
     # trimGC = params.get("trimGC")
     # trimHomopolymers = params.get("trimHomopolymers")
     # trimRepeat = params.get("trimRepeats")
@@ -13217,7 +13247,6 @@ def writeDonorSeq(params):
         transId = params.get("transId")
     else:
         transId = geneId
-    selGeneModel = params.get("selGeneModel")
     exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
 
     # retreive the exon corresponding to the selected transcript
@@ -13226,6 +13255,9 @@ def writeDonorSeq(params):
         if transId == transcriptId:
             selExon = exonInfo[transcriptInfo]
             break
+        # if selGeneModel isn't transmitted, select a transcript anyways
+        else:
+            selExon = exonInfo[transcriptInfo]
 
     if strand == "+":
         insertCoord = int(start + insertIdx)
@@ -13281,6 +13313,15 @@ def writeDonorSeq(params):
     # recoding
     if recodePam or recodeSeed or recodeGap:
 
+        # load codon frequency file
+        codonFreqFname = "%s_codonFrequency.json" % org
+        codonFreqFile = join(genomesDir, org, codonFreqFname)
+        if isfile(codonFreqFile):
+            with open(codonFreqFile) as jsonData:
+                codonFreq = json.load(jsonData)
+        else:
+            codonFreq = None
+
         if templateStrand == "+":
             HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm = \
                 getArmCoords(HA5, HA3, strand, templateStrand,
@@ -13294,10 +13335,10 @@ def writeDonorSeq(params):
 
         if recodeArm == "HA5":
             HA5 = recodeDonor(HA5, HA5codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
-                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat)
+                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
         else:
             HA3 = recodeDonor(HA3, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
-                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat)
+                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
     donorSeq = HA5 + newInsertSeq + HA3
 
     return donorSeq
@@ -13467,7 +13508,7 @@ def getArmCoords(HA5, HA3, strand, templateStrand, insertIdx, guideSeq,
 
 
 def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
-                recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat):
+                recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFrequency):
     """
     from the coordinates in the homology arm to recode, introduce silent mutations
     """
@@ -13480,10 +13521,11 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
     recodeRegions = []
 
     # get the regions to mutate and combine overlaps
-    if recodeSeed:
-        recodeRegions.append(seedCoords)
     if recodeGap:
         recodeRegions.append(gapCoords)
+        recodeRegions.append(seedCoords)
+    elif recodeSeed and not recodeGap:
+        recodeRegions.append(seedCoords)
 
     recodePos = set()
     if recodePam:
@@ -13492,12 +13534,13 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
         for i in range(pamStart, pamEnd):
             # NGG / GGN
             patPos = i - pamStart if guideStrand == "+" else pamEnd - i - 1
-            if pamPat[patPos] != "N":
+            if pamPat[patPos] != "N" and pamEnd < len(HA):
                 recodePos.add(i)
 
     for start, end in recodeRegions:
-        for i in range(start, end):
-            recodePos.add(i)
+        if end < len(HA):
+            for i in range(start, end):
+                recodePos.add(i)
 
     if not recodePos:
         return HA
@@ -13506,7 +13549,7 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
     mutCodons = set()
     for codonStart in HAcodonPos:
         for pos in range(codonStart, codonStart + 3):
-            if pos in recodePos:
+            if pos in recodePos and codonStart + 3 < len(HA):
                 mutCodons.add(codonStart)
                 break
 
@@ -13516,22 +13559,41 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
         if not aa:
             continue
         synCodons = revCodonTable.get(aa)
-
         # check codons that introduce a mutation at recodePos
         keep = False
+        lastFreq = 0
+
         for synCodon in synCodons:
+
+            # in case we want to codon with the closest frequency as the original one
+            # codonFreq = codonFrequency[codon][2]
+
+            if codonFrequency:
+                synCodonFreq = codonFrequency[synCodon][2]
+                # keep the codon with the highest frequency
+                if lastFreq != 0 and synCodonFreq < lastFreq:
+                    continue
             if synCodon == codon:
                 continue
+
+            # keep the codon that introduces a mutation at recodePos
             for i in range(3):
                 mutPos = codonStart + i
                 if mutPos in recodePos and codon[i] != synCodon[i]:
                     keep = True
-                    break
+                    if codonFrequency is None:
+                        break
+                    else:
+                        lastFreq = synCodonFreq
+
+            # mutate the homolgy arm with synCodon and flag the mutation in uppercase (repeated until no codon with a higher frequency is found)
             if keep:
-                # mutate the homolgy arm with synCodon and flag the mutation in uppercase
                 for i in range(3):
                     mutHA[codonStart + i] = synCodon[i].upper() if mutHA[codonStart + i].upper() != synCodon[i].upper() else synCodon[i].lower()
-                break
+                # if no codon frequency table is availble, keep the first synonymous codon
+                if codonFrequency is None:
+                    break
+
     return ''.join(mutHA)
 
 
@@ -14365,11 +14427,16 @@ def mergeParamDicts(params, changeParams):
     return newParams
 
 
-def printHiddenFields(params, changeParams):
+def printHiddenFields(params, changeParams, form=None):
     " "
+
+    formStr = ""
+    if form:
+        formStr = """ form="%s" """ % form
+
     newParams = mergeParamDicts(params, changeParams)
     for key, val in newParams.items():
-        print(('<input type="hidden" name="%s" value="%s">' % (key, val)))
+        print(('<input type="hidden" name="%s" value="%s" %s>' % (key, val, formStr)))
 
 
 def cgiGetSelfUrl(changeParams, anchor=None, onlyParams=None):
@@ -14399,7 +14466,7 @@ def cgiGetSelfUrl(changeParams, anchor=None, onlyParams=None):
     return url
 
 
-def printDropDown(name, nameValList, default, onChange=None, style=None):
+def printDropDown(name, nameValList, default, onChange=None, style=None, form=None):
     """print a dropdown box and set a default"""
     addStr = ""
     if onChange is not None:
@@ -14407,14 +14474,17 @@ def printDropDown(name, nameValList, default, onChange=None, style=None):
     addStr2 = ""
     if style is not None:
         addStr2 = """ style='%s' """ % style
+    addStr3 = ""
+    if form is not None:
+        addStr3 = """ form='%s' """ % form
 
-    print(('<select id="dropdown" name="%s"%s%s>' % (name, addStr, addStr2)))
+    print(('<select id="dropdown" name="%s"%s%s%s>' % (name, addStr, addStr2, addStr3)))
     for name, desc in nameValList:
         name = str(name)
         addString = ""
         if default is not None and str(name) == str(default):
             addString = ' selected="selected"'
-        print(('   <option value="%s"%s>%s</option>' % (name, addString, desc)))
+        print(('<option value="%s"%s>%s</option>' % (name, addString, desc)))
     print("</select>")
 
 
@@ -15289,6 +15359,7 @@ def donorDesignPage(params):
     doRecoding = params["doRecoding"]
     cutUpstream = params["cutUpstream"]
     insertDistance = params["insertDistance"]
+    selGeneModel = params.get("geneModelSelection")
     pamFullName = pamId.split(".")[0]
     pam = setupPamInfo(pamFullName)
 
@@ -15534,18 +15605,21 @@ def donorDesignPage(params):
         recodeChecked = ""
 
     print("<hr>")
-    print("""<form action="%s?%s" method="GET">""" % (basename(__file__), batchId))
+    print("""<form id="main" action="%s?%s" method="GET"></form>""" % (basename(__file__), batchId))
+    print("""<form id="updateModel"></form>""")
+    forms = ["main", "updateModel"]
 
-    printHiddenFields(params,
-                      {"batchId": batchId,
-                       "guideSeq": guideSeq,
-                       "guideInfo": guideInfo,
-                       "pam": pam,
-                       "pamId": pamId,
-                       "doRecoding": doRecoding,
-                       "insertDistance": insertDistance,
-                       "cutUpstream": cutUpstream
-                       })
+    for formId in forms:
+        printHiddenFields(params,
+                          {"batchId": batchId,
+                           "guideSeq": guideSeq,
+                           "guideInfo": guideInfo,
+                           "pam": pam,
+                           "pamId": pamId,
+                           "doRecoding": doRecoding,
+                           "insertDistance": insertDistance,
+                           "cutUpstream": cutUpstream
+                           }, form=formId)
     print("""
     <h2>Global options</h2>
     <small> %(donorTypeMsg)s </small>
@@ -15558,14 +15632,14 @@ def donorDesignPage(params):
                 Select donor type  <img src=" %(htmlprefix)s image/info-small.png" title="Choose between a single stranded oligodeoxyribonucleotide (ssODN), recommended for small (<50bp) edits, and a double stranded donor DNA, recommended for knock-in of large sequences. The maximum length of the ssODN can't exceed 200 bases" class="tooltipsterInteract"><br>
 
 
-                <input type="radio" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double strand Donor<br>
-                <input type="radio" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single strand Donor<br>
+                <input type="radio" form="main" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double strand Donor<br>
+                <input type="radio" form="main" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single strand Donor<br>
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
                 Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position. If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template. Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
 <br>
-                <input type="radio" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand<br>
-                <input type="radio" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
+                <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand<br>
+                <input type="radio" form="main" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
             </div>
             <div id="ssODNmsg" style="display: none;">
                 The maximum length of a single strand donor DNA is 200bp.<br>
@@ -15576,14 +15650,14 @@ def donorDesignPage(params):
     <div style="display:flex; margin-bottom:12px; flex-direction: column;">
         5' homology arm length
         <div style="margin-top:12px; display:flex; gap:12px;">
-            <input type="range" id="arm5Len" name="arm5Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%%;">
-            <input type="number" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm5Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+            <input type="range" form="main" id="arm5Len" name="arm5Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%%;">
+            <input type="number" form="main" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm5Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
         <br>
         3' homology arm length
        <div style="margin-top:12px; display:flex; gap:12px;">
-            <input type="range" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%%;">
-            <input type="number" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm3Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+            <input type="range" form="main" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%%;">
+            <input type="number" form="main" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm3Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
     </div>
           """ % locals())
@@ -15597,65 +15671,65 @@ def donorDesignPage(params):
     print("""
     <div id="recodingOptions">
         <hr>
-        <h2>Recoding Options <i>(not implemented yet)</i></h2>
-        <small> %(recodingMsg)s </small>
+        <h2>Recoding Options</h2>
+        <small style="margin-bottom:24px;"> %(recodingMsg)s </small><br>
         """ % locals())
 
     # Transcript model selection
-    geneModels, selGeneModel, selTransId = getSelGeneModel(org)
+    geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
+
     if geneModels:
-        print("""<p>Select a transcript ID to use as a model for recoding</p>""")
-        # get all available gene Models
         allExonInfo = []
+        print("""<p>Select a transcript ID to use as a model for recoding</p>""")
         for (model, modelStr) in geneModels:
-            if model != "noGenes":
+            if geneId is None and selGeneModel is None:
                 selGeneModel = model
                 exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
-                if geneId is None:
-                    break
-                else:
-                    allExonInfo.append((exonInfo, selGeneModel))
+            else:
+                # if the input is a transcriptID, get the corresponding transcript
+                exonInfo, maxTransIdLen = getExonInfo(org, model, posStr)
+                for transId, sym in list(exonInfo.keys()):
+                    if transId == geneId:
+                        printHiddenFields(params, {"transId": transId, "geneModelSelection": model}, form="main")
+                        break
+
         # if the input is a sequence, ask to choose a transcript as a model for recoding
         if geneId is None:
+            print("Gene model:")
+            printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em", form="updateModel", onChange="updateModel.submit()")
             print("Transcript:")
             transIdInfo = []
             for transId, sym in list(exonInfo.keys()):
                 transIdInfo.append((transId, sym + " / " + transId))
-            printDropDown("transId", transIdInfo, selTransId, style="width:20em")
+            printDropDown("transId", transIdInfo, selTransId, style="width:20em", form="main")
+
             # exonLines = makeExonLines(exonInfo, inSeq, selTransId)
             # params["exonLines"] = exonLines
             # exonLines = []
             print("""<br>""")
-            printHiddenFields(params, {"transId": params.get("transId"), "selGeneModel": selGeneModel})
-        # if the input is a transcriptID, get the corresponding transcript
-        else:
-            for exonInfo, selGeneModel in allExonInfo:
-                for transId, sym in list(exonInfo.keys()):
-                    if transId == geneId:
-                        printHiddenFields(params, {"transId": transId, "selGeneModel": selGeneModel})
+            printHiddenFields(params, {"transId": params.get("transId"), "geneModelSelection": selGeneModel}, form="main")
 
     print("""
         <p>Choose below which regions of the donor DNA to recode </p>
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
                 <strong>Recode the donor to avoid re-cleavage</strong><br>
-                <input type="checkbox" %(recodeChecked)s name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif<br>
-                <input type="checkbox" name="recodeSeed" value="True" autocomplete="off"/>Recode PAM proximal end the guide<br>
-                <input type="checkbox" name="recodeGap" value="True" autocomplete="off"/>Recode between the cut site and insertion site<br>
+                <input type="checkbox" %(recodeChecked)s form="main" name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif<br>
+                <input type="checkbox" name="recodeSeed" form="main" value="True" autocomplete="off"/>Recode PAM proximal end the guide<br>
+                <input type="checkbox" name="recodeGap" form="main" value="True" autocomplete="off"/>Recode between the cut site and insertion site<br>
             </div>
             <div id="trimOptions">
-                <strong>Trim the donor to facilitate its synthesis</strong><br>
-                <input type="checkbox" name="trimHomopolymers" value="True" autocomplete="off"/>Trim homopolymers<br>
-                <input type="checkbox" name="trimGC" value="True" autocomplete="off"/>Trim regions with high GC content<br>
-                <input type="checkbox" name="trimRepeat" value="True" autocomplete="off"/>Trim repeated sequences<br>
+                <strong>Trim the donor to facilitate its synthesis</strong> <i>(not implemented yet)</i><br>
+                <input type="checkbox" name="trimHomopolymers" form="main" value="True" autocomplete="off"/>Trim homopolymers<br>
+                <input type="checkbox" name="trimGC" form="main" value="True" autocomplete="off"/>Trim regions with high GC content<br>
+                <input type="checkbox" name="trimRepeat" form="main" value="True" autocomplete="off"/>Trim repeated sequences<br>
             </div>
         </div>
     </div>
     """ % locals())
     print("""
-       <button style="align-self:center; margin-top: 50px; width:250px; height:50px;" type="submit" id="submit" name="submit" value="SUBMIT">Design Donor DNA</button>
+       <button form="main" style="align-self:center; margin-top: 50px; width:250px; height:50px;" type="submit" id="submit" name="submit" value="SUBMIT">Design Donor DNA</button>
        </div>
-    </form>
      """)
 
 

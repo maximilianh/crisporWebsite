@@ -901,7 +901,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - vérifier qu'aucune information importante ne manque en mode knock-out / knock-in :
     - affichage des variants
     - affichage des coordonnées ucsc
-- rendre tableau scrollable au lieu de figer les en têtes
+- rendre tableau scrollable au lieu de figer les en-têtes
 - corriger surlignage du PAM sur la séquence si sélection depuis le tableau
 - "faux" off targets en fonction de l'assemblage
 - ajouter message pour type d'exp sélectionné (surbrillance + explication)
@@ -915,7 +915,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - ajouter surlignage du MANE transcript (cf. notes 27/01/26)
 - ajouter affichage getGeneModels()
 - alerter si un gène essentiel est ciblé (humain / souris)
-- surligner ATG dans showSeqAndPams()
+- surligner ATG in frame dans showSeqAndPams()
 
 ### knock-in
 
@@ -1039,7 +1039,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## knock-in mode 
 
 - finalisation de codonFrequency.py : calcul de la fréquence des codons pour tous les transcrits
-    - valeurs hg19 comparables aux données en lignes +- 0.01 -> OK pour classement des codons selon la fréquence
+    - valeurs hg19 comparables aux données en lignes +- 0.05 -> OK pour classement des codons selon la fréquence ?
 
 # 11/03/26
 
@@ -1048,3 +1048,27 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - correction de writeDonorSeq et getArmCoords : 
     - prise en compte de la polarité pour les ssODN
     - simplification de la conversion des coordonnées en fonction du brin
+
+- dans recodeDonor : prise en compte de la fréquence d'utilisation des codon (lecture JSON) : 
+    - recodage du donneur jusqu'au codon ayant la fréquence d'utilisation la plus élevée
+
+- surlignage des guides chevauchant le site de coupure : option "pamIdToRecode" dans mergeGuideInfo(), showSeqAndPams() et makePamLines()
+
+## à faire
+
+    - ajouter checkbox affichage enzymes
+    - couleur si freeEnergy > -5 kcal/mol
+    - warning si la région sélectionnée n'a pas pu être recodée
+    - pour ssODN : prise en compte des coordonnées en dehors des bras d'homologie!
+
+# 12/03/26
+
+## knock-in mode
+
+- dans le tableau des guides : 
+    - retrait de l'affichage des enzymes
+    - retrait des checkbox filtrage selon séquence
+    - rertait du message "secondary structure" -> ajout d'un /!\ ou d'une gomette verte à côté du lien "predicted secondary structure"
+
+- correction bug : les coordonnées en dehors des bras d'homologie ne sont plus prise en compte lors du recodage des ssODN
+- recodeDonor fonctionne sans fichier de fréquence des codons
