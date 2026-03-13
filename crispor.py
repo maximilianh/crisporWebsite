@@ -130,7 +130,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "5.2.dev.anton"
+versionStr = "5.3 beta"
 
 # Current release note
 
@@ -1465,13 +1465,13 @@ def findHomopolymers(seq, basesCount):
             n += 1
         else:
             if lastBase and lastBase in basesCount and n > basesCount[lastBase]:
-                homoPolymers.append((slice(start, pos), lastBase))
+                homoPolymers.append((start, pos))
             lastBase = char
             start = pos
             n = 1
 
     if lastBase and lastBase in basesCount and n > basesCount[lastBase]:
-        homoPolymers.append((slice(start, len(seq)), lastBase))
+        homoPolymers.append(start, len(seq))
 
     if homoPolymers:
         return homoPolymers
@@ -1483,7 +1483,7 @@ def findPat(seq, pat):
     pat = pat.upper()
     patLen = len(pat)
     for i in range(0, len(seq) - patLen + 1):
-        subseq = seq[i : i + patLen]
+        subseq = seq[i: i + patLen]
         if patMatch(subseq, pat):
             yield i
 
@@ -4179,13 +4179,13 @@ def printTableHead(
             '<table id="otTable" style=" background:white;table-layout:fixed; overflow:scroll; width:100%">'
     )
 
-    print("<thead>")
+    print("""<thead style="position:sticky;">""")
     print(
             '<tr style="position: sticky; top: 1px; z-index:2; box-shadow: inset 0 1px black; width:80px; border-left:5px solid black; border-bottom: none; background-color:#F0F0F0; background-clip: padding-box;">'
     )
 
     print(
-            '<th style="position: sticky; top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
+            '<th style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
             % batchId
     )
     htmlHelp(
@@ -4193,7 +4193,7 @@ def printTableHead(
     )
     print("</th>")
 
-    print('<th style="position: sticky; top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
+    print('<th style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
 
     if not pamFullName:
         print("+ Restriction Enzymes")
@@ -4227,7 +4227,7 @@ def printTableHead(
 
     if pamFullName:
         print(
-            """ <th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:110px; border-bottom:none;">
+            """ <th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:110px; border-bottom:none;">
             <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edition site. Click to sort this table by this distance (default)">Distance between cut site and edition site</a><br>
             </th>"""
             % batchId
@@ -4236,7 +4236,7 @@ def printTableHead(
     else:
         isDefaultText = " (default)"
     print(
-        """<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:150px; border-bottom:none;">
+        """<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:150px; border-bottom:none;">
         <a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score%s. Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a>"""
         % (batchId, isDefaultText)
     )
@@ -4276,7 +4276,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if not pamIsCpf1(pam):
         print(
-            '<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
+            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
             % batchId
         )
         if pamIsSaCas9(pam):
@@ -4295,7 +4295,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if "cfdGuideScore" in showColumns:
         print(
-            '<th style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>'
+            '<th style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>'
             % batchId
         )
         htmlHelp(
@@ -4305,12 +4305,12 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam):
         print(
-            '<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
+            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
             % (len(scoreNames))
         )
     else:
         print(
-            '<th style="position: sticky; top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:270px; border-bottom:none" colspan="%d">Predicted Efficiency'
+            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:270px; border-bottom:none" colspan="%d">Predicted Efficiency'
             % (len(scoreNames))
         )  # -1 because proxGc is in scoreNames but has no column
 
@@ -4350,7 +4350,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
         colSpan = len(mutScoreNames)
         print(
-            '<th colspan=%d style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>'
+            '<th colspan=%d style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>'
             % (colSpan, oofWidth, batchId, mhColName)
         )
         # htmlHelp(scoreDescs["oof"][1])
@@ -4358,7 +4358,7 @@ You can adapt the global score to your delivery method (select below), which cha
         print("</th>")
 
     print(
-        '<th style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>'
+        '<th style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>'
         % (batchId)
     )
 
@@ -4373,7 +4373,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
     print("</th>")
     print(
-        '<th style="position: sticky; top: 0; z-index:2; box-shadow: inset -1px 0 black; width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
+        '<th style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:*; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
     )
     htmlHelp(
         "For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.<br>On most organisms, you can click the links below to open a window with a genome browser at this position."
@@ -5042,7 +5042,6 @@ def showGuideTable(
 
         print("</tr>")
         count = count + 1
-
     print("</table>")
     printDownloadTableLinks(batchId, addTsv=True)
 
@@ -8923,7 +8922,7 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
         )
 
 
-def showDonor(donorSeq, params):
+def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
     """Dispays the DNA sequence"""
 
     donorType = params["donorType"]
@@ -8933,7 +8932,6 @@ def showDonor(donorSeq, params):
     pamId = params["pamId"]
     guideSeq = params["guideSeq"]
 
-    insertSeq = batchInfo["insertseq"]
     geneId = batchInfo.get("ko_geneid")
     kiType = batchInfo.get("kiType")
     org = batchInfo["org"]
@@ -8946,6 +8944,28 @@ def showDonor(donorSeq, params):
 
     dbInfo = readDbInfo(org)
     chrom, start, end, strand = parsePos(posStr)
+
+    editStart = len(HA5)
+    if kiType != "substitution" or kiType != "deletion":
+        # really 0-based ?
+        editEnd = editStart + len(insertSeq)
+    else:
+        editEnd = editStart + 1
+
+    if donorType == "ss":
+        polarity = params["polarity"]
+        if polarity == "positive" and strand == "-":
+            templateStrand = "+"
+        elif polarity == "negative" and strand == "+":
+            templateStrand = "-"
+        else:
+            templateStrand = strand
+    else:
+        templateStrand = strand
+
+    donorSeq = HA5 + insertSeq + HA3
+    if strand != templateStrand:
+        donorSeq = revComp(donorSeq)
 
     insertCoord = "%s:%s" % (chrom, start+insertIdx)
     if kiType == "substitution":
@@ -9072,7 +9092,7 @@ def showDonor(donorSeq, params):
               <button style="align-self: flex-end; margin: 0;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br> """ % donorTypeText)
 
     print("<form>")
-    printHiddenFields(params, {"batchId": batchId, "donorSeq": donorSeq, "pamId": pamId, 
+    printHiddenFields(params, {"batchId": batchId, "donorSeq": donorSeq, "pamId": pamId,
                                "guideSeq": guideSeq, "donorName": donorName})
     print("""
               <button name="downloadDonor" value="download" style="align-self: flex-end; margin: 0; margin-left: 12px;"><small>Download fasta (guide + donor DNA)</small></button>
@@ -9081,6 +9101,8 @@ def showDonor(donorSeq, params):
 
     print("""<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">""")
 
+    donorBins, homopolymers = processDonor(donorSeq)
+
     fastaWidth = 80
     if len(donorSeq) > fastaWidth:
         maxStrCount = len(str(len(donorSeq)))
@@ -9088,9 +9110,10 @@ def showDonor(donorSeq, params):
         print(''.join([" " for i in range(maxStrCount)]) + ">%s" % donorName)
         print("<br>")
         for i in range(fastaWidth, len(donorSeq), fastaWidth):
-            print(donorSeq[last:i])
+            print(getHighlightedRow(donorSeq, last, i, editStart, editEnd, "yellow"))
             print("<br>")
             last = i
+
         if i < len(donorSeq):
             print(donorSeq[i:len(donorSeq)])
             print("<br>")
@@ -9099,8 +9122,88 @@ def showDonor(donorSeq, params):
         print("<br>")
         print(donorSeq)
 
-    print("""</div>
-          </div>""")
+    print("""</div>""")
+    if mutEvents:
+        print("<h3>Synonymous mutations introduced to prevent re-cut</h3>")
+        printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm)
+
+
+def getHighlightedRow(seq, start, end, hlStart, hlEnd, color="yellow"):
+    spanStart = max(start, hlStart)
+    spanEnd = min(end, hlEnd)
+    if spanStart >= spanEnd:
+        return seq[start:end]
+    return (seq[start:spanStart] +
+            """<span style="background-color: %s;">%s</span>""" % (color, seq[spanStart:spanEnd]) +
+            seq[spanEnd:end])
+
+
+def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm):
+    """ displays the synonymous mutations introduced by recoding """
+
+    codonTable = buildCodonTable()
+
+    # sort the mutation by position
+    mutEvents = dict(sorted(mutEvents.items(), key=lambda x: x[0][2]))
+    coding = False
+    for wt, freq, pos in mutEvents:
+        if len(wt) == 3:
+            coding = True
+            break
+
+    print("<table>")
+    if coding:
+        print("""
+        <tr>
+            <th>Amino acid</th>
+            <th>Wild type</th>
+            <th>Original frequency</th>
+            <th>Mutated</th>
+            <th>Mutated frequency</th>
+            <th>Position</th>
+        </tr>
+        """)
+    else:
+        print("""
+        <tr>
+            <th>Region</th>
+            <th>Wild type</th>
+            <th>Mutated</th>
+            <th>Position</th>
+        </tr>
+        """)
+
+    for wt, freq, pos in mutEvents:
+        mut, muFreq = mutEvents[(wt, freq, pos)]
+        if len(wt) == 3:
+            aaStr = "<strong>%s</strong>" % codonTable[wt]
+        else:
+            if mut == "No (in 5'UTR)" and coding is False:
+                aaStr = "5'UTR"
+            elif mut == "No (in a splicing site)" and coding is False:
+                aaStr = "splicing site"
+            else:
+                aaStr = "non-coding"
+
+        if recodeArm == "HA3":
+            fullPos = len(HA5) + len(insertSeq) + pos
+        else:
+            fullPos = pos
+
+        mut, mutFreq = mutEvents[(wt, freq, pos)]
+        print("<tr>")
+        print(""" <td>%s</td> """ % aaStr)
+        print(""" <td>%s</td> """ % wt)
+        if coding:
+            print(""" <td>%s</td> """ % freq)
+        print(""" <td>%s</td> """ % mut)
+        if coding:
+            print(""" <td>%s</td> """ % mutFreq)
+        print(""" <td>%s</td> """ % fullPos)
+        print("</tr>")
+    print("</table>")
+
+    print("""</div>""")
 
 
 def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
@@ -12669,7 +12772,9 @@ def printBody(params):
 
             if targetRegion == "seq":
                 startSeq = params.get("startSeq")
+                startSeq = re.sub('[\t\n\s]', '', startSeq)
                 endSeq = params.get("endSeq")
+                endSeq = re.sub('[\t\n\s]', '', endSeq)
                 if startSeq and endSeq:
                     kiType, insertIdx, insertSeq = processCustomInsertSeq(startSeq, endSeq)
                     if kiType is None:
@@ -12738,8 +12843,8 @@ def printBody(params):
         printCrisporBodyStart()
 
         if "donorType" in params and submit:
-            donorSeq = writeDonorSeq(params)
-            showDonor(donorSeq, params)
+            HA5, HA3, insertSeq, mutEvents, recodeArm = writeDonorSeq(params)
+            showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params)
         elif "doRecoding" in params:
             donorDesignPage(params)
         elif "pamId" in params and "doRecoding" not in params:
@@ -13264,19 +13369,6 @@ def writeDonorSeq(params):
     else:
         insertCoord = int(end - insertIdx)
 
-    if donorType == "ss":
-        polarity = params["polarity"]
-        if polarity == "positive" and strand == "-":
-            insertSeq = revComp(insertSeq)
-            templateStrand = "+"
-        elif polarity == "negative" and strand == "+":
-            insertSeq = revComp(insertSeq)
-            templateStrand = "-"
-        else:
-            templateStrand = strand
-    else:
-        templateStrand = strand
-
     if kiType == "deletion":
         if strand == "+":
             deletionEnd = insertCoord + len(insertSeq)
@@ -13301,13 +13393,13 @@ def writeDonorSeq(params):
             arm5end -= 1
             arm5start -= 1
 
-    HA5 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm5start, arm5end, templateStrand), maxlen=False, minlen=False)
-    HA3 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm3start, arm3end, templateStrand), maxlen=False, minlen=False)
+    HA5 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm5start, arm5end, strand), maxlen=False, minlen=False)
+    HA3 = getSeq(org, "%s:%s-%s:%s" % (chrom, arm3start, arm3end, strand), maxlen=False, minlen=False)
 
     HA5 = HA5.lower()
     HA3 = HA3.lower()
 
-    if templateStrand == "-":
+    if strand == "-":
         HA5, HA3 = (HA3, HA5)
 
     # recoding
@@ -13322,30 +13414,30 @@ def writeDonorSeq(params):
         else:
             codonFreq = None
 
-        if templateStrand == "+":
-            HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm = \
-                getArmCoords(HA5, HA3, strand, templateStrand,
-                             insertIdx, guideSeq, guideInfo,
-                             kiType, insertSeq, selExon=selExon)
+        if strand == "+":
+            annotationCoords, recodeCoords, recodeArm = getArmCoords(HA5, HA3, strand,
+                                                                     insertIdx, guideSeq, guideInfo,
+                                                                     kiType, donorType, insertSeq,
+                                                                     selExon=selExon)
         else:
-            HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm = \
-                getArmCoords(HA3, HA5, strand, templateStrand,
-                             insertIdx, guideSeq, guideInfo,
-                             kiType, insertSeq, selExon=selExon)
-
+            annotationCoords, recodeCoords, recodeArm = getArmCoords(HA3, HA5, strand,
+                                                                     insertIdx, guideSeq, guideInfo,
+                                                                     kiType, donorType, insertSeq,
+                                                                     selExon=selExon)
         if recodeArm == "HA5":
-            HA5 = recodeDonor(HA5, HA5codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
-                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
+            HA5, mutEvents = recodeDonor(HA5, annotationCoords, recodeCoords, recodePam, recodeSeed,
+                                         recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
         else:
-            HA3 = recodeDonor(HA3, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
-                              recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
-    donorSeq = HA5 + newInsertSeq + HA3
+            HA5, mutEvents = recodeDonor(HA3, annotationCoords, recodeCoords, recodePam, recodeSeed,
+                                         recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
+    else:
+        mutEvents = None
 
-    return donorSeq
+    return HA5, HA3, newInsertSeq, mutEvents, recodeArm
 
 
-def getArmCoords(HA5, HA3, strand, templateStrand, insertIdx, guideSeq,
-                 guideInfo, kiType, insertSeq, selExon=None):
+def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
+                 guideInfo, kiType, donorType, insertSeq, selExon=None):
     """
     on both homology arms, get the coordinates of the codons
     and the regions to recode
@@ -13360,87 +13452,10 @@ def getArmCoords(HA5, HA3, strand, templateStrand, insertIdx, guideSeq,
     recodeArm = "HA5" or "HA3" : the homology arm to recode
     """
 
-    # for ssODN, make sure to recode relative to the target region
-    if strand != templateStrand:
-        HA5 = revComp(HA5)
-        HA3 = revComp(HA3)
-        # then revComp at the end
-
     # convert the coordinates of the guide and the exon relative to the homology arms
     pamSeq, guideStart, guideStrand = guideInfo
     guideStart = int(guideStart)
 
-    # convert exon coordinates
-    if selExon:
-
-        HA5codonPos = []
-        HA3codonPos = []
-        splittedCodonPos = []  # for codons that overlap with the edition site
-        lastBases = None
-
-        for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon:
-            if exonNumber == -1 and exonFrame == -1:
-                # this exon is 5'UTR : don't recode in it
-                pass
-
-            elif exonNumber != -1 and exonFrame == -1:
-                # 3' UTR
-                pass
-
-            else:
-                # coding exon
-                if exonStart < insertIdx and exonEnd < insertIdx:
-                    exonStartPos = len(HA5) - (insertIdx - exonStart)
-                    exonEndPos = len(HA5) - (insertIdx - exonEnd)
-
-                    # whole exon in the 5' homology arm (will rarely happen)
-                    for i in range(exonStart + exonFrame, exonEnd, 3):
-                        if i + 3 > exonEnd:
-                            break
-                        HA5codonPos.append(i)
-
-                elif exonStart > insertIdx and exonEnd > insertIdx:
-                    if kiType == "deletion" or kiType == "substitution":
-                        exonStartPos = (insertIdx + len(insertSeq)) + exonStart
-                        exonEndPos = (insertIdx + len(insertSeq)) + exonEnd
-                    else:
-                        exonStartPos = insertIdx + exonStart
-                        exonEndPos = insertIdx + exonEnd
-
-                    # whole exon in the 3' homology arm
-                    for i in range(exonStart + exonFrame, exonEnd, 3):
-                        if i + 3 > exonEnd:
-                            break
-                        else:
-                            HA3codonPos.append(i)
-
-                else:
-                    # edit site overlaps the exon
-                    exonStartPos = len(HA5) - (insertIdx - exonStart)
-                    if kiType == "deletion" or kiType == "substitution":
-                        exonEndPos = (insertIdx + len(insertSeq)) + exonEnd
-                    else:
-                        exonEndPos = exonEnd - insertIdx
-
-                    # get the start position of all codons in both homology arms
-                    for i in range(exonStartPos + exonFrame, len(HA5), 3):
-                        if i + 3 > len(HA5):
-                            # if the edit site is in a codon, store the last bases
-                            lastBases = HA5[i:]  # part of codon in HA5
-                            # store start in HA5 and length of part in HA3
-                            splittedCodonPos.append((i, 3-len(lastBases)))
-                            break
-                        if i + 3 == len(HA5):
-                            lastBases = None
-                        HA5codonPos.append(i)
-
-                    # Codons in HA3
-                    HA3start = 0
-                    if lastBases:
-                        HA3start = 3 - len(lastBases)
-
-                    for i in range(HA3start, exonEndPos - 2, 3):
-                        HA3codonPos.append(i)
     # position of the PAM
     if guideStrand == "+":
         pamStart = guideStart + len(guideSeq)
@@ -13504,14 +13519,140 @@ def getArmCoords(HA5, HA3, strand, templateStrand, insertIdx, guideSeq,
         gapCoords = None
     gapCoords = (gapStartPos, gapEndPos)
 
-    return HA5codonPos, HA3codonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords, recodeArm
+    # convert exon coordinates
+    if selExon:
+
+        UTR5coords = []
+        UTR3coords = []
+        spliceCoords = []  # position of splice sites : 5bp upstream / downstream of coding exons (except upstream of the first and downstream of the last exon)
+        oofCoords = []
+        codonPos = []
+        # splittedCodonPos = []  # for codons that overlap with the edition site
+
+        for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon:
+
+            isUTR5 = exonNumber == -1 and exonFrame == -1
+            isUTR3 = exonNumber != -1 and exonFrame == -1
+
+            # number of coding exons
+            codingExonLen = len([exonStart for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon if exonNumber != -1])
+
+            # whole exon in the 5' homology arm
+            if exonStart < insertIdx and exonEnd < insertIdx:
+                if recodeArm == "HA3":
+                    continue
+                exonStartPos = len(HA5) - (insertIdx - exonStart)
+                exonEndPos = len(HA5) - (insertIdx - exonEnd)
+
+                if isUTR5:
+                    UTR5coords.append((exonStartPos, exonEndPos))
+                    continue
+                elif isUTR3:
+                    UTR3coords.append((exonStartPos, exonEndPos))
+                    continue
+
+                # position of the splicing donor site
+                if exonNumber > 1:
+                    spliceDon = (exonStartPos - 5 if exonStartPos - 5 > 0 else 0, exonStartPos)
+                    spliceCoords.append(spliceDon)
+
+                # need a way to figure out the last exon : len(selExon) when exonFrame != -1 probably
+                # position of the splicing acceptor site
+                if exonNumber < codingExonLen:
+                    spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA5) else len(HA5))
+                    spliceCoords.append(spliceAcc)
+
+                for i in range(exonStartPos + exonFrame, exonEndPos, 3):
+                    if i + 3 > exonEndPos:
+                        break
+                    codonPos.append(i)
+
+            # whole exon in the 3' homology arm
+            elif exonStart > insertIdx and exonEnd > insertIdx:
+                if recodeArm == "HA5":
+                    continue
+                if kiType == "deletion" or kiType == "substitution":
+                    exonStartPos = (insertIdx + len(insertSeq)) + exonStart
+                    exonEndPos = (insertIdx + len(insertSeq)) + exonEnd
+                else:
+                    exonStartPos = insertIdx + exonStart
+                    exonEndPos = insertIdx + exonEnd
+
+                if isUTR5:
+                    UTR5coords.append((exonStartPos, exonEndPos))
+                    continue
+                elif isUTR3:
+                    UTR3coords.append((exonStartPos, exonEndPos))
+                    continue
+
+                # position of the splicing donor site
+                if exonNumber > 1:
+                    spliceDon = (exonStartPos - 5 if exonStartPos - 5 > 0 else 0, exonStartPos)
+                    spliceCoords.append(spliceDon)
+
+                # position of the splicing acceptor site
+                if exonNumber < codingExonLen:
+                    spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3))
+                    spliceCoords.append(spliceAcc)
+
+                for i in range(exonStartPos + exonFrame, exonEndPos, 3):
+                    if i + 3 > exonEndPos:
+                        break
+                    else:
+                        codonPos.append(i)
+
+            else:
+                # edit site overlaps the exon
+                if recodeArm == "HA5":
+                    exonStartPos = len(HA5) - (insertIdx - exonStart)
+                    exonEndPos = len(HA5)
+
+                    if exonNumber > 1:
+                        spliceDon = (exonStartPos - 5 if exonStartPos - 5 > 0 else 0, exonStartPos)
+                        spliceCoords.append(spliceDon)
+
+                else:
+                    exonStartPos = 0
+                    if kiType == "deletion" or kiType == "substitution":
+                        # stay in phase relative to the length of the deletion
+                        # TO VERIFY
+                        exonFrame += len(insertSeq) % 3
+                        exonEndPos = exonEnd + (insertIdx + len(insertSeq))
+                    else:
+                        exonEndPos = exonEnd - insertIdx
+
+                    if exonNumber < codingExonLen:
+                        spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3))
+                        spliceCoords.append(spliceAcc)
+
+                if isUTR5:
+                    UTR5coords.append((exonStartPos, exonEndPos))
+                    continue
+                elif isUTR3:
+                    UTR3coords.append((exonStartPos, exonEndPos))
+                    continue
+
+                # get the start position of codons in the homology arm to recode
+                for i in range(exonStartPos + exonFrame, exonEndPos, 3):
+                    if i + 3 > exonEndPos:
+                        # end of exon is not in frame : don't recode
+                        oofCoords.append((i, exonEndPos))
+                        break
+                    codonPos.append(i)
+
+    annotationCoords = (codonPos, UTR3coords, UTR5coords, spliceCoords, oofCoords)
+    recodeCoords = (pamCoords, seedCoords, gapCoords)
+
+    return annotationCoords, recodeCoords, recodeArm
 
 
-def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoords,
-                recodePam, recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFrequency):
+def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
+                recodeSeed, recodeGap, guideInfo, recodeArm, pamPat, codonFrequency):
     """
     from the coordinates in the homology arm to recode, introduce silent mutations
     """
+    codonPos, UTR3coords, UTR5coords, spliceCoords, oofCoords = annotationCoords
+    pamCoords, seedCoords, gapCoords = recodeCoords
 
     # could add an input to specify the number of mutations to introduce
     _, _, guideStrand = guideInfo
@@ -13527,6 +13668,16 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
     elif recodeSeed and not recodeGap:
         recodeRegions.append(seedCoords)
 
+    # don't mutate at these positions
+    UTR5pos = set()
+    for start, end in UTR5coords:
+        for i in range(start, end):
+            UTR5pos.add(i)
+    splicePos = set()
+    for start, end in spliceCoords:
+        for i in range(start, end):
+            splicePos.add(i)
+
     recodePos = set()
     if recodePam:
         pamStart, pamEnd = pamCoords
@@ -13538,23 +13689,63 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
                 recodePos.add(i)
 
     for start, end in recodeRegions:
-        if end < len(HA):
-            for i in range(start, end):
-                recodePos.add(i)
+        if end > len(HA):
+            end = len(HA)
+        for i in range(start, end):
+            recodePos.add(i)
 
     if not recodePos:
-        return HA
+        return HA, None
 
     # list of codons to mutate
     mutCodons = set()
-    for codonStart in HAcodonPos:
+    posInCodon = set()
+    for codonStart in codonPos:
         for pos in range(codonStart, codonStart + 3):
             if pos in recodePos and codonStart + 3 < len(HA):
+                for i in range(pos, pos + 3):
+                    posInCodon.add(i)
                 mutCodons.add(codonStart)
                 break
 
+    # dict to store the mutation events
+    mutEvents = {}
+
+    # print(f"RECODEPOS : {recodePos} <br> POSINCODON: {posInCodon}")
+
+    # positions to mutate in non-coding regions
+    # where to mutate ??
+
+    if len(posInCodon) < len(recodePos):
+        mutNonCoding = sorted(set([pos for pos in recodePos if pos not in posInCodon]))
+        transitions = {"A": "G", "G": "A", "T": "C", "C": "T"}
+        # transversions = {"A": "C", "G": "T", "T": "G", "C": "A"}
+        # bases = ["A", "T", "G", "C"]
+
+        # for now, mutate every 3 bases
+        for posIdx in range(0, len(mutNonCoding), 3):
+            pos = mutNonCoding[posIdx]
+            if pos > len(HA) or pos < 0:
+                mutEvents[("out of range", None, None)] = ("", None)
+                break
+            base = HA[pos].upper()
+            if pos in UTR5pos:
+                mutEvents[(base, None, pos)] = ("No (in 5'UTR)", None)
+            elif pos in splicePos:
+                mutEvents[(base, None, pos)] = ("No (in a splicing site)", None)
+            else:
+                # choice = [b for b in bases if b != base]
+                # newBase = choice[pos % 3]  # select a "random" base for now
+                newBase = transitions[base]
+                mutHA[pos] = newBase.upper()
+                mutEvents[(base, None, pos)] = (newBase, None)
+
     for codonStart in list(sorted(mutCodons)):
         codon = HA[codonStart:codonStart + 3].upper()
+        if codonFrequency:
+            codonFreq = codonFrequency[codon][2]
+        else:
+            codonFreq = None
         aa = codonTable[codon]
         if not aa:
             continue
@@ -13573,6 +13764,8 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
                 # keep the codon with the highest frequency
                 if lastFreq != 0 and synCodonFreq < lastFreq:
                     continue
+            else:
+                synCodonFreq = None
             if synCodon == codon:
                 continue
 
@@ -13580,12 +13773,16 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
             for i in range(3):
                 mutPos = codonStart + i
                 if mutPos in recodePos and codon[i] != synCodon[i]:
+                    if mutPos in UTR5pos:
+                        mutEvents[(codon, round(codonFreq, 2), codonStart)] = ("in 5'UTR", None)
+                    elif mutPos in splicePos:
+                        mutEvents[(codon, round(codonFreq, 2), codonStart)] = ("in a splicing site", None)
                     keep = True
+                    mutEvents[(codon, round(codonFreq, 2), codonStart)] = (synCodon, round(synCodonFreq, 2))
                     if codonFrequency is None:
                         break
                     else:
                         lastFreq = synCodonFreq
-
             # mutate the homolgy arm with synCodon and flag the mutation in uppercase (repeated until no codon with a higher frequency is found)
             if keep:
                 for i in range(3):
@@ -13593,8 +13790,20 @@ def recodeDonor(HA, HAcodonPos, splittedCodonPos, pamCoords, seedCoords, gapCoor
                 # if no codon frequency table is availble, keep the first synonymous codon
                 if codonFrequency is None:
                     break
+    mutDonor = ''.join(mutHA)
 
-    return ''.join(mutHA)
+    # store codons that were not muted
+    mutList = [mutEvent[0] for mutEvent in mutEvents]
+    for codonStart in list(sorted(mutCodons)):
+        codon = HA[codonStart:codonStart + 3].upper()
+        if codon not in mutList:
+            if codonFrequency:
+                codonFreq = round(codonFrequency[codon][2], 2)
+            else:
+                codonFreq = None
+            mutEvents[(codon, codonFreq, codonStart)] = ("could not recode", "NA")
+
+    return mutDonor, mutEvents
 
 
 def getTargetSeq(params):
@@ -13669,28 +13878,23 @@ def processDonor(DonorSeq):
     inspired by protoSpaceJam (https://czbiohub-sf.github.io/protoSpaceJAM/algorithmandparameters.html)
     """
 
-    binwidth = 50
+    binwidth = 10
     DonorLen = len(DonorSeq)
     bins = [
         slice(binstart, min(binstart + binwidth, DonorLen))
         for binstart in range(0, DonorLen, binwidth)
     ]
-    DonorBins = []
+    donorBins = []
     for bin in bins:
         binseq = DonorSeq[bin]
         gc = gcContent(binseq.upper())
-        DonorBins.append((bin, gc))
+        donorBins.append((bin, gc))
 
     basesCount = {"A": 10, "T": 10, "G": 6, "C": 6}
 
-    homoPolymers = findHomopolymers(DonorSeq, basesCount)
-    DonorInfo = {
-        "DonorSeq": DonorSeq,
-        "DonorBins": DonorBins,
-        "homoPolymers": homoPolymers,
-    }
+    homopolymers = findHomopolymers(DonorSeq, basesCount)
 
-    return DonorInfo
+    return donorBins, homopolymers
 
 
 def iterParseBoulder(tmpOutFname):

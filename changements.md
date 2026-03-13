@@ -1072,3 +1072,28 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - correction bug : les coordonnées en dehors des bras d'homologie ne sont plus prise en compte lors du recodage des ssODN
 - recodeDonor fonctionne sans fichier de fréquence des codons
+- ajout de  printMutEventsTable() : affichage d'un tableau des mutations apportées à l'ADN donneur
+- surlignage de la séquence d'insert en jaune dans showDonor()
+
+## à faire
+
+- refaire le sticky header : rendre le tableau scrollable ?
+- afficher option "introduce a mutation to check for homozygous editing" après affichage donneur
+- indiquer lorsque le recodage n'est pas possible
+- ajouter un lien pour Gibson assembly / golden gate
+- dans codonFrequency, sélectionner le transcrit le plus long
+- explication détaillées dans donorDesignPage()
+- recodage dans régions non codantes (à part 5 bases en amont des exons)
+- ne pas recoder si création d'un site d'épissage
+- dans processCustomInsertSeq(), gérer newlines et espaces (+ format fasta) dans textarea
+
+# 13/03/26
+
+## knock-in mode
+
+- correction recodage pour ssODN à polarité inverse : revComp() après écriture et recodage du donneur
+- modification de getArmCoords() : écriture des coordonnées des codons, 5'UTR, 3'UTR et sites d'épissage uniquement en amont / aval du site d'édition 
+- dans recodeDonor() les coordonnées 5'UTR et sites d'épissage ne sont pas recodées + avertissement dans printMutEventsTable
+- ajout du recodage dans régions non codantes : introduction d'une transition toutes les 3pb
+    - mais : à quelle fréquence recoder et quelles mutation introduire ??
+- dans formulaire knock-in : retrait des espaces, tabs et newlines dans input séquence

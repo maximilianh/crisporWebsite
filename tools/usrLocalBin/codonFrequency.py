@@ -77,6 +77,7 @@ def getSizeFname(genome):
     sizeFname = "%(genomeDir)s/%(genome)s/%(genome)s.sizes" % locals()
     return sizeFname
 
+
 def parseChromSizes(genome):
     "return chrom sizes as dict chrom -> size"
     sizeFname = getSizeFname(genome)
@@ -307,7 +308,6 @@ def readAllExons():
                         allCodons[org][codon] += 1
                 else:
                     pass
-            print(allCodons[org])
             # frequency of codons relative to each aa
             for aa in aaTable:
                 sumCodons = 0
