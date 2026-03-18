@@ -1097,3 +1097,32 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - ajout du recodage dans régions non codantes : introduction d'une transition toutes les 3pb
     - mais : à quelle fréquence recoder et quelles mutation introduire ??
 - dans formulaire knock-in : retrait des espaces, tabs et newlines dans input séquence
+
+# 17/03/26
+
+## knock-in mode
+
+- modification de codonFrequency.py : getExonPos ne retourne que le transcrit le plus long (pour un gene Symbol donné)
+- correction des coordonnées des mutations dans printMutEventsTable() pour ssODN à polarité inverse
+- surlignage des régions de 20bp à +80%GC et des homopolymères dans showDonor() : modification de getHighlightedRow
+- par défaut, seuls les guides provoquant une DSB à moins de 10bp du site d'édition sont affichés. ajout d'un curseur pour modifier cette valeur
+
+## à faire
+
+- autoriser recodage dans 5'UTR sauf au niveau de la séquence consensus kozak (ATG-5bp)
+- ajouter un dropdown pour afficher les autres motifs de PAMs sur le sequence viewer (puis ajouter lien vers nouvelle recherche avec ce PAM)
+
+# 18/03/26
+
+- ajout des coordonnées de la séquence consensus kozak dans getArmCoords()
+- dans recodeDonor(), retrait des coordonnées 5' et 3'UTR des sites d'épissage
+- correction d'un bug lors du calcul des coordonnées codon START + affichage d'un message sur codon START dans tableau
+- ajout de l'option "show the position of other PAMs on the sequence" dans la page de résultats Ki :
+    - modification de showSeqAndPams() et makePamLines()
+- dans downloadDonor() : si recodage, séquence du donneur non recodé + recodé
+
+## à faire / bugs 
+
+- surligner séquence guide  + PAM dans showDonor()
+- les coordonnées 5'UTR ne sont pas toujours annotées si l'input est une séquence
+- suggestion de Geneviève Tavernier : sur la page off-target primers, n'afficher que les off-targets correspondants si un filtre (exon / chr) a été coché

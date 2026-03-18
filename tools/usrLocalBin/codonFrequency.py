@@ -1,18 +1,18 @@
 #!/data/www/crispor/venv/bin/python3
 
 from os.path import abspath, join, isdir, isfile
-from io import StringIO
 import os
 import json
 import platform
 import subprocess
-import urllib.error
 import tempfile
 import collections
 
 """
-for all genomes, writes a json file containing the codon frequency usage
+for all genomes, writes a json file containing the codon frequency usage based on the longest transcript
 """
+
+# ================== globals ==================
 
 baseDir = "/data/www/crispor/"
 binDir = abspath(join(baseDir, "bin", platform.system() + "-" + platform.machine()))
@@ -103,7 +103,7 @@ def parsePos(text):
     """parse a string of format chr:start-end:strand and return a 4-tuple
     Strand defaults to + and end defaults to start+23
     """
-    if text != None and len(text) != 0 and text != "?":
+    if text is not None and len(text) != 0 and text != "?":
         fields = text.split(":")
         if len(fields) == 2:
             chrom, posRange = fields
@@ -135,7 +135,9 @@ def getExonPos(org):
     gpFiles = [f for f in genomeFiles if f.endswith(".gp")]
 
     if gpFiles:
-        transcriptExons = []
+        transSymbol = {}
+        transNoSymbol = []
+        geneInfo = None
         for gpCount, gpFile in enumerate(gpFiles):
             if gpCount > 0:
                 break
@@ -189,88 +191,93 @@ def getExonPos(org):
                             currentExons.append((chrom, exonStart, exonEnd, strand))
 
                     # check if the coding sequence of the current gene is in frame
-                    cdsLen = 0
-                    for currentExon in currentExons:
-                        chrom, start, end, strand = currentExon
-                        cdsLen += (end - start)
-                    if cdsLen % 3 == 0:
-                        transcriptExons.append(currentExons)
+                    cdsLen = sum(end - start for _, start, end, _ in currentExons)
+                    if cdsLen % 3 != 0:
+                        continue
+
+                    if altName:
+                        if altName not in transSymbol or cdsLen > transSymbol[altName][0]:
+                            transSymbol[altName] = (cdsLen, currentExons)
                     else:
-                        # CDS not in frame
-                        pass
+                        transNoSymbol.append(currentExons)
 
         if geneInfo is None:
             raise ValueError("")
 
-        return transcriptExons
+        # Combine results
+        finalExons = transNoSymbol
+        for _, exons in transSymbol.values():
+            finalExons.append(exons)
+
+        return finalExons
     else:
         return None
 
 
-def fetch_exon_sequences(org, unique_exons):
+def getExonSeq(org, uniqueExons):
     """
     Fetches sequences for a set of exons in batch using twoBitToFa.
     unique_exons: set of (chrom, start, end, strand)
     Returns: dict { (chrom, start, end, strand): sequence }
     """
     # Map exons to IDs to safely handle special characters in chrom names
-    exon_list = list(unique_exons)
+    exonList = list(uniqueExons)
 
     # Create temp BED file
-    fd, bed_path = tempfile.mkstemp(suffix=".bed", text=True)
+    fd, bedPath = tempfile.mkstemp(dir=join(genomesDir, org), suffix=".bed", text=True)
     with os.fdopen(fd, 'w') as f:
-        for i, (chrom, start, end, strand) in enumerate(exon_list):
+        for i, (chrom, start, end, strand) in enumerate(exonList):
             # BED format: chrom, start, end, name
-            f.write(f"{chrom}\t{start}\t{end}\t{i}\n")
+            f.write("%s\t%s\t%s\t%s\n" % (chrom, start, end, i))
 
     twoBitPath = getTwoBitFname(org)
     binPath = join(binDir, "twoBitToFa")
 
     # Output FASTA file
-    fd_out, fa_path = tempfile.mkstemp(suffix=".fa")
-    os.close(fd_out)
+    fdOut, faPath = tempfile.mkstemp(suffix=".fa")
+    os.close(fdOut)
 
-    cmd = [binPath, f"-bed={bed_path}", twoBitPath, fa_path]
+    cmd = [binPath, "-bed=%s" % bedPath, twoBitPath, faPath]
     subprocess.check_call(cmd)
 
     # Parse FASTA
-    seq_map = {}
-    current_id = None
-    current_seq = []
+    seqMap = {}
+    currentId = None
+    currentSeq = []
 
-    with open(fa_path, 'r') as f:
+    with open(faPath, 'r') as f:
         for line in f:
             line = line.strip()
             if line.startswith(">"):
-                if current_id is not None:
-                    seq = "".join(current_seq)
-                    idx = int(current_id)
-                    exon = exon_list[idx]
+                if currentId is not None:
+                    seq = "".join(currentSeq)
+                    idx = int(currentId)
+                    exon = exonList[idx]
                     chrom, start, end, strand = exon
                     if strand == "-":
                         seq = revComp(seq)
-                    seq_map[exon] = seq
-                current_id = line[1:]
-                current_seq = []
+                    seqMap[exon] = seq
+                currentId = line[1:]
+                currentSeq = []
             else:
-                current_seq.append(line)
+                currentSeq.append(line)
 
         # Last sequence
-        if current_id is not None:
-            seq = "".join(current_seq)
-            idx = int(current_id)
-            exon = exon_list[idx]
+        if currentId is not None:
+            seq = "".join(currentSeq)
+            idx = int(currentId)
+            exon = exonList[idx]
             chrom, start, end, strand = exon
             if strand == "-":
                 seq = revComp(seq)
-            seq_map[exon] = seq
+            seqMap[exon] = seq
 
-    os.remove(bed_path)
-    os.remove(fa_path)
-    return seq_map
+    os.remove(bedPath)
+    os.remove(faPath)
+    return seqMap
 
 
-def readAllExons():
+def calcCodonFrequency():
     """ for each genome, return a list of all exon sequences """
 
     aaTable = buildCodonTable(key="aa")
@@ -289,18 +296,18 @@ def readAllExons():
         transcriptExons = getExonPos(org)
         if transcriptExons is not None:
             # Collect unique exons to fetch in batch
-            unique_exons = set()
+            uniqueExons = set()
             for transcript in transcriptExons:
                 for exon in transcript:
-                    unique_exons.add(exon)
+                    uniqueExons.add(exon)
 
-            exon_seq_map = fetch_exon_sequences(org, unique_exons)
+            exonSeqMap = getExonSeq(org, uniqueExons)
 
             for transcript in transcriptExons:
                 exonSeqs = []
                 for exon in transcript:
-                    if exon in exon_seq_map:
-                        exonSeqs.append(exon_seq_map[exon])
+                    if exon in exonSeqMap:
+                        exonSeqs.append(exonSeqMap[exon])
                 transcriptSeq = ''.join([seq for seq in exonSeqs])
                 if len(transcriptSeq) % 3 == 0:
                     for i in range(0, len(transcriptSeq), 3):
@@ -330,7 +337,7 @@ def readAllExons():
 
 def main():
 
-    readAllExons()
+    calcCodonFrequency()
 
 
 if __name__ == "__main__":

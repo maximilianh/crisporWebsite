@@ -293,6 +293,7 @@ multiPamDict = {
                 "Expression plasmid available from addGene (to be added)")
 }
 
+
 DEFAULTPAM = "NGG"
 
 # the default base editor modification window
@@ -2013,15 +2014,27 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores):
     return ret, jsonData
 
 
-def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True, pamIdToRecode=None):
+def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True,
+                 pamIdToSuppInfo=None, pamWindow=None, otherPam=None, insertIdx=None):
     for y in range(0, maxY + 1):
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId in lines[y]:
-            guideSeq = pamIdToSeq.get(pamId)
-            if pamIdToRecode:
-                doRecoding = pamIdToRecode.get(pamId)
-                if doRecoding == True:
+            if otherPam is None:
+                guideSeq = pamIdToSeq.get(pamId)
+            else:
+                guideSeq = None
+                # get a simpler version of insertDistance for supplementary PAMs to be filtered in KI mode
+                insertDistance = abs(start - insertIdx)
+                if pamWindow and insertDistance > pamWindow:
+                    continue
+
+            if pamIdToSuppInfo:
+                doRecoding = pamIdToSuppInfo.get(pamId)[0]
+                insertDistance = pamIdToSuppInfo.get(pamId)[1]
+                if pamWindow and insertDistance > pamWindow:
+                    continue
+                if doRecoding is True:
                     recodeStr = ""
                 else:
                     recodeStr = """, 0 0 10px #33ccff,
@@ -2029,22 +2042,29 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True, pamIdTo
                     0 0 30px #33ccff"""
             else:
                 recodeStr = ""
-            if guideSeq is None:
+            if guideSeq is None and otherPam is None:
                 # when there is an N in the guide, the PAM is valid, but the guide is not
                 continue
-            classStr = cssClassesFromSeq(guideSeq, suffix="Seq")
+
+            if otherPam is None:
+                classStr = cssClassesFromSeq(guideSeq, suffix="Seq")
+                score = guideScores[pamId]
+            else:
+                classStr = ""
+                score = ""
 
             spacer = "".join([" "] * ((start - lastEnd)))
             lastEnd = end
             texts.append(spacer)
-
-            score = guideScores[pamId]
             # XX How can this happen for non-Cpf1 enzymes? Can this ever happen?
-            if score is None and not pamIsFirst:
+            if score is None and not pamIsFirst and otherPam is None:
                 continue
-            color = scoreToColor(score)[0]
+            if otherPam is None:
+                color = scoreToColor(score)[0]
+            else:
+                color = "black"
 
-            if linkToTable:
+            if linkToTable and otherPam is None:
                 texts.append(
                     """<a class='%s' style="text-shadow: 1px 1px 1px #bbb%s; color: %s " id="list%s" href="#%s">"""
                     % (classStr, recodeStr, color, pamId, pamId)
@@ -2265,9 +2285,12 @@ def showSeqAndPams(
     minFreq,
     position,
     pamIdToSeq,
+    browserLinkHtml=None,
     multiPamInfo=None,
     linkToTable=True,
-    pamIdToRecode=None
+    pamIdToSuppInfo=None,
+    pamWindow=None,
+    otherPam=None
 ):
     "show the sequence and the PAM sites underneath in a sequence viewer"
 
@@ -2302,7 +2325,34 @@ def showSeqAndPams(
 
         # layout all lines
         lines, maxY = layoutPamLines(allPamLines, len(seq))
-        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable, pamIdToRecode=pamIdToRecode))
+        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable, pamIdToSuppInfo=pamIdToSuppInfo,
+                                     pamWindow=pamWindow, otherPam=None))
+
+        # in KI mode, display other PAMs on the sequence if the option was selected
+        if otherPam:
+            otherPamList = multiPamDict[otherPam][0]
+            pamFullName = setupPamInfo(otherPam)
+            otherPamLines = []
+            otherPamSeqs = []
+            for pamFullName in otherPamList:
+                pam = setupPamInfo(pamFullName)
+                startDict, endSet = findAllPams(seq.upper(), pam)
+
+                singlePamSeqs = list(
+                    flankSeqIter(
+                        seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName
+                    )
+                )
+                otherPamSeqs.extend(singlePamSeqs)
+                # get lines for the current pam
+                currentPamLines = getPamLines(
+                    seq.upper(), startDict, len(pam), pam, pamFullName=pamFullName
+                )
+                otherPamLines.extend(currentPamLines)
+
+            otherLines, maxY = layoutPamLines(otherPamLines, len(seq))
+            otherPamLinesHtml = list(makePamLines(otherLines, maxY, None, None, pamWindow=pamWindow, otherPam=otherPam, insertIdx=insertIdx))
+            pamLines = pamLines + otherPamLinesHtml
 
     posLabel = "Position"
     varLabel = "Variants"
@@ -2382,7 +2432,7 @@ def showSeqAndPams(
             % (len(seq), len(guideScores))
         )
         print(
-            """ Shown below are the possible guide sequences for the following PAMs : %s <br>"""
+            """ Shown below are the possible guide sequences for the following PAMs : %s .<br> PAMs highlighted in blue corresponds to guides that overlap the edition site.<br>"""
             % ", ".join(pamList)
         )
         print("Click on a PAM below to show its corresponding guide sequence.<br>")
@@ -2467,6 +2517,8 @@ def showSeqAndPams(
         )
 
     print("</div>")
+    if browserLinkHtml:
+        print(browserLinkHtml)
     print(
         """<div class="blueHighlight" style="text-align: left; overflow-x:scroll; width:98vw; background:#DDDDDD; border-style: solid; border-width: 1px">"""
     )
@@ -3730,7 +3782,7 @@ def mergeGuideInfo(
     insertIdx=None,
     kiType=None,
     insertSeq=None,
-    getRecode=False
+    getSuppInfo=False
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -3745,8 +3797,8 @@ def mergeGuideInfo(
     guideScores = {}
     hasNotFound = False
     pamIdToSeq = {}
-    if getRecode:
-        pamIdToRecode = {}
+    if getSuppInfo:
+        pamIdToSuppInfo = {}
     if pamFullName:
         pamPat = setupPamInfo(pamFullName)
 
@@ -3853,16 +3905,16 @@ def mergeGuideInfo(
         guideData.append(guideRow)
         guideScores[pamId] = guideScore
         pamIdToSeq[pamId] = guideSeq
-        if getRecode:
-            pamIdToRecode[pamId] = doRecoding
+        if getSuppInfo:
+            pamIdToSuppInfo[pamId] = (doRecoding, insertDistance)
 
     # when the function is not called in a loop, sort now
     if exonId is None and pamFullName is None and insertIdx is None:
         sortGuideData(guideData, sortBy)
 
-   # should return pamIdToRecode as None instead
-    if getRecode:
-        return guideData, guideScores, hasNotFound, pamIdToSeq, pamIdToRecode
+    # should return pamIdToRecode as None instead ?
+    if getSuppInfo:
+        return guideData, guideScores, hasNotFound, pamIdToSeq, pamIdToSuppInfo
 
     return guideData, guideScores, hasNotFound, pamIdToSeq
 
@@ -3971,13 +4023,14 @@ def printTableHead(
         print(
             "Too much information? Look at the <a target=_blank href='manual/'>CRISPOR manual</a>.<p>"
         )
-    print(
-        "Highlighted in yellow are the 3 non-overlapping guides with the highest selected score"
-    )
-    print(
-        """<img src="%simage/info-small.png" title="A guide is defined as overlapping with another one if their region 10bp upstream of PAM to 3bp downstream of the guide insersects. This region represents the occupancy of the RNP on the DNA strand (see LINK), so you can use these guides simultaneously." class="tooltipster">"""
-        % HTMLPREFIX
-    )
+    if not pamFullName:
+        print(
+            "Highlighted in yellow are the 3 non-overlapping guides with the highest selected score"
+        )
+        print(
+            """<img src="%simage/info-small.png" title="A guide is defined as overlapping with another one if their region 10bp upstream of PAM to 3bp downstream of the guide insersects. This region represents the occupancy of the RNP on the DNA strand (see LINK), so you can use these guides simultaneously." class="tooltipster">"""
+            % HTMLPREFIX
+        )
     print("</div>")
 
     printDownloadTableLinks(batchId)
@@ -4560,6 +4613,7 @@ def showGuideTable(
     geneId=None,
     pamFullName=None,
     koMethod=None,
+    pamWindow=None
 ):
     "shows table of all PAM motif matches"
 
@@ -4574,13 +4628,13 @@ def showGuideTable(
                 "<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>"
                 % (geneId, pam)
             )
-    else:
-        print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
 
-    if pamFullName:
+    elif pamFullName:
         print(
             """ <br> <div class="title">Guide sequences for all PAMs in the target region</div>"""
         )
+    else:
+        print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
 
     global scoreNames
     if geneId:
@@ -4634,7 +4688,8 @@ def showGuideTable(
 
         guidelen = len(guideSeq)
         pamlen = len(pamSeq)
-
+        if pamWindow and pamFullName and abs(effScores["insertDistance"] > pamWindow):
+            continue
         # flag the 3 best non-overlapping guides
         if koMethod:
             inExon = int(pamId.split(".")[0])
@@ -4821,20 +4876,20 @@ def showGuideTable(
             )
 
         # Display RNAfold secondary structure plot
-        print(
-               (
-                   '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s&freeEnergy=%s" target="_blank"><strong>Predicted secondary structure</strong></a>'
-                   % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq, freeEnergy)
-               )
-            )
         if freeEnergy < -3.6:
             text = (
                 "This sequence can form one or several secondary structures (minimum free energy = %(freeEnergy)s kcal/mol). This is of importance for synthetic gRNAs. For more information, read <a target=blank href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al, Nat. Commun. 2025</a>."
                 % locals()
             )
             htmlWarn(text)
-        else:
-            print("""<nobr><small style="border-radius: 50%; height:8px; width: 8px; background-color: #00ff00; color: #00ff00;">----</small>""")
+        # else:
+            # print("""<nobr><small style="border-radius: 50%; height:8px; width: 8px; background-color: #00ff00; color: #00ff00;">----</small>""")
+        print(
+               (
+                   '&nbsp;<a href="%s?batchId=%s&pamId=%s&guideSeq=%s&freeEnergy=%s" target="_blank"><strong>Predicted secondary structure</strong></a>'
+                   % (scriptName, batchId, urllib.parse.quote(str(pamId)), guideSeq, freeEnergy)
+               )
+            )
 
         print("</small>")
         print("</td>")
@@ -6987,10 +7042,13 @@ def printGeneSelection():
     )
 
 
-def printPamDropDown(lastpam):
+def printPamDropDown(lastpam, name=None):
+
+    if name is None:
+        name = "pam"
 
     print(
-        '<select class="js-example-basic-single" style="float:left" name="pam" tabindex="3">'
+        '<select class="js-example-basic-single" style="float:left" name="%s" tabindex="3">' % name
     )
     for key, value in pamDesc:
         print("<option ")
@@ -8591,14 +8649,14 @@ def crisprSearch(params):
         if multiSearchDone is None:
             printStatus(batchId, "")
             return
-        parseAndPrintMultiSeqInfo(params, batchId, koGeneId)
+        KoResultsPage(params, batchId, koGeneId)
     elif "multipam" in params:
         mode = "multipam"
         multiSearchDone = submitMultiSearch(batchId, org, multipam, mode)
         if multiSearchDone is None:
             printStatus(batchId, "")
             return
-        parseAndPrintMultiPamInfo(params, batchId)
+        KiResultsPage(params, batchId)
     else:
         pam = setupPamInfo(pamDesc)
         assert "-" not in pam
@@ -8762,7 +8820,11 @@ def crisprSearch(params):
         # makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
 
 
-def parseAndPrintMultiPamInfo(params, batchId, download=False):
+def KiResultsPage(params, batchId, download=False):
+    """
+    Parses and prints the results from Knock-in jobs.
+    Optionnally returns the data formatted for downloadFile()
+    """
 
     batchInfo = readBatchAsDict(batchId)
     org = batchInfo["org"]
@@ -8787,6 +8849,8 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId, multipam=multipam)
     globEffScore = params.get("globEffScore", "rs3")
+    pamWindow = int(params.get("pamWindow", 10))
+    otherPam = params.get("otherPam")
 
     pamList = multiPamDict[multipam][0]
     chrom, start, end, strand = parsePos(posStr)
@@ -8820,19 +8884,20 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
             transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
 
         print(
-            """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
+            """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;"><i>%s</i> : %s %s </div><br> """
             % (dbInfo.scientificName, seqMsg, transcriptUrl)
         )
 
         if geneModel:
             exonSeqsPlaceholder = []
+            print("<p>Show below is the gene model with the edits. Hover on these to get their full name and length</p>")
             printGeneModel(geneModel, exonSeqsPlaceholder, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
 
     for pamFullName in pamList:
         pam = setupPamInfo(pamFullName)
         startDict, endSet = findAllPams(uppSeq, pam)
 
-        guideData, guideScores, hasNotFound, pamIdToSeq, pamIdToRecode = mergeGuideInfo(
+        guideData, guideScores, hasNotFound, pamIdToSeq, pamIdToSuppInfo = mergeGuideInfo(
             uppSeq,
             startDict,
             pam,
@@ -8847,7 +8912,7 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
             insertIdx=insertIdx,
             kiType=kiType,
             insertSeq=insertSeq,
-            getRecode=True
+            getSuppInfo=True
         )
 
         allGuideData.extend(guideData)
@@ -8864,34 +8929,81 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
         chrom = applyChromAlias(org, chrom)
         oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
 
-        print("<div>")
-        print("%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name))
-        print('<span style="text-decoration:underline">')
         # mouseOver = "link to UCSC,Ensembl or Gbrowse Genome Browser"
         mouseOver = None
         if dbInfo.server == "manual":
             mouseOver = "no genome browser link available for this organism"
+        if strand == "+":
+            strandStr = " forward genomic strand"
+        else:
+            strandStr = " reverse genomic strand"
 
         varHtmls, varDbs = getVariants(
             seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
         )
 
+        browserLink = makeBrowserLink(dbInfo, genomePosStr, oneBasedPosition,
+                                      mouseOver, ["tooltipster"], ctUrl=None)
+        browserLinkHtml = """<div>
+        <em>%s</em> (%s),
+        %s  %s
+        </div>""" % (dbInfo.scientificName, dbInfo.name, browserLink, strandStr)
+
+        print("""
+        <div style="width: 100%; display: flex; flex-direction: row; gap: 12px;">
+        <p style="width: 50%;">
+        Note : by default, only the guides that result in a DSB less than 10bp from the edition site are displayed.<br>
+        If no guides are shown or you want more to be displayed, use the two options on the right to either increase this theshold, or show the position of other PAM patterns on the sequence. You can then submit a new search with the selected PAM (or list of PAMs) to get the corresponding guides <i>(not implemented yet)</i>.
+        </p>
+        """)
+
         print(
-            makeBrowserLink(
-                dbInfo,
-                genomePosStr,
-                oneBasedPosition,
-                mouseOver,
-                ["tooltipster"],
-                ctUrl=None,
+            (
+                """<form style="display:inline" id="paramForm" action="%s" method="GET">"""
+                % basename(__file__)
             )
-            + "</span>, "
         )
-        if strand == "+":
-            print(" forward genomic strand")
-        else:
-            print(" reverse genomic strand")
-        print("</div>")
+
+        printHiddenFields(params, {"batchId": batchId, "transId": params.get("transId"),
+                                   "geneModelSelection": params.get("geneModelSelection"),
+                                   "globEffScore": params.get("globEffScore"),
+                                   "pamWindow": None,
+                                   "otherPam": None})
+        # add variant selection params too
+
+        print("""
+        <div style="width: 100%%; display: flex; flex-direciton: column;
+                    align-items: center; border: 1px dashed black;
+                    padding: 12px; border-radius: 12px; gap: 32px;">
+        <div>
+        <input type="range" value=%s min=10 max=%d name="pamWindow" oninput="this.nextElementSibling.value = this.value"/>
+        Show PAMS < <output>%s</output> bp from the edition site
+        """ % (pamWindow, max(len(seq[0:insertIdx]), len(seq[insertIdx:len(seq)])), pamWindow))
+
+        print("<p>Show the position of other PAMs on the sequence</p>")
+
+        print(
+            """ <select style="width:50%;" name="otherPam"> """
+            )
+        print("""<option value="">Reset</option>""")
+        for pamKey in multiPamDict:
+            if pamKey == multipam:
+                continue
+            if pamKey == otherPam:
+                selectStr = 'selected="selected"'
+            else:
+                selectStr = ""
+            pamText = multiPamDict[pamKey][1]
+            print(""" <option %s value="%s">%s</option> """ % (selectStr, pamKey, pamText))
+        print(""" </select> """)
+
+        print("""
+        </div>
+        <button style="text-align: center;" name="submit" type="submit" value="Update"><small>Update</small></button>
+        </div>
+        </div>
+        </form><br>
+        """)
 
         showSeqAndPams(
             org,
@@ -8905,8 +9017,11 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
             0.0,
             posStr,
             allPamIdToSeq,
+            browserLinkHtml=browserLinkHtml,
             multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
-            pamIdToRecode=pamIdToRecode
+            pamIdToSuppInfo=pamIdToSuppInfo,
+            pamWindow=pamWindow,
+            otherPam=otherPam
         )
         showGuideTable(
             allGuideData,
@@ -8919,11 +9034,12 @@ def parseAndPrintMultiPamInfo(params, batchId, download=False):
             None,
             geneId=None,
             pamFullName="multipam",
+            pamWindow=pamWindow,
         )
 
 
-def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
-    """Dispays the DNA sequence"""
+def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm, params):
+    """Dispays the donor DNA sequence"""
 
     donorType = params["donorType"]
     batchId = params["batchId"]
@@ -8931,7 +9047,6 @@ def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
     donorName = params.get("donorName")
     pamId = params["pamId"]
     guideSeq = params["guideSeq"]
-
     geneId = batchInfo.get("ko_geneid")
     kiType = batchInfo.get("kiType")
     org = batchInfo["org"]
@@ -8963,9 +9078,22 @@ def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
     else:
         templateStrand = strand
 
-    donorSeq = HA5 + insertSeq + HA3
+    if recodedArmSeq:
+        orgDonor = HA5 + insertSeq + HA3
+        if recodeArm == "HA3":
+            donorSeq = HA5 + insertSeq + recodedArmSeq
+        else:
+            donorSeq = recodedArmSeq + insertSeq + HA3
+    else:
+        donorSeq = HA5 + insertSeq + HA3
+        orgDonor = donorSeq
+
     if strand != templateStrand:
+        isRev = True
         donorSeq = revComp(donorSeq)
+        orgDonor = revComp(orgDonor)
+    else:
+        isRev = False
 
     insertCoord = "%s:%s" % (chrom, start+insertIdx)
     if kiType == "substitution":
@@ -8974,6 +9102,20 @@ def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
         kiTypeStr = "del%sbp" % (len(insertSeq))
     else:
         kiTypeStr = "insert%sbp" % (len(insertSeq))
+
+    donorBins, homopolymers = processDonor(donorSeq)
+    highlights = []
+
+    if homopolymers:
+        for start, end in homopolymers:
+            highlights.append((start, end, {"background-color": "rgba(255, 0, 0, 0.5)"}))
+    if donorBins:
+        for start, end, GCfrac in donorBins:
+            if GCfrac > 0.8:
+                highlights.append((start, end, {"background-color": "rgba(153, 51, 255, 0.5)"}))
+
+    # priority to insert sequence
+    highlights.append((editStart, editEnd, {"background-color": "rgba(255, 255, 0, 0.5)"}))
 
     if not donorName:
         donorName = "Don_%s_%s_%s" % (org, insertCoord, kiTypeStr)
@@ -9087,22 +9229,42 @@ def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
 
     print("""<h2>Guide sequence : %s</h2> """ % guideSeq.upper())
     print("""
-          <div style="margin-top: 32px; margin-bottom: 24px; display: flex; align-items: flex-end;">
+          <div style="margin-top: 32px; margin-bottom: 12px; display: flex; align-items: flex-end;">
               <h4 style="align-self: flex-end; margin: 0;">Sequence of the %s : </h4>&nbsp&nbsp
               <button style="align-self: flex-end; margin: 0;" onclick="copyDonor()"><small>Copy sequence to clipboard</small></button><br> """ % donorTypeText)
 
     print("<form>")
-    printHiddenFields(params, {"batchId": batchId, "donorSeq": donorSeq, "pamId": pamId,
-                               "guideSeq": guideSeq, "donorName": donorName})
+    if recodedArmSeq:
+        printHiddenFields(params, {"batchId": batchId, "recodedDonorSeq": donorSeq, "donorSeq": orgDonor,
+                                   "pamId": pamId, "guideSeq": guideSeq, "donorName": donorName})
+    else:
+        printHiddenFields(params, {"batchId": batchId, "donorSeq": donorSeq, "pamId": pamId,
+                                   "guideSeq": guideSeq, "donorName": donorName})
     print("""
               <button name="downloadDonor" value="download" style="align-self: flex-end; margin: 0; margin-left: 12px;"><small>Download fasta (guide + donor DNA)</small></button>
           </form>
           </div> """)
 
+    if kiType != "substitution":
+        print("""
+        <div style="margin-bottom: 24px;">
+            Output a second DNA donor with a barcode to check for homozygous editing <i>(not implemented yet)</i>:&nbsp
+            <input type="checkbox" style="-webkit-box-shadow:  0px 0px 0px 2px #ff6000;
+            -moz-box-shadow: 0px 0px 0px 2px #ff6000;
+            box-shadow: 0px 0px 0px 2px #ff6000;" id="doBarcode" autocomplete="off"/>
+            <img src=" %s image/info-small.png" title="With this option, a second donor DNA with a few mutations will be displayed, so that homozygous editing can be detected by PCR or NGS." class="tooltipsterInteract"><br>
+        </div>
+        """ % HTMLPREFIX)
+
+    print("""
+    <div style="display:flex; flex-direction: row; gap: 12px;">
+        <p><span style="background-color: rgba(255, 255, 0, 0.5)">Insert sequence</span></p>
+        <p><span style="background-color: rgba(255, 0, 0, 0.5)">Homopolymers (10+ A/T or 6+ G/C)</span></p>
+    <p><span style="background-color: rgba(153, 51, 255, 0.5)">GC rich (> 80% over 20+ nt)</span></p>
+    </div>
+    """)
+
     print("""<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">""")
-
-    donorBins, homopolymers = processDonor(donorSeq)
-
     fastaWidth = 80
     if len(donorSeq) > fastaWidth:
         maxStrCount = len(str(len(donorSeq)))
@@ -9110,35 +9272,103 @@ def showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params):
         print(''.join([" " for i in range(maxStrCount)]) + ">%s" % donorName)
         print("<br>")
         for i in range(fastaWidth, len(donorSeq), fastaWidth):
-            print(getHighlightedRow(donorSeq, last, i, editStart, editEnd, "yellow"))
+            print(getHighlightedRow(donorSeq, last, i, highlights))
             print("<br>")
             last = i
 
-        if i < len(donorSeq):
-            print(donorSeq[i:len(donorSeq)])
+        if last < len(donorSeq):
+            print(getHighlightedRow(donorSeq, last, len(donorSeq), highlights))
             print("<br>")
     else:
         print(">%s" % donorName)
         print("<br>")
-        print(donorSeq)
+        print(getHighlightedRow(donorSeq, 0, len(donorSeq), highlights))
 
     print("""</div>""")
+
+    print("""<div style="margin-right: 37%;">""")
+
     if mutEvents:
-        print("<h3>Synonymous mutations introduced to prevent re-cut</h3>")
-        printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm)
+        print("<h3>Silent mutations introduced to prevent re-cut</h3>")
+        print("<h4>Notes on recoding</h4>")
+        print("""<p>
+        Codons in the regions to recode are replaced by the synonymous codon with the highest frequency (codon frequency is calculated based on the longest transcript for each protein-coding gene).
+        </p>
+        """)
+        recNc = False
+        for wt, freq, pos in mutEvents:
+            mut, mutFreq = mutEvents[(wt, freq, pos)]
+            # successful recoding in non-coding region
+            if len(wt) == 1 and len(mut) == 1:
+                recNc = True
+        if recNc:
+            print("""<p>
+            Some non-coding regions were recoded. In this case, a transition is introduced every 3nt.
+            Motifs 5bp upstream and downstream of exon boundaries are avoided
+            to minimize the disruption of splicing. The kozak consensus sequence (6bp upstream of the
+            START codon) is also avoided.<br>
+            </p>""")
+
+        print("""<p>
+            However, we cannot guarantee that recoding will not affect gene expression, as some
+            transcription factor binding sites or RNA methylation motifs may be modified.<br>
+            If you want to manually recode the donor, you can find its unmodified sequence in the fasta file (click on the button at the top of the page to download it).
+            </p>""")
+
+        print("</div>")
+
+        printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev)
 
 
-def getHighlightedRow(seq, start, end, hlStart, hlEnd, color="yellow"):
-    spanStart = max(start, hlStart)
-    spanEnd = min(end, hlEnd)
-    if spanStart >= spanEnd:
-        return seq[start:end]
-    return (seq[start:spanStart] +
-            """<span style="background-color: %s;">%s</span>""" % (color, seq[spanStart:spanEnd]) +
-            seq[spanEnd:end])
+def getHighlightedRow(seq, rowStart, rowEnd, highlights):
+    """
+    Highlights regions of a sequence string with HTML spans.
+
+    Args:
+        seq: The full sequence string.
+        rowtart: The start index of the sequence chunk to process.
+        rowEnd: The end index of the sequence chunk to process.
+        highlights: A list of tuples, where each tuple is
+                    (hlStart, hlEnd, styleDict).
+                    style_dict is a dictionary of CSS properties,
+                    e.g. {'background-color': 'yellow'}.
+    """
+    if not highlights:
+        return seq[rowStart:rowEnd]
+
+    styles = [{} for _ in range(len(seq))]
+    for hlStart, hlEnd, style_dict in highlights:
+        for i in range(hlStart, hlEnd):
+            if 0 <= i < len(styles):
+                styles[i].update(style_dict)
+
+    htmlParts = []
+    currentStyleStr = ""
+
+    # process within the bounds of the sequence
+    processingEnd = min(rowEnd, len(seq))
+
+    for i in range(rowStart, processingEnd):
+        styleDict = styles[i]
+        # Create a canonical string representation for comparison.
+        styleStr = "; ".join(sorted(["%s: %s" % (k, v) for k, v in styleDict.items()]))
+
+        if styleStr != currentStyleStr:
+            if currentStyleStr != "":
+                htmlParts.append('</span>')
+            if styleStr != "":
+                htmlParts.append("""<span style="%s">""" % styleStr)
+            currentStyleStr = styleStr
+
+        htmlParts.append(seq[i])
+
+    if currentStyleStr != "":
+        htmlParts.append('</span>')
+
+    return "".join(htmlParts)
 
 
-def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm):
+def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev):
     """ displays the synonymous mutations introduced by recoding """
 
     codonTable = buildCodonTable()
@@ -9151,15 +9381,17 @@ def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm):
             coding = True
             break
 
+    # display rules for recoding in non-coding regions
+
     print("<table>")
     if coding:
         print("""
         <tr>
             <th>Amino acid</th>
             <th>Wild type</th>
-            <th>Original frequency</th>
-            <th>Mutated</th>
-            <th>Mutated frequency</th>
+            <th>Original codon frequency</th>
+            <th>Recoded</th>
+            <th>Recoded codon frequency</th>
             <th>Position</th>
         </tr>
         """)
@@ -9185,8 +9417,16 @@ def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm):
             else:
                 aaStr = "non-coding"
 
-        if recodeArm == "HA3":
-            fullPos = len(HA5) + len(insertSeq) + pos
+        if recodeArm == "HA3" and pos is not None:
+            if isRev:
+                fullPos = len(HA3) - pos - 3
+            else:
+                fullPos = len(HA5) + len(insertSeq) + pos
+        elif pos is not None:
+            if isRev:
+                fullPos = (len(HA5) + len(insertSeq) + len(HA3)) - pos
+            else:
+                fullPos = pos
         else:
             fullPos = pos
 
@@ -9206,9 +9446,9 @@ def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm):
     print("""</div>""")
 
 
-def parseAndPrintMultiSeqInfo(params, batchId, koGeneId, download=False):
+def KoResultsPage(params, batchId, koGeneId, download=False):
     """read offtargets and effcores files generated by the multiseq job,
-    aggregates the data in a loop and display it. TO COMPLETE : optionally returns guide data to prepare for downloadFile()
+    aggregates the data in a loop and display it. Optionally returns guide data to prepare for downloadFile()
     """
 
     batchInfo = readBatchAsDict(batchId)
@@ -10873,6 +11113,7 @@ def fastaWrite(seqId, seq, fh, width=80):
 def downloadDonor(params):
 
     donorSeq = params["donorSeq"]
+    recodedDonorSeq = params.get("recodedDonorSeq")
     guideSeq = params["guideSeq"]
     pamId = params["pamId"]
     donorName = params["donorName"]
@@ -10880,7 +11121,12 @@ def downloadDonor(params):
     writeHttpAttachmentHeader(donorName + ".fa")
     fastaWrite(pamId, guideSeq.upper(), sys.stdout)
     print(" ")
-    fastaWrite(donorName, donorSeq, sys.stdout)
+    if recodedDonorSeq:
+        fastaWrite(donorName + "_Original", donorSeq, sys.stdout)
+        print(" ")
+        fastaWrite(donorName + "_Recoded", recodedDonorSeq, sys.stdout)
+    else:
+        fastaWrite(donorName, donorSeq, sys.stdout)
 
 
 def downloadFile(params):
@@ -10898,13 +11144,13 @@ def downloadFile(params):
 
     if multiseq:
         koGeneId = batchInfo.get("koGeneId")
-        exonSeqs, org, pam, exonPosStr, guideData = parseAndPrintMultiSeqInfo(
+        exonSeqs, org, pam, exonPosStr, guideData = KoResultsPage(
             params, batchId, koGeneId, download=True
         )
         seq = ", ".join(["exon %s: %s" % (int(s[0]) + 1, s[1]) for s in exonSeqs])
         position = koGeneId if koGeneId else ""
     elif multipam:
-        seq, org, pam, position, guideData = parseAndPrintMultiPamInfo(
+        seq, org, pam, position, guideData = KiResultsPage(
                 params, batchId, download=True
         )
 
@@ -12643,7 +12889,7 @@ function changeSeqCase(value) {
                 Choose one of the following methods : &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
                 <div style="border:dashed 0.5px grey; border-radius:6px; padding:8px;">
                     <input type="radio" checked name="targetRegions" value="seq" onchange="toggleTargetRegion()" autocomplete="off"/>Enter a sequence with the desired modifications<br>
-                    <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag  protein in Nter or Cter</div>
+                    <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag a protein in Nter or Cter</div>
             </div>
             <div id="seqTarget" style="margin-top:20px;">
                 Enter the target sequence manually here
@@ -12662,11 +12908,11 @@ function changeSeqCase(value) {
                     <small>Currenlty, %d out of %d genomes are annotated. If yours insn't included, select "Enter a sequence" above.</small><br>
                 </div>
                 <div style="margin-top: 37px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
-                Select the position of insertion :
-                    <input type="radio" checked name="insertpos" value="Nter" onchange="toggleInsertpos()" autocomplete="off"/>N-terminal
-                    <input type="radio" name="insertpos" value="Cter" onchange="toggleInsertpos()" autocomplete="off"/>C-terminal
-            <small id='Ntext' style="display: block;">&nbsp&nbsp(Insertion after the START codon)</small>
-            <small id='Ctext' style="display: none;">&nbsp&nbsp(Insertion before the STOP codon)</small>
+                Insert :
+                    <input type="radio" checked name="insertpos" value="Nter" onchange="toggleInsertpos()" autocomplete="off"/>After the START codon
+                    <input type="radio" name="insertpos" value="Cter" onchange="toggleInsertpos()" autocomplete="off"/>Before the STOP codon
+            <small id='Ntext' style="display: block;">&nbsp&nbsp(tagging the N-terminal end of the protein)</small>
+            <small id='Ctext' style="display: none;">&nbsp&nbsp(tagging the C-terminal end of the protein)</small>
                 </div>
 
             </div>
@@ -12843,8 +13089,8 @@ def printBody(params):
         printCrisporBodyStart()
 
         if "donorType" in params and submit:
-            HA5, HA3, insertSeq, mutEvents, recodeArm = writeDonorSeq(params)
-            showDonor(HA5, HA3, insertSeq, mutEvents, recodeArm, params)
+            HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm = writeDonorSeq(params)
+            showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm, params)
         elif "doRecoding" in params:
             donorDesignPage(params)
         elif "pamId" in params and "doRecoding" not in params:
@@ -13402,6 +13648,7 @@ def writeDonorSeq(params):
     if strand == "-":
         HA5, HA3 = (HA3, HA5)
 
+    # get the position of the PAM + guide
     # recoding
     if recodePam or recodeSeed or recodeGap:
 
@@ -13425,15 +13672,17 @@ def writeDonorSeq(params):
                                                                      kiType, donorType, insertSeq,
                                                                      selExon=selExon)
         if recodeArm == "HA5":
-            HA5, mutEvents = recodeDonor(HA5, annotationCoords, recodeCoords, recodePam, recodeSeed,
-                                         recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
+            recodedArmSeq, mutEvents = recodeDonor(HA5, annotationCoords, recodeCoords, recodePam, recodeSeed,
+                                                   recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
         else:
-            HA5, mutEvents = recodeDonor(HA3, annotationCoords, recodeCoords, recodePam, recodeSeed,
-                                         recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
+            recodedArmSeq, mutEvents = recodeDonor(HA3, annotationCoords, recodeCoords, recodePam, recodeSeed,
+                                                   recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
     else:
         mutEvents = None
+        recodedArmSeq = None
+        recodeArm = None
 
-    return HA5, HA3, newInsertSeq, mutEvents, recodeArm
+    return HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, recodeArm
 
 
 def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
@@ -13523,12 +13772,12 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
     if selExon:
 
         UTR5coords = []
+        kozakCoords = []
         UTR3coords = []
         spliceCoords = []  # position of splice sites : 5bp upstream / downstream of coding exons (except upstream of the first and downstream of the last exon)
         oofCoords = []
         codonPos = []
         # splittedCodonPos = []  # for codons that overlap with the edition site
-
         for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon:
 
             isUTR5 = exonNumber == -1 and exonFrame == -1
@@ -13545,10 +13794,12 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                 exonEndPos = len(HA5) - (insertIdx - exonEnd)
 
                 if isUTR5:
-                    UTR5coords.append((exonStartPos, exonEndPos))
+                    UTR5coords.append((exonStartPos, exonEndPos - 6))
+                    kozakCoords.append((exonEndPos - 6, exonEndPos))
                     continue
+
                 elif isUTR3:
-                    UTR3coords.append((exonStartPos, exonEndPos))
+                    UTR3coords.append((exonStartPos + 5, exonEndPos))
                     continue
 
                 # position of the splicing donor site
@@ -13557,6 +13808,9 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                     spliceCoords.append(spliceDon)
 
                 # need a way to figure out the last exon : len(selExon) when exonFrame != -1 probably
+                # no, because selExon only contains the exons overlapping the input sequence
+                # just remove UTR coords from splicing coords
+
                 # position of the splicing acceptor site
                 if exonNumber < codingExonLen:
                     spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA5) else len(HA5))
@@ -13579,8 +13833,10 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                     exonEndPos = insertIdx + exonEnd
 
                 if isUTR5:
-                    UTR5coords.append((exonStartPos, exonEndPos))
+                    UTR5coords.append((exonStartPos, exonEndPos - 6))
+                    kozakCoords.append((exonEndPos - 6, exonEndPos))
                     continue
+
                 elif isUTR3:
                     UTR3coords.append((exonStartPos, exonEndPos))
                     continue
@@ -13626,8 +13882,10 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                         spliceCoords.append(spliceAcc)
 
                 if isUTR5:
-                    UTR5coords.append((exonStartPos, exonEndPos))
+                    UTR5coords.append((exonStartPos, exonEndPos - 6))
+                    kozakCoords.append((exonEndPos - 6, exonEndPos))
                     continue
+
                 elif isUTR3:
                     UTR3coords.append((exonStartPos, exonEndPos))
                     continue
@@ -13640,7 +13898,7 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                         break
                     codonPos.append(i)
 
-    annotationCoords = (codonPos, UTR3coords, UTR5coords, spliceCoords, oofCoords)
+    annotationCoords = (codonPos, UTR3coords, UTR5coords, kozakCoords, spliceCoords, oofCoords)
     recodeCoords = (pamCoords, seedCoords, gapCoords)
 
     return annotationCoords, recodeCoords, recodeArm
@@ -13651,7 +13909,7 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
     """
     from the coordinates in the homology arm to recode, introduce silent mutations
     """
-    codonPos, UTR3coords, UTR5coords, spliceCoords, oofCoords = annotationCoords
+    codonPos, UTR3coords, UTR5coords, kozakCoords, spliceCoords, oofCoords = annotationCoords
     pamCoords, seedCoords, gapCoords = recodeCoords
 
     # could add an input to specify the number of mutations to introduce
@@ -13668,15 +13926,35 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
     elif recodeSeed and not recodeGap:
         recodeRegions.append(seedCoords)
 
-    # don't mutate at these positions
-    UTR5pos = set()
+    UTRpos = set()
     for start, end in UTR5coords:
         for i in range(start, end):
-            UTR5pos.add(i)
+            UTRpos.add(i)
+    for start, end in UTR3coords:
+        for i in range(start, end):
+            UTRpos.add(i)
+
+    if len(kozakCoords) > 0:
+        kozakEnd = kozakCoords[0][1]
+        startPos = {kozakEnd,
+                    kozakEnd + 1,
+                    kozakEnd + 2}
+    else:
+        startPos = {}
+
+    # don't mutate at these positions
+    kozakPos = set()
+    for start, end in kozakCoords:
+        for i in range(start, end):
+            kozakPos.add(i)
     splicePos = set()
     for start, end in spliceCoords:
         for i in range(start, end):
-            splicePos.add(i)
+            # avoid flagging splicing sites in UTRs
+            if i in kozakPos or i in UTRpos:
+                continue
+            else:
+                splicePos.add(i)
 
     recodePos = set()
     if recodePam:
@@ -13702,7 +13980,7 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
     posInCodon = set()
     for codonStart in codonPos:
         for pos in range(codonStart, codonStart + 3):
-            if pos in recodePos and codonStart + 3 < len(HA):
+            if pos in recodePos and codonStart + 3 <= len(HA):
                 for i in range(pos, pos + 3):
                     posInCodon.add(i)
                 mutCodons.add(codonStart)
@@ -13729,8 +14007,8 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
                 mutEvents[("out of range", None, None)] = ("", None)
                 break
             base = HA[pos].upper()
-            if pos in UTR5pos:
-                mutEvents[(base, None, pos)] = ("No (in 5'UTR)", None)
+            if pos in kozakPos:
+                mutEvents[(base, None, pos)] = ("No (in kozak consensus sequence)", None)
             elif pos in splicePos:
                 mutEvents[(base, None, pos)] = ("No (in a splicing site)", None)
             else:
@@ -13754,6 +14032,11 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
         keep = False
         lastFreq = 0
 
+        # show a special message for the START codon
+        if {codonStart, codonStart + 1, codonStart + 2} == startPos:
+            mutEvents[(codon, round(codonFreq, 2), codonStart)] = ("No (START codon)", None)
+            continue
+
         for synCodon in synCodons:
 
             # in case we want to codon with the closest frequency as the original one
@@ -13766,6 +14049,7 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
                     continue
             else:
                 synCodonFreq = None
+
             if synCodon == codon:
                 continue
 
@@ -13773,10 +14057,6 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
             for i in range(3):
                 mutPos = codonStart + i
                 if mutPos in recodePos and codon[i] != synCodon[i]:
-                    if mutPos in UTR5pos:
-                        mutEvents[(codon, round(codonFreq, 2), codonStart)] = ("in 5'UTR", None)
-                    elif mutPos in splicePos:
-                        mutEvents[(codon, round(codonFreq, 2), codonStart)] = ("in a splicing site", None)
                     keep = True
                     mutEvents[(codon, round(codonFreq, 2), codonStart)] = (synCodon, round(synCodonFreq, 2))
                     if codonFrequency is None:
@@ -13878,17 +14158,19 @@ def processDonor(DonorSeq):
     inspired by protoSpaceJam (https://czbiohub-sf.github.io/protoSpaceJAM/algorithmandparameters.html)
     """
 
-    binwidth = 10
+    binwidth = 20
     DonorLen = len(DonorSeq)
     bins = [
         slice(binstart, min(binstart + binwidth, DonorLen))
-        for binstart in range(0, DonorLen, binwidth)
+        for binstart in range(0, DonorLen)
     ]
     donorBins = []
     for bin in bins:
+        if bin.stop - bin.start < 10:
+            continue
         binseq = DonorSeq[bin]
         gc = gcContent(binseq.upper())
-        donorBins.append((bin, gc))
+        donorBins.append((bin.start, bin.stop, gc))
 
     basesCount = {"A": 10, "T": 10, "G": 6, "C": 6}
 
@@ -15601,20 +15883,6 @@ def donorDesignPage(params):
         antisenseChecked = ""
         senseChecked = "checked"
 
-    # don't show the barcoding option for substitutions
-    if kiType != "substitution":
-        barcodeOption = """
-        <div style="margin-bottom: 24px;">
-            Output a second DNA donor with a barcode to check for homozygous editing:&nbsp
-            <input type="checkbox" style="-webkit-box-shadow:  0px 0px 0px 2px #ff6000;
-    -moz-box-shadow: 0px 0px 0px 2px #ff6000;
-    box-shadow: 0px 0px 0px 2px #ff6000;" id="doBarcode" autocomplete="off"/> <img src=" %s image/info-small.png" title="With this option, a second donor DNA with a few mutations will be displayed, so that homozygous editing can be detected by PCR or NGS." class="tooltipsterInteract"><br>
-
-        </div>
-        """ % HTMLPREFIX
-    else:
-        barcodeOption = ""
-
     (
         guideSeq,
         pamSeq,
@@ -15828,7 +16096,7 @@ def donorDesignPage(params):
     <h2>Global options</h2>
     <small> %(donorTypeMsg)s </small>
     <div style="margin-bottom:24px; margin-top:12px;">
-        Specify the fasta header for the donor sequence (optional) : &nbsp<input name="donorName"/><br>
+        Specify the fasta header for the donor sequence (optional) : &nbsp<input form="main" name="donorName"/><br>
     </div>
     <div style="display: flex; flex-direction: column; margin-bottom: 24px;">
         <div style="display: flex; margin-bottom: 24px;">
@@ -15850,7 +16118,6 @@ def donorDesignPage(params):
                 Using this insert sequence, the homology arms can be %(maxssLen)s bp at maximum<br>
             </div>
         </div>
-    %(barcodeOption)s
     <div style="display:flex; margin-bottom:12px; flex-direction: column;">
         5' homology arm length
         <div style="margin-top:12px; display:flex; gap:12px;">
@@ -15884,7 +16151,8 @@ def donorDesignPage(params):
 
     if geneModels:
         allExonInfo = []
-        print("""<p>Select a transcript ID to use as a model for recoding</p>""")
+        if geneId is None:
+            print("""<p>Select a transcript ID to use as a model for recoding</p>""")
         for (model, modelStr) in geneModels:
             if geneId is None and selGeneModel is None:
                 selGeneModel = model
