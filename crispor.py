@@ -2030,16 +2030,20 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True,
                     continue
 
             if pamIdToSuppInfo:
-                doRecoding = pamIdToSuppInfo.get(pamId)[0]
-                insertDistance = pamIdToSuppInfo.get(pamId)[1]
-                if pamWindow and insertDistance > pamWindow:
-                    continue
-                if doRecoding is True:
-                    recodeStr = ""
+                pamIdInfo = pamIdToSuppInfo.get(pamId)
+                if pamIdInfo:
+                    doRecoding = pamIdInfo[0]
+                    insertDistance = pamIdInfo[1]
+                    if pamWindow and insertDistance > pamWindow:
+                        continue
+                    if doRecoding is True:
+                        recodeStr = ""
+                    else:
+                        recodeStr = """, 0 0 10px #33ccff,
+                        0 0 20px #33ccff,
+                        0 0 30px #33ccff"""
                 else:
-                    recodeStr = """, 0 0 10px #33ccff,
-                    0 0 20px #33ccff,
-                    0 0 30px #33ccff"""
+                    recodeStr = ""
             else:
                 recodeStr = ""
             if guideSeq is None and otherPam is None:
@@ -13761,12 +13765,13 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
     if recodeArm == "HA5" and cutPos < len(HA5):
         gapStartPos = cutPos
         gapEndPos = len(HA5)
+        gapCoords = (gapStartPos, gapEndPos)
     elif recodeArm == "HA3" and cutPos > 0:
         gapStartPos = 0
         gapEndPos = cutPos
+        gapCoords = (gapStartPos, gapEndPos)
     else:
         gapCoords = None
-    gapCoords = (gapStartPos, gapEndPos)
 
     # convert exon coordinates
     if selExon:
@@ -14058,10 +14063,11 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
                 mutPos = codonStart + i
                 if mutPos in recodePos and codon[i] != synCodon[i]:
                     keep = True
-                    mutEvents[(codon, round(codonFreq, 2), codonStart)] = (synCodon, round(synCodonFreq, 2))
                     if codonFrequency is None:
+                        mutEvents[(codon, "Not available", codonStart)] = (synCodon, "Not available")
                         break
                     else:
+                        mutEvents[(codon, round(codonFreq, 2), codonStart)] = (synCodon, round(synCodonFreq, 2))
                         lastFreq = synCodonFreq
             # mutate the homolgy arm with synCodon and flag the mutation in uppercase (repeated until no codon with a higher frequency is found)
             if keep:
