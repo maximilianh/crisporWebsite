@@ -1212,7 +1212,16 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 25/03/26
 
+## général
+
+- dans makeExonLines() : prise en compte du décalage entre phase de l'exon entier / exon dans la séquence
+
 ## knock-in mode 
+
+- correction de bugs dans getArmCoords :
+    - les exons terminant dans une délétion ne sont plus pris en compte
+    - les coordonnées des exons situés entièrement dans le bras d'homologie 3' sont correctement calculées
+    - mauvaise assignation du codon START
 
 - ajout du mode "remplacement" :
     - prise en compte des remplacement de < 10pb à une seule position dans processcustomInsertSeq()
