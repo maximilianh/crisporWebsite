@@ -1845,6 +1845,11 @@ def makeExonLines(exonInfo, seq, selTransId):
                 mouseOvers[exStart] = exonDesc
                 mouseOvers[exEnd] = None
 
+                # adjust exonFrame relative to the length of the sequence
+                seqFrame = len(seq[exStart + exFrame: exEnd]) % 3
+                if seqFrame != exFrame:
+                    exFrame = seqFrame
+
                 for i in range(exStart, exStart + exFrame):
                     line[i] = "-"
                 for i in range(exStart + exFrame, exEnd, 3):
@@ -2463,6 +2468,7 @@ def showSeqAndPams(
         )
 
     if geneModels:
+        print("""<div style="margin-top: 12px;">Select a gene model and a transcript below to display the translated coding sequences : <br>""")
         print("Gene Models:")
         printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em")
         if selGeneModel != "noGenes":
@@ -2478,7 +2484,7 @@ def showSeqAndPams(
         print(
             """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">"""
         )
-        print("""<br>""")
+        print("""</div><br>""")
 
     if baseEditor:
         print("Base Editor modification window:")
@@ -2550,23 +2556,21 @@ def showSeqAndPams(
     if varHtmls is not None:
         print(("{:" + str(labelLen) + "s} ").format(varLabel), end=" ")
         print("".join(varHtmls))
-
     if multiPamInfo:
         # rangeChar was used to highlight a n bp region up/dowstream of the edition site
-        if kiType == "substitution":
-            insertChar = ' %s' % insertSeq
-        elif kiType == "deletion":
+        if kiType == "deletion":
             delRange = ''.join(["x" for i in range(len(insertSeq))])
             insertChar = "\%s/" % delRange
-            chrom, start, end, strand = parsePos(position)
-        elif kiType == "replacement":
+            leftSpace = "".join([" " for i in range(insertIdx - 1)])
+        elif kiType in ["substitution", "replacement"]:
             insertChar = insertSeq
+            leftSpace = "".join([" " for i in range(insertIdx)])
         else:
-            insertChar = '\/'
+            insertChar = '\/' 
+            leftSpace = "".join([" " for i in range(insertIdx - 1)])
 
-        insertPos = "".join([" " for i in range(insertIdx)])
         print(("{:" + str(labelLen) + "s} ").format(insertLabel), end=" ")
-        print(insertPos + insertChar)
+        print(leftSpace + insertChar)
 
     print(("{:" + str(labelLen) + "s} ").format(seqLabel), end=" ")
     print(seq)
@@ -13884,6 +13888,7 @@ def writeDonorSeq(params):
     # trimRepeat = params.get("trimRepeats")
     org = batchInfo["org"]
     geneId = batchInfo.get("koGeneId")
+    seq = batchInfo["seq"]
     posStr = batchInfo["posStr"]
     insertIdx = batchInfo["insertIdx"]
     kiType = batchInfo.get("kiType")
@@ -13911,7 +13916,6 @@ def writeDonorSeq(params):
         # if selGeneModel isn't transmitted, select a transcript anyways
         else:
             selExon = exonInfo[transcriptInfo]
-
     if strand == "+":
         insertCoord = int(start + insertIdx)
     else:
@@ -13968,12 +13972,12 @@ def writeDonorSeq(params):
             codonFreq = None
 
         if strand == "+":
-            annotationCoords, recodeCoords, recodeArm = getArmCoords(HA5, HA3, strand,
+            annotationCoords, recodeCoords, recodeArm = getArmCoords(HA5, HA3, strand, seq,
                                                                      insertIdx, guideSeq, guideInfo,
                                                                      kiType, donorType, insertSeq,
                                                                      selExon=selExon)
         else:
-            annotationCoords, recodeCoords, recodeArm = getArmCoords(HA3, HA5, strand,
+            annotationCoords, recodeCoords, recodeArm = getArmCoords(HA3, HA5, strand, seq,
                                                                      insertIdx, guideSeq, guideInfo,
                                                                      kiType, donorType, insertSeq,
                                                                      selExon=selExon)
@@ -14012,7 +14016,7 @@ def findRepeats(seq):
     return repeats
 
 
-def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
+def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                  guideInfo, kiType, donorType, insertSeq, selExon=None):
     """
     on both homology arms, get the coordinates of the codons
@@ -14099,7 +14103,6 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
 
     # convert exon coordinates
     if selExon:
-
         UTR5coords = []
         kozakCoords = []
         UTR3coords = []
@@ -14111,12 +14114,19 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
 
             isUTR5 = exonNumber == -1 and exonFrame == -1
             isUTR3 = exonNumber != -1 and exonFrame == -1
+           
+            # make exonFrame relative to the length of the sequence
+            if exonFrame >= 0:
+                seqFrame = len(seq[exonStart + exonFrame: exonEnd]) % 3
+                if seqFrame != exonFrame:
+                    exonFrame = seqFrame
 
             # number of coding exons
             codingExonLen = len([exonStart for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon if exonNumber != -1])
 
             # whole exon in the 5' homology arm
             if exonStart < insertIdx and exonEnd < insertIdx:
+
                 if recodeArm == "HA3":
                     continue
                 exonStartPos = len(HA5) - (insertIdx - exonStart)
@@ -14154,12 +14164,20 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
             elif exonStart > insertIdx and exonEnd > insertIdx:
                 if recodeArm == "HA5":
                     continue
-                if kiType in ["deletion", "substitution", "replacement"]:  # add replacement here ?? 
-                    exonStartPos = (insertIdx + len(insertSeq)) + exonStart
-                    exonEndPos = (insertIdx + len(insertSeq)) + exonEnd
+
+                if kiType in ["deletion", "substitution", "replacement"] and exonEnd < insertIdx + len(insertSeq):
+                    continue
+
+                exonStartPos = 0
+                if kiType in ["deletion", "substitution"]:
+                    # stay in phase relative to the length of the deletion / replacement
+                    # TO VERIFY
+                    exonFrame += len(insertSeq) % 3
+                    exonEndPos = exonEnd + (insertIdx + len(insertSeq))
                 else:
-                    exonStartPos = insertIdx + exonStart
-                    exonEndPos = insertIdx + exonEnd
+                    exonEndPos = exonEnd - insertIdx
+                
+                # correct codon positions for replacements
 
                 if isUTR5:
                     UTR5coords.append((exonStartPos, exonEndPos - 6))
@@ -14197,12 +14215,13 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                         spliceCoords.append(spliceDon)
 
                 else:
+                    # don't process exons that end within the deletion / replacement
+                    if kiType in ["deletion", "substitution", "replacement"] and exonEnd < insertIdx + len(insertSeq):
+                        continue
+                    
                     exonStartPos = 0
                     if kiType in ["deletion", "substitution", "replacement"]:
-                        # stay in phase relative to the length of the deletion / replacement
-                        # TO VERIFY
-                        exonFrame += len(insertSeq) % 3
-                        exonEndPos = exonEnd + (insertIdx + len(insertSeq))
+                        exonEndPos = exonStartPos + exonEnd - (insertIdx + len(insertSeq))
                     else:
                         exonEndPos = exonEnd - insertIdx
 
@@ -14218,7 +14237,6 @@ def getArmCoords(HA5, HA3, strand, insertIdx, guideSeq,
                 elif isUTR3:
                     UTR3coords.append((exonStartPos, exonEndPos))
                     continue
-
                 # get the start position of codons in the homology arm to recode
                 for i in range(exonStartPos + exonFrame, exonEndPos, 3):
                     if i + 3 > exonEndPos:
@@ -14301,7 +14319,6 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
             end = len(HA)
         for i in range(start, end):
             recodePos.add(i)
-
     if not recodePos:
         return HA, None
 
@@ -14362,8 +14379,8 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
         lastFreq = 0
 
         # show a special message for the START codon
-        if {codonStart, codonStart + 1, codonStart + 2} == startPos:
-            mutEvents[(codon, round(codonFreq, 2), codonStart)] = ("No (START codon)", None)
+        if {codonStart, codonStart + 1, codonStart + 2} == startPos and HA[codonStart:codonStart + 3].upper() == "ATG":
+            mutEvents[(codon, "1", codonStart)] = ("No (START codon)", None)
             continue
 
         for synCodon in synCodons:
@@ -14388,7 +14405,7 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
                 if mutPos in recodePos and codon[i] != synCodon[i]:
                     keep = True
                     if codonFrequency is None:
-                        mutEvents[(codon, "Not available", codonStart)] = (synCodon, "Not available")
+                        mutEvents[(codon, "No codon frequency table", codonStart)] = (synCodon, "No codon frequency table")
                         break
                     else:
                         mutEvents[(codon, round(codonFreq, 2), codonStart)] = (synCodon, round(synCodonFreq, 2))
