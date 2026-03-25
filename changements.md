@@ -919,7 +919,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ### knock-in
 
-- créer les listes de PAMs + lien CasPedia
+- créer les listes de PAMs OK + lien CasPedia
     - commercially available recombinant nucleases
         - spCas9 (NGG)
         - Cpf1 
@@ -931,11 +931,11 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - + custom list (max 5) 
 
 - obtenir les séquences des tags / linkers listés dans taggingSeqs
-- ajouter sq tags 3FLAGSBP / SBP3FLAG DONE
-- annoter la région de l'ADN donneur avec séquences codantes / 5'UTR:
+- ajouter sq tags 3FLAGSBP / SBP3FLAG OK
+- annoter la région de l'ADN donneur avec séquences codantes / 5'UTR OK
     - soit depuis fichier genePred
-    - soit en convertissant genePred en bigBed -> getGeneModels()
-- implémenter recodage
+    - soit en convertissant genePred en bigBed -> getGeneModels() OK
+- implémenter recodage OK
 - implémenter le mode "remplacement" (à préciser)
 - ajouter custom track pour les bras d'homologie
 
@@ -954,7 +954,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire
 
-- trackHub : customisation couleur / épaisseur..
+- trackHub : customisation couleur / épaisseur
 - ou customtrack
 - lignées cell : cellosaurus
 - automatisation submission genome
@@ -1001,7 +1001,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## bugs
 
-- en mode knock-in, "show all" dans colonne off-target ne fonctionne pas
+- en mode knock-in, "show all" dans colonne off-target ne fonctionne pas OK
 
 # 06/03/26
 
@@ -1058,8 +1058,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
     - ajouter checkbox affichage enzymes
     - couleur si freeEnergy > -5 kcal/mol
-    - warning si la région sélectionnée n'a pas pu être recodée
-    - pour ssODN : prise en compte des coordonnées en dehors des bras d'homologie!
+    - warning si la région sélectionnée n'a pas pu être recodée OK
+    - pour ssODN : prise en compte des coordonnées en dehors des bras d'homologie! OK
 
 # 12/03/26
 
@@ -1078,14 +1078,14 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## à faire
 
 - refaire le sticky header : rendre le tableau scrollable ?
-- afficher option "introduce a mutation to check for homozygous editing" après affichage donneur
-- indiquer lorsque le recodage n'est pas possible
+- afficher option "introduce a mutation to check for homozygous editing" après affichage donneur OK
+- indiquer lorsque le recodage n'est pas possible OK
 - ajouter un lien pour Gibson assembly / golden gate
-- dans codonFrequency, sélectionner le transcrit le plus long
+- dans codonFrequency, sélectionner le transcrit le plus long OK
 - explication détaillées dans donorDesignPage()
-- recodage dans régions non codantes (à part 5 bases en amont des exons)
+- recodage dans régions non codantes (à part 5 bases en amont des exons) OK
 - ne pas recoder si création d'un site d'épissage
-- dans processCustomInsertSeq(), gérer newlines et espaces (+ format fasta) dans textarea
+- dans processCustomInsertSeq(), gérer newlines et espaces (+ format fasta) dans textarea OK
 
 # 13/03/26
 
@@ -1109,8 +1109,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire
 
-- autoriser recodage dans 5'UTR sauf au niveau de la séquence consensus kozak (ATG-5bp)
-- ajouter un dropdown pour afficher les autres motifs de PAMs sur le sequence viewer (puis ajouter lien vers nouvelle recherche avec ce PAM)
+- autoriser recodage dans 5'UTR sauf au niveau de la séquence consensus kozak (ATG-5bp) OK
+- ajouter un dropdown pour afficher les autres motifs de PAMs sur le sequence viewer (puis ajouter lien vers nouvelle recherche avec ce PAM) OK
 
 # 18/03/26
 
@@ -1123,6 +1123,99 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire / bugs 
 
-- surligner séquence guide  + PAM dans showDonor()
+- surligner séquence guide  + PAM dans showDonor() OK
 - les coordonnées 5'UTR ne sont pas toujours annotées si l'input est une séquence
-- suggestion de Geneviève Tavernier : sur la page off-target primers, n'afficher que les off-targets correspondants si un filtre (exon / chr) a été coché
+- suggestion de Geneviève Tavernier : sur la page off-target primers, n'afficher que les off-targets correspondants si un filtre (exon / chr) a été coché OK
+
+# 19/03/26
+
+## knock-in mode
+
+- dans showDonor() : surlignage de la séquence du PAM + spacer. Si guide /pam chevauchant le site d'édition, surlignage de la séquence de part et d'autre
+- dans printTableHead: si filtre onlyExons / onlyChrom cochés, écriture des params correspondants dans le lien "off target primers"
+- dans otPrimerPage() : filtre des primers en fonction de onlyExons / onlyChrom + affichage d'un message en fonction du filtre appliqué
+- correction bug : en mode ko / ki, "show all" dans colonne off-targets du tableau refonctionne (pas de "." en CSS)
+
+# 20/03/26
+
+## knock-out mode 
+
+- ajout des méthodes "ko par délétion du promoteur" et "ko par interférence avec l'épissage" dans le formulaire knock-out
+
+## notes JP :
+
+- prot SF3B1 k700Q a
+- phase si exons 
+- chemical synthesis par défaut DONE
+- liste !!
+- PAM highlight blue pas dispo sur serveur OK normalement
+- scroll tableau vertical
+- liste addGene : Cas naturelles / artificielles
+- reset -> PAM sélectioné only DONE
+- cliquer sur la séquence du PAM ajouté lance une recherche avec l'enzyme correspondante 
+- ne pas afficher homopolymers / GC rich pour ssODN DONE
+- copy seq to clipboard ne fonctionne pas sur le serveur OK via https
+- insert seq surlignée -> substitued Nt DONE
+- dowload au format txt seq + récap + hyperlien ucsc + infos supp
+
+## notes Max :
+
+- inverser ordre phases sur brin inverse
+- mouseover pam en noir DONE
+- options sous seq DONE
+- annoter repeats avec repeatmasker DONE
+- underline / italique
+- dictionnaire annotation (download)
+- ajouter label pour PAMs non calculés DONE
+- tableau résolution : fit width = taille minimale
+- si div scroll -> parents avec width: 100%
+- MPC dans firefox -> ajout agent IA
+
+# 23/03/26
+
+## général
+
+- correction du bug Keras / deepCpf1 : réinstallation de keras 2.12.0 / tensorflow 2.12.0, puis réinstallation de numpy 1.26.4
+- dans calcGlobScore : pour guides Cas12a, seule l'efficacité est utilisée pour le calcul (aucun score de spécificité disponible)
+
+## knock-in mode
+
+- déplacement des options d'affichage / filtre des PAMs sur la séquence en dessous de la séquence + formatage
+- ajout label + mouseover pour PAMs supplémentaires
+- annotation des régions répétées dans writeDonorSeq() et surlignage dans showDonor()
+- adaptation du calcul des cordonnées du PAM + guide pour pour le recodage avec guides Cas12a
+
+## à faire 
+
+- corriger bug score saCas9 -> OK, le score n'est délibérément pas calculé
+
+# 24/03/26
+
+## général
+
+- correction de l'affichage en mode classic pour guides Cas12a
+- entrer un transcript ID en mode classic refonctionne
+- modification des pénalités pour le calcul du global score ( + mise à jour description / ajout références):
+    - Pénalité énergie libre augmentée pour guides synthétiques
+    - Ajout des pénalités pour guides Cas12a
+- en-tête du tableau des guides dans un tableau séparé à position fixe
+- encapsulation des deux tableaux dans un div scrollable à largeur fixe
+
+## knock-out mode
+
+- affichage des effScores appropriés pour Cas12a / saCas9
+
+## knock-in mode
+
+- dans showDonor(), surlignage de la séquence d'insert
+- ajsutement de l'affichage du filtre des PAMs et modification du titre du tableau en fonction
+
+# 25/03/26
+
+## knock-in mode 
+
+- ajout du mode "remplacement" :
+    - prise en compte des remplacement de < 10pb à une seule position dans processcustomInsertSeq()
+    - affichage du remplacement dans showSeqAndPams()
+    - prise en compte des coordonnées du remplacement dans getArmCoords(), recodeDonor() et showDonor()
+
