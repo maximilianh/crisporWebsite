@@ -9157,7 +9157,7 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
-def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm, HA5repeats, HA3repeats, params):
+def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats, params):
     """Dispays the donor DNA sequence"""
 
     donorType = params["donorType"]
@@ -9488,6 +9488,11 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm, HA5repea
 
     print("""<div style="margin-right: 37%;">""")
 
+    if noModel is True:
+        print("""
+        <p>The donor DNA sequence could not be recoded because no gene annotation file could be located for this organism. If you want to add one, contact us %s
+        """ % contactEmail
+        )
     if mutEvents:
         print("<h3>Silent mutations introduced to prevent re-cut</h3>")
         print("<h4>Notes on recoding</h4>")
@@ -13423,8 +13428,8 @@ def printBody(params):
         printCrisporBodyStart()
 
         if "donorType" in params and submit:
-            HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm, HA5repeats, HA3repeats = writeDonorSeq(params)
-            showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, recodeArm, HA5repeats, HA3repeats, params)
+            HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats = writeDonorSeq(params)
+            showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats, params)
         elif "doRecoding" in params:
             donorDesignPage(params)
         elif "pamId" in params and "doRecoding" not in params:
@@ -13905,17 +13910,20 @@ def writeDonorSeq(params):
         transId = params.get("transId")
     else:
         transId = geneId
-    exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
 
-    # retreive the exon corresponding to the selected transcript
-    for transcriptInfo in exonInfo:
-        transcriptId, symbol = transcriptInfo
-        if transId == transcriptId:
-            selExon = exonInfo[transcriptInfo]
-            break
-        # if selGeneModel isn't transmitted, select a transcript anyways
-        else:
-            selExon = exonInfo[transcriptInfo]
+    if selGeneModel:
+        exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
+
+        # retreive the exon corresponding to the selected transcript
+        for transcriptInfo in exonInfo:
+            transcriptId, symbol = transcriptInfo
+            if transId == transcriptId:
+                selExon = exonInfo[transcriptInfo]
+                break
+            # if selGeneModel isn't transmitted, select a transcript anyways
+            else:
+                selExon = exonInfo[transcriptInfo]
+
     if strand == "+":
         insertCoord = int(start + insertIdx)
     else:
@@ -13960,8 +13968,9 @@ def writeDonorSeq(params):
 
     # get the position of the PAM + guide
     # recoding
-    if recodePam or recodeSeed or recodeGap:
-
+    if (recodePam or recodeSeed or recodeGap) and selGeneModel is not None:
+        
+        noModel = False
         # load codon frequency file
         codonFreqFname = "%s_codonFrequency.json" % org
         codonFreqFile = join(genomesDir, org, codonFreqFname)
@@ -13988,11 +13997,16 @@ def writeDonorSeq(params):
             recodedArmSeq, mutEvents = recodeDonor(HA3, annotationCoords, recodeCoords, recodePam, recodeSeed,
                                                    recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
     else:
+        # if no recoding could happen because no annotation file is available, signal it
+        if (recodePam or recodeSeed or recodeGap) and selGeneModel is None:
+            noModel = True
+        else:
+            noModel = False
         mutEvents = None
         recodedArmSeq = None
         recodeArm = None
 
-    return HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, recodeArm, HA5repeats, HA3repeats
+    return HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats
 
 
 def findRepeats(seq):
