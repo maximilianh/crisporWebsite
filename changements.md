@@ -900,8 +900,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - vérifier tous les textes (y compris tooltips!)
 - vérifier qu'aucune information importante ne manque en mode knock-out / knock-in :
     - affichage des variants
-    - affichage des coordonnées ucsc
-- rendre tableau scrollable au lieu de figer les en-têtes
+    - affichage des coordonnées ucsc DONE
+- rendre tableau scrollable au lieu de figer les en-têtes DONE
 - corriger surlignage du PAM sur la séquence si sélection depuis le tableau
 - "faux" off targets en fonction de l'assemblage
 - ajouter message pour type d'exp sélectionné (surbrillance + explication)
@@ -911,11 +911,11 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ### knock-out
 
-- ajouter "knock-out par délétion du promoteur"
+- ajouter "knock-out par délétion du promoteur" DONE
 - ajouter surlignage du MANE transcript (cf. notes 27/01/26)
 - ajouter affichage getGeneModels()
 - alerter si un gène essentiel est ciblé (humain / souris)
-- surligner ATG in frame dans showSeqAndPams()
+- surligner ATG in frame dans showSeqAndPams() DONE
 
 ### knock-in
 
@@ -1144,12 +1144,11 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## notes JP :
 
-- prot SF3B1 k700Q a
-- phase si exons 
+- phase si exons DONE
 - chemical synthesis par défaut DONE
 - liste !!
 - PAM highlight blue pas dispo sur serveur OK normalement
-- scroll tableau vertical
+- scroll tableau vertical DONE
 - liste addGene : Cas naturelles / artificielles
 - reset -> PAM sélectioné only DONE
 - cliquer sur la séquence du PAM ajouté lance une recherche avec l'enzyme correspondante 
@@ -1160,14 +1159,14 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## notes Max :
 
-- inverser ordre phases sur brin inverse
+- inverser ordre phases sur brin inverse DONE (exonFrame relatif à la séquence)
 - mouseover pam en noir DONE
 - options sous seq DONE
 - annoter repeats avec repeatmasker DONE
-- underline / italique
+- underline / italique DONE
 - dictionnaire annotation (download)
 - ajouter label pour PAMs non calculés DONE
-- tableau résolution : fit width = taille minimale
+- tableau résolution : fit width = taille minimale DONE
 - si div scroll -> parents avec width: 100%
 - MPC dans firefox -> ajout agent IA
 
@@ -1216,10 +1215,16 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - dans makeExonLines() : prise en compte du décalage entre phase de l'exon entier / exon dans la séquence
 
+## knock-out mode
+
+- ajouts dans le mode "KO par perturbation de l'épissage" :
+    - recherche 10bp de part et d'autre des jonction des exons
+    - sélection d'un exon ou recherche sur tous les exons
+
 ## knock-in mode 
 
 - correction de bugs dans getArmCoords :
-    - les exons terminant dans une délétion ne sont plus pris en compte
+    - les exons terminant dans une délétion ou un remplacement ne sont plus pris en compte
     - les coordonnées des exons situés entièrement dans le bras d'homologie 3' sont correctement calculées
     - mauvaise assignation du codon START
 
@@ -1227,4 +1232,53 @@ réécriture de getDonorSeq() : séparation en deux fonctions
     - prise en compte des remplacement de < 10pb à une seule position dans processcustomInsertSeq()
     - affichage du remplacement dans showSeqAndPams()
     - prise en compte des coordonnées du remplacement dans getArmCoords(), recodeDonor() et showDonor()
+- correction du bug lorsque la séquence d'input n'est pas trouvée dans le génome + affichage d'un message dans la page de résultats si tel est le cas
 
+## à faire
+
+- le menu "Options to modify the display of PAMs on the sequence viewer" a parfois une taille réduite ?
+- lorsque KO par une paire de guides -> séparer le tableau en 2 (guide 1 / guide 2)
+- en mode "KO par perturbation de l'épissage" -> indiquer ne n° des exons, le type de site (donneur / accepteur) et retirer 5'/3'UTR
+
+# 26/03/26
+
+## global
+
+- correction des coordonnées des exons dans makeExonLines() : offset par 3 - exonFrame
+- prise en compte du changement de phase dans trimExonAndFlip() si la séquence débute après l'exon (après flip des coordonnées si brin - !!)
+
+## Knock-out mode
+
+- ajout de la séquence traduite correspondant au transcriptID sélectioné
+
+- mode "splicing" :
+    - surlignage des sites donneurs / accepteurs d'épissage sur la séquence
+    - ajustement de printGeneModel : affichage des séquences donneur / accepteur si un exon est sélectionné
+
+## à faire
+
+- corriger le formulaire de sélection du transcrit dans donorDesignPage()
+- filtre exons / tableau de fonctionne plus
+
+# 27/03/26
+
+## global
+
+- prise en compte du MANE transcript
+
+## knock-out mode
+
+- réparation du filtre du tableau lorsqu'un exon est sélecitonné
+- ajustement des noms des régions dans séquence / tableau en mode "promoteur" / "épissage"
+- modification de sortGuideData() pour trier le tableau / exon (ne fonctionne pas encore)
+
+## knock-in mode 
+
+- correction du formulaire de délection d'un transcriptId dans showDonor + retrait des params dupliqués dans KiResultsPage()
+
+# notes
+
+- KO mode : sélection gene symbol puis transcript ID (par défaut, MANE select ou exons communs)
+- mouseover celphedia
+- schéma étapes KI
+- ajouter PAM à pamlist

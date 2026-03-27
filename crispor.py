@@ -275,14 +275,13 @@ multiPamDict = {
     "commercial": ([
         "NGG",
         "NGA",
-        "TTN",
-        "NNGRRT"
-    ], "Commercially available nucleases"),
+        "TTN"
+    ], "Commercially available nucleases (including only non-engineered PAMS)"),
     "pamless": ([
         "TNN",
         "NRN",
         "NYN"
-        ], "Engineered PAM variants with low specificity"),
+        ], "Commercially available nucleases (including lower specificity engineered PAMS)"),
     "plasmid": ([
 
         ],
@@ -1795,7 +1794,7 @@ def buildOneToThree():
     return oneToThree
 
 
-def makeExonLines(exonInfo, seq, selTransId):
+def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
     """create text that draws exons, input is transId -> (exonNumber, exStart, exEnd, exFrame).
     returns a list of (transId (=label), symbol (=mouseover), ASCII-line)"""
     lines = []
@@ -1845,17 +1844,16 @@ def makeExonLines(exonInfo, seq, selTransId):
                 mouseOvers[exStart] = exonDesc
                 mouseOvers[exEnd] = None
 
-                # adjust exonFrame relative to the length of the sequence
-                seqFrame = len(seq[exStart + exFrame: exEnd]) % 3
-                if seqFrame != exFrame:
-                    exFrame = seqFrame
+                # exFrame is the number of bases already present in the codon
+                exOffset = (3 - exFrame) % 3
 
-                for i in range(exStart, exStart + exFrame):
+                for i in range(exStart, exStart + exOffset):
                     line[i] = "-"
-                for i in range(exStart + exFrame, exEnd, 3):
-                    codon = seq[i : i + 3]
+                for i in range(exStart + exOffset, exEnd, 3):
+                    codon = seq[i: i + 3]
                     if len(codon) == 3:
                         shortAa = codonTable[codon]
+                        # in knock-out mode, highlight M codons in blue
                         if exStrand == "+":
                             longAa = shortAa + "]]"
                         else:
@@ -1864,8 +1862,10 @@ def makeExonLines(exonInfo, seq, selTransId):
                         # codon is split by splice site
                         longAa = "-"
                     for j in range(0, len(longAa)):
-                        line[i + j] = longAa[j]
-
+                        if koMethod == "frameshift" and longAa[j] == "M":
+                            line[i + j] = """<span style="background-color: rgba(0, 255, 0, 0.5)">%s</span>""" % longAa[j]
+                        else:
+                            line[i + j] = longAa[j]
         # now merge the mouse overs as span tags into the ASCII line
         newLine = []
         for pos, char in enumerate(line):
@@ -2152,12 +2152,47 @@ def showExonAndPams(
     exonId,
     koMethod,
     browserlink,
+    selGeneModel=None,
+    selTransId=None,
 ):
     pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId=exonId))
     exonIdOneBased = exonId + 1
+    if koMethod == "splicing":
+        if exonId % 2 == 0:
+            spliceType = "donor"
+            originalExon = (exonIdOneBased + 2) // 2
+        else:
+            spliceType = "acceptor"
+            originalExon = (exonIdOneBased + 1) // 2
+
+    # control the display of splicing donor / acceptor sites relative to their exons (0-based id)
+    if koMethod == "splicing":
+        htmlExonId = originalExon - 1
+    else:
+        htmlExonId = exonId
+
+    if koMethod == "frameshift":
+        if exonId == 0:
+            exonDisplay = "block"
+        else:
+            exonDisplay = "none"
+    else:
+        exonDisplay = "block"
 
     # don't display the exons where no PAMs were found
     if len(pamSeqs) == 0:
+        if koMethod == "splicing":
+            print(
+                """
+                <p style="display: %s" name="exonDisplay" id="exon%s"> No guide sequences were found in the splicing %s site of exon %s (%s)</p>
+                """ % (exonDisplay, htmlExonId, spliceType, originalExon, browserlink)
+            )
+        else:
+            print(
+                """
+                <p style="display: %s" name="exonDisplay" id="exon%s"> No guide sequences were found at position %s</p>
+                 """ % (exonDisplay, htmlExonId, browserlink)
+             )
         return
 
     # for the region upstream of the TSS, scroll to the left by default
@@ -2180,7 +2215,20 @@ def showExonAndPams(
     # pamLines is empty
     # print(lines, maxY, pamIdToSeq, guideScores)
     pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores))
-    labelLen = max(len(seqLabel), len(posLabel), getMaxLen(pamLines))
+    labelLen = max(len(seqLabel), len(posLabel), len(varLabel), getMaxLen(pamLines))
+
+    if koMethod == "splicing":
+        if exonId % 2 == 0:
+            spliceLabel = "Splicing donor site"
+        else:
+            spliceLabel = "Splicing acceptor site"
+        labelLen = max(labelLen, len(spliceLabel))
+
+    exonLines = []
+    if selGeneModel is not None:
+        exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, position, extendPos=True)
+        labelLen = max(labelLen, maxTransIdLen)
+        exonLines = makeExonLines(exonInfo, seq, selTransId, koMethod)
 
     if baseEditor or varDb:
         print(
@@ -2222,17 +2270,9 @@ def showExonAndPams(
             )
         )
 
-    if koMethod == "frameshift":
-        if exonId == 0:
-            exonDisplay = "block"
-        else:
-            exonDisplay = "none"
-    else:
-        exonDisplay = "block"
-
     print(
         """ <div name="exonDisplay" id="exon%s" style="display:%s;"> """
-        % (exonId, exonDisplay)
+        % (htmlExonId, exonDisplay)
     )
     print(""" <div class="substep" """)
     print('<a id="seqStart"></a>')
@@ -2257,16 +2297,29 @@ def showExonAndPams(
     elif koMethod == "promoter":
         if exonId == 0:
             print(
-                " the region upstream of the selected promoter region (%s) contains %d possible guide sequences.<br>"
+                " the region upstream (%s) of the selected promoter contains %d possible guide sequences.<br>"
                 % (browserlink, len(guideScores))
             )
         else:
             print(
-                " the region downstream of the selected promoter region (%s) contains %d possible guide sequences.<br>"
+                " the region downstream (%s) of the selected promoter contains %d possible guide sequences.<br>"
                 % (browserlink, len(guideScores))
             )
 
+    elif koMethod == "splicing":
+        if exonId % 2 == 0:
+            print(
+                " the region around the splicing donor site of exon %s (%s) contains %d possible guide sequences.<br>"
+                % (originalExon, browserlink, len(guideScores))
+            )
+        else:
+            print(
+                " the around the splicing acceptor site of exon %s (%s) contains %d possible guide sequences.<br>"
+                % (originalExon, browserlink, len(guideScores))
+            )
+
     print("</div>")
+
     print(
         """<div class="blueHighlight" name="exonPamSeq" id="exonPamSeq%s" style="text-align: left; overflow-x:scroll; width:98%%; height:7vw; background:#DDDDDD; border-style: solid; border-width: 1px">"""
         % exonId
@@ -2282,8 +2335,19 @@ def showExonAndPams(
         print(("{:" + str(labelLen) + "s} ").format(varLabel), end=" ")
         print("".join(varHtmls))
 
+    if koMethod == "splicing":
+        spliceGap = 17
+        print(("{:" + str(labelLen) + "s} ").format(spliceLabel), end=" ")
+        # splicing donor site
+        if exonId % 2 != 0:
+            print("".join([" " for i in range(spliceGap)]), "".join(["-" for i in range(6)]))
+        else:
+            print("".join([" " for i in range(spliceGap + 6)]), "".join(["-" for i in range(6)]))
+
     print(("{:" + str(labelLen) + "s} ").format(seqLabel), end=" ")
     print(seq)
+
+    printLines(exonLines, labelLen)
 
     printLines(pamLines, labelLen)
 
@@ -2459,6 +2523,7 @@ def showSeqAndPams(
             % ", ".join(pamList)
         )
         print("Click on a PAM below to show its corresponding guide sequence.<br>")
+
     if baseEditor or varDb or selGeneModel:
         print(
             (
@@ -3453,7 +3518,7 @@ def getExtSeq(
         logging.debug("using input seq, pos %d-%d" % (extStart, extEnd))
         subSeq = seq[extStart:extEnd]
     else:
-        if extSeq == None:
+        if extSeq is None or extSeq == "?":
             return None
         # lift to extSeq coords and get seq
         extStart += extFlank
@@ -3986,8 +4051,19 @@ def sortGuideData(guideData, sortBy, returnGuideData=False):
     else:
         errAbort("Unknown sortBy value. This is a bug. Please contact us.")
 
+    def getPrefix(row):
+        pamId = row[6]
+        if "." in pamId:
+            prefix = pamId.split(".")[0]
+            if prefix.isdigit():
+                return (0, int(prefix))
+            return (0, 0)
+        return (0, 0)
+
     if returnGuideData:
-        return sorted(guideData, reverse=reverse, key=sortFunc)
+        res = sorted(guideData, reverse=reverse, key=sortFunc)
+        return sorted(res, key=getPrefix)
+
     else:
         guideData.sort(reverse=reverse, key=sortFunc)
 
@@ -4279,8 +4355,10 @@ def printTableHead(
     """
     )
 
-    print('<div id="guideTableScroll" style="overflow-x:auto; max-width:calc(95vw - 12px);">')
-    print("""<div style="width: 1650px; display: table;">""")
+    print('<div id="guideTableScroll" style="overflow-x:auto; max-width:100vw;">')
+
+    tableWidth = 1650
+    print("""<div style="width: %dpx; display: table;">""" % tableWidth)
     print(
             '<table id="otTable" style="background:white; table-layout:fixed; width: 100%;">'
     )
@@ -4418,7 +4496,7 @@ You can adapt the global score to your delivery method (select below), which cha
         )
         print("</th>")
 
-    if len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam):
+    if len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam) and pamFullName is None:
         print(
             '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
             % (len(scoreNames))
@@ -4679,6 +4757,8 @@ def showGuideTable(
     pamWindow=None
 ):
     "shows table of all PAM motif matches"
+    if pamFullName:
+        batchInfo = readBatchAsDict(batchId)
 
     if koMethod is not None:
         if koMethod == "excision":
@@ -4728,7 +4808,6 @@ def showGuideTable(
 
     # compute per-column widths to match the header table
     # to adjsut for all possible cases!
-
     if pamFullName is not None:
         effTotalWidth = 235
     elif len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam):
@@ -4821,7 +4900,7 @@ def showGuideTable(
             exonId = pamId.split(".")[0]
             classStr += " exonRow exon-" + exonId
         print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: fixed; max-height: 75vh;">')
-        print('<table style="table-layout: fixed; width: 100%;">')
+        print('<table id="otTable" style="table-layout: fixed; width: 100%;">')
         print(
             '<tr id="%s" class="%s" style="border-left: 5px solid %s">'
             % (pamId, classStr, color)
@@ -4843,11 +4922,19 @@ def showGuideTable(
             pamPrefix = pamId.split(".")[0]
             if pamPrefix.isdigit():
                 exonId = int(pamPrefix) + 1
-                if koMethod == "excision":
+                if koMethod in ["excision", "promoter"]:
                     if exonId == 1:
                         print("upstream")
                     else:
                         print("downstream")
+
+                elif koMethod == "splicing":
+                    if exonId % 2 == 0:
+                        originalExon = (exonId + 2) // 2
+                        print("exon %s<br>splicing donor site" % originalExon)
+                    else:
+                        originalExon = (exonId + 1) // 2
+                        print("exon %s<br>splicing acceptor site" % originalExon)
                 else:
                     print("in exon %s" % exonId)
             else:
@@ -4949,7 +5036,7 @@ def showGuideTable(
             print("<br>")
 
         scriptName = basename(__file__)
-        if pamFullName:
+        if pamFullName and batchInfo.get("posStr") != "?":
             print(
                 (
                     '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s&insertDistance=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
@@ -6822,10 +6909,14 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     uppSeq = seq.upper()
     chrom, start, end, strand = parsePos(posStr)
 
-    extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq)
-    batchInfo["extSeq"] = extSeq
-    if extSeq is None:
+    if posStr == "?":
+        extSeq = None
         batchInfo["extSeq"] = "?"
+    else:
+        extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq)
+        batchInfo["extSeq"] = extSeq
+        if extSeq is None:
+            batchInfo["extSeq"] = "?"
 
     writeBatchAsDict(batchInfo, batchId)
     # do eff scoring and off target search for each pam
@@ -7045,6 +7136,10 @@ def dbsearchGene(params):
     matches = []
     # GenePred format : 0: gene name ; 1: chr ; 2: strand ; 3: TSS ; 4: TES ; 5: CDS start ; 6: CDS end ; 7: nb. exons ; 8: exons start ; 9: exons end ; 10: Score ; 11: alt Name.
     for gpFile in gpFiles:
+        if "Select" in gpFile:
+            isMane = " - MANE select transcript"
+        else:
+            isMane = ""
         with open(join(genomePath, gpFile), "r") as genePred:
             for line in genePred:
                 cols = line.strip().split("\t")
@@ -7060,7 +7155,7 @@ def dbsearchGene(params):
                         matches.append(
                             {
                                 "id": mainId,
-                                "text": f"{mainId} ({altId}) - {exonCount} exons",
+                                "text": "%(mainId)s (%(altId)s%(isMane)s) - %(exonCount)s exons" % locals(),
                                 "exonCount": exonCount,
                             }
                         )
@@ -8374,43 +8469,40 @@ def iterBbLines(bbPath, chrom, start, end, strand):
         yield line.split("\t")
 
 
-def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand):
+def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=None):
     """Put the exon into the current sequence window:
     - trim exon to the window (0, seqLen), return None if completely outside the view.
     - reverse the exon coordinates if seqStrand=="-"
     """
+    # Flip first
+    if seqStrand == "-":
+        exStart, exEnd = seqLen - exEnd, seqLen - exStart
+        exStrand = "+" if exStrand == "-" else "-"
+
+    # Trim start
     if exStart < 0:
         if exEnd < 0:
             # the whole exon is outside the view on the left side
-            return None, None, None
+            return None, None, None, None
         else:
-            # truncate the exon to start at 0
+            # if the sequence start inside en exon, the frame can be truncated
+            if exFrame is not None and exFrame != -1:
+                exFrame = (exFrame - exStart) % 3
             exStart = 0
+
+    # Trim end
     if exEnd > seqLen:
         if exStart > seqLen:
             # the whole exon is outside the view on the right side
-            return None, None, None
+            return None, None, None, None
         else:
             # truncate the end
             exEnd = seqLen
 
-    if seqStrand == "-":
-        oldExEnd = exEnd
-        exEnd = seqLen - exStart
-        exStart = seqLen - oldExEnd
-        # inputSeq forw and transcript forw -> exon is forw
-        # inputSeq forw and transcript rev -> exon is rev
-        # inputSeq rev and transcript forw -> exon is rev
-        # inputSeq rev and transcript rev -> exon is forw
-        if exStrand == "+":
-            exStrand = "-"
-        else:
-            exStrand = "+"
-
-    return exStart, exEnd, exStrand
+    return exStart, exEnd, exFrame, exStrand
 
 
-def getExonInfo(org, geneName, position):
+def getExonInfo(org, geneName, position, extendPos=False):
     """retrieve exon info between position, return format transId -> (exNumber, start, end, exFrame, nextExonFrame, strand)
     - start and end are relative to position!
     - exNumber starts at 0
@@ -8440,8 +8532,13 @@ def getExonInfo(org, geneName, position):
 
     ret = defaultdict(list)
     seqChrom, seqStart, seqEnd, seqStrand = parsePos(position)
-    seqLen = seqEnd - seqStart
 
+    # in KO mode, position is extended by GUIDELEN - 6
+    if extendPos is True and not pamIsFirst:
+        seqStart -= GUIDELEN - 6
+        seqEnd += GUIDELEN - 6
+
+    seqLen = seqEnd - seqStart
     fname = join(genomesDir, org, geneName + ".bb")
 
     maxIdLen = 0
@@ -8485,13 +8582,14 @@ def getExonInfo(org, geneName, position):
             symbol = geneName2
 
         blocks = list(zip(blockSizes, blockStarts, exonFrames))
+
         for exIdx, (blockSize, blockStart, exonFrame) in enumerate(blocks):
             exChromStart = chromStart + blockStart
             exChromEnd = exChromStart + blockSize
             exStrand = strand
-
             nextFrame = None
             if strand == "+":
+
                 if exIdx + 1 < len(blocks):
                     nextFrame = blocks[exIdx + 1][-1]
             else:
@@ -8502,35 +8600,34 @@ def getExonInfo(org, geneName, position):
             # figure out exon start/end: special case for UTRs: trim down to CDS start/end
             if exChromStart < thickStart < exChromEnd:
                 exStart = thickStart - seqStart
+                exonFrame = 0  # Segments starting at translation start always have frame 0
                 # add the UTR as a special exon
-                utrStart, utrEnd, utrStrand = trimExonAndFlip(
+                utrStart, utrEnd, _, utrStrand = trimExonAndFlip(
                     exChromStart - seqStart, exStart, exStrand, seqLen, seqStrand
                 )
-                if utrStart != None:
+                if utrStart is not None:
                     ret[(name, symbol)].append(
                         (-1, utrStart, utrEnd, -1, nextFrame, utrStrand)
                     )
             else:
                 exStart = chromStart + blockStart - seqStart
-
             if exChromStart < thickEnd < exChromEnd:
                 exEnd = thickEnd - seqStart
                 # add the UTR as a special exon
-                utrStart, utrEnd, utrStrand = trimExonAndFlip(
+                utrStart, utrEnd, _, utrStrand = trimExonAndFlip(
                     exEnd, exChromEnd - seqStart, exStrand, seqLen, seqStrand
                 )
-                if utrStart != None:
+                if utrStart is not None:
                     ret[(name, symbol)].append(
                         (-1, utrStart, utrEnd, -1, nextFrame, utrStrand)
                     )
             else:
                 exEnd = chromStart + blockStart + blockSize - seqStart
-
             # print chromStart, chromStart+blockSize, seqStart, "<br>"
-            exStart, exEnd, exStrand = trimExonAndFlip(
-                exStart, exEnd, exStrand, seqLen, seqStrand
+            exStart, exEnd, exonFrame, exStrand = trimExonAndFlip(
+                exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=exonFrame
             )
-            if exStart == None:
+            if exStart is None:
                 # whole exon is outside of view
                 continue
 
@@ -9070,10 +9167,10 @@ def KiResultsPage(params, batchId, download=False):
         # Sequence viewer filtering / display menu
 
         print("""
-        <div style="width: 100%; display: flex; flex-direction: row; gap: 12px; margin-top: 24px;">
+        <div style="width: 100%; display: flex; flex-direction: row; gap: 12px; margin-top: 24px; overflow-x: scroll; max-width: 1650px; min-width: 1650px;">
         <p style="width: 50%;">
         Note : by default, only the guides that result in a DSB less than 10bp from the edition site are displayed.<br>
-        If the sequence viewer is empty or you want more to be displayed, use the two options on the right to either increase this theshold, or show the position of other PAM patterns on the sequence (in dark gray on the sequence viewer). Note that these added PAMs don't have any specificity or efficiency scores for ther guide sequence yet. You can then submit a new search with the selected PAM (or list of PAMs) to get the corresponding guides and scores <i>(not implemented yet)</i>.
+        If the sequence viewer is empty or you want more to be displayed, use the two options on the right to either increase this theshold, or show the position of other PAM patterns on the sequence (in gray on the sequence viewer). Note that these added PAMs don't have any specificity or efficiency scores for ther guide sequence yet. You can then submit a new search with the selected PAM (or list of PAMs) to get the corresponding guides and scores <i>(not implemented yet)</i>.
         </p>
         """)
 
@@ -9084,9 +9181,10 @@ def KiResultsPage(params, batchId, download=False):
             )
         )
 
-        printHiddenFields(params, {"batchId": batchId, "transId": params.get("transId"),
-                                   "geneModelSelection": params.get("geneModelSelection"),
-                                   "globEffScore": params.get("globEffScore"),
+        printHiddenFields(params, {"batchId": batchId,
+                                   "transId": None,
+                                   "geneModelSelection": None,
+                                   "globEffScore": None,
                                    "pamWindow": None,
                                    "otherPam": None})
         # add variant selection params too
@@ -9136,6 +9234,11 @@ def KiResultsPage(params, batchId, download=False):
         </div>
         </form><br>
         """)
+
+        if posStr == "?":
+            print("""
+            <p>Since the input sequence was not found in the genome, we can't show to page to design the donor DNA. To design a donor DNA for this experiment, either do it manually or submit a new search with a genomic sequence corresponding to the genome you selected. If the sequence you entered is already edited, please use the wild-type version. If you want to add a new genome, contact us at %s </p>
+            """ % contactEmail)
 
         showGuideTable(
             allGuideData,
@@ -9453,7 +9556,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         <p><span style="background-color: rgba(0, 255, 255, 0.5)">PAM</span></p>
         <p><span style="background-color: rgba(0, 0, 255, 0.5)">Spacer</span></p>
         <p><span style="background-color: rgba(255, 255, 0, 0.5)"><u>%s</u></span></p>
-        <p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats</span></p>
+        <p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (by repeatMasker)</span></p>
     """ % editSpanText)
     if donorType != "ss":
         print("""
@@ -9677,6 +9780,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
     sortBy = params.get("sortBy", "main")
     globEffScore = params.get("globEffScore", "rs3")
+    selGeneModel = params.get("geneModelSelection")
 
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId)
@@ -9716,11 +9820,22 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         )
         print("""</div>""")
 
-        if koMethod == "frameshift":
+        if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
             printGeneModel(geneModel, exonSeqs, koMethod)
         print(
-            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (for hybridization of the guides).</p>"""
+            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (for hybridization of the guides).<br>
+            In-frame methionines are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.</p>"""
         )
+
+        geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
+        if geneModels:
+            for (model, modelStr) in geneModels:
+                exonInfo, maxTransIdLen = getExonInfo(org, model, exonPosStr[0], extendPos=True)
+                for transId, sym in list(exonInfo.keys()):
+                    if transId == koGeneId:
+                        selGeneModel = model
+                        selTransId = transId
+                        break
 
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
 
@@ -9740,12 +9855,11 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             exonId=exonId,
             globEffScore=globEffScore,
         )
+        if len(guideData) > 0:
+            allGuideData.extend(guideData)
+            allGuideScores.update(guideScores.copy())
+            allPamIdToSeq.update(pamIdToSeq.copy())
 
-        if len(guideData) == 0:
-            print("<p>%s : No guides were found in this sequence</p>" % posStr)
-        allGuideData.extend(guideData)
-        allGuideScores.update(guideScores.copy())
-        allPamIdToSeq.update(pamIdToSeq.copy())
         if not download:
             chrom, start, end, strand = parsePos(posStr)
             start = str(int(start) + 1)
@@ -9775,6 +9889,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 exonId,
                 koMethod,
                 browserLink,
+                selGeneModel=selGeneModel,
+                selTransId=selTransId,
             )
     # showSeqDownloadMenu(batchId)
 
@@ -9868,7 +9984,7 @@ function toggleExonSeq(selectedValue) {
             exonSeq.style.display = 'block';
         }
         for (exonHeight of exonHeights) {
-            exonHeight.style.height = '4vw';
+            exonHeight.style.height = '5vw';
         }
         for (exonMsg of exonFilterMsg) {
             exonMsg.style.display = 'none'
@@ -10042,8 +10158,12 @@ function toggleExonSeq(selectedValue) {
                 exonMouseOver = ""
 
             if exonSeqs:
-                isSplittedExon = featureId + 1 == len(exonSeqs) and lastLen < length
-                isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
+                if koMethod == "frameshift":
+                    isSplittedExon = featureId + 1 == len(exonSeqs) and lastLen < length
+                    isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
+                else:
+                    isTargetExon = True
+                    isSplittedExon = False
             # Only print the gene model, without highlighting target exons
             else:
                 isSplittedExon = None
@@ -11715,7 +11835,7 @@ def otPrimerPage(params):
     # initialize everything
     batchId, pamId = params["batchId"], params["pamId"]
 
-    ampLen = cgiGetNum(params, "ampLen", 140)
+    ampLen = cgiGetNum(params, "ampLen", 150)
     tm = cgiGetNum(params, "tm", 60)
     primerLen = cgiGetNum(params, "primerLen", 20)
 
@@ -12653,6 +12773,8 @@ def printKoForm(params):
             var exonSelect = $('#exonSelect');
             exonSelect.empty();
             if (data.exonCount) {
+                var allExonsOpt = new Option('target all exons ', 'allExons', false, false);
+                exonSelect.append(allExonsOpt);
                 for (var i = 0; i < data.exonCount; i++) {
                     j = i+1
                     var option = new Option('target exon ' + j, i, false, false);
@@ -13636,7 +13758,7 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
         maxLen = MAXSEQLEN
 
     chrom, strand, exons = getGenePos(geneId, org, method, targetLen)
-    if method == "frameshift":
+    if method in ["frameshift", "splicing"]:
         if len(exons) == 0:
             return None, None
         allExons = exons
@@ -13646,12 +13768,21 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
         geneModel = None
 
     if method == "splicing":
-        for exonNumber, (start, end) in enumerate(exons):
-            if exonNumber == int(exonSelect):
-                exons = [(start - 10, start + 10),
-                         (end - 10, end + 10)]
+        spliceDist = 10
+        if exonSelect == "allExons":
+            allExons = []
+            for exonNumber, (start, end) in enumerate(exons):
+                allExons.append((start - spliceDist, start + spliceDist))
+                allExons.append((end - spliceDist, end + spliceDist))
+            exons = allExons
+        else:
+            for exonNumber, (start, end) in enumerate(exons):
+                if exonNumber == int(exonSelect):
+                    exons = [(start - spliceDist, start + spliceDist),
+                             (end - spliceDist, end + spliceDist)]
+                    break
 
-    return formatExonPos(exons, chrom, strand, GUIDELEN), geneModel
+    return formatExonPos(exons, chrom, strand, len(pam)), geneModel
 
 
 def getGeneModel(allExons, strand):
@@ -13799,7 +13930,8 @@ def getFirstThird(exons, strand, pamlen, maxLen, minLen=100):
 
 
 def formatExonPos(exons, chrom, strand, pamlen):
-    """formats exon positions to be processed by CrisprSearch()"
+    """
+    formats exon positions to be processed by CrisprSearch()"
     removes exons < PAMLEN and format posisions as posStr (chrom:start-end:strand)
     returns a list of tuples [(exonId, exonPosStr)] where exonId is the original exon number.
     """
@@ -13807,7 +13939,7 @@ def formatExonPos(exons, chrom, strand, pamlen):
     multiseq = []
     for exonId, (start, end) in enumerate(exons):
         exonLen = end - start
-        if exonLen <= pamlen:
+        if exonLen < pamlen:
             continue
         exonPosStr = "%(chrom)s:%(start)s-%(end)s:%(strand)s" % locals()
         multiseq.append((exonId, exonPosStr))
@@ -13969,7 +14101,7 @@ def writeDonorSeq(params):
     # get the position of the PAM + guide
     # recoding
     if (recodePam or recodeSeed or recodeGap) and selGeneModel is not None:
-        
+
         noModel = False
         # load codon frequency file
         codonFreqFname = "%s_codonFrequency.json" % org
@@ -14128,19 +14260,12 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
 
             isUTR5 = exonNumber == -1 and exonFrame == -1
             isUTR3 = exonNumber != -1 and exonFrame == -1
-           
-            # make exonFrame relative to the length of the sequence
-            if exonFrame >= 0:
-                seqFrame = len(seq[exonStart + exonFrame: exonEnd]) % 3
-                if seqFrame != exonFrame:
-                    exonFrame = seqFrame
 
             # number of coding exons
             codingExonLen = len([exonStart for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon if exonNumber != -1])
 
             # whole exon in the 5' homology arm
             if exonStart < insertIdx and exonEnd < insertIdx:
-
                 if recodeArm == "HA3":
                     continue
                 exonStartPos = len(HA5) - (insertIdx - exonStart)
@@ -14181,7 +14306,6 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
 
                 if kiType in ["deletion", "substitution", "replacement"] and exonEnd < insertIdx + len(insertSeq):
                     continue
-
                 exonStartPos = 0
                 if kiType in ["deletion", "substitution"]:
                     # stay in phase relative to the length of the deletion / replacement
@@ -14190,7 +14314,7 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                     exonEndPos = exonEnd + (insertIdx + len(insertSeq))
                 else:
                     exonEndPos = exonEnd - insertIdx
-                
+
                 # correct codon positions for replacements
 
                 if isUTR5:
@@ -14232,13 +14356,12 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                     # don't process exons that end within the deletion / replacement
                     if kiType in ["deletion", "substitution", "replacement"] and exonEnd < insertIdx + len(insertSeq):
                         continue
-                    
+
                     exonStartPos = 0
                     if kiType in ["deletion", "substitution", "replacement"]:
                         exonEndPos = exonStartPos + exonEnd - (insertIdx + len(insertSeq))
                     else:
                         exonEndPos = exonEnd - insertIdx
-
                     if exonNumber < codingExonLen:
                         spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3))
                         spliceCoords.append(spliceAcc)
@@ -16206,7 +16329,7 @@ def donorDesignPage(params):
     doRecoding = params["doRecoding"]
     cutUpstream = params["cutUpstream"]
     insertDistance = params["insertDistance"]
-    selGeneModel = params.get("geneModelSelection")
+    # selGeneModel = params.get("geneModelSelection")
     pamFullName = pamId.split(".")[0]
     pam = setupPamInfo(pamFullName)
 
@@ -16438,21 +16561,46 @@ def donorDesignPage(params):
         recodeChecked = ""
 
     print("<hr>")
-    print("""<form id="main" action="%s?%s" method="GET"></form>""" % (basename(__file__), batchId))
+    print("""<form id="main" action="%s" method="GET"></form>""" % basename(__file__))
     print("""<form id="updateModel"></form>""")
-    forms = ["main", "updateModel"]
 
-    for formId in forms:
-        printHiddenFields(params,
-                          {"batchId": batchId,
-                           "guideSeq": guideSeq,
-                           "guideInfo": guideInfo,
-                           "pam": pam,
-                           "pamId": pamId,
-                           "doRecoding": doRecoding,
-                           "insertDistance": insertDistance,
-                           "cutUpstream": cutUpstream
-                           }, form=formId)
+    geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
+    if geneId and geneModels:
+        found = False
+        for (model, modelStr) in geneModels:
+            exonInfo, _ = getExonInfo(org, model, posStr)
+            for tId, sym in list(exonInfo.keys()):
+                if tId == geneId:
+                    selGeneModel = model
+                    selTransId = tId
+                    found = True
+                    break
+            if found:
+                break
+
+    commonChanges = {
+        "batchId": batchId,
+        "guideSeq": guideSeq,
+        "guideInfo": guideInfo,
+        "pam": pam,
+        "pamId": pamId,
+        "doRecoding": doRecoding,
+        "insertDistance": insertDistance,
+        "cutUpstream": cutUpstream,
+    }
+
+    updateChanges = commonChanges.copy()
+    updateChanges.update({"geneModelSelection": None, "transId": selTransId})
+    printHiddenFields(params, updateChanges, form="updateModel")
+
+    mainChanges = commonChanges.copy()
+    mainChanges.update({"geneModelSelection": selGeneModel})
+    if geneId is None:
+        mainChanges["transId"] = None
+    else:
+        mainChanges["transId"] = selTransId
+    printHiddenFields(params, mainChanges, form="main")
+
     print("""
     <h2>Global options</h2>
     <small> %(donorTypeMsg)s </small>
@@ -16508,26 +16656,11 @@ def donorDesignPage(params):
         """ % locals())
 
     # Transcript model selection
-    geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
-
     if geneModels:
-        allExonInfo = []
+        exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
+        print(geneId)
         if geneId is None:
             print("""<p>Select a transcript ID to use as a model for recoding</p>""")
-        for (model, modelStr) in geneModels:
-            if geneId is None and selGeneModel is None:
-                selGeneModel = model
-                exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
-            else:
-                # if the input is a transcriptID, get the corresponding transcript
-                exonInfo, maxTransIdLen = getExonInfo(org, model, posStr)
-                for transId, sym in list(exonInfo.keys()):
-                    if transId == geneId:
-                        printHiddenFields(params, {"transId": transId, "geneModelSelection": model}, form="main")
-                        break
-
-        # if the input is a sequence, ask to choose a transcript as a model for recoding
-        if geneId is None:
             print("Gene model:")
             printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em", form="updateModel", onChange="updateModel.submit()")
             print("Transcript:")
@@ -16535,12 +16668,7 @@ def donorDesignPage(params):
             for transId, sym in list(exonInfo.keys()):
                 transIdInfo.append((transId, sym + " / " + transId))
             printDropDown("transId", transIdInfo, selTransId, style="width:20em", form="main")
-
-            # exonLines = makeExonLines(exonInfo, inSeq, selTransId)
-            # params["exonLines"] = exonLines
-            # exonLines = []
             print("""<br>""")
-            printHiddenFields(params, {"transId": params.get("transId"), "geneModelSelection": selGeneModel}, form="main")
 
     print("""
         <p>Choose below which regions of the donor DNA to recode </p>

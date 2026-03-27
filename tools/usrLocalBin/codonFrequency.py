@@ -7,6 +7,7 @@ import platform
 import subprocess
 import tempfile
 import collections
+import timeit
 
 """
 for all genomes, writes a json file containing the codon frequency usage based on the longest transcript
@@ -41,8 +42,8 @@ revTbl = {
     "w": "w",
 }
 
-# ============= utils from crispor.py =============
 
+# ============= utils from crispor.py =============
 
 def buildCodonTable(key="codon"):
     "from http://www.petercollingridge.co.uk/tutorials/bioinformatics/codon-table/"
@@ -125,6 +126,8 @@ def parsePos(text):
         chrom, start, end, strand = "", 0, 0, "+"
     return chrom, start, end, strand
 
+# ============= main functions =============
+
 
 def getExonPos(org):
 
@@ -132,7 +135,8 @@ def getExonPos(org):
     twoBitFname = getTwoBitFname(org)
     genomePath = "%(genomeDir)s/%(org)s/" % locals()
     genomeFiles = os.listdir(genomePath)
-    gpFiles = [f for f in genomeFiles if f.endswith(".gp")]
+    # don't use the MANE select transcript (or use it ?)
+    gpFiles = [f for f in genomeFiles if f.endswith(".gp") and "Select" not in f]
 
     if gpFiles:
         transSymbol = {}
@@ -284,6 +288,8 @@ def calcCodonFrequency():
     allCodons = {}
     allGenomes = os.listdir(genomesDir)
     for genomeDir in allGenomes:
+        if genomeDir == "hg38":
+            continue
         if isdir(join(genomesDir, genomeDir)):
             org = genomeDir
             allCodons[org] = collections.Counter()
@@ -337,7 +343,13 @@ def calcCodonFrequency():
 
 def main():
 
+    start = timeit.default_timer()
+
     calcCodonFrequency()
+
+    stop = timeit.default_timer()
+    exTime = stop - start
+    print("Calculated codons frequencies in %ds" % exTime)
 
 
 if __name__ == "__main__":
