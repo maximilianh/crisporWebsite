@@ -134,7 +134,7 @@ versionStr = "5.3 beta"
 
 # Current release note
 
-releaseNote = "July 2025: Added hasCas12Max and e-SpotOn. Also allowing old primer links to Crispor to work again."
+releaseNote = "April 2026: test version for the new knock-out and knock-in modes."
 # contact email
 contactEmail = "crispor@tefor.net"
 
@@ -569,14 +569,14 @@ taggingSeqs = {
         "GSG-2A": "GGATCCGGA",
         "XTEN": "AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT",
         "Blast": "ATGGCCAAGCCTTTGTCTCAAGAAGAATCCACCCTCATTGAAAGAGCAACGGCTACAATCAACAGCATCCCCATCTCTGAAGACTACAGCGTCGCCAGCGCAGCTCTCTCTAGCGACGGCCGCATCTTCACTGGTGTCAATGTATATCATTTTACTGGGGGACCTTGTGCAGAACTCGTGGTGCTGGGCACTGCTGCTGCTGCGGCAGCTGGCAACCTGACTTGTATCGTCGCGATCGGAAATGAGAACAGGGGCATCTTGAGCCCCTGCGGACGGTGCCGACAGGTGCTTCTCGATCTGCATCCTGGGATCAAAGCCATAGTGAAGGACAGTGATGGACAGCCGACGGCAGTTGGGATTCGTGAATTGCTGCCCTCTGGTTATGTGTGGGAGGGC",
-        "Puro": "ATGACCGAGTACAAGCCCACGGTGCGCCTCGCCACCCGCGACGACGTCCCCAGGGCCGTACGCACCCTCGCCGCCGCGTTCGCCGACTACCCCGCCACGCGCCACACCGTCGATCCGGACCGCCACATCGAGCGGGTCACCGAGCTGCAAGAACTCTTCCTCACGCGCGTCGGGCTCGACATCGGCAAGGTGTGGGTCGCGGACGACGGCGCCGCGGTGGCGGTCTGGACCACGCCGGAGAGCGTCGAAGCGGGGGCGGTGTTCGCCGAGATCGGCCCGCGCATGGCCGAGTTGAGCGGTTCCCGGCTGGCCGCGCAGCAACAGATGGAAGGCCTCCTGGCGCCGCACCGGCCCAAGGAGCCCGCGTGGTTCCTGGCCACCGTCGGCGTCTCGCCCGACCACCAGGGCAAGGGTCTGGGCAGCGCCGTCGTGCTCCCCGGAGTGGAGGCGGCCGAGCGCGCCGGGGTGCCCGCCTTCCTGGAGACCTCCGCGCCCCGCAACCTCCCCTTCTACGAGCGGCTCGGCTTCACCGTCACCGCCGACGTCGAGGTGCCCGAAGGACCGCGCACCTGGTGCAtgACCCGCAAGCCCGGTGCC",
+        "Puro": "ATGACCGAGTACAAGCCCACGGTGCGCCTCGCCACCCGCGACGACGTCCCCAGGGCCGTACGCACCCTCGCCGCCGCGTTCGCCGACTACCCCGCCACGCGCCACACCGTCGATCCGGACCGCCACATCGAGCGGGTCACCGAGCTGCAAGAACTCTTCCTCACGCGCGTCGGGCTCGACATCGGCAAGGTGTGGGTCGCGGACGACGGCGCCGCGGTGGCGGTCTGGACCACGCCGGAGAGCGTCGAAGCGGGGGCGGTGTTCGCCGAGATCGGCCCGCGCATGGCCGAGTTGAGCGGTTCCCGGCTGGCCGCGCAGCAACAGATGGAAGGCCTCCTGGCGCCGCACCGGCCCAAGGAGCCCGCGTGGTTCCTGGCCACCGTCGGCGTCTCGCCCGACCACCAGGGCAAGGGTCTGGGCAGCGCCGTCGTGCTCCCCGGAGTGGAGGCGGCCGAGCGCGCCGGGGTGCCCGCCTTCCTGGAGACCTCCGCGCCCCGCAACCTCCCCTTCTACGAGCGGCTCGGCTTCACCGTCACCGCCGACGTCGAGGTGCCCGAAGGACCGCGCACCTGGTGCATGACCCGCAAGCCCGGTGCC",
         "Zeo": "ATGGCCAAGTTGACCAGTGCCGTTCCGGTGCTCACCGCGCGCGACGTCGCCGGAGCGGTCGAGTTCTGGACCGACCGGCTCGGGTTCAGCCGGGACTTCGTGGAGGACGACTTCGCCGGTGTGGTCCGGGACGACGTGACCCTGTTCATCAGCGCGGTCCAGGACCAGGTGGTGCCGGACAACACCCTGGCCTGGGTGTGGGTGCGCGGCCTGGACGAGCTGTACGCCGAGTGGTCGGAGGTCGTGTCCACGAACTTCCGGGACGCCTCCGGGCCGGCCATGACCGAGATCGGCGAGCAGCCGTGGGGGCGGGAGTTCGCCCTGCGCGACCCGGCCGGCAACTGCGTGCACTTCGTGGCCGAGGAGCAGGAC",
         "moxGFP": "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTGAACGGCCACAAGTTCTCCGTGCGGGGCGAGGGCGAGGGCGATGCCACCAACGGCAAGCTGACCCTGAAGTTCATCAGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGAGCTTCTCCCGCTACCCCGACCACATGAAGCGCCACGACTTCTTCAAGAGCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTCCTTCAAGGACGACGGCACCTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTTCAACTCCCACAACGTCTATATCACCGCCGACAAGCAGAAGAACGGCATCAAGGCCAACTTCAAGATCCGCCATAACGTGGAGGACGGCTCCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGTCCACCCAGTCCAAGCTGTCCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCACGGCATGGACGAGCTGTACAAG",
         "2A ribosomal skipping peptide": "GCTACTAACTTCAGCCTGCTGAAGCAGGCCGGAGACGTGGAGGAGAACCCTGGACCT",
         "EF1α promoter": "GGGCAGAGCGCACATCGCCCACAGTCCCCGAGAAGTTGGGGGGAGGGGTCGGCAATTGAACCGGTGCCTAGAGAAGGTGGCGCGGGGTAAACTGGGAAAGTGATGTCGTGTACTGGCTCCGCCTTTTTCCCGAGGGTGGGGGAGAACCGTATATAAGTGCAGTAGTCGCCGTGAACGTTCTTTTTCGCAACGGGTTTGCCGCCAGAACACAG",
         "EF1α intron": "GTAAGTGCCGTGTGTGGTTCCCGCGGGCCTGGCCTCTTTACGGGTTATGGCCCTTGCGTGCCTTGAATTACTTCCACCTGGCTGCAGTACGTGATTCTTGATCCCGAGCTTCGGGTTGGAAGTGGGTGGGAGAGTTCGAGGCCTTGCGCTTAAGGAGCCCCTTCGCCTCGTGCTTGAGTTGAGGCCTGGCCTGGGCGCTGGGGCCGCCGCGTGCGAATCTGGTGGCACCTTCGCGCCTGTCTCGCTGCTTTCGATAAGTCTCTAGCCATTTAAAATTTTTGATGACCTGCTGCGACGCTTTTTTTCTGGCAAGATAGTCTTGTAAATGCGGGCCAAGATCTGCACACTGGTATTTCGGTTTTTGGGGCCGCGGGCGGCGACGGGGCCCGTGCGTCCCAGCGCACATGTTCGGCGAGGCGGGGCCTGCGAGCGCGGCCACCGAGAATCGGACGGGGGTAGTCTCAAGCTGGCCGGCCTGCTCTGGTGCCTGGCCTCGCGCCGCCGTGTATCGCCCCGCCCTGGGCGGCAAGGCTGGCCCGGTCGGCACCAGTTGCGTGAGCGGAAAGATGGCCGCTTCCCGGCCCTGCTGCAGGGAGCTCAAAATGGAGGACGCGGCGCTCGGGAGAGCGGGCGGGTGAGTCACCCACACAAAGGAAAAGGGCCTTTCCGTCCTCAGCCGTCGCTTCATGTGACTCCACGGAGTACCGGGCGCCGTCCAGGCACCTCGATTAGTTCTCGAGCTTTTGGAGTACGTCGTCTTTAGGTTGGGGGGAGGGGTTTTATGCGATGGAGTTTCCCCACACTGAGTGGGTGGAGACTGAAGTTAGGCCAGCTTGGCACTTGATGTAATTCTCCTTGGAATTTGCCCTTTTTGAGTTTGGATCTTGGTTCATTCTCAAGCCTCAGACAGTGGTTCAAAGTTTTTTTCTTCCATTTCAG",
         "Cre": "ATGAGCAATTTACTGACCGTACACCAAAATTTGCCTGCATTACCGGTCGATGCAACGAGTGATGAGGTTCGCAAGAACCTGATGGACATGTTCAGGGATCGCCAGGCGTTTTCTGAGCATACCTGGAAAATGCTTCTGTCCGTTTGCCGGTCGTGGGCGGCATGGTGCAAGTTGAATAACCGGAAATGGTTTCCCGCAGAACCTGAAGATGTTCGCGATTATCTTCTATATCTTCAGGCGCGCGGTCTGGCAGTAAAAACTATCCAGCAACATTTGGGCCAGCTAAACATGCTTCATCGTCGGTCCGGGCTGCCACGACCAAGTGACAGCAATGCTGTTTCACTGGTTATGCGGCGGATCCGAAAAGAAAACGTTGATGCCGGTGAACGTGCAAAACAGGCTCTAGCGTTCGAACGCACTGATTTCGACCAGGTTCGTTCACTCATGGAAAATAGCGATCGCTGCCAGGATATACGTAATCTGGCATTTCTGGGGATTGCTTATAACACCCTGTTACGTATAGCCGAAATTGCCAGGATCAGGGTTAAAGATATCTCACGTACTGACGGTGGGAGAATGTTAATCCATATTGGCAGAACGAAAACGCTGGTTAGCACCGCAGGTGTAGAGAAGGCACTTAGCCTGGGGGTAACTAAACTGGTCGAGCGATGGATTTCcGTCTCTGGTGTAGCTGATGATCCGAATAACTACCTGTTTTGCCGGGTCAGAAAAAATGGTGTTGCCGCGCCATCTGCCACCAGCCAGCTATCAACTCGCGCCCTGGAAGGGATTTTTGAAGCAACTCATCGATTGATTTACGGCGCTAAGGATGACTCTGGTCAGAGATACCTGGCCTGGTCTGGACACAGTGCCCGTGTCGGAGCCGCGCGAGATATGGCCCGCGCTGGAGTTTCAATACCGGAGATCATGCAAGCTGGTGGCTGGACCAATGTAAATATTGTCATGAACTATATCCGTAACCTGGATAGTGAAACAGGGGCAATGGTGCGCCTGCTGGAAGATGGCGAC",
-        "mStrayGold": "ATGC",
+        "mStrayGold": "ATGGTGTCTACAGGCGAGGAACTGTTTACCGGCGTGGTGCCCTTCAAGTTCCAGCTGAAGGGCACCATCAACGGCAAGAGCTTCACCGTGGAAGGCGAGGGCGAGGGCAATAGCCACGAGGGCAGCCACAAAGGCAAGTATGTGTGCACCAGCGGCAAACTGCCAATGTCTTGGGCCGCCCTGGGAACTAGCTTCGGCTATGGCATGAAATACTATACCAAGTACCCCAGCGGCCTGAAAAACTGGTTCCACGAGGTGATGCCTGAGGGCTTCACCTACGACAGACACATCCAGTACAAGGGCGACGGCAGCATCCACGCCAAGCACCAGCACTTCATGAAGAACGGCACCTACCACAACATCGTGGAGTTCACCGGCCAGGACTTCAAGGAGAACAGCCCCGTGCTGACCGGCGACATGGACGTGAGCCTGCCCAACGAGGTGCAGCACATCCCCATTGATGACGGCGTGGAGTGCACAGTGACCCTGCAGTACCCTCTGCTGAGCGACGAAAGCAAGTGCGTGGAAGCCTATCAGAACACCATCATCAAGCCCCTGCACAATCAGCCAGCCCCCGATGTGCCATTTCACTGGATCAGAAAGCAGTACACCCAGAGCAAGGACGACACCGAGGAGAGAGACCACATCATCCAGAGCGAGACCCTGGAGGCCCACCTG",
         "mNeon": "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCTCTCTCCCAGCGACACATGAGTTACACATCTTTGGCTCCATCAACGGTGTGGACTTTGACATGGTGGGTCAGGGCACCGGCAATCCAAATGATGGTTATGAGGAGTTAAACCTGAAGTCCACCAAGGGTGACCTCCAGTTCTCCCCCTGGATTCTGGTCCCTCATATCGGGTATGGCTTCCATCAGTACCTGCCCTACCCTGACGGGATGTCGCCTTTCCAGGCCGCCATGGTAGATGGCTCCGGATACCAAGTCCATCGCACAATGCAGTTTGAAGATGGTGCCTCCCTTACTGTTAACTACCGCTACACCTACGAGGGAAGCCACATCAAAGGAGAGGCCCAGGTGAAGGGGACTGGTTTCCCTGCTGACGGTCCTGTGATGACCAACTCGCTGACCGCTGCGGACTGGTGCAGGTCGAAGAAGACTTACCCCAACGACAAAACCATCATCAGTACCTTTAAGTGGAGTTACACCACTGGAAATGGCAAGCGCTACCGGAGCACTGCGCGGACCACCTACACCTTTGCCAAGCCAATGGCGGCTAACTATCTGAAGAACCAGCCGATGTACGTGTTCCGTAAGACGGAGCTCAAGCACTCCAAGACCGAGCTCAACTTCAAGGAGTGGCAAAAGGCCTTTACCGATGTGATGGGCATGGACGAGCTGTACAAG",
         "mScarlet": "ATGGTGAGCAAGGGCGAGGCAGTGATCAAGGAGTTCATGCGGTTCAAGGTGCACATGGAGGGCTCCATGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCTCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAGGGCCTTCACCAAGCACCCCGCCGACATCCCCGACTACTATAAGCAGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGCCGTGACCGTGACCCAGGACACCTCCCTGGAGGACGGCACCCTGATCTACAAGGTGAAGCTCCGCGGCACCAACTTCCCTCCTGACGGCCCCGTAATGCAGAAGAAGACAATGGGCTGGGAAGCGTCCACCGAGCGGTTGTACCCCGAGGACGGCGTGCTGAAGGGCGACATTAAGATGGCCCTGCGCCTGAAGGACGGCGGCCGCTACCTGGCGGACTTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGATGCCCGGCGCCTACAACGTCGACCGCAAGTTGGACATCACCTCCCACAACGAGGACTACACCGTGGTGGAACAGTACGAACGCTCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAG",
         "mCherry": "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTAG",
@@ -612,7 +612,7 @@ tagToColor = {
         "mScarlet": "#ff3300",
         "2A ribosomal skipping peptide": "#cc99ff",
         "EF1α promoter": "#cc99ff",
-        "mStrayGold": "#ffcc66",
+        "mStrayGold": "#66ff33",
         "mNeon": "#99ff66",
         "moxGFP": "#66ff33",
         "mScarlet": "#ff3300",
@@ -622,11 +622,12 @@ tagToColor = {
         "miniTurbo": "#bfbfbf",
         "ultraID": "#bfbfbf",
         "dTAG": "#bfbfbf",
-        "FLAG": "#bfbfbf",
+        "FLAG": "#ccccff",
+        "3XFLAG": "#ccccff",
         "3Flag": "#bfbfbf",
         "SBP3Flag": "#bfbfbf",
         "3FlagSBP": "#bfbfbf",
-        "SBP": "#bfbfbf",
+        "SBP": "#ccccff",
         "HA": "#bfbfbf",
         "V5": "#bfbfbf",
         "loxP": "#ffff66",
@@ -3989,9 +3990,9 @@ def mergeGuideInfo(
                     globEffScore,
                 )
             else:
-                mainScore = "NA"
+                mainScore = 0
         else:
-            mainScore = "NA"
+            mainScore = 0
 
         guideRow = [
             guideScore,
@@ -4355,7 +4356,7 @@ def printTableHead(
     print('<div id="guideTableScroll" style="overflow-x:auto; max-width:100vw;">')
 
     tableWidth = 1650
-    print("""<div style="width: %dpx; display: table;">""" % tableWidth)
+    print("""<div style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
     print(
             '<table id="otTableHeader" style="background:white; table-layout:fixed; width: 100%;">'
     )
@@ -4765,12 +4766,23 @@ def showGuideTable(
     if koMethod is not None:
         if koMethod == "excision":
             print(
-                "<br><div class='title'>Predicted guide sequences for upstream / downstream regions of %s with PAM %s</div>"
+                "<br><div class='title'>Guide sequences for upstream / downstream regions of %s with PAM %s</div>"
                 % (geneId, pam)
             )
+        elif koMethod == "promoter":
+            print(
+                "<br><div class='title'>Guide sequences for upstream / downstream regions of %s promoter with PAM %s</div>"
+                % (geneId, pam)
+            )
+        elif koMethod == "splicing":
+            print(
+                "<br><div class='title'>Guide sequences for %s exons junctions with PAM %s</div>"
+                % (geneId, pam)
+            )
+
         else:
             print(
-                "<br><div class='title'>Predicted guide sequences for %s exons with PAM %s</div>"
+                "<br><div class='title'>Guide sequences for %s exons with PAM %s</div>"
                 % (geneId, pam)
             )
 
@@ -7379,7 +7391,7 @@ def printForm(params):
         """
 <form id="main-form" method="post" action="%s">
 
-<div style="display:grid; width:100%%; grid-template-columns: 47%% 53%%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+<div style="display:grid; clear:both; width: %%; min-width: 1500px; grid-template-columns: 47%% 53%%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
 
 <div class="windowstep subpanel" style="width:100%%; grid-column:2; grid-row:-1/1;">
     <div class="substep">
@@ -8982,21 +8994,21 @@ def crisprSearch(params):
             print("</div>")
             # print " (link to Genome Browser)</div>"
 
-            otMatches = parseOfftargets(org, batchId, chrom)
-            effScores = readEffScores(batchId)
-            sortBy = params.get("sortBy", "main")
-            globEffScore = params.get("globEffScore", "EVA")
-            guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(
-                uppSeq,
-                startDict,
-                pam,
-                otMatches,
-                position,
-                effScores,
-                sortBy,
-                org=org,
-                globEffScore=globEffScore,
-            )
+        otMatches = parseOfftargets(org, batchId, chrom)
+        effScores = readEffScores(batchId)
+        sortBy = params.get("sortBy", "main")
+        globEffScore = params.get("globEffScore", "EVA")
+        guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(
+            uppSeq,
+            startDict,
+            pam,
+            otMatches,
+            position,
+            effScores,
+            sortBy,
+            org=org,
+            globEffScore=globEffScore,
+        )
         if len(guideScores) == 0:
             print(
                 "Found no possible guide sequence. Make sure that your input sequence is long enough and contains at least one match to the PAM motif %s."
@@ -9381,7 +9393,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     insertSeq = batchInfo["insertSeq"]
     posStr = batchInfo["posStr"]
     insertIdx = int(batchInfo["insertIdx"])
-    taggingSeqs = batchInfo.get("taggingSeqs")
+    tagNames = batchInfo.get("tagNames")
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
 
@@ -9647,6 +9659,15 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         </div>
         """ % HTMLPREFIX)
 
+    if kiType == "qTag":
+        tagNamesStr = ', '.join([name for name in tagNames if "lox" not in name])
+        print("""<p>You selected the qTag system (<a target="blank" href="https://doi.org/10.1038/s44318-024-00337-5">Philip et al. 2025</a>) with the following elements : <br>
+            <ul>
+            <li>%s.</li>
+            </ul>
+          Note that the donor DNA sequence below is designed for synthesis and only contains the sequence of these elements.<br>
+          The plasmid construct is available on <a target="blank" href="https://www.addgene.org/browse/article/28238680/">addGene</a> and may be more convenient.</p>""" % tagNamesStr)
+
     if kiType == "substitution":
         editSpanText = "Substitued base"
     elif kiType == "deletion":
@@ -9661,7 +9682,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         <p><span style="background-color: rgba(0, 255, 255, 0.5)">PAM</span></p>
         <p><span style="background-color: rgba(0, 0, 255, 0.5)">Spacer</span></p>
         <p><span style="background-color: rgba(255, 255, 0, 0.5)"><u>%s</u></span></p>
-        <p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (by repeatMasker)</span></p>
+        <p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (annotated by BWA)</span></p>
     """ % editSpanText)
     if donorType != "ss":
         print("""
@@ -9928,9 +9949,11 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
             printGeneModel(geneModel, exonSeqs, koMethod)
         print(
-            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (to allow hybridization of the spacer sequence of the guide).<br>
-            In-frame methionines are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.</p>"""
-        )
+            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (to allow hybridization of the spacer sequence of the guide).<p>""")
+        if koMethod == "frameshift":
+            print("""
+            In-frame methionines are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.
+                  """)
 
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
         if geneModels:
@@ -9942,11 +9965,46 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                         selTransId = transId
                         break
 
+    if koMethod in ["excision", "promoter"]:
+        print("<p>This knock-out method is based on a large deletion resulting from two DSBs introduced by a pair of guides. Click on the buttons below to show guides for the regions upstream or downstream of the deletion</p>")
+
+        print("""
+        <script>
+            function showResults(region) {
+                const displayUpstream = document.getElementById('displayUpstream');
+                const displayDownstream = document.getElementById('displayDownstream');
+
+                if (region === 'up') {
+                    displayUpstream.style.display = 'block';
+                    displayDownstream.style.display = 'none';
+                } else {
+                    displayUpstream.style.display = 'none';
+                    displayDownstream.style.display = 'block';
+                }
+            };
+        </script>
+       """)
+
+        print("""
+            <div style="display: flex; flex-direction: row; gap: 24px;">
+                <button id="showUpstream" value="up" onclick=showResults(this.value)>Show results for the upstream region</button>
+                <button id="showDownstream value="down" onclick=showResults(this.value)>Show results for the downstream region</button>
+            </div>
+              """)
+
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
 
         exonId, seq = exonSeqInfo
         uppSeq = seq.upper()
         startDict, endSet = findAllPams(uppSeq, pam, exonId)
+
+        if koMethod in ["excision", "promoter"]:
+            if exonId == 0:
+                print("""<div id="displayUpstream" style="display: block;"> """)
+                print("<h2>Guides in the upstream region</h2>")
+            elif exonId == 1:
+                print("""<div id="displayDownstream" style="display: none;"> """)
+                print("<h2>Guides in the downstream region</h2>")
 
         guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(
             uppSeq,
@@ -9960,7 +10018,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             exonId=exonId,
             globEffScore=globEffScore,
         )
-        if len(guideData) > 0:
+        if len(guideData) > 0 and koMethod not in ["excision", "promoter"]:
             allGuideData.extend(guideData)
             allGuideScores.update(guideScores.copy())
             allPamIdToSeq.update(pamIdToSeq.copy())
@@ -9997,15 +10055,33 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 selGeneModel=selGeneModel,
                 selTransId=selTransId,
             )
+
+            # for methods that require a pair of guides, two tables are shown
+            if koMethod in ["excision", "promoter"]:
+                showGuideTable(
+                    guideData,
+                    pam,
+                    otMatches,
+                    dbInfo,
+                    batchId,
+                    org,
+                    chrom,
+                    None,
+                    koGeneId,
+                    koMethod=koMethod,
+                )
+                print("</div>")
+
     # showSeqDownloadMenu(batchId)
 
     # for experiements using a pair of guides, sort the table by each target sequence
-    if koMethod in ["excision", "promoter"]:
-        sortGuideData(allGuideData, sortBy, exonSort=True)
-    else:
-        sortGuideData(allGuideData, sortBy)
+    # if koMethod in ["excision", "promoter"]:
+    #    sortGuideData(allGuideData, sortBy, exonSort=True)
+    # else:
 
-    if download is False:
+    sortGuideData(allGuideData, sortBy)
+
+    if download is False and koMethod not in ["excision", "promoter"]:
         showGuideTable(
             allGuideData,
             pam,
@@ -10460,6 +10536,12 @@ def printTeforBodyStart():
     print(
         '<div class="contentcentral" style="margin-left:0px; width:100%; background:none">'
     )
+
+
+def printReleaseNote():
+    print('<div style="clear:both; text-align:center; margin-top: 12px; margin-bottom: 12px;">')
+    print("""<i>%s See <a href="doc/changes.html">Full list of changes</a></i><br>""" % releaseNote)
+    print('</div>')
 
 
 def printTeforBodyEnd():
@@ -12926,7 +13008,7 @@ def printKoForm(params):
 
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ko">
-        <div style="display:grid; width:100%; grid-template-columns: 47% 53%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+        <div style="display:grid; clear:both; width: 100%%; min-width: 1650px; grid-template-columns: 47% 53%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1;">
             <div class="title" style="cursor:pointer" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
@@ -13429,7 +13511,7 @@ function changeSeqCase(value) {
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ki">
 
-       <div style="display:flex; padding:12px;">
+       <div style="display:flex; clear:both; padding:12px; width: 100%; min-width: 1550px;">
        <div style="flex:1; display:flex; flex-direction:column; gap:21%;">
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:150px;">
             <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
@@ -13549,7 +13631,7 @@ function changeSeqCase(value) {
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
                     Enter the sequence to insert<br>
                     <input type="radio" checked style="margin-top:13px;" name="insertype" value="tagLinker" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
-<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG <i>(sequences not available yet)</i>
+<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG
 
                     <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
                     <textarea id="insertSeq" name="insertSeq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
@@ -13660,7 +13742,6 @@ def printBody(params):
                         params["seq"] = startSeq
             elif targetRegion == "gene" and koGeneId and (("tagseq" in params and "linkerseq" in params) or "insertSeq" in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params)):
                 insertPos = params["insertpos"]
-                params["kiType"] = "tagging"
 
                 linkerseq = params.get("linkerseq")
                 tagseq = params.get("tagseq")
@@ -13668,6 +13749,11 @@ def printBody(params):
                 markerseq = params.get("markerseq")
                 expressionSeq = params.get("expressionSeq")
                 qTag = params.get("qTag")
+                if qTag is not None:
+                    params["kiType"] = "qTag"
+                else:
+                    params["kiType"] = "tagging"
+
 
                 try:
                     targetSeq, targetPos, insertIdx, geneModel = getTargetSeq(params)
@@ -13772,6 +13858,8 @@ def printBody(params):
             printLibGuides(params)
         else:
             printForm(params)
+
+        printReleaseNote()
 
 
 def processCustomInsertSeq(startSeq, endSeq):
@@ -14141,7 +14229,7 @@ def getPosAndSeq(org, seq, posStr, batchId):
         seq = getSeq(org, posStr)
 
         # Annotation of START and STOP codons (uppercase)
-        if kiType == "tagging":
+        if kiType in ["tagging", "qTag"]:
             if (
                 insertPos == "Nter"
                 and seq[insertIdx - 3: insertIdx].upper() in codonTable["M"]
@@ -16819,10 +16907,10 @@ def donorDesignPage(params):
           """ % locals())
 
     if doRecoding == "True":
-        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will be identical. The donor will likely be cleaved by the nuclease, so recoding is recommended in this case."
+        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will be identical. The donor will likely be cleaved (or re-cleaved after insertion) by the nuclease, so recoding is recommended in this case."
 
     else:
-        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will differ. The donor will not be re-cleaved by the nuclease, so recoding is not needed in this case."
+        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will differ. The donor will not be cleaved (or re-cleaved after insertion) by the nuclease, so recoding is not needed in this case."
 
     print("""
     <div id="recodingOptions">
@@ -17672,42 +17760,37 @@ def cleanJobs():
 
 def printAssistant(params):
     "prints the dispatcher menu for the different modes"
+
     print(
         """
-        <!-- <div class="title" style="text-align:left;">Choose a mode</div> -->
-        <!-- <hr size=1 /> -->
         <form action="crispor.py" name="main" method="get">
         <div class="windowstep subpanel" style="display:flex;
+                    clear:both;
                     text-align:center;
                     margin-top:12px;
                     margin-bottom:12px;
                     justify-content:center;
                     padding:20px;
                     width: 100%;
+                    height: 100px;
+                    min-width: 1500px;
                     flex-wrap:wrap;
-                    column-gap: 150px;
+                    column-gap: 5%;
                     border-width:1px;
                     border-radius:8px;">
-            <button style="width:25%;" class="tooltipsterInteract" Title="Enter a sequence to find guides"
+            <button style="width:25%; min-width: 150px;" class="tooltipsterInteract" Title="Enter a sequence to find guides"
                 value="classic">CRISPOR Classic</button>
-            <button style="width:25%;" name="expType" class="tooltipsterInteract" Title="Select a transcript and find guides to inactivate its product"
+            <button style="width:25%; min-width: 420px;" name="expType" class="tooltipsterInteract" Title="Select a transcript and find guides to inactivate its product"
                 value="ko">CRISPOR Assistant for Knock-out Experiments (CAKE)</button>
-            <button style="width:25%;" name="expType" class="tooltipsterInteract" Title="Design a donor DNA and guides to knock-in a sequence at a genome position"
+            <button style="width:25%; min-width: 150px;" name="expType" class="tooltipsterInteract" Title="Design a donor DNA and guides to knock-in a sequence at a genome position"
                 value="ki">CRISPOR Knock-in</button>
-        </form>
-        <!-- <hr size=1 /> -->
-        """
-    )
-
-    print(
-        """
-        <div style="text-align:left; margin-left: 10px">
-             CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a><br>
-            <br><i>%s See <a href="doc/changes.html">Full list of changes</a></i><br>
-         </div>
+            <br>
+            <div style="margin-top: auto; width: 100%">
+                 CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
+            </div>
         </div>
-         """
-        % releaseNote
+        </form>
+        """
     )
 
 

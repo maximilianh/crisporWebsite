@@ -1302,14 +1302,29 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - ajout d'un récapitulatif des étapes de l'expérience
 - ajout des séquences des tags / markers qTAG (https://www.addgene.org/Laurence_Pelletier/)
-- affichage des séuquences d'insert similaire à snapGene (Claude) + ajustement clipping du texte
+- affichage des séquences d'insert similaire à snapGene (Claude) + ajustement clipping du texte
 
 # 31/03/26
 
 ## global
 
-- ajout de l'option -g dans codonFrequency.py : restreint le calcul à un génome
+- ajout de l'option -g dans codonFrequency.py : restriction du calcul aux génomes indiqués (ou "all" pour tous les génomes)
+- ajout d'une largeur minimale dans printAssistant / printKoForm et printKiForm, pour ne pas altérer l'affichage à basses résolutions (mais page zoomée dans ce cas)
+- ajustement du bandeau pour la séléction du mode
+- correction d'un bug dans crisprSearch() : message d'erreur si séquence non trouvée dans le génome en mode classic
+
+## knock-out mode
+
+- pour les délétions via une paire de guides (excision et délétion du promoteur), séparation des résultats en 2 pages
+- ajout d'un bouton pour afficher les résultats pour la région en amont ou en aval de la délétion
 
 ## knock-in mode 
 
 - déplacement du récap des étapes du KI dans un fonction dédiée (printKiSteps) -> étapes avec tooltips + lien pour revenir à l'étape précédente
+- dans showDonor(), ajout d'un message pour qTAG : affichage des éléments sélectionnés et d'un lien vers la librairie de plasmides
+
+## à faire 
+
+- inverser ordre sites loxP pout qTAG en C-ter! + vérifier ordre de tous les tags
+- donner des id uniques pour les tableaux en mode KO par délétion
+- lister les changements dans /doc/changes.html
