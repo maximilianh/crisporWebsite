@@ -1264,9 +1264,13 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## global
 
-- prise en compte du MANE transcript
+- prise en compte du MANE transcript 
 
 ## knock-out mode
+
+- dans printGeneSelection / dbsearchGene : recherche par gene symbol, puis dropdown avec optgroup des transcrits correspondants
+    - problème : pour génomes avec gene symbol annotés / LOCXXXX : recherche longue
+    - arrêt de dbSearch si +30 gene symbols ont été trouvés
 
 - réparation du filtre du tableau lorsqu'un exon est sélecitonné
 - ajustement des noms des régions dans séquence / tableau en mode "promoteur" / "épissage"
@@ -1274,11 +1278,38 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## knock-in mode 
 
-- correction du formulaire de délection d'un transcriptId dans showDonor + retrait des params dupliqués dans KiResultsPage()
+- correction du formulaire de sélection d'un transcriptId dans showDonor + retrait des params dupliqués dans KiResultsPage()
 
 # notes
 
-- KO mode : sélection gene symbol puis transcript ID (par défaut, MANE select ou exons communs)
-- mouseover celphedia
+- KO mode : sélection gene symbol puis transcript ID (par défaut, MANE select ou exons communs) DONE
+- mouseover celphedia DONE
 - schéma étapes KI
-- ajouter PAM à pamlist
+- ajouter PAM à pamlist DONE
+
+# 30/03/26
+
+## global 
+
+- ajout mouseover Celphedia (= texte https://celphedia.eu/en/)
+
+## Knock-out mode
+
+- correction d'un bug du calcul des coordonnées en mode "délétion du promoteur" sur le brin +
+- finalisation du filtre de sortGuideData() par exon
+
+## knock-in mode 
+
+- ajout d'un récapitulatif des étapes de l'expérience
+- ajout des séquences des tags / markers qTAG (https://www.addgene.org/Laurence_Pelletier/)
+- affichage des séuquences d'insert similaire à snapGene (Claude) + ajustement clipping du texte
+
+# 31/03/26
+
+## global
+
+- ajout de l'option -g dans codonFrequency.py : restreint le calcul à un génome
+
+## knock-in mode 
+
+- déplacement du récap des étapes du KI dans un fonction dédiée (printKiSteps) -> étapes avec tooltips + lien pour revenir à l'étape précédente

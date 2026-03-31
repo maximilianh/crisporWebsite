@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import collections
 import timeit
+import argparse
 
 """
 for all genomes, writes a json file containing the codon frequency usage based on the longest transcript
@@ -41,6 +42,16 @@ revTbl = {
     "W": "W",
     "w": "w",
 }
+
+
+def parseArgs():
+    " setup logging, parse command line arguments and options. -h shows auto-generated help page "
+
+    parser = argparse.ArgumentParser(description="Writes of json file of codon frequency for all genomes."
+                                     )
+    parser.add_argument("-g", "--genomes", nargs="+", required=True, help="Run the script on specific genomes or all genomes in crispor/genomes if 'all'.")
+    args = parser.parse_args()
+    return args
 
 
 # ============= utils from crispor.py =============
@@ -281,19 +292,20 @@ def getExonSeq(org, uniqueExons):
     return seqMap
 
 
-def calcCodonFrequency():
+def calcCodonFrequency(genomes):
     """ for each genome, return a list of all exon sequences """
 
     aaTable = buildCodonTable(key="aa")
     allCodons = {}
     allGenomes = os.listdir(genomesDir)
     for genomeDir in allGenomes:
-        if genomeDir == "hg38":
+        if "all" not in genomes and genomeDir not in genomes:
             continue
         if isdir(join(genomesDir, genomeDir)):
             org = genomeDir
             allCodons[org] = collections.Counter()
 
+    nCalc = 0
     for org in allCodons:
         genomePath = join(genomesDir, org)
 
@@ -339,17 +351,22 @@ def calcCodonFrequency():
             jsonPath = join(genomePath, jsonFname)
             with open(jsonPath, "w", encoding="utf-8") as f:
                 json.dump(allCodons[org], f, indent=4, sort_keys=True)
+            nCalc += 1
+
+    return nCalc
 
 
 def main():
 
+    args = parseArgs()
+    genomes = args.genomes
+
     start = timeit.default_timer()
-
-    calcCodonFrequency()
-
+    nCalc = calcCodonFrequency(genomes)
     stop = timeit.default_timer()
+
     exTime = stop - start
-    print("Calculated codons frequencies in %ds" % exTime)
+    print("Calculated codons frequencies for %d genomes in %ds" % (nCalc, exTime))
 
 
 if __name__ == "__main__":

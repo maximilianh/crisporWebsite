@@ -276,12 +276,12 @@ multiPamDict = {
         "NGG",
         "NGA",
         "TTN"
-    ], "Commercially available nucleases (including only non-engineered PAMS)"),
+    ], "PAMs from commercially available nucleases (including only non-engineered PAMs)"),
     "pamless": ([
         "TNN",
         "NRN",
         "NYN"
-        ], "Commercially available nucleases (including lower specificity engineered PAMS)"),
+        ], "PAMs from commercially available nucleases (including lower specificity engineered PAMs)"),
     "plasmid": ([
 
         ],
@@ -566,26 +566,30 @@ taggingSeqs = {
         "(GGGGS)x2": "GGTGGTGGTGGTTCTGGTGGTGGTGGTTCT",
         "GGGGS": "GGAGGCGGCGGCAGC",
         "GSGGG": "GGATCCGGCGGAGGA",
+        "GSG-2A": "GGATCCGGA",
         "XTEN": "AGCGGCAGCGAGACTCCCGGGACCTCAGAGTCCGCCACACCCGAAAGT",
-        "Blast": "ATGC",
-        "Puro": "ATGC",
-        "Zeo": "ATGC",
-        "moxGFP": "ATGC",
-        "mScarlet": "ATGC",
-        "2A ribosomal skipping peptide": "ATGC",
-        "EF1α promoter": "ATGC",
+        "Blast": "ATGGCCAAGCCTTTGTCTCAAGAAGAATCCACCCTCATTGAAAGAGCAACGGCTACAATCAACAGCATCCCCATCTCTGAAGACTACAGCGTCGCCAGCGCAGCTCTCTCTAGCGACGGCCGCATCTTCACTGGTGTCAATGTATATCATTTTACTGGGGGACCTTGTGCAGAACTCGTGGTGCTGGGCACTGCTGCTGCTGCGGCAGCTGGCAACCTGACTTGTATCGTCGCGATCGGAAATGAGAACAGGGGCATCTTGAGCCCCTGCGGACGGTGCCGACAGGTGCTTCTCGATCTGCATCCTGGGATCAAAGCCATAGTGAAGGACAGTGATGGACAGCCGACGGCAGTTGGGATTCGTGAATTGCTGCCCTCTGGTTATGTGTGGGAGGGC",
+        "Puro": "ATGACCGAGTACAAGCCCACGGTGCGCCTCGCCACCCGCGACGACGTCCCCAGGGCCGTACGCACCCTCGCCGCCGCGTTCGCCGACTACCCCGCCACGCGCCACACCGTCGATCCGGACCGCCACATCGAGCGGGTCACCGAGCTGCAAGAACTCTTCCTCACGCGCGTCGGGCTCGACATCGGCAAGGTGTGGGTCGCGGACGACGGCGCCGCGGTGGCGGTCTGGACCACGCCGGAGAGCGTCGAAGCGGGGGCGGTGTTCGCCGAGATCGGCCCGCGCATGGCCGAGTTGAGCGGTTCCCGGCTGGCCGCGCAGCAACAGATGGAAGGCCTCCTGGCGCCGCACCGGCCCAAGGAGCCCGCGTGGTTCCTGGCCACCGTCGGCGTCTCGCCCGACCACCAGGGCAAGGGTCTGGGCAGCGCCGTCGTGCTCCCCGGAGTGGAGGCGGCCGAGCGCGCCGGGGTGCCCGCCTTCCTGGAGACCTCCGCGCCCCGCAACCTCCCCTTCTACGAGCGGCTCGGCTTCACCGTCACCGCCGACGTCGAGGTGCCCGAAGGACCGCGCACCTGGTGCAtgACCCGCAAGCCCGGTGCC",
+        "Zeo": "ATGGCCAAGTTGACCAGTGCCGTTCCGGTGCTCACCGCGCGCGACGTCGCCGGAGCGGTCGAGTTCTGGACCGACCGGCTCGGGTTCAGCCGGGACTTCGTGGAGGACGACTTCGCCGGTGTGGTCCGGGACGACGTGACCCTGTTCATCAGCGCGGTCCAGGACCAGGTGGTGCCGGACAACACCCTGGCCTGGGTGTGGGTGCGCGGCCTGGACGAGCTGTACGCCGAGTGGTCGGAGGTCGTGTCCACGAACTTCCGGGACGCCTCCGGGCCGGCCATGACCGAGATCGGCGAGCAGCCGTGGGGGCGGGAGTTCGCCCTGCGCGACCCGGCCGGCAACTGCGTGCACTTCGTGGCCGAGGAGCAGGAC",
+        "moxGFP": "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTGAACGGCCACAAGTTCTCCGTGCGGGGCGAGGGCGAGGGCGATGCCACCAACGGCAAGCTGACCCTGAAGTTCATCAGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGAGCTTCTCCCGCTACCCCGACCACATGAAGCGCCACGACTTCTTCAAGAGCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTCCTTCAAGGACGACGGCACCTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTTCAACTCCCACAACGTCTATATCACCGCCGACAAGCAGAAGAACGGCATCAAGGCCAACTTCAAGATCCGCCATAACGTGGAGGACGGCTCCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGTCCACCCAGTCCAAGCTGTCCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCACGGCATGGACGAGCTGTACAAG",
+        "2A ribosomal skipping peptide": "GCTACTAACTTCAGCCTGCTGAAGCAGGCCGGAGACGTGGAGGAGAACCCTGGACCT",
+        "EF1α promoter": "GGGCAGAGCGCACATCGCCCACAGTCCCCGAGAAGTTGGGGGGAGGGGTCGGCAATTGAACCGGTGCCTAGAGAAGGTGGCGCGGGGTAAACTGGGAAAGTGATGTCGTGTACTGGCTCCGCCTTTTTCCCGAGGGTGGGGGAGAACCGTATATAAGTGCAGTAGTCGCCGTGAACGTTCTTTTTCGCAACGGGTTTGCCGCCAGAACACAG",
+        "EF1α intron": "GTAAGTGCCGTGTGTGGTTCCCGCGGGCCTGGCCTCTTTACGGGTTATGGCCCTTGCGTGCCTTGAATTACTTCCACCTGGCTGCAGTACGTGATTCTTGATCCCGAGCTTCGGGTTGGAAGTGGGTGGGAGAGTTCGAGGCCTTGCGCTTAAGGAGCCCCTTCGCCTCGTGCTTGAGTTGAGGCCTGGCCTGGGCGCTGGGGCCGCCGCGTGCGAATCTGGTGGCACCTTCGCGCCTGTCTCGCTGCTTTCGATAAGTCTCTAGCCATTTAAAATTTTTGATGACCTGCTGCGACGCTTTTTTTCTGGCAAGATAGTCTTGTAAATGCGGGCCAAGATCTGCACACTGGTATTTCGGTTTTTGGGGCCGCGGGCGGCGACGGGGCCCGTGCGTCCCAGCGCACATGTTCGGCGAGGCGGGGCCTGCGAGCGCGGCCACCGAGAATCGGACGGGGGTAGTCTCAAGCTGGCCGGCCTGCTCTGGTGCCTGGCCTCGCGCCGCCGTGTATCGCCCCGCCCTGGGCGGCAAGGCTGGCCCGGTCGGCACCAGTTGCGTGAGCGGAAAGATGGCCGCTTCCCGGCCCTGCTGCAGGGAGCTCAAAATGGAGGACGCGGCGCTCGGGAGAGCGGGCGGGTGAGTCACCCACACAAAGGAAAAGGGCCTTTCCGTCCTCAGCCGTCGCTTCATGTGACTCCACGGAGTACCGGGCGCCGTCCAGGCACCTCGATTAGTTCTCGAGCTTTTGGAGTACGTCGTCTTTAGGTTGGGGGGAGGGGTTTTATGCGATGGAGTTTCCCCACACTGAGTGGGTGGAGACTGAAGTTAGGCCAGCTTGGCACTTGATGTAATTCTCCTTGGAATTTGCCCTTTTTGAGTTTGGATCTTGGTTCATTCTCAAGCCTCAGACAGTGGTTCAAAGTTTTTTTCTTCCATTTCAG",
+        "Cre": "ATGAGCAATTTACTGACCGTACACCAAAATTTGCCTGCATTACCGGTCGATGCAACGAGTGATGAGGTTCGCAAGAACCTGATGGACATGTTCAGGGATCGCCAGGCGTTTTCTGAGCATACCTGGAAAATGCTTCTGTCCGTTTGCCGGTCGTGGGCGGCATGGTGCAAGTTGAATAACCGGAAATGGTTTCCCGCAGAACCTGAAGATGTTCGCGATTATCTTCTATATCTTCAGGCGCGCGGTCTGGCAGTAAAAACTATCCAGCAACATTTGGGCCAGCTAAACATGCTTCATCGTCGGTCCGGGCTGCCACGACCAAGTGACAGCAATGCTGTTTCACTGGTTATGCGGCGGATCCGAAAAGAAAACGTTGATGCCGGTGAACGTGCAAAACAGGCTCTAGCGTTCGAACGCACTGATTTCGACCAGGTTCGTTCACTCATGGAAAATAGCGATCGCTGCCAGGATATACGTAATCTGGCATTTCTGGGGATTGCTTATAACACCCTGTTACGTATAGCCGAAATTGCCAGGATCAGGGTTAAAGATATCTCACGTACTGACGGTGGGAGAATGTTAATCCATATTGGCAGAACGAAAACGCTGGTTAGCACCGCAGGTGTAGAGAAGGCACTTAGCCTGGGGGTAACTAAACTGGTCGAGCGATGGATTTCcGTCTCTGGTGTAGCTGATGATCCGAATAACTACCTGTTTTGCCGGGTCAGAAAAAATGGTGTTGCCGCGCCATCTGCCACCAGCCAGCTATCAACTCGCGCCCTGGAAGGGATTTTTGAAGCAACTCATCGATTGATTTACGGCGCTAAGGATGACTCTGGTCAGAGATACCTGGCCTGGTCTGGACACAGTGCCCGTGTCGGAGCCGCGCGAGATATGGCCCGCGCTGGAGTTTCAATACCGGAGATCATGCAAGCTGGTGGCTGGACCAATGTAAATATTGTCATGAACTATATCCGTAACCTGGATAGTGAAACAGGGGCAATGGTGCGCCTGCTGGAAGATGGCGAC",
         "mStrayGold": "ATGC",
-        "mNeon": "ATGC",
-        "moxGFP": "ATGC",
-        "mScarlet": "ATGC",
-        "sTagRFP": "ATGC",
-        "miRFP670nano3": "ATGC",
-        "miniTurbo": "ATGC",
-        "ultraID": "ATGC",
-        "dTAG": "ATGC",
-        "FLAG": "ATGC",
-        "HA": "ATGC",
-        "V5": "ATGC",
+        "mNeon": "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCTCTCTCCCAGCGACACATGAGTTACACATCTTTGGCTCCATCAACGGTGTGGACTTTGACATGGTGGGTCAGGGCACCGGCAATCCAAATGATGGTTATGAGGAGTTAAACCTGAAGTCCACCAAGGGTGACCTCCAGTTCTCCCCCTGGATTCTGGTCCCTCATATCGGGTATGGCTTCCATCAGTACCTGCCCTACCCTGACGGGATGTCGCCTTTCCAGGCCGCCATGGTAGATGGCTCCGGATACCAAGTCCATCGCACAATGCAGTTTGAAGATGGTGCCTCCCTTACTGTTAACTACCGCTACACCTACGAGGGAAGCCACATCAAAGGAGAGGCCCAGGTGAAGGGGACTGGTTTCCCTGCTGACGGTCCTGTGATGACCAACTCGCTGACCGCTGCGGACTGGTGCAGGTCGAAGAAGACTTACCCCAACGACAAAACCATCATCAGTACCTTTAAGTGGAGTTACACCACTGGAAATGGCAAGCGCTACCGGAGCACTGCGCGGACCACCTACACCTTTGCCAAGCCAATGGCGGCTAACTATCTGAAGAACCAGCCGATGTACGTGTTCCGTAAGACGGAGCTCAAGCACTCCAAGACCGAGCTCAACTTCAAGGAGTGGCAAAAGGCCTTTACCGATGTGATGGGCATGGACGAGCTGTACAAG",
+        "mScarlet": "ATGGTGAGCAAGGGCGAGGCAGTGATCAAGGAGTTCATGCGGTTCAAGGTGCACATGGAGGGCTCCATGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCTCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAGGGCCTTCACCAAGCACCCCGCCGACATCCCCGACTACTATAAGCAGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGCCGTGACCGTGACCCAGGACACCTCCCTGGAGGACGGCACCCTGATCTACAAGGTGAAGCTCCGCGGCACCAACTTCCCTCCTGACGGCCCCGTAATGCAGAAGAAGACAATGGGCTGGGAAGCGTCCACCGAGCGGTTGTACCCCGAGGACGGCGTGCTGAAGGGCGACATTAAGATGGCCCTGCGCCTGAAGGACGGCGGCCGCTACCTGGCGGACTTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGATGCCCGGCGCCTACAACGTCGACCGCAAGTTGGACATCACCTCCCACAACGAGGACTACACCGTGGTGGAACAGTACGAACGCTCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAG",
+        "mCherry": "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTAG",
+        "sTagRFP": "ATGGTGTCTAAGGGCGAGGAACTGATTAAGGAGAATATGCACATGAAGCTGTACATGGAGGGCACCGTGAACAACCACCACTTCAAATGCACCTCCGAGGGCGAAGGCAAGCCCTACGAGGGCACCCAGACCATGAGAATCAAGGTGGTCGAGGGCGGCCCTCTCCCCTTCGCCTTCGACATCCTGGCTACCAGCTTCATGTACGGCAGCAGAACCTTCATCAACCACACCCAGGGCATCCCCGATTTCTTTAAGCAGTCCTTCCCAGAGGGCTTCACATGGGAGAGAGTCACCACATACGAGGACGGGGGCGTGCTGACCGCCACCCAGGACACCAGCCTCCAGGACGGCTGCCTCATCTACAACGTCAAGATCAGAGGGGTGAACTTCCCATCCAACGGCCCTGTGATGCAGAAGAAAACACTCGGCTGGGAGGCCAACACCGAGATGCTGTACCCCGCTGACGGCGGCCTGGAAGGCAGAACCGtCATGGCCCTGAAGCTCGTGGGCGGGGGCCACCTGATCTGCAACTTCAAGACCACATACAGGTCCAAGAAACCCGCTAAGAACCTGAAGATGCCCGGAGTGTACTATGTGGACCACAGACTGGAGAGAATCAAGGAGGCCGACAAAGAGACATACGTCGAGCAGCACGAGGTGGCTGTGGCCAGATACTGCGACCTCCCTAGCAAACTGGGCCACAAGCTGAACGGCATGGACGAGCTGTACAAG",
+        "miRFP670nano3": "ATGGCAAACCTGGACAAGATGCTGAACACCACCGTGACCGAGGTGCGCAAGTTCCTGCAAGCAGACAGAGTGTGCGTGTTCAAGTTCGAGGAAGATTACTCCGGCACCGTCAGCCACGAAGCCGTGGACGACAGATGGATTAGCATCCTGAAAACCCAGGTGCAGGACAGATACTTCATGGAAACCAGAGGCGAGGAATACGTCCACGGCAGATACCAGGCCATCGCCGACATCTACACAGCCAATCTGGTCGAGTGCTACAGAGACCTGCTGATCGAGTTTCAGGTGCGGGCCATTCTGGCTGTCCCCATCCTGCAAGGCAAGAAGCTGTGGGGCCTGCTGGTGGCCCACCAACTGGCCGGCCCTCGGGAGTGGCAGACCTGGGAAATCGACTTCCTGAAACAGCAAGCCGTGGTGATGGGCATCGCCATCCAGCAGAGC",
+        "miniTurbo": "ATGGCGATCCCGCTGCTGAACGCTAAACAGATTCTGGGACAGCTGGACGGCGGGAGCGTGGCAGTCCTGCCTGTGGTCGACTCCACCAATCAGTACCTGCTGGATCGAATCGGCGAGCTGAAGAGTGGGGATGCTTGCATTGCAGAATATCAGCAGGCAGGGAGAGGAAGCAGAGGGAGGAAATGGTTCTCTCCTTTTGGAGCTAACCTGTACCTGAGTATGTTTTGGCGCCTGAAGCGGGGACCAGCAGCAATCGGCCTGGGCCCGGTCATCGGAATTGTCATGGCAGAAGCGCTGCGAAAGCTGGGAGCAGACAAGGTGCGAGTCAAATGGCCCAATGACCTGTATCTGCAGGATAGAAAGCTGGCAGGCATCCTGGTGGAGCTGGCCGGAATAACAGGCGATGCTGCACAGATCGTCATTGGCGCCGGgatTAACGTGGCTATGAGGCGCGTGGAGGAAAGCGTGGTCAATCAGGGCTGGATCACACTGCAGGAAGCAGGGATTAACCTGGACAGGAATACTCTGGCCGCTATGCTGATCCGAGAGCTGCGGGCAGCCCTGGAACTGTTCGAGCAGGAAGGCCTGGCTCCATATCTGTCACGGTGGGAGAAGCTGGATAACTTCATCAATAGACCCGTGAAGCTGATCATTGGGGACAAAGAGATTTTCGGGATTAGCCGGGGGATTGATAAACAGGGAGCCCTGCTGCTGGAACAGGACGGAGTTATCAAACCCTGGATGGGCGGAGAAATCAGTCTGCGGTCTGCCGAAAAG",
+        "ultraID": "ATGTTCAAGAACCTGATCTGGCTGAAGGAGGTGGACAGCACCCAGGAGAGACTGAAGGAGTGGAACGTGTCCTACGGCACCGCCCTGGTGGCCGACAGACAGACCAAGGGCAGAGGCGGCCCCGGCAGAAAGTGGCTGAGCCAGGAGGGCGGCCTGTACTTCAGCTTCCTGCTGAACCCCAAGGAGTTCGAGAACCTGCTGCAGCTGCCCCTGGTGCTGGGCCTGAGCGTGAGCGAGGCCCTGGAGGAGATCACCGAGATCCCCTTCAGCCTGAAGTGGCCCAACGACGTGTACTTCCAGGAGAAGAAGGTGAGCGGCGTGCTGTGCGAGCTGAGCAAGGACAAGCTGATCGTGGGCATCGGCATCAACGTGAACCAGAGAGAGATCCCCGAGGAGATCAAGGACAGAGCCACCACCCTGTACGAGATCACCGGCAAGGACTGGGACAGAAAGGAGGTGCTGCTGAAGGTGCTGAAGAGAATCAGCGAGAACCTGAAGAAGTTCAAGGAGAAG",
+        "dTAG": "GGAGTGCAGGTGGAAACCATCTCCCCAGGAGACGGGCGCACCTTCCCCAAGCGCGGCCAGACCTGCGTGGTGCACTACACCGGGATGCTTGAAGATGGAAAGAAAGTTGATTCCAGCCGGGACAGAAACAAGCCCTTTAAGTTTATGCTAGGCAAGCAGGAGGTGATCCGAGGCTGGGAAGAAGGGGTTGCCCAGATGAGTGTGGGTCAGAGAGCCAAACTGACTATATCTCCAGATTATGCCTATGGTGCCACTGGGCACCCAGGCATCATCCCACCACATGCCACTCTCGTCTTCGATGTGGAGCTTCTAAAACTGGAA",
+        "3XFLAG": "GATTACAAGGATGACGACGATAAGGACTATAAGGACGATGATGACAAGGACTACAAAGATGATGACGATAAA",
+        "3XHA": "TACCCATACGATGTTCCAGATTACGCTTACCCCTACGACGTGCCTGATTATGCCTACCCATACGATGTGCCAGACTATGCC",
+        "V5": "GGCAAGCCCATCCCCAACCCCCTGCTGGGCCTGGACAGCACC",
+        "lox66": "ATAACTTCGTATAGCATACATTATACGAACGGTA",
+        "lox71": "TACCGTTCGTATAGCATACATTATACGAAGTTAT",
         "loxP": "ATAACTTCGTATAGCATACATTATACGAAGTTAT",
         "SBP": "GACGAGAAGACCACTGGTTGGCGAGGTGGACACGTTGTTGAAGGACTGGCTGGGGAACTTGAACAACTTCGTGCACGACTGGAGCATCACCCACAAGGTCAACGTGAACCA",
         "3Flag": "GACTACAAAGACCATGACGGTGATTATAAAGATCATGACATCGATTACAAGGATGACGATGACAAG",
@@ -606,13 +610,14 @@ tagToColor = {
         "Zeo": "#bfbfbf",
         "moxGFP": "#66ff33",
         "mScarlet": "#ff3300",
-        "2A ribosomal skipping peptide": "#bfbfbf",
-        "EF1α promoter": "#bfbfbf",
+        "2A ribosomal skipping peptide": "#cc99ff",
+        "EF1α promoter": "#cc99ff",
         "mStrayGold": "#ffcc66",
         "mNeon": "#99ff66",
         "moxGFP": "#66ff33",
         "mScarlet": "#ff3300",
-        "sTagRFP": "#ff3300",
+        "mCherry": "#ff3300",
+        "sTagRFP": "#9932CC",
         "miRFP670nano3": "#ff3300",
         "miniTurbo": "#bfbfbf",
         "ultraID": "#bfbfbf",
@@ -625,6 +630,8 @@ tagToColor = {
         "HA": "#bfbfbf",
         "V5": "#bfbfbf",
         "loxP": "#ffff66",
+        "lox66": "#ffff66",
+        "lox71": "#ffff66",
         "none": "#bfbfbf"
         }
 # labels and descriptions of eff. scores
@@ -4024,7 +4031,7 @@ def mergeGuideInfo(
     return guideData, guideScores, hasNotFound, pamIdToSeq
 
 
-def sortGuideData(guideData, sortBy, returnGuideData=False):
+def sortGuideData(guideData, sortBy, returnGuideData=False, exonSort=False):
     "sorts the guide data according to the value of sortBy"
 
     if sortBy == "main":
@@ -4051,21 +4058,11 @@ def sortGuideData(guideData, sortBy, returnGuideData=False):
     else:
         errAbort("Unknown sortBy value. This is a bug. Please contact us.")
 
-    def getPrefix(row):
-        pamId = row[6]
-        if "." in pamId:
-            prefix = pamId.split(".")[0]
-            if prefix.isdigit():
-                return (0, int(prefix))
-            return (0, 0)
-        return (0, 0)
+    guideData.sort(reverse=reverse, key=sortFunc)
 
-    if returnGuideData:
-        res = sorted(guideData, reverse=reverse, key=sortFunc)
-        return sorted(res, key=getPrefix)
-
-    else:
-        guideData.sort(reverse=reverse, key=sortFunc)
+    if exonSort:
+        getPrefix = lambda row: int((row[6].split(".")[0]))
+        guideData.sort(key=getPrefix)
 
 
 def printDownloadTableLinks(batchId, addTsv=False):
@@ -4360,7 +4357,7 @@ def printTableHead(
     tableWidth = 1650
     print("""<div style="width: %dpx; display: table;">""" % tableWidth)
     print(
-            '<table id="otTable" style="background:white; table-layout:fixed; width: 100%;">'
+            '<table id="otTableHeader" style="background:white; table-layout:fixed; width: 100%;">'
     )
 
     print("""<thead style="position:sticky;">""")
@@ -4377,7 +4374,12 @@ def printTableHead(
     )
     print("</th>")
 
-    print('<th style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:235px; border-bottom:none">Guide Sequence + <i>PAM</i><br>')
+    # in KI mode, the filter checkboxed are removed, making the column wider
+    if pamFullName:
+        guideColWidth = 235
+    else:
+        guideColWidth = 245
+    print('<th style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%spx; border-bottom:none">Guide Sequence + <i>PAM</i><br>' % guideColWidth)
 
     if not pamFullName:
         print("+ Restriction Enzymes")
@@ -4829,6 +4831,9 @@ def showGuideTable(
     highlightedGuidesIds = []
     highlightedGuidesPos = []
 
+    print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: fixed; max-height: 75vh;">')
+    print('<table id="otTable" style="table-layout: fixed; width: 100%;">')
+    print('<tobody>')
     for guideIdx, guideRow in enumerate(guideData):
         (
             guideScore,
@@ -4899,8 +4904,6 @@ def showGuideTable(
         if geneId is not None:
             exonId = pamId.split(".")[0]
             classStr += " exonRow exon-" + exonId
-        print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: fixed; max-height: 75vh;">')
-        print('<table id="otTable" style="table-layout: fixed; width: 100%;">')
         print(
             '<tr id="%s" class="%s" style="border-left: 5px solid %s">'
             % (pamId, classStr, color)
@@ -4956,7 +4959,12 @@ def showGuideTable(
         print("</td>")
 
         # sequence with variants and PCR primer link
-        print("""<td style="width:235px; background-color:%s;">""" % backgroundColor)
+
+        if pamFullName:
+            guideColWidth = 235
+        else:
+            guideColWidth = 245
+        print("""<td style="width:240px; background-color:%s;">""" % backgroundColor)
         print("<small>")
 
         # guide sequence + PAM sequence
@@ -5273,6 +5281,8 @@ def showGuideTable(
 
         print("</tr>")
         count = count + 1
+    
+    print('</tbody>')
     print("</table>")
     print("</div>")
     print("</div>")
@@ -6705,7 +6715,6 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     """search fasta file against genome, filter for pam matches and write to bedFName
     optionally write status updates to work queue. Remove faFname.
     """
-    # added "multi" parameter to process multiple sequence processing
     batchInfo = readBatchAsDict(batchId)
 
     if genome == "noGenome":
@@ -7110,9 +7119,10 @@ def printOrgDropDown(lastorg, genomes):
     )
 
 
-def dbsearchGene(params):
+def dbsearchGene(params, onlySymbol=False):
     """outputs gene IDs corresponding to the selected organism in json format
-    TODO : store the exon count and retrieve it in the cgi params"""
+    optionally returns the selected gene symbol and its corresponding transcript
+    """
     print("Content-type: application/json\n")
 
     org = cgiGetStr(params, "org", "")
@@ -7125,7 +7135,7 @@ def dbsearchGene(params):
     genomePath = join(genomesDir, org)
 
     gpFiles = [f for f in os.listdir(genomePath) if f.endswith(".gp")]
-    if not gpFiles:
+    if len(gpFiles) == 0:
         print(
             json.dumps(
                 {"results": [{"id": "", "text": "No gene files for this organism"}]}
@@ -7134,6 +7144,7 @@ def dbsearchGene(params):
         sys.exit(0)
 
     matches = []
+
     # GenePred format : 0: gene name ; 1: chr ; 2: strand ; 3: TSS ; 4: TES ; 5: CDS start ; 6: CDS end ; 7: nb. exons ; 8: exons start ; 9: exons end ; 10: Score ; 11: alt Name.
     for gpFile in gpFiles:
         if "Select" in gpFile:
@@ -7141,7 +7152,10 @@ def dbsearchGene(params):
         else:
             isMane = ""
         with open(join(genomePath, gpFile), "r") as genePred:
+            foundGenes = 0
             for line in genePred:
+                if foundGenes > 100:
+                    break
                 cols = line.strip().split("\t")
                 mainId = cols[0]
                 isAltName = len(cols) > 11
@@ -7149,41 +7163,82 @@ def dbsearchGene(params):
                     altId = cols[11]
                 else:
                     altId = ""
-                if term in mainId.lower() or term in altId.lower():
+
+                if isAltName and term in altId.lower() and onlySymbol is True:
+                    foundGenes += 1
                     exonCount = cols[7]
+                    matches.append((altId, mainId, exonCount, isMane))
+
+                elif term in mainId.lower() or term in altId.lower() and onlySymbol is False:
+                    exonCount = cols[7]
+
                     if isAltName:
                         matches.append(
                             {
                                 "id": mainId,
                                 "text": "%(mainId)s (%(altId)s%(isMane)s) - %(exonCount)s exons" % locals(),
-                                "exonCount": exonCount,
+                                "exonCount": exonCount
                             }
                         )
                     else:
                         matches.append(
                             {"id": mainId, "text": mainId, "exonCount": exonCount}
                         )
+    if onlySymbol:
+        # select2 data formats : https://select2.org/data-sources/formats
 
-    seen = set()
-    unique_matches = []
-    for match in matches:
-        # Use a tuple to check for uniqueness to handle unhashable dicts
-        match_tuple = tuple(sorted(match.items()))
-        if match_tuple not in seen:
-            unique_matches.append(match)
-            seen.add(match_tuple)
+        symDicts = []
+        seen = set()
+        # merge transcripts belonging to the same gene
+        currentSym = None
+        for match in matches:
+            sym, transcript, exonCount, isMane = match
+            if sym in seen:
+                for symDict in symDicts:
+                    selSym = symDict["text"]
+                    transList = symDict["children"]
+                    if selSym == sym:
+                        transList.append({
+                            "id": transcript,
+                            "text": "%s (%s exons%s)" % (transcript, exonCount, isMane),
+                            "exonCount": exonCount
+                            })
 
-    print(json.dumps({"results": unique_matches[:30]}))
-    sys.exit(0)
+            else:
+                symDicts.append({"text": sym,
+                                 "children": [{
+                                     "id": transcript,
+                                     "text": "%s (%s exons)" % (transcript, exonCount),
+                                     "exonCount": exonCount
+                                    }]
+                                 })
+
+                seen.add(sym)
+
+        print(json.dumps({"results": symDicts[:30]}))
+        sys.exit(0)
+
+    else:
+        seen = set()
+        uniqueMatches = []
+        for match in matches:
+            # Use a tuple to check for uniqueness to handle unhashable dicts
+            match_tuple = tuple(sorted(match.items()))
+            if match_tuple not in seen:
+                uniqueMatches.append(match)
+                seen.add(match_tuple)
+
+        print(json.dumps({"results": uniqueMatches[:30]}))
+        sys.exit(0)
 
 
-def printGeneSelection():
+def printGeneSelection(paramName, onlySymbol=False):
     "prints the searchable dropdown menu for gene/transcript selection"
 
     scriptName = basename(__file__)
     print(
         """
-    <select class="js-select-gene" name="koGeneId" id="geneSelection" style="width: 80%%;"></select>
+    <select class="js-select-gene" name="%s" id="geneSelection" style="width: 80%%;"></select>
     <input type="hidden" name="exonCount" id="exonCountVal">
     <br>
     <script>
@@ -7208,8 +7263,14 @@ def printGeneSelection():
                 },
                 cache: true
             },
-            placeholder: 'Search for a transcript by typing a gene symbol or transcript ID',
+            placeholder: 'Type a gene symbol and select a corresponding transcript',
             minimumInputLength: 2,
+        });
+
+        $('#genomeDropDown').on('change', function() {
+            // clear the selection when organism changes
+            gene_select.val(null).trigger('change');
+            $('#exonCountVal').val('');
         });
 
         gene_select.on('select2:select', function (e) {
@@ -7219,15 +7280,10 @@ def printGeneSelection():
             }
         });
 
-        $('#genomeDropDown').on('change', function() {
-            // clear the selection when organism changes
-            gene_select.val(null).trigger('change');
-            $('#exonCountVal').val('');
-        });
     });
     </script>
-    """
-        % scriptName
+
+    """ % (paramName, scriptName)
     )
 
 
@@ -7352,7 +7408,7 @@ def printForm(params):
         % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
     )
 
-    printGeneSelection()
+    printGeneSelection("koGeneId")
 
     print("""<div style="margin-top:12px; margin-bottom:12px">""")
     print(
@@ -9071,9 +9127,11 @@ def KiResultsPage(params, batchId, download=False):
             transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
 
         print(
-            """<div class="title" style="text-align:center; margin-bottom:50px;margin-top:50px;"><i>%s</i> : %s %s </div><br> """
+            """<div class="title" style="text-align:center; margin-bottom:12px;margin-top:12px;"><i>%s</i> : %s %s </div><br> """
             % (dbInfo.scientificName, seqMsg, transcriptUrl)
         )
+
+        printKiSteps(batchId, 1)
 
         if geneModel:
             exonSeqsPlaceholder = []
@@ -9260,6 +9318,52 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
+def printKiSteps(batchId: str, step: int):
+    """
+    prints an interactive recap of the workflow for KI experiments
+    """
+
+    if step not in [1, 2, 3]:
+        return
+    # make the current step bold
+    else:
+        stepStyles = ["opacity: 1; font-weight: 1000;" if i == step else "opacity: 0.5;" for i in range(1, 4)]
+
+    backUrl = basename(__file__) + "?" + "batchId=" + batchId
+
+    # first step
+    guideHtml = """ <a href="%s" style="%s; font-size: 1.25em;">Select suitable guides</a> """ % (backUrl, stepStyles[0])
+
+    donorDesignText = "Once you selected an appropriate guide sequence, click on 'design donor DNA' under the 'guide sequence + PAM' column of the table.<br> Note that you can choose to recode the donor DNA sequence to avoid its cleavage.In this cas, the design willy be specific to its relative guide sequence, as mutations will be introduced to avoid re-cut with this specific guide. Otherwise, all guides that don't have the 'donor needs recoding' flag (highlighted in blue on the sequence below) can be used with the same, non recoded donor DNA design."
+
+    # second step
+    if step == 3:
+        # make the "design donor DNA" step clibkable only as a return link in the last step, to avoid confusion
+        donorBackUrl = printBackLink(toDonorPage=True, returnUrl=True)
+        donorDesignHtml = """<a href="%s" class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</a> """ % (donorBackUrl, donorDesignText, stepStyles[0])
+
+    else:
+        donorDesignHtml = """<div class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</div> """ % (donorDesignText, stepStyles[1])
+
+    # third step
+    donorDisplayHtml = """ <div class="tooltipsterInteract" title="" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Visualize and download guide + donor DNA</div> """ % stepStyles[2]
+
+    # print all steps
+    print(
+        """<div style="text-align: center; margin-bottom: 48px;">
+            <p>workflow overview <small>(hover on each step to get details or click on a previous step to go back)</small></p>
+            <div style="display: flex; flex-direction: row; justify-content: center;">
+                %s
+                <div style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8594</div>
+                %s
+                <div style="font-weigth: bold; font-size: 1.25em;">&nbsp &#8594</div>
+                %s
+            </div>
+        </div>
+       """ % (guideHtml, donorDesignHtml, donorDisplayHtml)
+      )
+
+
 def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats, params):
     """Dispays the donor DNA sequence"""
 
@@ -9412,7 +9516,6 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     else:
         insertText = "insert sequence"
 
-    printBackLink(toDonorPage=True)
 
     print(
         """
@@ -9467,6 +9570,8 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     )
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
+
+    printKiSteps(batchId, 3)
 
     '''
     print(
@@ -9823,7 +9928,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
             printGeneModel(geneModel, exonSeqs, koMethod)
         print(
-            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (for hybridization of the guides).<br>
+            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (to allow hybridization of the spacer sequence of the guide).<br>
             In-frame methionines are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.</p>"""
         )
 
@@ -9894,7 +9999,12 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             )
     # showSeqDownloadMenu(batchId)
 
-    sortGuideData(allGuideData, sortBy)
+    # for experiements using a pair of guides, sort the table by each target sequence
+    if koMethod in ["excision", "promoter"]:
+        sortGuideData(allGuideData, sortBy, exonSort=True)
+    else:
+        sortGuideData(allGuideData, sortBy)
+
     if download is False:
         showGuideTable(
             allGuideData,
@@ -9953,7 +10063,9 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
 
 
 def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None):
-    "displays the gene model, from CDS start to CDS end"
+    """
+    Displays the gene model, from CDS start to CDS end
+    Optionally make target exons as buttons"""
 
     if koMethod == "frameshift" and exonSeqs:
         thirdLen = 0
@@ -10050,6 +10162,7 @@ function toggleExonSeq(selectedValue) {
 
     print(
         """ <div id="geneModel" style="
+          width: 1650px;
           overflow-x:scroll;
           display:flex;
           align-items:center;
@@ -10072,23 +10185,25 @@ function toggleExonSeq(selectedValue) {
                 color = tagToColor[tagName]
                 tagMouseOver = 'class="tooltipsterInteract" title="%s (%dbp)"' % (tagName, len(tagSeq))
                 if len(tagSeq) < 25:
-                    tagName = ""
-                elif len(tagSeq) < 50 and len(tagName) > 5:
-                    tagName = ""
+                    tagName = tagName[0] + "."
+                elif len(tagName) > 0 and len(tagSeq) / len(tagName) < 10:
+                    tagName = tagName[0:3].strip(" ") + "."
 
                 tagBox = (
                     """<div
                     %s
                     style="
-                    width:%dpx;
+                    width: %dpx;
                     height: 25px;
-                    border: 0.5px solid gray;
                     background-color: %s;
+                    box-shadow: 0 0 0 0.5px gray;
+                    clip-path: polygon(0 0, calc(100%% - 10px) 0, 100%% 50%%, calc(100%% - 10px) 100%%, 0 100%%);
                     text-align:center;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     flex-shrink: 0;
+                    padding-right: 10px;
                     ">
                     %s
                     </div> """
@@ -10107,13 +10222,15 @@ function toggleExonSeq(selectedValue) {
                     style="
                     width:%dpx;
                     height: 25px;
-                    border: 0.5px solid gray;
                     background-color: #ffff66;
+                    box-shadow: 0 0 0 0.5px gray;
+                    clip-path: polygon(0 0, calc(100%% - 10px) 0, 100%% 50%%, calc(100%% - 10px) 100%%, 0 100%%);
                     text-align:center;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     flex-shrink: 0;
+                    padding-right: 10px;
                     ">
                     %s
                     </div> """ % (tagMouseOver, len(insertSeq), insertSeqText)
@@ -10149,13 +10266,10 @@ function toggleExonSeq(selectedValue) {
             else:
                 exonText = ""
 
-            if length < 50:
-                exonMouseOver = (
-                    'class="tooltipsterInteract" title="coding exon %d"'
-                    % featureIdOneBased
-                )
-            else:
-                exonMouseOver = ""
+            exonMouseOver = (
+                'class="tooltipsterInteract" title="coding exon %d (%d bp)"'
+                % (featureIdOneBased, length)
+            )
 
             if exonSeqs:
                 if koMethod == "frameshift":
@@ -10323,13 +10437,21 @@ def printTeforBodyStart():
         % (HTMLPREFIX)
     )
     print(
-        """<a href='https://celphedia.eu/en/' target="_blank"><img style='width:150px; margin-left:25px' src='%simage/logo_Celphedia.jpg' alt='Celphedia'></a>"""
-        % (HTMLPREFIX)
+        """
+        <a class="tooltipsterInteract" title="CELPHEDIA (The National Infrastructure for model organisms in health and biomedical research) is a national operational research infrastructure distributed over the French territory.<br>Its mission is to support academic and industrial scientific community to accelerate discoveries in biology and improve biomedical research. To this end, CELPHEDIA operates in 3 main activities with respect of ethical principles and animal welfare.<br>
+        <ul>
+            <li>Standardized service offers, in the areas of creation, functional exploration, archiving and distribution of animal models, necessary for fundamental research and preclinical approaches: rodents with the mouse as the leader, non-human primates and non-mammals including aquatic vertebrates.</li>
+            <li>Research and development activity for new technological offers.</li>
+            <li>Training courses adapted to users needs either for the use of animals in research with respect to institutional regulations or to develop specific technological skills.</li>
+        </ul>" href='https://celphedia.eu/en/' target="_blank"><img style='width:150px; margin-left:25px' src='%simage/logo_Celphedia.jpg' alt='Celphedia'></a>
+        """ % (HTMLPREFIX)
     )
+    '''
     print(
         """<a href='crispor.py'><img style='width:70px; margin-left:25px' src='%simage/logo_tefor.png' alt=''></a>"""
         % (HTMLPREFIX)
     )
+    '''
     print("</div>")
 
     print('<div id="bd">')
@@ -12028,9 +12150,10 @@ def otPrimerPage(params):
     )
 
 
-def printBackLink(toDonorPage=False):
+def printBackLink(toDonorPage=False, returnUrl=False):
     """print a link back to the main batch page
     optionally, print a link back to the donor design page
+    or returns the url
     """
 
     newParams = {}
@@ -12051,7 +12174,10 @@ def printBackLink(toDonorPage=False):
     paramStr = "&".join(paramStrs)
     url = basename(__file__) + "?" + paramStr
 
-    print(("<p><a href='%s'>&larr; %s </a></p>" % (url, linkText)))
+    if returnUrl:
+        return url
+    else:
+        print("<p><a href='%s'>&larr; %s </a></p>" % (url, linkText))
 
 
 def microHomPage(params):
@@ -12864,7 +12990,7 @@ def printKoForm(params):
           """
     )
 
-    printGeneSelection()
+    printGeneSelection("koGeneId")
 
     print(
         """
@@ -12959,46 +13085,87 @@ def printTagsAndLinkers():
     """
     )
 
-    # tags and linkers
-    # qTAG cassette elements
-    tags = ["SBP", "3Flag", "SBP3Flag", "3FlagSBP", "eGFP", "Streptavidin"]
-    linkers = ["GGGGS", "GSGGG", "(GGGGS)x2", "XTEN"]
+    # tags and linkers options
+    tags = {
+            "Fluorescent proteins": [
+                "eGFP",
+                "mStrayGold",
+                "mNeon",
+                "moxGFP",
+                "mScarlet",
+                "mCherry",
+                "sTagRFP",
+                "miRFP670nano3"
+                ],
+            "Proximity Biotinylation": [
+                "miniTurbo",
+                "ultraID"
+                ],
+            "Targeted degradation": [
+                "dTAG"
+                ],
+            "Epitopes": [
+                "3XFLAG",
+                "3XHA",
+                "V5",
+                "SBP",
+                "SBP3Flag",
+                "3FlagSBP",
+                "Streptavidin"
 
+                ]
+            }
+
+    linkers = {
+            "flexible linker": [
+                "GGGGS",
+                "GSGGG",
+                "(GGGGS)x2",
+                "XTEN"],
+            "rigid linkers": [
+                "",
+                ],
+            "multimer linkers": [
+                ""
+                ]
+            }
+
+    # qTAG cassette elements
     markers = {
-            "Mammalian selection": {
+            "Mammalian selection": [
                 "Blast",
                 "Puro",
                 "Zeo"
-                },
-            "Fluorescent selection": {
+                ],
+            "Fluorescent selection": [
                 "moxGFP",
                 "mScarlet"
-                }
+                ]
             }
 
     expressionSeqs = ["2A ribosomal skipping peptide", "EF1α promoter"]
 
     qTags = {
-            "Fluorescent proteins": {
+            "Fluorescent proteins": [
                 "mStrayGold",
                 "mNeon",
                 "moxGFP",
                 "mScarlet",
                 "sTagRFP",
                 "miRFP670nano3"
-                },
-            "Proximity Biotinylation": {
+                ],
+            "Proximity Biotinylation": [
                 "miniTurbo",
                 "ultraID"
-                },
-            "Targeted degradation": {
+                ],
+            "Targeted degradation": [
                 "dTAG"
-                },
-            "Epitopes": {
-                "FLAG",
-                "HA",
+                ],
+            "Epitopes": [
+                "3XFLAG",
+                "3XHA",
                 "V5"
-                }
+                ]
             }
 
     print(
@@ -13012,8 +13179,12 @@ def printTagsAndLinkers():
          <option selected="selected"></option>
        """
     )
-    for linker in linkers:
-        print("""<option value="%s">%s</option>""" % (linker, linker))
+    for linkerType in linkers:
+        print("""<optgroup label="%s">""" % linkerType)
+        for linker in linkers[linkerType]:
+            print("""<option value="%s">%s</option>""" % (linker, linker))
+        print("</optgroup>")
+
     print("</select>")
 
     print("</div>")
@@ -13026,8 +13197,12 @@ def printTagsAndLinkers():
           <option selected="selected"></option>
         """
     )
-    for tag in tags:
-        print("""<option value="%s">%s</option>""" % (tag, tag))
+    for tagType in tags:
+        print("""<optgroup label="%s">""" % tagType)
+        for tag in tags[tagType]:
+            print("""<option value="%s">%s</option>""" % (tag, tag))
+        print("</optgroup>")
+
     print(
         """</select>
           </div>"""
@@ -13331,7 +13506,7 @@ function changeSeqCase(value) {
           """
     )
 
-    printGeneSelection()
+    printGeneSelection("koGeneId")
 
     print(
         """
@@ -13720,8 +13895,6 @@ def processCustomInsertSeq(startSeq, endSeq):
 def getInsertSeq(linkerSeq, tagSeq, markerSeq, expressionSeq, qTag, insertPos):
     "from a tag and a linker sequence, return the insert sequence to be used for the HDR donor"
 
-    loxSeq = "loxP"
-
     if (linkerSeq and tagSeq) or (linkerSeq and tagSeq and markerSeq and expressionSeq and qTag):
         if insertPos == "Nter":
             insertSeq = taggingSeqs[tagSeq] + taggingSeqs[linkerSeq]
@@ -13732,11 +13905,11 @@ def getInsertSeq(linkerSeq, tagSeq, markerSeq, expressionSeq, qTag, insertPos):
 
     elif markerSeq and expressionSeq and qTag:
         if insertPos == "Nter":
-            insertSeq = taggingSeqs[loxSeq] + taggingSeqs[markerSeq] + taggingSeqs[expressionSeq] + taggingSeqs[loxSeq] + taggingSeqs[qTag]
-            tagNames = [loxSeq, markerSeq, expressionSeq, loxSeq, qTag]
+            insertSeq = taggingSeqs["lox71"] + taggingSeqs[markerSeq] + taggingSeqs[expressionSeq] + taggingSeqs["lox66"] + taggingSeqs[qTag]
+            tagNames = ["lox71", markerSeq, expressionSeq, "lox66", qTag]
         else:
-            insertSeq = taggingSeqs[qTag] + taggingSeqs[loxSeq] + taggingSeqs[expressionSeq] + taggingSeqs[markerSeq] + taggingSeqs[loxSeq]
-            tagNames = [qTag, loxSeq, expressionSeq, markerSeq, loxSeq]
+            insertSeq = taggingSeqs[qTag] + taggingSeqs["lox71"] + taggingSeqs[expressionSeq] + taggingSeqs[markerSeq] + taggingSeqs["lox66"]
+            tagNames = [qTag, "lox71", expressionSeq, markerSeq, "lox66"]
 
     return tagNames, insertSeq
 
@@ -13848,9 +14021,9 @@ def getGenePos(geneID, org, method, targetLen):
     if method == "promoter":
         if strand == "+":
             tss = geneInfo["txStart"]
-            promoterUpPos = (tss, tss - 100)
-            downEnd = promoterUpPos - targetLen
-            promoterDownPos = (downEnd - 100, downEnd)
+            promoterDownPos = (tss - 100, tss)
+            upEnd = promoterDownPos[1] - targetLen
+            promoterUpPos = (upEnd - 100, upEnd)
 
         else:
             tss = geneInfo["txEnd"]
@@ -16381,7 +16554,7 @@ def donorDesignPage(params):
     # save guide Info in params for recoding
     guideInfo = (pamSeq, guideStart, guideStrand)
 
-    printBackLink()
+    printKiSteps(batchId, 2)
 
     print("""
     <script>
@@ -16555,7 +16728,10 @@ def donorDesignPage(params):
 
         print("<p>Insertion of a %sbp sequence in %s</p>" % (len(insertSeq), insertText))
     if doRecoding == "True":
-        print("""<p style="color:#ff6000; font-style: italic;">Warning : Using this guide will likely result in the cleavage of the donor DNA if no mutations are introduced in its sequence</p>""")
+        print("""<div style="display:flex; flex-direction: row; align-items: center;">""")
+        htmlWarn("Donor needs recoding")
+        print("""<p style="font-style: italic;">&nbsp Warning : Using this guide will likely result in the cleavage of the donor DNA if no mutations are introduced in its sequence</p>""")
+        print("</div>")
         recodeChecked = "checked"
     else:
         recodeChecked = ""
@@ -16658,7 +16834,7 @@ def donorDesignPage(params):
     # Transcript model selection
     if geneModels:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
-        print(geneId)
+
         if geneId is None:
             print("""<p>Select a transcript ID to use as a model for recoding</p>""")
             print("Gene model:")
@@ -17564,7 +17740,7 @@ def mainCgi():
 
     if "ajax" in params:
         if params["ajax"] == "geneSearch":
-            dbsearchGene(params)
+            dbsearchGene(params, onlySymbol=True)
             return
 
     # print "Content-type: text/html\n"
