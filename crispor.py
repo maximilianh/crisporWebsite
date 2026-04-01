@@ -2162,20 +2162,24 @@ def showExonAndPams(
     browserlink,
     selGeneModel=None,
     selTransId=None,
+    exonSelect=None
 ):
     pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId=exonId))
-    exonIdOneBased = exonId + 1
     if koMethod == "splicing":
+        if exonSelect.isnumeric():
+            originalExon = int(exonSelect)
         if exonId % 2 == 0:
-            spliceType = "donor"
-            originalExon = (exonIdOneBased + 2) // 2
-        else:
             spliceType = "acceptor"
-            originalExon = (exonIdOneBased + 1) // 2
+            if not exonSelect.isnumeric():
+                originalExon = (exonId + 1) // 2
+        else:
+            spliceType = "donor"
+            if not exonSelect.isnumeric():
+                originalExon = exonId // 2
 
     # control the display of splicing donor / acceptor sites relative to their exons (0-based id)
     if koMethod == "splicing":
-        htmlExonId = originalExon - 1
+        htmlExonId = originalExon
     else:
         htmlExonId = exonId
 
@@ -2190,15 +2194,20 @@ def showExonAndPams(
     # don't display the exons where no PAMs were found
     if len(pamSeqs) == 0:
         if koMethod == "splicing":
+            if exonSelect.isnumeric():
+                exonNumberText = int(exonSelect) + 1
+            else:
+                exonNumberText = originalExon + 1
+
             print(
                 """
-                <p style="display: %s" name="exonDisplay" id="exon%s"> No guide sequences were found in the splicing %s site of exon %s (%s)</p>
-                """ % (exonDisplay, htmlExonId, spliceType, originalExon, browserlink)
+                <p style="display: %s" class="exonGroup%s" name="exonDisplay" > No guide sequences were found in the splicing %s site of exon %s (%s)</p>
+                """ % (exonDisplay, htmlExonId, spliceType, exonNumberText, browserlink)
             )
         else:
             print(
                 """
-                <p style="display: %s" name="exonDisplay" id="exon%s"> No guide sequences were found at position %s</p>
+                <p style="display: %s" class="exonGroup%s" name="exonDisplay" > No guide sequences were found at position %s</p>
                  """ % (exonDisplay, htmlExonId, browserlink)
              )
         return
@@ -2227,9 +2236,9 @@ def showExonAndPams(
 
     if koMethod == "splicing":
         if exonId % 2 == 0:
-            spliceLabel = "Splicing donor site"
-        else:
             spliceLabel = "Splicing acceptor site"
+        else:
+            spliceLabel = "Splicing donor site"
         labelLen = max(labelLen, len(spliceLabel))
 
     exonLines = []
@@ -2279,16 +2288,17 @@ def showExonAndPams(
         )
 
     print(
-        """ <div name="exonDisplay" id="exon%s" style="display:%s;"> """
+        """ <div name="exonDisplay" class="exonGroup%s" style="display:%s;"> """
         % (htmlExonId, exonDisplay)
     )
     print(""" <div class="substep" """)
     print('<a id="seqStart"></a>')
     if koMethod == "frameshift":
         exonLen = len("".join(base for base in seq if base.isupper()))
+        exonNumberText = exonId + 1
         print(
             "Coding exon %d (%s) is %d bp long (non extented). It contains %d possible guide sequences.<br>"
-            % (exonIdOneBased, browserlink, exonLen, len(guideScores))
+            % (exonNumberText, browserlink, exonLen, len(guideScores))
         )
     elif koMethod == "excision":
         if exonId == 0:
@@ -2315,15 +2325,16 @@ def showExonAndPams(
             )
 
     elif koMethod == "splicing":
+        exonNumberText = originalExon + 1
         if exonId % 2 == 0:
             print(
-                " the region around the splicing donor site of exon %s (%s) contains %d possible guide sequences.<br>"
-                % (originalExon, browserlink, len(guideScores))
+                " the region around the splicing acceptor site of exon %s (%s) contains %d possible guide sequences.<br>"
+                % (exonNumberText, browserlink, len(guideScores))
             )
         else:
             print(
-                " the around the splicing acceptor site of exon %s (%s) contains %d possible guide sequences.<br>"
-                % (originalExon, browserlink, len(guideScores))
+                " the around the splicing donor site of exon %s (%s) contains %d possible guide sequences.<br>"
+                % (exonNumberText, browserlink, len(guideScores))
             )
 
     print("</div>")
@@ -2348,9 +2359,9 @@ def showExonAndPams(
         print(("{:" + str(labelLen) + "s} ").format(spliceLabel), end=" ")
         # splicing donor site
         if exonId % 2 != 0:
-            print("".join([" " for i in range(spliceGap)]), "".join(["-" for i in range(6)]))
-        else:
             print("".join([" " for i in range(spliceGap + 6)]), "".join(["-" for i in range(6)]))
+        else:
+            print("".join([" " for i in range(spliceGap)]), "".join(["-" for i in range(6)]))
 
     print(("{:" + str(labelLen) + "s} ").format(seqLabel), end=" ")
     print(seq)
@@ -4757,7 +4768,8 @@ def showGuideTable(
     geneId=None,
     pamFullName=None,
     koMethod=None,
-    pamWindow=None
+    pamWindow=None,
+    exonSelect=None
 ):
     "shows table of all PAM motif matches"
     if pamFullName:
@@ -4913,9 +4925,18 @@ def showGuideTable(
         color = scoreToColor(guideScore)[0]
 
         classStr = cssClassesFromSeq(guideSeq)
-        if geneId is not None:
-            exonId = pamId.split(".")[0]
-            classStr += " exonRow exon-" + exonId
+        if geneId is not None and koMethod is not None:
+            exonId = int(pamId.split(".")[0])
+            # /!\ the exon Ids to reference the rows (for filtering) are 0-based
+            # the Ids to show as text are 1-based
+            if koMethod == "splicing":
+                if exonId % 2 == 0:
+                    originalExon = (exonId + 1) // 2
+                else:
+                    originalExon = exonId // 2
+                classStr += " exonRow exon-" + str(originalExon)
+            else:
+                classStr += " exonRow exon-" + str(exonId)
         print(
             '<tr id="%s" class="%s" style="border-left: 5px solid %s">'
             % (pamId, classStr, color)
@@ -4931,27 +4952,35 @@ def showGuideTable(
         else:
             print("rev")
 
-        # in multiseq / multipam mode, the exon number (0 based) or PAM name is prepended to pamId
+        # in multiseq / multipam mode, the exon number or PAM name are prepended to pamId
         if pamId[0] != "s":
             print("<br>")
             pamPrefix = pamId.split(".")[0]
             if pamPrefix.isdigit():
-                exonId = int(pamPrefix) + 1
+                exonId = int(pamPrefix)
                 if koMethod in ["excision", "promoter"]:
-                    if exonId == 1:
+                    if exonId == 0:
                         print("upstream")
                     else:
                         print("downstream")
 
                 elif koMethod == "splicing":
                     if exonId % 2 == 0:
-                        originalExon = (exonId + 2) // 2
-                        print("exon %s<br>splicing donor site" % originalExon)
+                        if exonSelect and exonSelect.isnumeric():
+                            # the text corresponding to the exon differs from exonId (index of multiseq)
+                            originalExonText = int(exonSelect)
+                        else:
+                            originalExonText = (exonId + 1) // 2
+                        # make 1-based only before printing
+                        print("exon %d<br>splicing acceptor site" % (originalExonText + 1))
                     else:
-                        originalExon = (exonId + 1) // 2
-                        print("exon %s<br>splicing acceptor site" % originalExon)
+                        if exonSelect and exonSelect.isnumeric():
+                            originalExonText = int(exonSelect)
+                        else:
+                            originalExonText = exonId // 2
+                        print("exon %d<br>splicing donor site" % (originalExonText + 1))
                 else:
-                    print("in exon %s" % exonId)
+                    print("in exon %d" % (exonId + 1))
             else:
                 for desc in pamDesc:
                     if desc[0] == pamPrefix:
@@ -7410,7 +7439,7 @@ def printForm(params):
     <small><a href="javascript:resetToExample()">Reset to default</a></small>
     </div>
 
-    <textarea tabindex="1" style="width:98%%" name="seq" rows="12" autocorrect="off"
+    <textarea tabindex="1" style="width:98%%" name="seq" rows="12" autocorrect="off" spellcheck="false"
               placeholder="Paste here the genomic - not a cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp. If you only have a cDNA, please BLAST or BLAT the cDNA first to find the right exon sequence for CRISPOR.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 
@@ -7816,12 +7845,15 @@ def newMultiSeqBatch(
     geneModel=None,
     koGeneId=None,
     assist=None,
+    exonSelect=None
 ):
-    """obtain a batch ID and write seq/org/pam to their files.
+    """obtain a batch ID and write essential params to their files.
     Return batchId.
     """
 
     allSeq = "".join([seq[1] for seq in multiseq])
+    if exonSelect is not None:
+        allSeq += exonSelect
     batchId = makeTempBase(allSeq, org, pam, batchName)
     batchBase = join(batchDir, batchId)
     jsonFname = batchBase + ".json"
@@ -7841,6 +7873,7 @@ def newMultiSeqBatch(
         batchData["geneModel"] = geneModel
         batchData["koGeneId"] = koGeneId
         batchData["assist"] = assist
+        batchData["exonSelect"] = exonSelect
 
         writeBatchAsDict(batchData, batchId)
 
@@ -8817,6 +8850,7 @@ def crisprSearch(params):
 
         koMethod = params.get("koMethod")
         multiseq = params.get("multiseq")
+        exonSelect = params.get("exonSelect")
 
         if multipam or multiseq:
             if multipam:
@@ -8855,6 +8889,7 @@ def crisprSearch(params):
                     geneModel,
                     koGeneId,
                     assist,
+                    exonSelect
                 )
 
         else:
@@ -9143,7 +9178,7 @@ def KiResultsPage(params, batchId, download=False):
             % (dbInfo.scientificName, seqMsg, transcriptUrl)
         )
 
-        printKiSteps(batchId, 1)
+        printKiSteps(batchId, step=1)
 
         if geneModel:
             exonSeqsPlaceholder = []
@@ -9330,13 +9365,14 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
-def printKiSteps(batchId: str, step: int):
+def printKiSteps(batchId: str, step=1):
     """
     prints an interactive recap of the workflow for KI experiments
     """
 
     if step not in [1, 2, 3]:
         return
+
     # make the current step bold
     else:
         stepStyles = ["opacity: 1; font-weight: 1000;" if i == step else "opacity: 0.5;" for i in range(1, 4)]
@@ -9344,9 +9380,31 @@ def printKiSteps(batchId: str, step: int):
     backUrl = basename(__file__) + "?" + "batchId=" + batchId
 
     # first step
-    guideHtml = """ <a href="%s" style="%s; font-size: 1.25em;">Select suitable guides</a> """ % (backUrl, stepStyles[0])
+    guideSelectText = """
+    First, select guides that introduce a DSB as close as the possible to the edition site.<br>
+    By default, the table is sorted by this distance and only guides that result in a cut at less than 10bp from the edition site are shown.<br>
+    If no guides satisfies this condition, go to the 'Options to modify the display of PAMs on the sequence viewer' box.<br>
+    You can either :
+    <ul>
+        <li>Display guides that cut further away from the edition site (using the cursor).</li>
+        <li>See if another enzyme may be more appropriate by showing other PAM patterns.</li>
+    </ul>
+    Using guides distant to the edition site may result in a low efficiency.<br>
+    In this case, using nickases with two guides that flank the edition site (double nicking strategy) may yield better results (see Schubert et al. 2021 - fig. 2).<br>
+    """
 
-    donorDesignText = "Once you selected an appropriate guide sequence, click on 'design donor DNA' under the 'guide sequence + PAM' column of the table.<br> Note that you can choose to recode the donor DNA sequence to avoid its cleavage.In this cas, the design willy be specific to its relative guide sequence, as mutations will be introduced to avoid re-cut with this specific guide. Otherwise, all guides that don't have the 'donor needs recoding' flag (highlighted in blue on the sequence below) can be used with the same, non recoded donor DNA design."
+    guideHtml = ''' <a href="%s" class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select guide sequences</a> ''' % (backUrl, guideSelectText, stepStyles[0])
+
+    donorDesignText = """
+    Once you selected an suitable guide sequence, click on 'design donor DNA' under the 'guide sequence + PAM' column of the table.<br>
+    Note that the target region (guide + PAM) may be identical between the genome and the donor DNA.<br>
+    <ul>
+        <li>This can result in the cutting of the donor, or re-cutting of the inserted sequence after a successful edit.</li>
+        <li>To prevent this, you can choose to recode the donor DNA sequence by introducing blocking mutations in the PAM or the seed region of the spacer.</li>
+        <li>In this case, the design will likely be specific to its corresponding guide.</li>
+        <li>Otherwise, all guides that don't have the 'donor needs recoding' flag (highlighted in blue on the sequence below) can be used with the same, non recoded donor DNA design.</li>
+    <ul>
+    """
 
     # second step
     if step == 3:
@@ -9358,12 +9416,16 @@ def printKiSteps(batchId: str, step: int):
         donorDesignHtml = """<div class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</div> """ % (donorDesignText, stepStyles[1])
 
     # third step
-    donorDisplayHtml = """ <div class="tooltipsterInteract" title="" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Visualize and download guide + donor DNA</div> """ % stepStyles[2]
+    donorDisplayText = """
+    Once you have chosen the donor DNA design parameters, its sequence will be displayed with annotations.<br>
+    Then, you may trim the sequence to facilitate its synthesis (for example by removing homopolymers), or generate alternative designs with a barcode to check for homozygous editing (<i>not implemented yet</i>).<br>
+    """
+    donorDisplayHtml = """ <div class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Visualize and download guide + donor DNA</div> """ % (donorDisplayText, stepStyles[2])
 
     # print all steps
     print(
         """<div style="text-align: center; margin-bottom: 48px;">
-            <p>workflow overview <small>(hover on each step to get details or click on a previous step to go back)</small></p>
+            <p>Workflow overview <small>(hover on each step to get details, or click on a previous step to go back)</small></p>
             <div style="display: flex; flex-direction: row; justify-content: center;">
                 %s
                 <div style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8594</div>
@@ -9454,22 +9516,29 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     highlights = []
 
     # coordinates of the PAM + guide
-    # + avoid out of bounds
+    # + avoid out of bounds coordinates
+
     if pamStart < insertIdx:
         pamStartCoord = len(HA5) - (insertIdx - pamStart)
+        # invert the coordinates for ssODN with reverse polarity
+        if donorType == "ss" and templateStrand != strand:
+            pamStartCoord = len(donorSeq) - pamStartCoord - len(pamSeq)
         pamEndCoord = pamStartCoord + len(pamSeq)
     else:
         if kiType in ["substitution", "deletion", "replacement"]:
             pamStartCoord = len(HA5) + (pamStart - insertIdx)
         else:
             pamStartCoord = len(HA5) + len(insertSeq) + (pamStart - insertIdx)
+        if donorType == "ss" and templateStrand != strand:
+            pamStartCoord = len(donorSeq) - pamStartCoord - len(pamSeq)
         pamEndCoord = pamStartCoord + len(pamSeq)
+
     if pamStartCoord < len(HA5) and pamEndCoord > len(HA5) and kiType not in ["substitution", "deletion", "replacement"]:
         pamCoordList = [(pamStartCoord, len(HA5)), (len(HA5) + len(insertSeq), pamEndCoord + len(insertSeq))]
     else:
         pamCoordList = [(pamStartCoord, pamEndCoord)]
 
-    if pamStrand == "+" or (pamStrand == "-" and pamIsFirst):
+    if pamStrand == "+" or (pamStrand == "-" and pamIsFirst) or (donorType == "ss" and templateStrand != strand):
         guideStartCoord = pamStartCoord - len(guideSeq)
         guideEndCoord = pamStartCoord
     else:
@@ -9583,7 +9652,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
 
-    printKiSteps(batchId, 3)
+    printKiSteps(batchId, step=3)
 
     '''
     print(
@@ -9648,6 +9717,8 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
           </form>
           </div> """)
 
+    # barcode step, to add later
+    '''
     if kiType != "substitution":
         print("""
         <div style="margin-bottom: 24px;">
@@ -9658,6 +9729,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
             <img src=" %s image/info-small.png" title="With this option, a second donor DNA with a few mutations will be displayed, so that homozygous editing can be detected by PCR or NGS." class="tooltipsterInteract"><br>
         </div>
         """ % HTMLPREFIX)
+    '''
 
     if kiType == "qTag":
         tagNamesStr = ', '.join([name for name in tagNames if "lox" not in name])
@@ -9666,7 +9738,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
             <li>%s.</li>
             </ul>
           Note that the donor DNA sequence below is designed for synthesis and only contains the sequence of these elements.<br>
-          The plasmid construct is available on <a target="blank" href="https://www.addgene.org/browse/article/28238680/">addGene</a> and may be more convenient.</p>""" % tagNamesStr)
+          The plasmid construct is available on <a target="blank" href="https://www.addgene.org/browse/article/28238680/">Addgene</a> and may be more convenient.</p>""" % tagNamesStr)
 
     if kiType == "substitution":
         editSpanText = "Substitued base"
@@ -9718,10 +9790,11 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     print("""<div style="margin-right: 37%;">""")
 
     if noModel is True:
-        print("""
-        <p>The donor DNA sequence could not be recoded because no gene annotation file could be located for this organism. If you want to add one, contact us %s
-        """ % contactEmail
-        )
+        print(
+            """
+            <p>The donor DNA sequence could not be recoded because no gene annotation file could be located for this organism. If you want to add one, contact us %s
+            """ % contactEmail
+            )
     if mutEvents:
         print("<h3>Silent mutations introduced to prevent re-cut</h3>")
         print("<h4>Notes on recoding</h4>")
@@ -9903,6 +9976,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
     koGeneId = batchInfo["koGeneId"]
     exonSeqs = batchInfo["exonSeqs"]
     exonPosStr = batchInfo["exonPosStr"]
+    exonSelect = batchInfo.get("exonSelect")
 
     sortBy = params.get("sortBy", "main")
     globEffScore = params.get("globEffScore", "rs3")
@@ -9965,32 +10039,38 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                         selTransId = transId
                         break
 
-    if koMethod in ["excision", "promoter"]:
-        print("<p>This knock-out method is based on a large deletion resulting from two DSBs introduced by a pair of guides. Click on the buttons below to show guides for the regions upstream or downstream of the deletion</p>")
+        if koMethod in ["excision", "promoter"]:
+            # for experiments with a pair of guides, show two results pages
 
-        print("""
-        <script>
-            function showResults(region) {
-                const displayUpstream = document.getElementById('displayUpstream');
-                const displayDownstream = document.getElementById('displayDownstream');
+            print("<p>This knock-out method is based on a large deletion, resulting from two DSBs introduced by a pair of guides. Click on the buttons below to show guides for the regions upstream or downstream of the deletion.</p>")
 
-                if (region === 'up') {
-                    displayUpstream.style.display = 'block';
-                    displayDownstream.style.display = 'none';
-                } else {
-                    displayUpstream.style.display = 'none';
-                    displayDownstream.style.display = 'block';
-                }
-            };
-        </script>
-       """)
+            print("""
+            <script>
+                function showResults(region) {
+                    const displayUpstream = document.getElementById('displayUpstream');
+                    const displayDownstream = document.getElementById('displayDownstream');
 
-        print("""
-            <div style="display: flex; flex-direction: row; gap: 24px;">
-                <button id="showUpstream" value="up" onclick=showResults(this.value)>Show results for the upstream region</button>
-                <button id="showDownstream value="down" onclick=showResults(this.value)>Show results for the downstream region</button>
-            </div>
-              """)
+                    // TODO : save button states on page reload
+                    const upstreamClicked = document.querySelector("#showUpStream");
+                    const downstreamClicked = document.querySelector("#showDownStream");
+
+                    if (region === 'up') {
+                        displayUpstream.style.display = 'block';
+                        displayDownstream.style.display = 'none';
+                    } else {
+                        displayUpstream.style.display = 'none';
+                        displayDownstream.style.display = 'block';
+                    }
+                };
+            </script>
+           """)
+
+            print("""
+                <div style="display: flex; flex-direction: row; gap: 24px;">
+                    <button id="showUpstream" value="up" onclick=showResults(this.value)>Show results for the upstream region</button>
+                    <button id="showDownstream value="down" onclick=showResults(this.value)>Show results for the downstream region</button>
+                </div>
+                  """)
 
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
 
@@ -9998,7 +10078,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         uppSeq = seq.upper()
         startDict, endSet = findAllPams(uppSeq, pam, exonId)
 
-        if koMethod in ["excision", "promoter"]:
+        if koMethod in ["excision", "promoter"] and not download:
             if exonId == 0:
                 print("""<div id="displayUpstream" style="display: block;"> """)
                 print("<h2>Guides in the upstream region</h2>")
@@ -10018,7 +10098,12 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             exonId=exonId,
             globEffScore=globEffScore,
         )
-        if len(guideData) > 0 and koMethod not in ["excision", "promoter"]:
+
+        if koMethod in ["excision", "promoter"]:
+            sortGuideData(guideData, sortBy)
+
+        # return a single guideData object when downloading data from pairs of guides (otherwise, guideData are kept separated)
+        if len(guideData) > 0 and koMethod not in ["excision", "promoter"] or (download and koMethod in ["excision", "promoter"]):
             allGuideData.extend(guideData)
             allGuideScores.update(guideScores.copy())
             allPamIdToSeq.update(pamIdToSeq.copy())
@@ -10054,6 +10139,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 browserLink,
                 selGeneModel=selGeneModel,
                 selTransId=selTransId,
+                exonSelect=exonSelect
             )
 
             # for methods that require a pair of guides, two tables are shown
@@ -10068,20 +10154,22 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                     chrom,
                     None,
                     koGeneId,
-                    koMethod=koMethod,
+                    koMethod=koMethod
                 )
                 print("</div>")
 
-    # showSeqDownloadMenu(batchId)
+    if not download:
+        showSeqDownloadMenu(batchId)
 
     # for experiements using a pair of guides, sort the table by each target sequence
     # if koMethod in ["excision", "promoter"]:
     #    sortGuideData(allGuideData, sortBy, exonSort=True)
     # else:
 
-    sortGuideData(allGuideData, sortBy)
+    # handle sorting the guide data for pairs of guide in download mode
 
     if download is False and koMethod not in ["excision", "promoter"]:
+        sortGuideData(allGuideData, sortBy)
         showGuideTable(
             allGuideData,
             pam,
@@ -10093,6 +10181,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             None,
             koGeneId,
             koMethod=koMethod,
+            exonSelect=exonSelect
         )
 
         print('<br><a class="neutral" href="crispor.py">')
@@ -10163,40 +10252,45 @@ def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos
         """
         <script>
 function toggleExonSeq(selectedValue) {
-    const exonDisplay = document.getElementsByName('exonDisplay');
+    const allExonDisplays = document.querySelectorAll('[name="exonDisplay"]');
     const exonHeights = document.getElementsByName('exonPamSeq');
-    const exonFilterMsg = document.getElementsByName('exonFilterMsg');
+    const exonFilterMsg = document.querySelectorAll('[name="exonFilterMsg"]');
 
     if (selectedValue === 'all') {
-        for (exonSeq of exonDisplay) {
+        for (const exonSeq of allExonDisplays) {
             exonSeq.style.display = 'block';
         }
-        for (exonHeight of exonHeights) {
+        for (const exonHeight of exonHeights) {
             exonHeight.style.height = '5vw';
         }
-        for (exonMsg of exonFilterMsg) {
-            exonMsg.style.display = 'none'
+        for (const exonMsg of exonFilterMsg) {
+            exonMsg.style.display = 'none';
         }
         $('#otTable tr.guideRow').show();
 
     } else {
         // hide all exons
-        for (const displayElement of exonDisplay) {
+        for (const displayElement of allExonDisplays) {
             displayElement.style.display = 'none';
         }
-        for (exonHeight of exonHeights) {
+        for (const exonHeight of exonHeights) {
             exonHeight.style.height = '7vw';
         }
-        for (exonMsg of exonFilterMsg) {
-            exonMsg.style.display = 'none'
+        for (const exonMsg of exonFilterMsg) {
+            exonMsg.style.display = 'none';
         }
 
-        // show matching exon and its filter message
-        const targetElement = document.getElementById(selectedValue);
-        const targetMsg = document.getElementById(selectedValue+'Msg');
-        if (targetElement) {
-            targetElement.style.display = 'block';
-            targetMsg.style.display = 'block';
+        // show all matching exons (e.g. both donor and acceptor for splicing)
+        var groupNum = selectedValue.replace('exon', '');
+        var targetElements = document.querySelectorAll('.exonGroup' + groupNum);
+        for (const el of targetElements) {
+            el.style.display = 'block';
+        }
+
+        // show the filter message
+        var targetMsgs = document.querySelectorAll('.exonFilterMsg' + groupNum);
+        for (const msg of targetMsgs) {
+            msg.style.display = 'block';
         }
 
         // Filter guide table
@@ -10229,12 +10323,25 @@ function toggleExonSeq(selectedValue) {
             style="width:110spx; height:25px"><small>show all exons</small></button> </div>"""
         )
 
+        shownExonMsgs = set()
         for exonId in exonSeqs:
+            if koMethod == "splicing":
+                if exonId % 2 == 0:
+                    originalExon = (exonId + 2) // 2
+                else:
+                    originalExon = (exonId + 1) // 2
+                groupId = originalExon - 1
+                exonLabel = originalExon
+            else:
+                groupId = exonId
+                exonLabel = exonId + 1
 
-            print(
-                """<div name="exonFilterMsg" id="exon%dMsg" style="display:none;"> the results are currently filtered for Exon %s </div>"""
-                % (exonId, exonId + 1)
-            )
+            if groupId not in shownExonMsgs:
+                shownExonMsgs.add(groupId)
+                print(
+                    """<div name="exonFilterMsg" class="exonFilterMsg%d" style="display:none;"> the results are currently filtered for Exon %s </div>"""
+                    % (groupId, exonLabel)
+                )
 
     print(
         """ <div id="geneModel" style="
@@ -10287,11 +10394,18 @@ function toggleExonSeq(selectedValue) {
                     )
                 tagBoxes.append(tagBox)
         else:
-            insertSeqText = "%s bp" % len(insertSeq)
-            tagMouseOver = 'class="tooltipsterInteract" title="%s"' % insertSeqText
+            insertSeqText = "Insert sequence (%s bp)" % len(insertSeq)
+            tagMouseOver = 'class="tooltipsterInteract" title="Custom insert sequence of %d bp"' % len(insertSeq)
 
-            if len(insertSeq) < 50:
-                insertSeqText = ""
+            if len(insertSeq) < 25:
+                insertSeqText = "s."
+            elif len(insertSeq) < 50:
+                insertSeqText = "%sbp" % len(insertSeq)
+            elif len(insertSeq) < 100:
+                insertSeqText = "Insert (%s bp)" % len(insertSeq)
+            elif len(insertSeq) < 150:
+                insertSeqText = "Insert seq. (%s bp)" % len(insertSeq)
+
             tagBox = (
                     """<div
                     %s
@@ -10595,7 +10709,7 @@ $('.tooltipsterInteract').tooltipster({
 pamIdRe = re.compile(r"s([0-9]+)([+-])g?([0-9]*)")
 
 
-def intToExtPamId(pamId, multiseq=None, multipam=None):
+def intToExtPamId(pamId, multiseq=None, multipam=None, koMethod=None):
     "convert the internal pam Id like s20+ to the external one, like 21Forw. Handles multiseq/multipam prefixes."
     if multiseq or multipam:
         pamInfo = pamId.split('.')
@@ -10616,7 +10730,23 @@ def intToExtPamId(pamId, multiseq=None, multipam=None):
     guideDesc = str(int(pamPos) + 1) + strDesc
 
     if multiseq:
-        return "exon%d_%s" % (int(pamPrefix) + 1, guideDesc)
+        pamPrefix = int(pamPrefix)
+        if koMethod == "frameshift":
+            return "exon%d_%s" % (pamPrefix + 1, guideDesc)
+        elif koMethod in ["excision", "promoter"]:
+            if pamPrefix == 0:
+                rowStr = "upstream"
+            else:
+                rowStr = "downstream"
+            return "%s_%s" % (rowStr, guideDesc)
+        elif koMethod == "splicing":
+            if pamPrefix % 2 == 0:
+                originalExon = (pamPrefix + 2) // 2
+                return "exon%d_donorSite_%s" % (originalExon, guideDesc)
+            else:
+                originalExon = (pamPrefix + 1) // 2
+                return "exon%d_acceptorSite_%s" % (originalExon, guideDesc)
+
     elif multipam:
         return "%s_%s" % (pamPrefix, guideDesc)
     else:
@@ -10669,7 +10799,7 @@ def effScorePass(effScores, minFusi):
 
 
 def iterGuideRows(
-    guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None, multipam=None, multiseq=None
+    guideData, addHeaders=False, seqId=None, satMutOpt=None, minSpec=None, minFusi=None, multipam=None, multiseq=None, koMethod=None
 ):
     "yield rows from guide data. Need to know if for Cpf1 or not"
     headers, tableScoreNames = makeGuideHeaders(multipam=multipam)
@@ -10739,7 +10869,7 @@ def iterGuideRows(
         if otData != None:
             otCount = len(otData)
 
-        guideDesc = intToExtPamId(pamId, multipam=multipam, multiseq=multiseq)
+        guideDesc = intToExtPamId(pamId, multipam=multipam, multiseq=multiseq, koMethod=koMethod)
 
         fullSeq = concatGuideAndPam(guideSeq, pamSeq)
         row = [guideDesc, fullSeq, guideScore, guideCfdScore, otCount, ontargetDesc]
@@ -11689,16 +11819,35 @@ def downloadFile(params):
     if batchInfo:
         multiseq = batchInfo.get("multiseq")
         multipam = batchInfo.get("multipam")
+        koMethod = batchInfo.get("koMethod")
     else:
         multiseq = None
         multipam = None
+        koMethod = None
 
     if multiseq:
         koGeneId = batchInfo.get("koGeneId")
         exonSeqs, org, pam, exonPosStr, guideData = KoResultsPage(
             params, batchId, koGeneId, download=True
         )
-        seq = ", ".join(["exon %s: %s" % (int(s[0]) + 1, s[1]) for s in exonSeqs])
+        if koMethod == "frameshift":
+            seq = ", ".join(["exon %s: %s" % (int(s[0]) + 1, s[1]) for s in exonSeqs])
+        elif koMethod in ["excision", "promoter"]:
+            label = {0: "upstream", 1: "downstream"}
+            seq = ", ".join(["%s: %s" % (label[int(s[0])], s[1]) for s in exonSeqs])
+        elif koMethod == "splicing":
+            seqList = []
+            for s in exonSeqs:
+                exonId = s[0]
+                exonSeq = s[1]
+                if exonId % 2 == 0:
+                    originalExon = (exonId + 2) // 2
+                    seqList.append("exon %s (splicing donor site): %s" % (originalExon, exonSeq))
+                else:
+                    originalExon = (exonId + 1) // 2
+                    seqList.append("exon %s (splicing acceptor site): %s" % (originalExon, exonSeq))
+            seq = ", ".join(seqList)
+
         position = koGeneId if koGeneId else ""
     elif multipam:
         seq, org, pam, position, guideData = KiResultsPage(
@@ -11742,7 +11891,7 @@ def downloadFile(params):
                 scoreNames = allScoreNames
         writeHttpAttachmentHeader("guides_%s.%s" % (queryDesc, fileFormat), doDownload)
         xlsWrite(
-            iterGuideRows(guideData, addHeaders=True, multipam=multipam, multiseq=multiseq),
+            iterGuideRows(guideData, addHeaders=True, multipam=multipam, multiseq=multiseq, koMethod=koMethod),
             "guides",
             sys.stdout,
             [9, 28, 10, 10],
@@ -13610,7 +13759,7 @@ function changeSeqCase(value) {
 
     print(
         """
-            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:100%; grid-column:2; grid-row:2;">
+            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:100%%; grid-column:2; grid-row:2;">
                 <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                     Step 4
                 </div>
@@ -13620,9 +13769,9 @@ function changeSeqCase(value) {
                             Re-enter the target sequence and edit it<br>
                             <small>modified bases in UPPERCASE, with the rest in lowercase</small>
                         </div>
-                        <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%;">
-                            <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
-                            <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
+                        <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%%;">
+                            <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
+                            <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
                         </div>
                     </div>
                     <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
@@ -13631,13 +13780,13 @@ function changeSeqCase(value) {
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
                     Enter the sequence to insert<br>
                     <input type="radio" checked style="margin-top:13px;" name="insertype" value="tagLinker" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
-<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG
+<input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG <img src=" %s image/info-small.png" class="tooltipsterInteract" title="The qTAG system combines the tagging sequence with a marker (fluorescent protein or antibiotic resistance gene). The marker is flanked by loxP sites to allow its removal when successfully edited cells have been selected. For more information, see <a href='https://doi.org/10.1038/s44318-024-00337-5' target='blank'>Philip et al. 2025</a>">
 
                     <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
-                    <textarea id="insertSeq" name="insertSeq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
+                    <textarea spellcheck="false" autocorrect="false" id="insertSeq" name="insertSeq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
 
                 <div style="width:80%%; display: block; margin-top: 14px;" id="taglist">
-          """
+          """ % HTMLPREFIX
     )
 
     printTagsAndLinkers()
@@ -13682,6 +13831,7 @@ def printBody(params):
 
     if submit and (koGeneId or ("startSeq" in params and "endSeq" in params)):
         if expType == "ko":
+            # Knock-out mode
             if koGeneId is not None:
                 pam = params.get("pam")
                 koMethod = params.get("koMethod")
@@ -13697,12 +13847,13 @@ def printBody(params):
                 )
                 params["multiseq"] = multiseq
                 params["geneModel"] = geneModel
-                geneModel = params.get("geneModel")
+                params["exonSelect"] = exonSelect
+                geneModel = params.get("geneModel")  # ???
                 if multiseq:
                     printCrisporBodyStart()
                     if geneModel and len(geneModel) == 0:
                         print(
-                            "this is a non-coding transcript. Please choose another method to perform a knock-out on it"
+                            "this is a non-coding transcript. Please choose another method to perform a knock-out on it, such as removing the promoter or the gene entirely."
                         )
                     else:
                         crisprSearch(params)
@@ -13710,6 +13861,7 @@ def printBody(params):
         elif expType == "ki":
             targetRegion = params["targetRegions"]
 
+            # Knock-in : "manual editing" mode
             if targetRegion == "seq":
                 startSeq = params.get("startSeq")
                 startSeq = re.sub('[\t\n\s]', '', startSeq)
@@ -13740,6 +13892,8 @@ def printBody(params):
                         params["insertIdx"] = insertIdx
                         params["insertSeq"] = insertSeq
                         params["seq"] = startSeq
+
+            # Knock-in : protein tagging mode
             elif targetRegion == "gene" and koGeneId and (("tagseq" in params and "linkerseq" in params) or "insertSeq" in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params)):
                 insertPos = params["insertpos"]
 
@@ -13753,7 +13907,6 @@ def printBody(params):
                     params["kiType"] = "qTag"
                 else:
                     params["kiType"] = "tagging"
-
 
                 try:
                     targetSeq, targetPos, insertIdx, geneModel = getTargetSeq(params)
@@ -13782,6 +13935,8 @@ def printBody(params):
             else:
                 printAssistant(params)
                 printKiForm(params)
+
+        # selection of a transcriptId / exon in classic mode
         elif koGeneId and "exonSelect" in params:
             exonSelect = int(params["exonSelect"])
             if "seq" in params:
@@ -14018,30 +14173,25 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
     else:
         maxLen = MAXSEQLEN
 
-    chrom, strand, exons = getGenePos(geneId, org, method, targetLen)
+    chrom, strand, allExons = getGenePos(geneId, org, method, targetLen)
     if method in ["frameshift", "splicing"]:
-        if len(exons) == 0:
+        if len(allExons) == 0:
             return None, None
-        allExons = exons
-        exons = getFirstThird(exons, strand, GUIDELEN, maxLen)
+        # exons is the list to be returned
         geneModel = getGeneModel(allExons, strand)
     else:
         geneModel = None
-
     if method == "splicing":
         spliceDist = 10
-        if exonSelect == "allExons":
-            allExons = []
-            for exonNumber, (start, end) in enumerate(exons):
-                allExons.append((start - spliceDist, start + spliceDist))
-                allExons.append((end - spliceDist, end + spliceDist))
-            exons = allExons
-        else:
-            for exonNumber, (start, end) in enumerate(exons):
-                if exonNumber == int(exonSelect):
-                    exons = [(start - spliceDist, start + spliceDist),
-                             (end - spliceDist, end + spliceDist)]
-                    break
+        exons = []
+        for exonNumber, (start, end) in enumerate(allExons):
+            if exonSelect == "allExons" or exonNumber == int(exonSelect):
+                exons.append((start - spliceDist, start + spliceDist))
+                exons.append((end - spliceDist, end + spliceDist))
+    elif method == "frameshift":
+        exons = getFirstThird(allExons, strand, GUIDELEN, maxLen)
+    else:
+        exons = allExons
 
     return formatExonPos(exons, chrom, strand, len(pam)), geneModel
 
@@ -16642,7 +16792,7 @@ def donorDesignPage(params):
     # save guide Info in params for recoding
     guideInfo = (pamSeq, guideStart, guideStrand)
 
-    printKiSteps(batchId, 2)
+    printKiSteps(batchId, step=2)
 
     print("""
     <script>
@@ -16881,7 +17031,7 @@ def donorDesignPage(params):
                 <input type="radio" form="main" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single strand Donor<br>
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
-                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position. If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template. Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
+                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
 <br>
                 <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand<br>
                 <input type="radio" form="main" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
@@ -16924,7 +17074,7 @@ def donorDesignPage(params):
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
 
         if geneId is None:
-            print("""<p>Select a transcript ID to use as a model for recoding</p>""")
+            print("""<p>Select a transcript ID to use as a model for recoding <img src=" %s image/info-small.png" title="This step will attempt to introduce synonymous mutations, so a gene model needs to be selected to get the position of codons.<br> To visualize the sequence of each transcript, you can go back to the previous step by clicking on 'Select guide sequences' above. Then, select a gene model and a transcript using the dropdown menu on top of the sequence." class="tooltipsterInteract"></p>""" % HTMLPREFIX)
             print("Gene model:")
             printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em", form="updateModel", onChange="updateModel.submit()")
             print("Transcript:")
@@ -16934,11 +17084,21 @@ def donorDesignPage(params):
             printDropDown("transId", transIdInfo, selTransId, style="width:20em", form="main")
             print("""<br>""")
 
+    recodeTooltip = """
+    Select the regions in which to introduce blocking mutations (you can check multiple boxes).<br>
+    <ul>
+        <li>If recoding is needed, the default is to introduce a PAM blocking mutation to prevent binding of the Cas protein (first option).</li>
+        <li>By checking the second option, hybridization of the guide can be prevented by introducing mutations in the 15 nucleotides at the PAM-proximal end of the guide (seed region).</li>
+        <li>Additionally, mutations can be introduced in the entire region between the cut site and insertion site. to make sure that the RNP complex doesn't bind to the donor (third option).</li>
+        </ul>
+        For more information on recoding guidelines, see <a target='blank' href='https://doi.org/10.1038/s41598-021-98965-y'>Schubert et al. 2021</a> (for ssODN).
+    """
     print("""
         <p>Choose below which regions of the donor DNA to recode </p>
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
-                <strong>Recode the donor to avoid re-cleavage</strong><br>
+                <strong>Recode the donor to avoid re-cleavage</strong>
+                <img src=" %(htmlprefix)s image/info-small.png" title="%(recodeTooltip)s" class="tooltipsterInteract"><br>
                 <input type="checkbox" %(recodeChecked)s form="main" name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif<br>
                 <input type="checkbox" name="recodeSeed" form="main" value="True" autocomplete="off"/>Recode PAM proximal end the guide<br>
                 <input type="checkbox" name="recodeGap" form="main" value="True" autocomplete="off"/>Recode between the cut site and insertion site<br>

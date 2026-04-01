@@ -1317,6 +1317,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - pour les délétions via une paire de guides (excision et délétion du promoteur), séparation des résultats en 2 pages
 - ajout d'un bouton pour afficher les résultats pour la région en amont ou en aval de la délétion
+- modification de la fonction Javascript de filtre des résultats en fonction de l'exon sélectionné pour prise en compte du mode "splicing",
+    où deux séquences doivent être affichées simultanément
 
 ## knock-in mode 
 
@@ -1326,5 +1328,18 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## à faire 
 
 - inverser ordre sites loxP pout qTAG en C-ter! + vérifier ordre de tous les tags
-- donner des id uniques pour les tableaux en mode KO par délétion
 - lister les changements dans /doc/changes.html
+
+# 01/04/26
+
+## knock-out mode
+
+- correction de la logique de getExonsFromId() en mode "splicing" + écriture de l'exon sélectionné dans batch params
+   + correction dénoination des sites donneurs / accepteurs
+- correction de downloadFile() : tous les type des fichiers fonctionnent
+- correction des exonIds dans le tableau -> tous 0-based : plus de mismatch entre tableau / séquence en mode "splicing"
+
+## knock-in mode 
+
+- Pout le surlignage du PAM + spacer dans showDonor(), inversion des coodonnées pour ssODN à polarité inverse
+- ajout de tooltips dans printKiSteps et donorDesignPage() + vérification des textes

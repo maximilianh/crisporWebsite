@@ -47,7 +47,7 @@ revTbl = {
 def parseArgs():
     " setup logging, parse command line arguments and options. -h shows auto-generated help page "
 
-    parser = argparse.ArgumentParser(description="Writes of json file of codon frequency for all genomes."
+    parser = argparse.ArgumentParser(description="Writes a json file of the codon frequency for given genomes (or all genomes). The frequency is based on the longest transcript per gene."
                                      )
     parser.add_argument("-g", "--genomes", nargs="+", required=True, help="Run the script on specific genomes or all genomes in crispor/genomes if 'all'.")
     args = parser.parse_args()
