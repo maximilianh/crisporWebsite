@@ -1335,11 +1335,23 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## knock-out mode
 
 - correction de la logique de getExonsFromId() en mode "splicing" + écriture de l'exon sélectionné dans batch params
-   + correction dénoination des sites donneurs / accepteurs
+   + correction dénomination des sites donneurs / accepteurs
 - correction de downloadFile() : tous les type des fichiers fonctionnent
-- correction des exonIds dans le tableau -> tous 0-based : plus de mismatch entre tableau / séquence en mode "splicing"
+- correction des index (exonIds) dans le tableau -> tous 0-based : plus de mismatch entre tableau / séquence en mode "splicing"
 
 ## knock-in mode 
 
 - Pout le surlignage du PAM + spacer dans showDonor(), inversion des coodonnées pour ssODN à polarité inverse
 - ajout de tooltips dans printKiSteps et donorDesignPage() + vérification des textes
+
+# 02/04/26
+
+## knock-in mode
+
+- correction d'un bug dans getPosAndSeq / runQueueWorker : crash du job (attente infinie) pour gènes non-codants en mode "protein tagging".
+    - dans ce cas, affichage d'un message d'avertissement sur la page des résultats.
+- dans showDonor : ajout d'un formulaire pour modifier la séquence d'insert en fonction de l'expérience :
+    - ajout manuel d'une nouvelle séquence
+    - choix tags / linkers
+    - choix d'une autre substitution
+- par défaut, les reapeats / homopolymères / GC rich ne sont pas surlignées : ajout de checkbox pour les afficher

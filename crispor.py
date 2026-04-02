@@ -274,14 +274,13 @@ multiPamDict = {
      "20bp-NGG": (["NGG"], "20bp-NGG - Sp Cas9, SpCas9-HF1, eSpCas9 1.1"),
     "commercial": ([
         "NGG",
-        "NGA",
-        "TTN"
+        "TTN",
+        "TTTV-21",
+        "NNGRRT"
     ], "PAMs from commercially available nucleases (including only non-engineered PAMs)"),
     "pamless": ([
         "TNN",
-        "NRN",
-        "NYN"
-        ], "PAMs from commercially available nucleases (including lower specificity engineered PAMs)"),
+        ], "PAMs from commercially available nucleases with lower specificity engineered PAMs"),
     "plasmid": ([
 
         ],
@@ -6289,7 +6288,7 @@ def createMultiBatchEffScoreTable(
     guideFh = open(Fname, "w")
 
     logging.info("writing eff scores for PAM %s" % pam)
-    seq = seq.upper()
+    seq = seq.upper() if seq is not None else seq
     guideRows = calcMultiSaveEffScores(
         batchId, seq, extSeq, pam, queue, pamFullName, iter
     )
@@ -6962,6 +6961,9 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     if posStr == "?":
         extSeq = None
         batchInfo["extSeq"] = "?"
+    elif seq == "null":
+        seq = None
+        batchInfo["seq"] = None
     else:
         extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq)
         batchInfo["extSeq"] = extSeq
@@ -9130,6 +9132,7 @@ def KiResultsPage(params, batchId, download=False):
     geneId = batchInfo.get("koGeneId")
     geneModel = batchInfo.get("geneModel")
     tagNames = batchInfo.get("tagNames")
+    nonCoding = batchInfo.get("nonCoding")
     kiType = batchInfo.get("kiType")
     if kiType:
         insertSeq = batchInfo["insertSeq"]
@@ -9180,10 +9183,15 @@ def KiResultsPage(params, batchId, download=False):
 
         printKiSteps(batchId, step=1)
 
+        if nonCoding is not None:
+            htmlWarn("Could not get START or STOP codons ")
+            print(""" No START or STOP codons could be found. This gene is either non-coding, or something is wrong with the annotation of its coding sequence. The insertion will likely not be in-frame, so we suggest manually copying the target sequence by clicking on "Enter a sequence" from the Knock-in menu page (this mode supports the editing of coding or non-coding regions).""")
+
         if geneModel:
             exonSeqsPlaceholder = []
             print("<p>Show below is the gene model with the edits. Hover on these to get their full name and length</p>")
             printGeneModel(geneModel, exonSeqsPlaceholder, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
+
 
     allGuideData = []
     allGuideScores = {}
@@ -9459,6 +9467,14 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
 
+    # change the insert sequence on this page
+    if "newInsertSeq" in params:
+        insertSeq = params["newInsertSeq"]
+        insertSeq = re.sub(r'[^ATGCNatgcn]', '', insertSeq)
+    if ("tagseq" in params and "linkerseq") in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params):
+        tagNames, insertSeq = getInsertSeq(params.get("linkerseq"),  params.get("tagseq"), params.get("markerseq"),
+                                           params.get("expressionSeq"), params.get("qTag"), batchInfo["insertpos"])
+
     dbInfo = readDbInfo(org)
     chrom, start, end, strand = parsePos(posStr)
 
@@ -9555,15 +9571,15 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         guideCoordList = [(guideStartCoord, guideEndCoord)]
     if homopolymers and donorType != "ss":
         for start, end in homopolymers:
-            highlights.append((start, end, {"background-color": "rgba(255, 0, 0, 0.5)"}))
+            highlights.append((start, end, {"background-color": "rgba(0, 0, 0, 0)"}, "homopolymerCoord"))
     if donorBins and donorType != "ss":
         for start, end, GCfrac in donorBins:
             if GCfrac > 0.8:
-                highlights.append((start, end, {"background-color": "rgba(153, 51, 255, 0.5)"}))
+                highlights.append((start, end, {"background-color": "rgba(0, 0, 0, 0)"}, "GcRichCoord"))
 
     # coordinates of repeated regions
     for repeatStart, repeatEnd in HA5repeats:
-        highlights.append((repeatStart, repeatEnd, {"background-color": "rgba(102, 255, 51, 0.5)"}))
+        highlights.append((repeatStart, repeatEnd, {"background-color": "rgba(0, 0, 0, 0)"}, "repeatCoord"))
 
     if len(HA3repeats) > 0:
         if kiType in ["substitution", "deletion", "replacement"]:
@@ -9572,23 +9588,23 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
             offset = len(HA3) + len(insertSeq)
 
     for repeatStart, repeatEnd in HA3repeats:
-        highlights.append((repeatStart + offset, repeatEnd + offset, {"background-color": "rgba(102, 255, 51, 0.5)"}))
+        highlights.append((repeatStart + offset, repeatEnd + offset, {"background-color": "rgba(0, 0, 0, 0)"}, "repeatCoord"))
 
     if pamCoordList and guideCoordList:
         for start, end in pamCoordList:
-            highlights.append((start, end, {"background-color": "rgba(0, 255, 255, 0.5)"}))
+            highlights.append((start, end, {"background-color": "rgba(0, 255, 255, 0.5)"}, "pamCoord"))
         for start, end in guideCoordList:
-            highlights.append((start, end, {"background-color": "rgba(0, 0, 255, 0.5)"}))
+            highlights.append((start, end, {"background-color": "rgba(0, 0, 255, 0.5)"}, "guideCoord"))
 
     # priority to insert sequence
-    highlights.append((editStart, editEnd, {"background-color": "rgba(255, 255, 0, 0.5)"}))
+    highlights.append((editStart, editEnd, {"background-color": "rgba(255, 255, 0, 0.5)"}, "insertCoord"))
 
     if not donorName:
         donorName = "Don_%s_%s_%s" % (org, insertCoord, kiTypeStr)
     donorTypeText = "ssODN" if donorType == "ss" else "double stranded donor DNA"
 
-    if geneId and insertPos == "Cter":
-        stop = ''.join([base for base in seq if base.isupper()])
+    # if geneId and insertPos == "Cter":
+    #     stop = ''.join([base for base in seq if base.isupper()])
 
     if kiType == "substitution":
         insertText = "substitution"
@@ -9596,7 +9612,6 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         insertText = "replacement sequence"
     else:
         insertText = "insert sequence"
-
 
     print(
         """
@@ -9625,11 +9640,11 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     if kiType == "substitution":
         seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
     elif kiType == "deletion":
-        seqMsg = "%dbp deletion" % len(batchInfo["insertSeq"])
+        seqMsg = "%dbp deletion" % len(insertSeq)
     elif kiType == "replacement":
-        seqMsg = "%dbp replacement" % len(batchInfo["insertSeq"])
+        seqMsg = "%dbp replacement" % len(insertSeq)
     else:
-        seqMsg = "knock-in of a %s bp sequence" % len(batchInfo["insertSeq"])
+        seqMsg = "knock-in of a %s bp sequence" % len(insertSeq)
 
     if geneId:
         if "ENST" in geneId:
@@ -9696,7 +9711,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
 
     print(
-            """<div style='width: 80%; margin-top: 54px; margin-left:25%; margin-right:25%; text-align:left;'>"""
+            """<div style='width: 80%; margin-top: 54px; margin-left:25%; margin-right:50%; text-align:left;'>"""
     )
 
     print("""<h2>Guide sequence : %s</h2> """ % guideSeq.upper())
@@ -9750,17 +9765,40 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         editSpanText = "Insert sequence"
 
     print("""
-    <div style="display:flex; flex-direction: row; gap: 12px;">
+    <script>
+    function showHighlight(coord, color) {
+        // let spans = document.querySelectorAll(`[name="${coord}"], #${coord}, .${coord}`);
+        let spans = document.getElementsByName(coord);
+        let check = event.target;
+
+        if (check.checked) {
+            for (let span of spans) {
+                span.style.backgroundColor = color;
+            }
+        } else {
+            for (let span of spans) {
+                span.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            }
+        }
+    }
+    </script>
+    """)
+
+    print("""
+    <div style="display:flex; flex-direction: row; gap: 24px;">
         <p><span style="background-color: rgba(0, 255, 255, 0.5)">PAM</span></p>
         <p><span style="background-color: rgba(0, 0, 255, 0.5)">Spacer</span></p>
-        <p><span style="background-color: rgba(255, 255, 0, 0.5)"><u>%s</u></span></p>
-        <p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (annotated by BWA)</span></p>
+        <p><span style="background-color: rgba(255, 255, 0, 0.5)"><u>%s</u></span></p><br>
+    </div>
+    Click on the checkboxes below to show the following sequence features:
+    <div style="display:flex; flex-direction: row; gap: 2px;">
+        <input type="checkbox" autocomplete="off" onchange="showHighlight('repeatCoord', 'rgba(102, 255, 51, 0.5)')"/><p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (annotated by BWA)</span></p>
     """ % editSpanText)
-    if donorType != "ss":
-        print("""
-        <p><span style="background-color: rgba(255, 0, 0, 0.5)">Homopolymers (10+ A/T or 6+ G/C)</span></p>
-        <p><span style="background-color: rgba(153, 51, 255, 0.5)">GC rich (> 80% over 20+ nt)</span></p>
-        """)
+
+    print("""
+    <input type="checkbox" autocomplete="off" onchange="showHighlight('homopolymerCoord', 'rgba(255, 0, 0, 0.5)')"/><p><span style="background-color: rgba(255, 0, 0, 0.5)">Homopolymers (10+ A/T or 6+ G/C)</span></p>
+    <input type="checkbox" autocomplete="off" onchange="showHighlight('GcRichCoord', 'rgba(153, 51, 255, 0.5)')"/><p><span style="background-color: rgba(153, 51, 255, 0.5)">GC rich (> 80% over 20+ nt)</span></p>
+    """)
     print("""
     </div>
     """)
@@ -9799,7 +9837,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         print("<h3>Silent mutations introduced to prevent re-cut</h3>")
         print("<h4>Notes on recoding</h4>")
         print("""<p>
-        Codons in the regions to recode are replaced by the synonymous codon with the highest frequency (codon frequency is calculated based on the longest transcript for each protein-coding gene).
+        Codons in the regions to recode are replaced by the synonymous codon with the highest frequency (codon frequency is calculated based on the longest transcript for each protein-coding gene). The recoded bases are show in uppercase.
         </p>
         """)
         recNc = False
@@ -9822,9 +9860,45 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
             If you want to manually recode the donor, you can find its unmodified sequence in the fasta file (click on the button at the top of the page to download it).
             </p>""")
 
-        print("</div>")
-
         printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev)
+
+    # form to change the insert sequence
+
+    print("<form>")
+    print("""<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto;"> """)
+    if kiType == "tagging":
+        print("""<p>If you want to select other markers, use the dropdown menu below and click on update button. Updating with nothing selected will restore the original sequence.</p>""")
+        printTagsAndLinkers(qTAG=False)
+
+    elif kiType == "qTag":
+        print("""<p>If you want to select other elements, use the dropdown menu below and click on the update button. Updating with nothing selected will restore the original sequence.</p>""")
+        printTagsAndLinkers(tag=False)
+
+    elif kiType == "substitution":
+        print("""<p>If you want to change the substitution, select another base from the dropdown menu below and click on the update button.</p>""")
+        print("""<select name="newInsertSeq" style="width: 48px;">""")
+        for base in [base for base in ["A", "T", "G", "C"] if base != insertSeq.upper()]:
+            print("""<option value="%s">%s</option>""" % (base, base))
+        print("</select>")
+
+    else:
+        print("""
+            <p>If you want to change the insert sequence, paste a new one here and click on the update button. Updating with an empty box will restore the original sequence.</p>
+            <textarea name="newInsertSeq" maxlength=5000 cols=100 rows=6 placeholder="paste a new insert sequence here (max 5kb)"></textarea>
+        """)
+
+    printHiddenFields(params, {"insertSeq": insertSeq,
+                               "newInsertSeq": None,
+                               "tagseq": None,
+                               "linkerseq": None,
+                               "markerseq": None,
+                               "expressionSeq": None,
+                               "qTag": None})
+
+    print("""<button style="text-align: center; width: 125px;" type="submit" value="update">update</button>""")
+    print("</form>")
+    print("</div>")
+    print("</div>")
 
 
 def getHighlightedRow(seq, rowStart, rowEnd, highlights):
@@ -9842,15 +9916,18 @@ def getHighlightedRow(seq, rowStart, rowEnd, highlights):
     """
     if not highlights:
         return seq[rowStart:rowEnd]
-
     styles = [{} for _ in range(len(seq))]
-    for hlStart, hlEnd, style_dict in highlights:
+    names = ["" for _ in range(len(seq))]
+    for hlStart, hlEnd, style_dict, name in highlights:
         for i in range(hlStart, hlEnd):
             if 0 <= i < len(styles):
                 styles[i].update(style_dict)
+                if name:
+                    names[i] = name
 
     htmlParts = []
     currentStyleStr = ""
+    currentName = ""
 
     # process within the bounds of the sequence
     processingEnd = min(rowEnd, len(seq))
@@ -9859,8 +9936,9 @@ def getHighlightedRow(seq, rowStart, rowEnd, highlights):
         styleDict = styles[i]
         # Create a canonical string representation for comparison.
         styleStr = "; ".join(sorted(["%s: %s" % (k, v) for k, v in styleDict.items()]))
+        name = names[i]
 
-        if styleStr != currentStyleStr:
+        if styleStr != currentStyleStr or name != currentName:
             if currentStyleStr != "":
                 if currentStyleStr == "background-color: rgba(255, 255, 0, 0.5)":
                     htmlParts.append('</u></span>')
@@ -9869,10 +9947,13 @@ def getHighlightedRow(seq, rowStart, rowEnd, highlights):
             if styleStr != "":
                 if styleStr == "background-color: rgba(255, 255, 0, 0.5)":
                     htmlParts.append("""<span style="%s"><u>""" % styleStr)
+                elif name:
+                    htmlParts.append("""<span name="%s" style="%s">""" % (name, styleStr))
                 else:
                     htmlParts.append("""<span style="%s">""" % styleStr)
 
             currentStyleStr = styleStr
+            currentName = name
 
         htmlParts.append(seq[i])
 
@@ -13275,7 +13356,7 @@ def printKoForm(params):
     """)
 
 
-def printTagsAndLinkers():
+def printTagsAndLinkers(tag=True, qTAG=True):
     """prints the dropdown menus for tags and linkers"""
 
     print(
@@ -13403,100 +13484,108 @@ def printTagsAndLinkers():
         """<div class="windowstep subpanel" id="tagPanel" style="width:95%; height:75px; display:flex; flex-direction:row;"> """
     )
 
-    print("""<div id="tagLinkerDisplay" style="display:flex; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
-    print(
-       """<div>
-         <select name="linkerseq" id="linkerseq" class="js-select-linker" style="width:100%;" autocomplete="off">
-         <option selected="selected"></option>
-       """
-    )
-    for linkerType in linkers:
-        print("""<optgroup label="%s">""" % linkerType)
-        for linker in linkers[linkerType]:
-            print("""<option value="%s">%s</option>""" % (linker, linker))
-        print("</optgroup>")
+    if tag:
 
-    print("</select>")
+        print("""<div id="tagLinkerDisplay" style="display:flex; flex-direction:row; align-items:center; gap:10px; padding: 12px;">""")
+        print(
+           """<div>
+             <select name="linkerseq" id="linkerseq" class="js-select-linker" style="width:100%;" autocomplete="off">
+             <option selected="selected"></option>
+           """
+        )
+        for linkerType in linkers:
+            print("""<optgroup label="%s">""" % linkerType)
+            for linker in linkers[linkerType]:
+                print("""<option value="%s">%s</option>""" % (linker, linker))
+            print("</optgroup>")
 
-    print("</div>")
+        print("</select>")
 
-    print("<div>and</div>")
+        print("</div>")
 
-    print(
-        """<div>
-          <select name="tagseq" id="tagseq" class="js-select-tag" style="width:100%;" autocomplete="off">
-          <option selected="selected"></option>
-        """
-    )
-    for tagType in tags:
-        print("""<optgroup label="%s">""" % tagType)
-        for tag in tags[tagType]:
-            print("""<option value="%s">%s</option>""" % (tag, tag))
-        print("</optgroup>")
+        print("<div>and</div>")
 
-    print(
-        """</select>
-          </div>"""
-    )
+        print(
+            """<div>
+              <select name="tagseq" id="tagseq" class="js-select-tag" style="width:100%;" autocomplete="off">
+              <option selected="selected"></option>
+            """
+        )
+        for tagType in tags:
+            print("""<optgroup label="%s">""" % tagType)
+            for tag in tags[tagType]:
+                print("""<option value="%s">%s</option>""" % (tag, tag))
+            print("</optgroup>")
 
-    print("</div>")
+        print(
+            """</select>
+              </div>"""
+        )
+
+        print("</div>")
 
     # qTAG options
-    print("""<div id="qTagDisplay" style="display:none; flex-direction:row; align-items:center; gap:18px; padding: 12px;">""")
-
-    # TAG sequence
-    print("""
-    <div>
-    <select name="qTag" id="qTag" class="js-select-qtag" style="width:100%; margin-right: 24px;" autocomplete="off">""")
-    print("<option></option>")
-    for tagType in qTags:
-        print("""<optgroup label="%s">""" % tagType)
-        for tag in qTags[tagType]:
-            print("""<option value="%s">%s</option>""" % (tag, tag))
-        print("</optgroup>")
-    print("""
-    </select>
-    </div>
-    """)
-
-    print("<div>and</div>")
-
-    # Markers
-    print("""
-    <div>
-    <select name="markerseq" id="markerseq" class="js-select-marker" style="width:100%;" autocomplete="off">""")
-    print("<option></option>")
-    print("""<option value="none">None</option>""")
-    for markerType in markers:
-        print("""<optgroup label="%s">""" % markerType)
-        for marker in markers[markerType]:
-            print("""<option value="%s">%s</option>""" % (marker, marker))
-        print("</optgroup>")
-    print("""
-    </select>
-    </div>
-    """)
-
-    print("<div>and</div>")
-
-    # Expression method
-    print("""
-    <div>
-    <select name="expressionSeq" id="expressionSeq" class="js-select-expression" style="width:100%;" autocomplete="off">""")
-    print("<option></option>")
-    print("""<option value="none">in-frame fusion to target gene</option>""")
-    for expressionSeq in expressionSeqs:
-        if expressionSeq == "EF1":
-            expressionSeqHtml = expressionSeq + "&alpha;"
+    if qTAG:
+        if qTAG and not tag:
+            display = "display: flex"
         else:
-            expressionSeqHtml = expressionSeq
-        print("""<option value="%s">%s</option>""" % (expressionSeq, expressionSeqHtml))
-    print("""
-    </select>
-    </div>
-    """)
+            display = "display: none"
 
-    print("</div>")
+        print("""<div id="qTagDisplay" style="%s; flex-direction:row; align-items:center; gap:18px; padding: 12px;">""" % display)
+
+        # TAG sequence
+        print("""
+        <div>
+        <select name="qTag" id="qTag" class="js-select-qtag" style="width:100%; margin-right: 24px;" autocomplete="off">""")
+        print("<option></option>")
+        for tagType in qTags:
+            print("""<optgroup label="%s">""" % tagType)
+            for tag in qTags[tagType]:
+                print("""<option value="%s">%s</option>""" % (tag, tag))
+            print("</optgroup>")
+        print("""
+        </select>
+        </div>
+        """)
+
+        print("<div>and</div>")
+
+        # Markers
+        print("""
+        <div>
+        <select name="markerseq" id="markerseq" class="js-select-marker" style="width:100%;" autocomplete="off">""")
+        print("<option></option>")
+        print("""<option value="none">None</option>""")
+        for markerType in markers:
+            print("""<optgroup label="%s">""" % markerType)
+            for marker in markers[markerType]:
+                print("""<option value="%s">%s</option>""" % (marker, marker))
+            print("</optgroup>")
+        print("""
+        </select>
+        </div>
+        """)
+
+        print("<div>and</div>")
+
+        # Expression method
+        print("""
+        <div>
+        <select name="expressionSeq" id="expressionSeq" class="js-select-expression" style="width:100%;" autocomplete="off">""")
+        print("<option></option>")
+        print("""<option value="none">in-frame fusion to target gene</option>""")
+        for expressionSeq in expressionSeqs:
+            if expressionSeq == "EF1":
+                expressionSeqHtml = expressionSeq + "&alpha;"
+            else:
+                expressionSeqHtml = expressionSeq
+            print("""<option value="%s">%s</option>""" % (expressionSeq, expressionSeqHtml))
+        print("""
+        </select>
+        </div>
+        """)
+
+        print("</div>")
     print("</div>")
 
 
@@ -14377,7 +14466,7 @@ def getPosAndSeq(org, seq, posStr, batchId):
     # input is a transcriptID
     elif seq is None and posStr:
         seq = getSeq(org, posStr)
-
+        logging.info(f"seq : {seq}")
         # Annotation of START and STOP codons (uppercase)
         if kiType in ["tagging", "qTag"]:
             if (
@@ -14389,6 +14478,7 @@ def getPosAndSeq(org, seq, posStr, batchId):
                     + seq[insertIdx - 3: insertIdx].upper()
                     + seq[insertIdx:].lower()
                 )
+                seq = targetSeq
             elif (
                 insertPos == "Cter"
                 and seq[insertIdx: insertIdx + 3].upper() in codonTable["*"]
@@ -14398,9 +14488,9 @@ def getPosAndSeq(org, seq, posStr, batchId):
                     + seq[insertIdx: insertIdx + 3].upper()
                     + seq[insertIdx + 3:].lower()
                 )
+                seq = targetSeq
             else:
-                return None, None
-            seq = targetSeq
+                batchInfo["nonCoding"] = True
 
         batchInfo["seq"] = seq
 
@@ -17530,7 +17620,6 @@ def runQueueWorker(noFork):
                         org, seq, posStr, multipam, batchBase, batchId, q
                     )
                     logging.info("executed processMultiPamSubmission()")
-                    q.jobDone(batchId)
                 except:
                     exStr = traceback.format_exc()
                     print(" - WORKER CRASHED WITH EXCEPTION -")
