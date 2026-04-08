@@ -1376,7 +1376,19 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 08/04/26
 
+## global
+
+- dans menu de sélection gène / transcrit :
+    - affichage de l'option "common exons" et MANE select en premier
+    - adaptation du texte pour les transcrits non codants
+
+
 ## knock-out mode 
 
 - adaptation des texte du gene model si "common exons" sélectionné + correction d'un bug sur les exons à la fois target et non target 
 - dans getExonInfo(), ajustement de la numérotation des exons sur brin -
+- dans showExonAndPams, les sites d'épissage dont correctement surlignés pour les séquences du brin -
+
+## knock-in mode
+
+- dans KiResultsPage(), ajout d'un bouton pour soumettre une nouvelle recherche avec la liste de PAMs sélectionnée (ne s'affiche que si les PAMs supplémentaires sont affichés sur la séquence)

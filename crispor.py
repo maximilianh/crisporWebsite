@@ -2064,7 +2064,9 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True,
                 mouseOver = ""
             else:
                 classStr = "tooltipsterInteract"
-                mouseOver = "title='The scores for the guide sequence corresponding to this PAM are not calculated yet.'"
+                mouseOver = """
+                title='The scores for the guide sequence corresponding to this PAM are not calculated yet. Click on "New search with the selected PAMs" to show their scores.'
+                """
                 score = ""
 
             spacer = "".join([" "] * ((start - lastEnd)))
@@ -2189,7 +2191,8 @@ def showExonAndPams(
             exonDisplay = "none"
     else:
         exonDisplay = "block"
-
+    
+    _, _, _, strand = parsePos(position)
     # don't display the exons where no PAMs were found
     if len(pamSeqs) == 0:
         if koMethod == "splicing":
@@ -2235,9 +2238,9 @@ def showExonAndPams(
 
     if koMethod == "splicing":
         if exonId % 2 == 0:
-            spliceLabel = "Splicing acceptor site"
-        else:
             spliceLabel = "Splicing donor site"
+        else:
+            spliceLabel = "Splicing acceptor site"
         labelLen = max(labelLen, len(spliceLabel))
 
     exonLines = []
@@ -2357,10 +2360,10 @@ def showExonAndPams(
         spliceGap = 17
         print(("{:" + str(labelLen) + "s} ").format(spliceLabel), end=" ")
         # splicing donor site
-        if exonId % 2 != 0:
-            print("".join([" " for i in range(spliceGap + 6)]), "".join(["-" for i in range(6)]))
-        else:
+        if exonId % 2 == 0 and strand == "+" or exonId % 2 != 0 and strand == "-":
             print("".join([" " for i in range(spliceGap)]), "".join(["-" for i in range(6)]))
+        else:
+            print("".join([" " for i in range(spliceGap + 6)]), "".join(["-" for i in range(6)]))
 
     print(("{:" + str(labelLen) + "s} ").format(seqLabel), end=" ")
     print(seq)
@@ -7193,16 +7196,23 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
     # GenePred format : 0: gene name ; 1: chr ; 2: strand ; 3: TSS ; 4: TES ; 5: CDS start ; 6: CDS end ; 7: nb. exons ; 8: exons start ; 9: exons end ; 10: Score ; 11: alt Name.
     for gpFile in gpFiles:
         if "Select" in gpFile:
-            isMane = " - MANE select transcript"
+            isMane = True
         else:
-            isMane = ""
+            isMane = False
         with open(join(genomePath, gpFile), "r") as genePred:
             foundGenes = 0
+            # stop the search at 100 matches for non specific terms (e.g LOC)
             for line in genePred:
                 if foundGenes > 100:
                     break
                 cols = line.strip().split("\t")
                 mainId = cols[0]
+                cdsStart = int(cols[5])
+                cdsEnd = int(cols[6])
+                if cdsEnd - cdsStart > 3:
+                    coding = True
+                else:
+                    coding = False
                 isAltName = len(cols) > 11
                 if isAltName:
                     altId = cols[11]
@@ -7212,77 +7222,63 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                 if isAltName and term in altId.lower() and onlySymbol is True:
                     foundGenes += 1
                     exonCount = cols[7]
-                    matches.append((altId, mainId, exonCount, isMane))
+                    matches.append((altId, mainId, exonCount, coding, isMane))
 
-                elif term in mainId.lower() or term in altId.lower() and onlySymbol is False:
-                    exonCount = cols[7]
+    # select2 data formats : https://select2.org/data-sources/formats
 
-                    if isAltName:
-                        matches.append(
-                            {
-                                "id": mainId,
-                                "text": "%(mainId)s (%(altId)s%(isMane)s) - %(exonCount)s exons" % locals(),
-                                "exonCount": exonCount
-                            }
-                        )
-                    else:
-                        matches.append(
-                            {"id": mainId, "text": mainId, "exonCount": exonCount}
-                        )
-    if onlySymbol:
-        # select2 data formats : https://select2.org/data-sources/formats
+    symDicts = []
+    seen = set()
+    # merge transcripts belonging to the same gene
 
-        symDicts = []
-        seen = set()
-        # merge transcripts belonging to the same gene
-        currentSym = None
-        for match in matches:
-            sym, transcript, exonCount, isMane = match
-            if sym in seen:
-                for symDict in symDicts:
-                    selSym = symDict["text"]
-                    transList = symDict["children"]
-                    if selSym == sym:
-                        if commonExons and len(transList) == 1:
-                            transList.append({
-                                "id": "%s~SYM" % sym,
-                                "text": "Search common exons for all transcripts in %s" % sym,
-                                "exonCount": 0
-                                })
-                        transList.append({
-                            "id": transcript,
-                            "text": "%s (%s exons%s)" % (transcript, exonCount, isMane),
-                            "exonCount": exonCount
+    for match in matches:
+        sym, transcript, exonCount, coding, isMane = match
+        if coding:
+            codingStr = ""
+        else:
+            codingStr = ", non coding"
+
+        if isMane:
+            matchText = "Mane select transcript for %s (%s - %s exons%s)" % (sym, transcript, exonCount, codingStr)
+        else:
+            matchText = "%s (%s exons%s)" % (transcript, exonCount, codingStr)
+
+        if sym in seen:
+            for symDict in symDicts:
+                selSym = symDict["text"]
+                transList = symDict["children"]
+                if selSym == sym:
+                    transDict = {
+                        "id": transcript,
+                        "text": matchText,
+                        "exonCount": exonCount
+                        }
+                    if commonExons and len(transList) == 1:
+                        transList.insert(0, {
+                            "id": "%s~SYM" % sym,
+                            "text": "Search common exons for all transcripts in %s" % sym,
+                            "exonCount": 0
                             })
-            else:
-                symTransList = [{
-                    "id": transcript,
-                    "text": "%s (%s exons)" % (transcript, exonCount),
-                    "exonCount": exonCount
-                                    }]
+                    # show the MANE transcript at the top of the options
+                    elif isMane:
+                        transList.insert(1, transDict)
+                    else:
+                        transList.append(transDict)
 
-                symDicts.append({"text": sym,
-                                 "children": symTransList
-                                 })
+        else:
+            symTransList = [{
+                "id": transcript,
+                "text": matchText,
+                "exonCount": exonCount
+                                }]
 
-                seen.add(sym)
+            symDicts.append({"text": sym,
+                             "children": symTransList
+                             })
 
-        print(json.dumps({"results": symDicts[:30]}))
-        sys.exit(0)
+            seen.add(sym)
 
-    # old code : selection by transcript and gene symbol
-    else:
-        seen = set()
-        uniqueMatches = []
-        for match in matches:
-            # Use a tuple to check for uniqueness to handle unhashable dicts
-            match_tuple = tuple(sorted(match.items()))
-            if match_tuple not in seen:
-                uniqueMatches.append(match)
-                seen.add(match_tuple)
-
-        print(json.dumps({"results": uniqueMatches[:30]}))
-        sys.exit(0)
+    print(json.dumps({"results": symDicts[:30]}))
+    sys.exit(0)
 
 
 def printGeneSelection(paramName, onlySymbol=False, commonExons=False):
@@ -9164,7 +9160,6 @@ def KiResultsPage(params, batchId, download=False):
     geneModel = batchInfo.get("geneModel")
     tagNames = batchInfo.get("tagNames")
     nonCoding = batchInfo.get("nonCoding")
-    print(nonCoding)
     kiType = batchInfo.get("kiType")
     if kiType:
         insertSeq = batchInfo["insertSeq"]
@@ -9369,28 +9364,41 @@ def KiResultsPage(params, batchId, download=False):
               </select>
               </div>""")
 
-        # get the url to submit a new search with the selected PAM list
-        newParams = {param: val for param, val in batchInfo.items() if param not in ["batchId", "multipam"]}
-        # gene model is a list of lists : convert it to json format
-        if "tagNames" in newParams:
-            newParams["tagNames"] = json.dumps(newParams["tagNames"])
-        if "geneModel" in newParams:
-            newParams["geneModel"] = json.dumps(newParams["geneModel"])
-        newParams.update({"newSearch": 1, "submit": "submit", "multipam": otherPam})
-        actionStr = "?" + urllib.parse.urlencode(newParams)
         print("""
                 </div>
             </div>
-            <button style="width: 250px; height: 24px; align-self: center; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update sequence viewer</button>
-            <a href="%s" style="display: flex; align-items: center; align-self: center;">
-                <div class="button" style="display: flex; align-items: center; height: 24px;">New search with the selected PAMs</div>
-            </a>
+            <div style="margin-top: 24px; display: flex; flex-direction: row; gap: 10%; align-self: center;">
+                <button style="width: 220px; height: 32px; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update sequence viewer</button>
+        """)
+
+        if otherPam is not None:
+            # get the url to submit a new search with the selected PAM list
+            newParams = {param: val for param, val in batchInfo.items() if param not in ["batchId", "multipam"]}
+            # gene model is a list of lists : convert it to json format
+            if "tagNames" in newParams:
+                newParams["tagNames"] = json.dumps(newParams["tagNames"])
+            if "geneModel" in newParams:
+                newParams["geneModel"] = json.dumps(newParams["geneModel"])
+            newParams.update({"newSearch": 1, "submit": "submit"})
+            if otherPam is not None:
+                newParams.update({"multipam": otherPam})
+            else:
+                newParams.update({"multipam": multipam})
+            actionStr = "?" + urllib.parse.urlencode(newParams)
+
+            print("""
+                <a href="%s" style="width: 320px; display: flex; align-items: center;">
+                    <div class="button" style="display: flex; align-items: center; height: 32px;">New search with the selected PAMs</div>
+                </a>
+            """ % actionStr)
+        print("""
+            </div>
 
         </div>
         </div>
         </div>
         </form><br>
-        """ % actionStr)
+        """)
 
         if posStr == "?":
             print("""
@@ -13273,7 +13281,7 @@ def printKoForm(params):
             var data = e.params.data;
             var exonSelect = $('#exonSelect');
             exonSelect.empty();
-            if (data.exonCount) {
+            if (data.exonCount != undefined) {
                 var allExonsOpt = new Option('target all exons ', 'allExons', false, false);
                 exonSelect.append(allExonsOpt);
                 for (var i = 0; i < data.exonCount; i++) {
@@ -13982,6 +13990,7 @@ def printBody(params):
         doCfdFix = True
 
     if submit and "newSearch" in params:
+        printCrisporBodyStart()
         crisprSearch(params)
     elif submit and (koGeneId or ("startSeq" in params and "endSeq" in params)):
         if expType == "ko":
