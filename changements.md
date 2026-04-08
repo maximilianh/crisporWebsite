@@ -1341,7 +1341,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## knock-in mode 
 
-- Pout le surlignage du PAM + spacer dans showDonor(), inversion des coodonnées pour ssODN à polarité inverse
+- lors du surlignage du PAM + spacer dans showDonor(), inversion des coodonnées pour ssODN à polarité inverse
 - ajout de tooltips dans printKiSteps et donorDesignPage() + vérification des textes
 
 # 02/04/26
@@ -1355,3 +1355,28 @@ réécriture de getDonorSeq() : séparation en deux fonctions
     - choix tags / linkers
     - choix d'une autre substitution
 - par défaut, les reapeats / homopolymères / GC rich ne sont pas surlignées : ajout de checkbox pour les afficher
+
+# 07/04/26
+
+## knock-out mode
+
+- ajout de la sélection des exons communs à tous les transcrits :
+    - ajout du paramètre commonExons à dbsearchGene() : retourne symbol
+    - dans getGenePos : intersection de tous les transcrits + cds et tss start/end
+
+## knock-in mode
+
+- fix du clipping du menu de sélection tags & linkers
+- ajout d'une liste des changements dans changes.html
+
+## à faire
+
+- afficher "common exons" sur le gene model
+- dans l'affichage des la séquence protéique, le n° d'exon n'est pas le bon en mode "common exons"
+
+# 08/04/26
+
+## knock-out mode 
+
+- adaptation des texte du gene model si "common exons" sélectionné + correction d'un bug sur les exons à la fois target et non target 
+- dans getExonInfo(), ajustement de la numérotation des exons sur brin -

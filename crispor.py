@@ -130,7 +130,7 @@ except:
     mysqldbLoaded = False
 
 # version of crispor
-versionStr = "5.3 beta"
+versionStr = "5.4 test"
 
 # Current release note
 
@@ -1184,7 +1184,7 @@ def cgiGetParams():
         if val != None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            if key not in ["seq", "name", "customseq", "insertSeq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq", "exonInfo", "guideInfo", "geneModel", "tagNames"]:
+            if key not in ["seq", "name", "koGeneId", "customseq", "insertSeq", "globEffScore", "linkerseq", "tagseq", "markerseq", "qTag", "expressionSeq", "exonInfo", "guideInfo", "geneModel", "tagNames"]:
                 checkVal(key, val)
             cgiParams[key] = val
 
@@ -7162,9 +7162,11 @@ def printOrgDropDown(lastorg, genomes):
     )
 
 
-def dbsearchGene(params, onlySymbol=False):
+def dbsearchGene(params, onlySymbol=False, commonExons=False):
     """outputs gene IDs corresponding to the selected organism in json format
-    optionally returns the selected gene symbol and its corresponding transcript
+    optionally returns the selected gene symbol and its corresponding transcript.
+    When commonExon is true, add "common exons" as an option for each gene symbol,
+    with the gene symbol as value
     """
     print("Content-type: application/json\n")
 
@@ -7241,19 +7243,26 @@ def dbsearchGene(params, onlySymbol=False):
                     selSym = symDict["text"]
                     transList = symDict["children"]
                     if selSym == sym:
+                        if commonExons and len(transList) == 1:
+                            transList.append({
+                                "id": "%s~SYM" % sym,
+                                "text": "Search common exons for all transcripts in %s" % sym,
+                                "exonCount": 0
+                                })
                         transList.append({
                             "id": transcript,
                             "text": "%s (%s exons%s)" % (transcript, exonCount, isMane),
                             "exonCount": exonCount
                             })
-
             else:
-                symDicts.append({"text": sym,
-                                 "children": [{
-                                     "id": transcript,
-                                     "text": "%s (%s exons)" % (transcript, exonCount),
-                                     "exonCount": exonCount
+                symTransList = [{
+                    "id": transcript,
+                    "text": "%s (%s exons)" % (transcript, exonCount),
+                    "exonCount": exonCount
                                     }]
+
+                symDicts.append({"text": sym,
+                                 "children": symTransList
                                  })
 
                 seen.add(sym)
@@ -7261,6 +7270,7 @@ def dbsearchGene(params, onlySymbol=False):
         print(json.dumps({"results": symDicts[:30]}))
         sys.exit(0)
 
+    # old code : selection by transcript and gene symbol
     else:
         seen = set()
         uniqueMatches = []
@@ -7275,8 +7285,15 @@ def dbsearchGene(params, onlySymbol=False):
         sys.exit(0)
 
 
-def printGeneSelection(paramName, onlySymbol=False):
-    "prints the searchable dropdown menu for gene/transcript selection"
+def printGeneSelection(paramName, onlySymbol=False, commonExons=False):
+    """"
+    prints the searchable dropdown menu for gene/transcript selection.
+    """
+
+    if commonExons:
+        ajaxStr = "geneSearchCommon"
+    else:
+        ajaxStr = "geneSearch"
 
     scriptName = basename(__file__)
     print(
@@ -7294,7 +7311,7 @@ def printGeneSelection(paramName, onlySymbol=False):
                 delay: 250,
                 data: function (params) {
                     return {
-                        ajax: 'geneSearch',
+                        ajax: '%s',
                         term: params.term, // search term
                         org: $('#genomeDropDown').val() // get currently selected organism
                     };
@@ -7326,7 +7343,7 @@ def printGeneSelection(paramName, onlySymbol=False):
     });
     </script>
 
-    """ % (paramName, scriptName)
+    """ % (paramName, scriptName, ajaxStr)
     )
 
 
@@ -7854,8 +7871,10 @@ def newMultiSeqBatch(
     """
 
     allSeq = "".join([seq[1] for seq in multiseq])
+    # add exonSelect and the selected geneId to get a unique batchId
     if exonSelect is not None:
         allSeq += exonSelect
+    allSeq += koGeneId
     batchId = makeTempBase(allSeq, org, pam, batchName)
     batchBase = join(batchDir, batchId)
     jsonFname = batchBase + ".json"
@@ -7895,7 +7914,8 @@ def newMultiPamBatch(
     insertPos=None,
     kiType=None,
     tagNames=None,
-    geneModel=None
+    geneModel=None,
+    nonCoding=None
 ):
 
     if seq:
@@ -7920,6 +7940,8 @@ def newMultiPamBatch(
         batchData["insertIdx"] = insertIdx
         batchData["batchName"] = batchName
         batchData["assist"] = assist
+        if nonCoding:
+            batchData["nonCoding"] = nonCoding
         if koGeneId:
             batchData["koGeneId"] = koGeneId
         if insertPos:
@@ -8698,6 +8720,9 @@ def getExonInfo(org, geneName, position, extendPos=False):
             else:
                 if exIdx > 0:
                     nextFrame = blocks[exIdx - 1][-1]
+                # for the - strand, count the exons backwards
+                exIdx = (len(blocks) - 1) - exIdx
+
             # print("next frame", nextFrame, "<br>")
 
             # figure out exon start/end: special case for UTRs: trim down to CDS start/end
@@ -8733,7 +8758,6 @@ def getExonInfo(org, geneName, position, extendPos=False):
             if exStart is None:
                 # whole exon is outside of view
                 continue
-
             symbol = ""
             if geneName2 != "":
                 symbol = geneName2
@@ -8849,6 +8873,9 @@ def crisprSearch(params):
 
         koGeneId = params.get("koGeneId")
         geneModel = params.get("geneModel")
+        # if a new search has been launched via the KI results page, geneModel is in json format
+        if isinstance(geneModel, str):
+            geneModel = json.loads(geneModel)
 
         koMethod = params.get("koMethod")
         multiseq = params.get("multiseq")
@@ -8864,6 +8891,9 @@ def crisprSearch(params):
                 insertIdx = int(params["insertIdx"])
                 kiType = params.get("kiType")
                 tagNames = params.get("tagNames")
+                nonCoding = params.get("nonCoding")
+                if isinstance(tagNames, str):
+                    tagNames = json.loads(tagNames)
                 batchId = newMultiPamBatch(
                     newBatchName,
                     seq,
@@ -8877,7 +8907,8 @@ def crisprSearch(params):
                     insertPos,
                     kiType,
                     tagNames,
-                    geneModel
+                    geneModel,
+                    nonCoding
                 )
             else:
                 assist = params["assist"]
@@ -9133,6 +9164,7 @@ def KiResultsPage(params, batchId, download=False):
     geneModel = batchInfo.get("geneModel")
     tagNames = batchInfo.get("tagNames")
     nonCoding = batchInfo.get("nonCoding")
+    print(nonCoding)
     kiType = batchInfo.get("kiType")
     if kiType:
         insertSeq = batchInfo["insertSeq"]
@@ -9191,7 +9223,6 @@ def KiResultsPage(params, batchId, download=False):
             exonSeqsPlaceholder = []
             print("<p>Show below is the gene model with the edits. Hover on these to get their full name and length</p>")
             printGeneModel(geneModel, exonSeqsPlaceholder, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
-
 
     allGuideData = []
     allGuideScores = {}
@@ -9283,7 +9314,7 @@ def KiResultsPage(params, batchId, download=False):
         <div style="width: 100%; display: flex; flex-direction: row; gap: 12px; margin-top: 24px; overflow-x: scroll; max-width: 1650px; min-width: 1650px;">
         <p style="width: 50%;">
         Note : by default, only the guides that result in a DSB less than 10bp from the edition site are displayed.<br>
-        If the sequence viewer is empty or you want more to be displayed, use the two options on the right to either increase this theshold, or show the position of other PAM patterns on the sequence (in gray on the sequence viewer). Note that these added PAMs don't have any specificity or efficiency scores for ther guide sequence yet. You can then submit a new search with the selected PAM (or list of PAMs) to get the corresponding guides and scores <i>(not implemented yet)</i>.
+        If the sequence viewer is empty or you want more to be displayed, use the two options on the right to either increase this theshold, or show the position of other PAM patterns on the sequence (in gray on the sequence viewer). Note that these added PAMs don't have any specificity or efficiency scores for ther guide sequence yet. You can then submit a new search with the selected PAM (or list of PAMs) to get the corresponding guides and scores.
         </p>
         """)
 
@@ -9309,7 +9340,6 @@ def KiResultsPage(params, batchId, download=False):
         <div style="display: flex; flex-direction: column;">
             <div style="display: flex; flex-direction: row; align-items: top; gap: 5%%; margin-bottom: 12px;">
                 <div style="font-weight: bold; font-size: 1.15em;">Options to modify the display of PAMs on the sequence viewer</div>
-                <button name="submit" type="submit" value="Update"><small>Update</small></button>
             </div>
             <div style="display: flex">
                 <div>
@@ -9339,14 +9369,28 @@ def KiResultsPage(params, batchId, download=False):
               </select>
               </div>""")
 
+        # get the url to submit a new search with the selected PAM list
+        newParams = {param: val for param, val in batchInfo.items() if param not in ["batchId", "multipam"]}
+        # gene model is a list of lists : convert it to json format
+        if "tagNames" in newParams:
+            newParams["tagNames"] = json.dumps(newParams["tagNames"])
+        if "geneModel" in newParams:
+            newParams["geneModel"] = json.dumps(newParams["geneModel"])
+        newParams.update({"newSearch": 1, "submit": "submit", "multipam": otherPam})
+        actionStr = "?" + urllib.parse.urlencode(newParams)
         print("""
                 </div>
             </div>
+            <button style="width: 250px; height: 24px; align-self: center; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update sequence viewer</button>
+            <a href="%s" style="display: flex; align-items: center; align-self: center;">
+                <div class="button" style="display: flex; align-items: center; height: 24px;">New search with the selected PAMs</div>
+            </a>
+
         </div>
         </div>
         </div>
         </form><br>
-        """)
+        """ % actionStr)
 
         if posStr == "?":
             print("""
@@ -10055,6 +10099,11 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
     koMethod = batchInfo["koMethod"]
     geneModel = batchInfo["geneModel"]
     koGeneId = batchInfo["koGeneId"]
+    if "SYM" in koGeneId:
+        koGeneId = koGeneId.split("~")[0]
+        commonExons = True
+    else:
+        commonExons = False
     exonSeqs = batchInfo["exonSeqs"]
     exonPosStr = batchInfo["exonPosStr"]
     exonSelect = batchInfo.get("exonSelect")
@@ -10095,14 +10144,19 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             )
         else:
             transcriptUrl = "https://www.ncbi.nlm.nih.gov/nuccore/%s/" % koGeneId
+
+        if commonExons:
+            commonExonStr = " (common exons)"
+        else:
+            commonExonStr = ""
         print(
-            """Knock-out of <a href="%s" target="_blank">%s</a> by %s"""
-            % (transcriptUrl, koGeneId, titleText)
+            """Knock-out of <a href="%s" target="_blank">%s</a>%s by %s"""
+            % (transcriptUrl, koGeneId, commonExonStr, titleText)
         )
         print("""</div>""")
 
         if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
-            printGeneModel(geneModel, exonSeqs, koMethod)
+            printGeneModel(geneModel, exonSeqs, koMethod, commonExons=commonExons)
         print(
             """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (to allow hybridization of the spacer sequence of the guide).<p>""")
         if koMethod == "frameshift":
@@ -10308,7 +10362,7 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
     return varHtmls, varDbs
 
 
-def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None):
+def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None, commonExons=False):
     """
     Displays the gene model, from CDS start to CDS end
     Optionally make target exons as buttons"""
@@ -10529,18 +10583,26 @@ function toggleExonSeq(selectedValue) {
                 borderRadius = "8px 0 0 8px"
             else:
                 borderRadius = "8px"
+            if commonExons:
+                exonStr = "common coding exon"
+                exonStrSmall = "comm. cod. ex."
+                exonStrMin = "c.cod.ex."
+            else:
+                exonStr = "coding exon"
+                exonStrSmall = "cod. ex."
+                exonStrMin = "c.ex."
 
-            if length >= 50:
-                exonText = "<small>exon %d</small>" % featureIdOneBased
+            fullExonTitle = "%s %d (%d bp)" % (exonStr, featureIdOneBased, length)
+            if length >= 150 and not commonExons or length >= 200 and commonExons:
+                exonText = "<small>%s </small>" % fullExonTitle
+            elif length >= 50 and commonExons or length >= 75 and commonExons:
+                exonText = "<small>%s %d</small>" % (exonStrSmall, featureIdOneBased)
             elif length >= 25:
-                exonText = "<small>ex.%d</small>" % featureIdOneBased
+                exonText = "<small>%s%d</small>" % (exonStrMin, featureIdOneBased)
             else:
                 exonText = ""
 
-            exonMouseOver = (
-                'class="tooltipsterInteract" title="coding exon %d (%d bp)"'
-                % (featureIdOneBased, length)
-            )
+            exonMouseOver = 'class="tooltipsterInteract" title="%s"' % fullExonTitle
 
             if exonSeqs:
                 if koMethod == "frameshift":
@@ -10583,8 +10645,9 @@ function toggleExonSeq(selectedValue) {
                         % (featureId, exonMouseOver, lastLen, exonText)
                     )
                     print(
-                        """<div style="
+                        """<div
                         %s
+                        style="
                         width:%dpx;
                         height: 25px;
                         border: 0.5px solid gray;
@@ -11369,11 +11432,11 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
         else:
             # most viewers don't handle overlaps well. We highlight only the PAM in these cases
             if strand == "+":
-                start = startPos + 1
-                end = startPos + len(pamSeq)
+                start = start + 1
+                end = start + len(pamSeq)
             else:
-                start = startPos + 1
-                end = startPos + len(pamSeq)
+                start = start + 1
+                end = start + len(pamSeq)
 
         colorHex, colorName = scoreToColor(guideScore)
         guideName = intToExtPamId(pamId)
@@ -13302,7 +13365,7 @@ def printKoForm(params):
           """
     )
 
-    printGeneSelection("koGeneId")
+    printGeneSelection("koGeneId", commonExons=True)
 
     print(
         """
@@ -13481,7 +13544,7 @@ def printTagsAndLinkers(tag=True, qTAG=True):
             }
 
     print(
-        """<div class="windowstep subpanel" id="tagPanel" style="width:95%; height:75px; display:flex; flex-direction:row;"> """
+        """<div class="windowstep subpanel" id="tagPanel" style="width:100%; height:75px; display:flex; flex-direction:row;"> """
     )
 
     if tag:
@@ -13874,7 +13937,7 @@ function changeSeqCase(value) {
                     <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
                     <textarea spellcheck="false" autocorrect="false" id="insertSeq" name="insertSeq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
 
-                <div style="width:80%%; display: block; margin-top: 14px;" id="taglist">
+                <div style="width:95%%; display: block; margin-top: 14px;" id="taglist">
           """ % HTMLPREFIX
     )
 
@@ -13918,7 +13981,9 @@ def printBody(params):
     if "fixCfd" in params:
         doCfdFix = True
 
-    if submit and (koGeneId or ("startSeq" in params and "endSeq" in params)):
+    if submit and "newSearch" in params:
+        crisprSearch(params)
+    elif submit and (koGeneId or ("startSeq" in params and "endSeq" in params)):
         if expType == "ko":
             # Knock-out mode
             if koGeneId is not None:
@@ -14313,13 +14378,20 @@ def getGenePos(geneID, org, method, targetLen):
     genomeFiles = os.listdir(genomePath)
     gpFiles = [f for f in genomeFiles if f.endswith(".gp")]
 
+    if "SYM" in geneID:
+        commonExons = True
+        geneID = geneID.split("~")[0]
+        allExons = []
+    else:
+        commonExons = False
+
     for gpFile in gpFiles:
         gpFilePath = os.path.join(genomePath, gpFile)
         with open(gpFilePath, "r") as genePred:
 
             for geneLine in genePred:
                 geneLine = geneLine.split("\t")
-                if geneLine[0] == geneID:
+                if (commonExons is False and geneLine[0] == geneID) or (commonExons is True and len(geneLine) >= 12 and geneLine[11] == geneID):
                     geneInfo = {
                         "name": geneLine[0],
                         "chrom": geneLine[1],
@@ -14335,9 +14407,57 @@ def getGenePos(geneID, org, method, targetLen):
                         "cdsStart": int(geneLine[5]),
                         "cdsEnd": int(geneLine[6]),
                     }
-                    # for now, stop after finding one matching ID
-                    # print a warning message if several transcripts are found ? (will be slower)
-                    break
+                    if commonExons:
+                        allExons.append(geneInfo)
+                    else:
+                        # for now, stop after finding one matching ID
+                        # print a warning message if several transcripts are found ? (will be slower)
+                        break
+    # get the common exons
+    if commonExons:
+        if not allExons:
+            raise ValueError("")
+
+        def intersect(aStarts, aEnds, bStarts, bEnds):
+            resStarts, resEnds = [], []
+            for aStart, aEnd in zip(aStarts, aEnds):
+                for bStart, bEnd in zip(bStarts, bEnds):
+                    commonStart = max(aStart, bStart)
+                    commonEnd = min(aEnd, bEnd)
+                    if commonStart < commonEnd:
+                        resStarts.append(commonStart)
+                        resEnds.append(commonEnd)
+            return resStarts, resEnds
+
+        # Initialize with the first transcript
+        resStarts = allExons[0]["exonStarts"]
+        resEnds = allExons[0]["exonEnds"]
+        txStart, txEnd = allExons[0]["txStart"], allExons[0]["txEnd"]
+        cdsStart, cdsEnd = allExons[0]["cdsStart"], allExons[0]["cdsEnd"]
+
+        for i in range(1, len(allExons)):
+            currentInfo = allExons[i]
+            nextStarts, nextEnds = intersect(resStarts, resEnds, currentInfo["exonStarts"], currentInfo["exonEnds"])
+
+            # Only update intersection and bounds if there are still common exons
+            if nextStarts:
+                res_starts, res_ends = nextStarts, nextEnds
+                tx_start = max(txStart, currentInfo["txStart"])
+                tx_end = min(txEnd, currentInfo["txEnd"])
+                cds_start = max(cdsStart, currentInfo["cdsStart"])
+                cds_end = min(cdsEnd, currentInfo["cdsEnd"])
+            else:
+                # No common exons with this specific transcript, skipping its contribution to bounds
+                continue
+
+        geneInfo = allExons[0].copy()
+        geneInfo["exonStarts"] = resStarts
+        geneInfo["exonEnds"] = resEnds
+        geneInfo["txStart"] = txStart
+        geneInfo["txEnd"] = txEnd
+        geneInfo["cdsStart"] = cdsStart
+        geneInfo["cdsEnd"] = cdsEnd
+
     if geneInfo is None:
         raise ValueError("")
     featureList = []
@@ -18030,9 +18150,9 @@ def printAssistant(params):
             <button style="width:25%; min-width: 150px;" class="tooltipsterInteract" Title="Enter a sequence to find guides"
                 value="classic">CRISPOR Classic</button>
             <button style="width:25%; min-width: 420px;" name="expType" class="tooltipsterInteract" Title="Select a transcript and find guides to inactivate its product"
-                value="ko">CRISPOR Assistant for Knock-out Experiments (CAKE)</button>
+                value="ko">CRISPOR Assistant for Knock-out Experiments (CAKoE)</button>
             <button style="width:25%; min-width: 150px;" name="expType" class="tooltipsterInteract" Title="Design a donor DNA and guides to knock-in a sequence at a genome position"
-                value="ki">CRISPOR Knock-in</button>
+                value="ki">CRISPOR Assistant for Knock-in Experiments (CAKiE)</button>
             <br>
             <div style="margin-top: auto; width: 100%">
                  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
@@ -18073,6 +18193,8 @@ def mainCgi():
     if "ajax" in params:
         if params["ajax"] == "geneSearch":
             dbsearchGene(params, onlySymbol=True)
+        elif params["ajax"] == "geneSearchCommon":
+            dbsearchGene(params, onlySymbol=True, commonExons=True)
             return
 
     # print "Content-type: text/html\n"

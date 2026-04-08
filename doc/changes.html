@@ -17,6 +17,70 @@ body { margin-left: 20px }
 <h2><a href="../">CRISPOR</a> Changes</h2>
 <p>Many thanks to the users that have contacted me, suggested features and tested them!</p>
 
+<h4>Version 5.40, April 2026 - Knock-in and Knock-out modes</h4>
+<h5><u>Global changes</u></h5>
+<ul>
+    <li>Added a menu to select the different modes (classic, knock-in and knock-out)</li>
+    <li>Added a menu to customize the enzyme : the PAM, cutting behaviour (Cas9 / Cas12) and guide length can be specified.</li>
+    <li>Added a menu to select an exon in a transcript based on a gene symbol.</li>
+    <li>Added the EVA activity score (Predicts the activity of synthetic guides)</li>
+    <li>Added a global score, taking into account specificity, efficiency and penalizing features. This score can be adapted for transcribed (<i>In vitro</i> or <i>in vivo</i>), or synthetic guides.</li>
+    <li>Added a page to show the minimum free-energy of the guide sequence and a representation of the corresponding secondary structure, with RNAfold. (accessible from the guide table) (Mo Wilken)
+    <li>The scores and off-target table is now scrollable with a fixed header (Axel Benchetrit, Camilla Forciniti) </li>
+    <li>In the results page, added a menu to select and display to gene models (amino acid sequence and non-coding regions) that overlap with the query sequence (Max)</li>
+    <li>In the off-target PCR page, the primer length can be specified (Zach Freeman)</li>
+</ul>
+
+<h5><u>Knock-out mode : inactivate a gene using different methods</u></h5>
+<ul><li>4 methods are currently supported:</li>
+    <ul>
+        <li>"Frameshift mutation" - search for guides in exons corresponding to the first third of the coding sequence.</li>
+        <li>"excision of the gene locus" - search for pairs of guides upstream of the TSS and downstream of the TES. The size of the upstream / downstream regions can be defined.</li>
+        <li>"removal of the promoter" - delete the promoter (define a region of n bp upstream of the TSS) by searching for pairs of guides flanking this region.</li>
+        <li>"disruption of splicing" - search for guides in exon / intron junctions to disrupt splicing, for a specific exon or all exons in the selected gene.</li>
+    </ul>
+    <li>Added an interactive gene model showing exons and introns. The results can be filtered for a target exon by clicking on it.</li>
+    <li>For methods based on a deletion using a pair of guides, added buttons to switch betweed the two results pages. </li>
+    <li>The 3 non-overlapping guides with the highest selected score are highlighted in yellow.</li>
+</ul>
+
+<h5><u>Knock-in mode : find guides and design donor DNA.</u></h5>
+<li>The search can be made with multiple PAMs simultaneously</li>
+<li>Manual edit mode : enter the target sequence and the edited sequence</li>
+<ul>
+    <li>Supported edits (only at a single position): 
+    <ul>
+        <li>insertion</li>
+        <li>deletion</li>
+        <li>substitution</li>
+        <li>replacement (max. 10bp)</li>
+    </ul>
+</ul>
+<li>Protein tagging mode : select a gene and a tagging sequence to insert it after the START codon or before the STOP codon.</li>
+<ul>
+    <li>select a tag and a linker sequence</li>
+    <li>or select elements from the qTAG system (tag, marker and expression method)</li>
+    <li>or enter a custom sequence</li>
+</ul>
+<li>Added a menu to show PAMs more distant to the edition site and other PAM patterns in the sequence viewer</li>
+<li>Added a representation of the inserted elements on the gene model (in tagging mode)</li>
+<li>In the table, added the distance between the cut site and the edition site and a warning if the donor DNA needs to be recoded</li>
+<li>Added a page do design the donor DNA (accessible from the guide table) :</li>
+    <ul>
+        <li>Choose between double stranded / single stranded donor DNA</li>
+        <li>Select the length of the homology arms</li>
+        <li>Select the options to recode the donor DNA</li>
+    </ul>
+<li>Synonymous mutations can be introduced in the donor DNA to prevent its cleavage (in the PAM or seed region of the guide)
+<li>Added a page to show and download the donor DNA</li>
+    <ul>
+        <li>sequences of the donor DNA and guide can be downloaded in fasta format</li>
+        <li>The PAM, guide and insert sequences are highlighted</li>
+        <li>repeats, homopoymers and GC rich regions can optionally be highlighted</li>
+        <li>In tagging mode, the insert sequence can be modified</li>
+    </ul>
+<li>Added a recap of the steps in the KI experiement, with a description of each step</li>
+
 <h4>Version 5.30, July 2025 - small fix</h4>
 <li>Adding two more Synthego enzymes and a small fix to not break incoming links anymore when the off-targets were removed to save disk space.
 
