@@ -4808,7 +4808,7 @@ def showGuideTable(
         print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
 
     global scoreNames
-    if geneId:
+    if geneId and not pamFullName:
         if pamIsCpf1(pam):
             scoreNames = cpf1ScoreNames
         elif pamIsSaCas9(pam):
@@ -6035,14 +6035,16 @@ def calcSaveEffScores(batchId, seq, extSeq, pam, queue, seqNumber=None, exonId=N
             guides.append(guideSeq + pamSeq)
     logging.info(longSeqs)
     if len(longSeqs) > 0 and doEffScoring:
+        global scoreNames
         enz = None
+
         if pamIsCpf1(pam) and not pam == "NGTN":
             enz = "cpf1"
+            scoreNames = cpf1ScoreNames
         elif pamIsSaCas9(pam):
             enz = "sacas9"
-
+            scoreNames = saCas9ScoreNames
         # for spcas9, we use the extended list for the calculation
-        global scoreNames
         if enz is None:
             if exonId is None:
                 scoreNames = allScoreNames
@@ -9329,7 +9331,7 @@ def KiResultsPage(params, batchId, download=False):
         # add variant selection params too
 
         print("""
-        <div style="width: 50%%; align-items: center; border: 1px dashed black;
+        <div style="align-items: center; border: 1px dashed black;
                     padding: 12px; border-radius: 12px; margin-right: 32px;">
 
         <div style="display: flex; flex-direction: column;">
@@ -9844,7 +9846,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     </div>
     Click on the checkboxes below to show the following sequence features:
     <div style="display:flex; flex-direction: row; gap: 2px;">
-        <input type="checkbox" autocomplete="off" onchange="showHighlight('repeatCoord', 'rgba(102, 255, 51, 0.5)')"/><p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (annotated by BWA)</span></p>
+        <input type="checkbox" autocomplete="off" onchange="showHighlight('repeatCoord', 'rgba(102, 255, 51, 0.5)')"/><p><span style="background-color: rgba(102, 255, 51, 0.5)">Repeats (TRF + repeatMasker)</span></p>
     """ % editSpanText)
 
     print("""
@@ -9917,7 +9919,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     # form to change the insert sequence
 
     print("<form>")
-    print("""<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto;"> """)
+    print("""<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto; margin-right: 30%; min-width: 800px;"> """)
     if kiType == "tagging":
         print("""<p>If you want to select other markers, use the dropdown menu below and click on update button. Updating with nothing selected will restore the original sequence.</p>""")
         printTagsAndLinkers(qTAG=False)
@@ -10593,19 +10595,23 @@ function toggleExonSeq(selectedValue) {
                 borderRadius = "8px"
             if commonExons:
                 exonStr = "common coding exon"
-                exonStrSmall = "comm. cod. ex."
-                exonStrMin = "c.cod.ex."
             else:
                 exonStr = "coding exon"
-                exonStrSmall = "cod. ex."
-                exonStrMin = "c.ex."
+
+            exonStrMed = "cod. exon"
+            exonStrSmall = "exon"
+            exonStrMin = "ex."
 
             fullExonTitle = "%s %d (%d bp)" % (exonStr, featureIdOneBased, length)
             if length >= 150 and not commonExons or length >= 200 and commonExons:
                 exonText = "<small>%s </small>" % fullExonTitle
-            elif length >= 50 and commonExons or length >= 75 and commonExons:
-                exonText = "<small>%s %d</small>" % (exonStrSmall, featureIdOneBased)
-            elif length >= 25:
+            if length >= 95 and not commonExons or length >= 135 and commonExons:
+                exonText = "<small>%s %d</small>" % (exonStr, featureIdOneBased)
+            elif length >= 75:
+                exonText = "<small>%s %d</small>" % (exonStrMed, featureIdOneBased)
+            elif length >= 45:
+                exonText = "<small>%s%d</small>" % (exonStrSmall, featureIdOneBased)
+            elif length >= 20:
                 exonText = "<small>%s%d</small>" % (exonStrMin, featureIdOneBased)
             else:
                 exonText = ""

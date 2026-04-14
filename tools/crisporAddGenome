@@ -44,7 +44,7 @@ global debugMode
 global crisprGenomeDir
 
 # directory where the genomes are stored for the crispr tool
-crisprGenomeDir = "/data/www/genomes/"
+crisprGenomeDir = "/data/genomes/"
 #crisprGenomeDir = "/tmp"
 
 debugMode = False
@@ -397,7 +397,7 @@ def fixSymFile(accToSymTmp, symFixFile):
         ofh.write("%s\t%s\n" % (key, val))
     ofh.close()
 
-def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir):
+def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp,  geneModels, twoBitTmp, finalDbDir):
     " copy seg, sizes and twobit to finalDbDir and clean up dbTmpDir "
     if accToSymTmp:
         cmd = "rm %s" % accToSymTmp
@@ -407,6 +407,11 @@ def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir):
     outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
     if segTmp:
         outFnames.extend([segTmp])
+
+    # allow overwrite of gene models ?
+    if len(geneModels) > 0:
+        for model in geneModels:
+            outFnames.extend([model])
 
     outFnames.extend([sizesTmp, twoBitTmp])
     if not isdir(finalDbDir):
@@ -503,13 +508,20 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
             else:
                 os.makedirs(dbTmpDir)
 
-            if isdir(finalDbDir):
+            if isdir(finalDbDir) and not onlyGenes:
                 print(("the directory %s already exists" % finalDbDir))
                 print("looks like this genome has already been indexed")
                 continue
 
         sizesTmp = join(dbTmpDir, db+".sizes")
+        if not isfile(sizesTmp) and onlyGenes:
+            sizesFinal = join(finalDbDir, db+".sizes")
+            shutil.move(sizesFinal, dbTmpDir)
         twoBitTmp = join(dbTmpDir, db+".2bit")
+        if not isfile(twoBitTmp) and onlyGenes:
+            twoBitFinal = join(finalDbDir, db+".2bit")
+            shutil.move(twoBitFinal, dbTmpDir)
+
         if not onlyGenes:
             printMsg("Genome: " + db)
             printMsg("Downloading")
@@ -526,7 +538,9 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
         if geneTable=="none":
             accToSymTmp = None
             segTmp = None
-        else:
+
+        # temporary fix : no symbols for mm39 (download refSeq genePred anyway)
+        elif db != "mm39":
             accToSymTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
             if geneTable!="ensGene":
                 printMsg("Downloading mapping of %s transcript IDs to gene symbols" % geneTable)
@@ -534,7 +548,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
             else:
                 printMsg("Downloading ensembl transcripts to gene name table")
                 cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/ensemblToGeneName.txt.gz -O - | zcat > %s" % (db, accToSymTmp)
-            runCmd(cmd)
+            runCmd(cmd, mustRun=False)
             assert(getsize(accToSymTmp)!=0) # no symbols - email Max!
 
             if symFixFile:
@@ -547,9 +561,155 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
 
             segTmp = join(dbTmpDir, "%s.segments.bed" % db)
             geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp)
+        else:
+            accToSymTmp = None
+            segTmp = None
 
-        ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, twoBitTmp, finalDbDir)
+        geneModels, overwrite = getUcscGeneModels(db, dbTmpDir, sizesTmp)
+
+        ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, geneModels, twoBitTmp, finalDbDir)
+
+        # write (or append to) a file to list available gene models
+        if len(geneModels) > 0:
+            modelList = join(finalDbDir, "genes.tsv")
+            if isfile(modelList):
+                mode = "a"
+            else:
+                mode = "w"
+            with open(modelList, mode) as modelListFh:
+                bbFiles = [model.split("/")[-1] for model in geneModels if model.endswith(".bb") and model not in overwrite]
+                for bb in bbFiles:
+                    modelListFh.write("%s\t%s\n" % (bb, bb.split(".")[0]))
+
         writeGenomeInfo(row, addUcsc=True)
+
+
+def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrite, ens=False):
+    """ downloads a genePred file from UCSC and converts it to bigBed
+    returns None if the query file was not found
+    in ens mode : maps the gene symbols using accToSymTmp """
+
+    if outFname == "knownCanonical":
+        gpTmp = join(dbTmpDir, outFname + "Tmp.gp")
+    else:
+        gpTmp = join(dbTmpDir, outFname + ".gp")
+    bgpTmp = join(dbTmpDir, outFname + ".bgp")
+    bbTmp = join(dbTmpDir, outFname + ".bb")
+
+    # for some genePred files, there is an extra first colmumn that needs to be removed
+    cutGp = {"sacCer3": ["refSeq"],
+             "hg19": ["refSeq", "refSeqSelect"],
+             "danRer11": ["refSeq"],
+             "mm39": ["refSeq", "refSeqSelect"]
+             }
+
+    if db in cutGp and outFname in cutGp[db]:
+        cutCmd = "| cut -f2- "
+    else:
+        cutCmd = ""
+
+    cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(queryTable)s.txt.gz -O - | zcat %(cutCmd)s > %(gpTmp)s" % locals()
+    runCmd(cmd, mustRun=False)
+
+    # no genePred : remove the empty file
+    if os.path.getsize(gpTmp) == 0:
+        os.remove(gpTmp)
+        return None, None, overwrite
+
+    # sucessful download : convert the file to bgp > bb
+    else:
+        if ens is True:
+            # knownGene symbols are not shared with refSeq,
+            accToSymTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
+
+            if not isfile(accToSymTmp):
+                printMsg("Downloading ensembl transcripts to gene name table")
+                cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/ensemblToGeneName.txt.gz -O - | zcat > %s" % (db, accToSymTmp)
+                runCmd(cmd)
+
+            # with ensToGeneName.txt ($1 : ENS ; $2 = symbol)
+            # from https://backreference.org/2010/02/10/idiomatic-awk/
+            cmd = """awk 'NR==FNR{a[$1]=$2;next} {split($1,key,"\\."); if(key[1] in a) $11=a[key[1]]}1' OFS='\\t' %(accToSymTmp)s %(gpTmp)s > %(gpTmp)s.gp""" % locals()
+            runCmd(cmd)
+
+        """
+        if outFname == "knownCanonical":
+            # knownCanonical is not in genePred fromat (at least for hg19) : filter knownGene with it
+            knownGene = join(dbTmpDir, "knownGene.gp")
+            cmd = "awk 'NR==FNR{a[$5]; next} $1 in a' %(gpTmp)s %(knownGene)s > %(outFname)s.gp" % locals()
+            runCmd(cmd)
+            os.remove(gpTmp)
+            gpTmp = join(dbTmpDir, outFname + ".gp")
+        """
+
+        if isfile(bbTmp):
+            overwrite.append(bbTmp)
+
+        # like at line 924, replace spaces with underscores in the name and symbol fields
+        cmd = f""" cat {gpTmp} | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {baseDir}/usrLocalBin/genePredToBigGenePred stdin stdout | sort -k1,1 -k2,2n > {bgpTmp}""" % locals()
+        runCmd(cmd, mustRun=False)
+
+        # if the command failed, try to download the bigBed file
+        if os.path.getsize(bgpTmp) == 0:
+            os.remove(bgpTmp)
+            cmd = "wget http://hgdownload.cse.ucsc.edu/gbdb/%(db)s/%(queryTable)s.bb -O %(bbTmp)s" % locals()
+            runCmd(cmd, mustRun=False)
+        else:
+            cmd = f"{baseDir}/usrLocalBin/bedToBigBed -type=bed12+ -as={baseDir}/bigGenePred.as {bgpTmp} {sizesTmp} {bbTmp} -tab"
+            runCmd(cmd)
+
+    return gpTmp, bbTmp, overwrite
+
+
+def getUcscGeneModels(db, dbTmpDir, sizesTmp):
+    " returns the path of the relevant genePred and bigBed annotation files "
+
+    geneModels = []
+    # get a list of overwritten files to avoid duplicates in genes.tsv
+    overwrite = []
+
+    if db[0:2] == "hg":
+        queryGp = "ncbiRefSeqCurated"  # refSeqCurated has modified chrom names in hg19
+
+        knownGpTmp, knownBbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, "knownGene", "knownGene", overwrite, ens=True)
+
+        if knownGpTmp is not None:
+            geneModels.extend((knownGpTmp, knownBbTmp))
+
+        return geneModels, overwrite
+
+        """
+        knownCanGpTmp, knownCanBbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, "knownCanonical", "knownCanonical", overwrite)
+        if knownCanGpTmp is not None:
+            geneModels.extend((knownCanGpTmp, knownCanBbTmp))
+        """
+
+    # mouse genomes : get ncbiRefSeqCurated
+    elif db[0:2] == "mm":
+        # refSeqCurated is missing some genes
+        # queryGp = "ncbiRefSeqCurated"
+        queryGp = "ncbiRefSeq"
+    # other genomes : get ncbiRefSeq or ensGene as a fallback
+    else:
+        queryGp = "ncbiRefSeq"
+    outFname = "refSeq"
+
+    gpTmp, bbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryGp, outFname, overwrite)
+
+    # the refSeq genePred file was not found, try downloading ensGene
+    if gpTmp is None and db[0:2] not in ["hg", "mm"]:
+        queryGp = "ensGene"
+        outFname = "ensGene"
+        gpTmp, bbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryGp, outFname, overwrite, ens=True)
+    else:
+        geneModels.extend((gpTmp, bbTmp))
+        # try to get refSeqSelect
+        selGpTmp, selBbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, "ncbiRefSeqSelect", "refSeqSelect", overwrite)
+        if selGpTmp is not None:
+            geneModels.extend((selGpTmp, selBbTmp))
+
+    return geneModels, overwrite
+
 
 def selectEnsGenomes(genomeIds):
     """ given a list of genomeIds or assembly names, get dbDb-like rows from Ensembl for them.
@@ -575,7 +735,7 @@ def selectEnsGenomes(genomeIds):
             logging.info("Could not find %s, downloading %s" % (path, url))
             data = urlopen(url).read()
             open(path, "w").write(data)
-            
+
         content = open(path).read()
         orgDicts = json.loads(content)
 
@@ -650,7 +810,7 @@ def getEnsDownloadUrls(division, org, assembly, release, dataType):
 
     url = url.replace("_bd","") # July 2015, was necessary for a genome
     return url
-        
+
 
 def getEnsGenomes(genomeRows, onlyGenes):
     " download and index ensembl genomes from dbDb-like rows. "
@@ -662,7 +822,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
         if not onlyGenes:
             if isdir(dbTmpDir):
                 print(("there exists already a directory %s" % dbTmpDir))
-                print ("are you sure there is not already a process in a different terminal that indexes this genome?")
+                print("are you sure there is not already a process in a different terminal that indexes this genome?")
                 print(("if you are sure, remove the directory with 'rm -rf %s' and retry" % dbTmpDir))
                 if not FORCE:
                     sys.exit(1)

@@ -1392,3 +1392,37 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## knock-in mode
 
 - dans KiResultsPage(), ajout d'un bouton pour soumettre une nouvelle recherche avec la liste de PAMs sélectionnée (ne s'affiche que si les PAMs supplémentaires sont affichés sur la séquence)
+
+# 13/04/26
+
+## crisporAddGenome
+
+- dans getUcscGenomes(): téléchargement des fichiers d'annotaton de gènes
+
+    - ajout de getUcscGeneModels() : retourne annotation (refSeq ou ensembl) + MANE select / Canonical si le fichier existe, en fonction de l'organisme:
+        - humain : refSeqCurated + knownGene
+        - souris : refSeqCurated
+        - autres : refSeq (ou ensembl si pas de refSeq)
+
+    - ajout de downloadUcscGeneModel() : télécharge genePred + conversion en bigBed
+    - écriture (ou mise à jour) du fichier genes.tsv = liste des gene models disponibles
+
+## knock-out mode
+
+- ajustement des labels sur le gene model en fonction de la taille des exons
+
+## bugs 
+
+- pour certains gènes (ex. brca), calcul des effScores mais pas de header !?
+
+## à faire
+
+- ajouter mouseover pour annotation repeats (si génome ucsc -> annotation TRF + repeatMasker, sinon peut être =/=)
+- sur le serveur : /lib64/libpng16.so.12 (= dépendance genePredToBigGenePred) n'existe pas (version 16) : symlink version12 -> version16
+
+# 14/04/26
+
+## crisporAddGenome
+
+- test de plusieurs génomes / prise en compte de edge cases
+- test mm39 / sacCer3 / danRe11 OK
