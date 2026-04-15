@@ -570,16 +570,24 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
         ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, geneModels, twoBitTmp, finalDbDir)
 
         # write (or append to) a file to list available gene models
+        # instead, re-write the file and search for bb files every time (but no custom description)
         if len(geneModels) > 0:
             modelList = join(finalDbDir, "genes.tsv")
+            previousModels = []
             if isfile(modelList):
                 mode = "a"
+                with open(modelList, "r") as readModels:
+                    # get a list of previous gene models
+                    for line in readModels:
+                        previousModels.append(line)
             else:
                 mode = "w"
+            bbFiles = [model.split("/")[-1] for model in geneModels if model.endswith(".bb") and model not in overwrite]
             with open(modelList, mode) as modelListFh:
-                bbFiles = [model.split("/")[-1] for model in geneModels if model.endswith(".bb") and model not in overwrite]
                 for bb in bbFiles:
-                    modelListFh.write("%s\t%s\n" % (bb, bb.split(".")[0]))
+                    newLine = "%s\t%s\n" % (bb, bb.split(".")[0])
+                    if newLine not in previousModels:
+                        modelListFh.write(newLine)
 
         writeGenomeInfo(row, addUcsc=True)
 
@@ -596,25 +604,35 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
     bgpTmp = join(dbTmpDir, outFname + ".bgp")
     bbTmp = join(dbTmpDir, outFname + ".bb")
 
-    # for some genePred files, there is an extra first colmumn that needs to be removed
-    cutGp = {"sacCer3": ["refSeq"],
-             "hg19": ["refSeq", "refSeqSelect"],
-             "danRer11": ["refSeq"],
-             "mm39": ["refSeq", "refSeqSelect"]
-             }
-
-    if db in cutGp and outFname in cutGp[db]:
-        cutCmd = "| cut -f2- "
-    else:
-        cutCmd = ""
-
-    cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(queryTable)s.txt.gz -O - | zcat %(cutCmd)s > %(gpTmp)s" % locals()
+    cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%(db)s/database/%(queryTable)s.txt.gz -O - | zcat > %(gpTmp)s" % locals()
     runCmd(cmd, mustRun=False)
 
     # no genePred : remove the empty file
     if os.path.getsize(gpTmp) == 0:
         os.remove(gpTmp)
         return None, None, overwrite
+
+    # for some files, there is no bin index column
+    # if the second column contains letters in the first 50 rows, remove the first column
+    # is it faster do do it in bash ?
+    doCut = False
+    with open(gpTmp) as gpFh:
+        for i, line in enumerate(gpFh):
+            if i > 50:
+                break
+            fields = line.split("\t")
+            if fields[0].strip().isdigit():
+                doCut = True
+    if doCut:
+        printMsg("Removing the bin column")
+        cmd = "cp -f %(gpTmp)s %(gpTmp)s.uncut && cut -f2- < %(gpTmp)s.uncut > %(gpTmp)s && rm %(gpTmp)s.uncut" % locals()
+        runCmd(cmd)
+
+    # for human genomes, remove patches and fixes ("_" in chr column)
+    if db[0:2] == "hg":
+        printMsg("Removing chromosomes corresponding to patches and fixes (human genomes)")
+        cmd = """cp -f %(gpTmp)s %(gpTmp)s.original && awk '!($2 ~ /_/) {print}' < %(gpTmp)s.original > %(gpTmp)s && rm %(gpTmp)s.original """ % locals()
+        runCmd(cmd)
 
     # sucessful download : convert the file to bgp > bb
     else:
@@ -629,6 +647,7 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
 
             # with ensToGeneName.txt ($1 : ENS ; $2 = symbol)
             # from https://backreference.org/2010/02/10/idiomatic-awk/
+            # not all transcripts ID have a match in accToSymTmp
             cmd = """awk 'NR==FNR{a[$1]=$2;next} {split($1,key,"\\."); if(key[1] in a) $11=a[key[1]]}1' OFS='\\t' %(accToSymTmp)s %(gpTmp)s > %(gpTmp)s.gp""" % locals()
             runCmd(cmd)
 
@@ -676,8 +695,6 @@ def getUcscGeneModels(db, dbTmpDir, sizesTmp):
         if knownGpTmp is not None:
             geneModels.extend((knownGpTmp, knownBbTmp))
 
-        return geneModels, overwrite
-
         """
         knownCanGpTmp, knownCanBbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, "knownCanonical", "knownCanonical", overwrite)
         if knownCanGpTmp is not None:
@@ -706,6 +723,7 @@ def getUcscGeneModels(db, dbTmpDir, sizesTmp):
         # try to get refSeqSelect
         selGpTmp, selBbTmp, overwrite = downloadUcscGeneModel(db, dbTmpDir, sizesTmp, "ncbiRefSeqSelect", "refSeqSelect", overwrite)
         if selGpTmp is not None:
+            printMsg("Downloaded MANE select transcripts models")
             geneModels.extend((selGpTmp, selBbTmp))
 
     return geneModels, overwrite

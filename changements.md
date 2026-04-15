@@ -1426,3 +1426,11 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - test de plusieurs génomes / prise en compte de edge cases
 - test mm39 / sacCer3 / danRe11 OK
+
+# 15/04/26
+
+## crisporAddGenome
+
+- remplacement bedToBigBed par la dernière version
+- si pas de colonne "bin" dans genePred, celle-ci n'est pas retirée
+- retrait des chromosomes "fix" et "patches" pour les génomes humains
