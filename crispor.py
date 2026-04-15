@@ -7461,7 +7461,7 @@ def printForm(params):
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 
 <details style = "margin-top:12px;">
-    <summary>Click here to enter a gene ID instead</summary>
+    <summary>Click here to enter a gene ID and select a target exon instead</summary>
           """
         % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
     )
