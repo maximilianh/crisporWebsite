@@ -1412,7 +1412,7 @@ def showSecondaryStructure(params):
         <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 45px;">
             <input type="range" id="temperature" name="temperature" value="%(temperature)s" min="5" max="75" style="vertical-align:middle; width:15%%;" oninput="this.nextElementSibling.value = this.value"/>
             at<output>%(temperature)s</output> &#8451
-            <textarea style="margin-left: 12px;" name="addSeq" placeholder="Add a sequence in 3' here."></textarea>
+            <textarea style="margin-left: 12px;" name="addSeq" placeholder="Add a tracrRNA sequence here to check the predicted structure of the guide."></textarea>
             <button style="align-self: center; margin-left: 12px;" type="submit" name="submit" value="SUBMIT">update</button>
         </div>
         """ % locals()
