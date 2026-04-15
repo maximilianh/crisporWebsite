@@ -1395,7 +1395,7 @@ def showSecondaryStructure(params):
     print("""<div class="title">Spacer sequence of the guide : %s</div>""" % guideSeq)
     if addSeq and strSeq != guideSeq:
         print("<p>3' sequence : %s</p>" % addSeq)
-    print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is taken into account to calculate the EVA activity score. Strucutres with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracr RNA sequence in 3' to check the predicted structure of the guide, and potential issues of guide RNA folding</p>
+    print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is taken into account to calculate the EVA activity score. Structures with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracr RNA sequence in 3' to check the predicted structure of the guide, and potential issues of guide RNA folding</p>
     """)
     print("""<p>Free energy of this structure : %s kcal/mol</p>""" % freeEnergy)
 
