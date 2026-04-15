@@ -4593,7 +4593,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if hasGeneModels(org):
         print(
-            """<input type="checkbox" id="onlyExonBox" onchange="onlyExons()">exons only"""
+            """<input type="checkbox" id="onlyExonBox" onchange="onlyExons()">in exons only"""
         )
     else:
         print(
