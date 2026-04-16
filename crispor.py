@@ -7483,7 +7483,7 @@ def printForm(params):
     )
     print(
         """
-    <small>Currenlty, %d out of %d genomes are annotated with genes. If yours isn't included, paste a sequence above.</small>
+    <small>Currently, %d out of %d genomes are annotated with genes. If your genome isn't included, paste a sequence above.</small>
 </details>
 <div style="width:100%%; margin-top: 25px; margin-left:50px; text-align:center; display:block">
     <input type="submit" name="submit" value="SUBMIT" tabindex="4" style="height:40px; width:100px;"/>
@@ -13384,7 +13384,7 @@ def printKoForm(params):
     print(
         """
                 <div style="margin-top:12px;">
-                    <small>Currenlty, %d out of %d genomes are annotated with genes. If yours insn't included, use CRISPOR classic.</small><br>
+                    <small>Currently, %d out of %d genomes are annotated with genes. If yours isn't included, use CRISPOR classic.</small><br>
                 </div>
             <p style="margin-top:50px">Select one of the following approaches to inactivate your gene</p>
 
