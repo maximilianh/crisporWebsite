@@ -4141,7 +4141,7 @@ def printTableHead(
         )
     if pamFullName:
         print(
-            """Hover on the PAM in the first column of the table to show information about its corresponding enzyme<br> """
+            """Hover over the PAM in the first column of the table to show information about its corresponding enzyme<br> """
         )
         # print("""<b>Our recommendation:</b> Use Fusi for in-vivo (U6) transcribed guides, Moreno-Mateos for in-vitro (T7) guides injected into Zebrafish/Mouse oocytes.<br>""")
         print(
