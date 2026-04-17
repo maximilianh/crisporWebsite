@@ -13908,7 +13908,7 @@ function changeSeqCase(value) {
     print(
         """
                 <div style="margin-top:20px;">
-                    <small>Currenlty, %d out of %d genomes are annotated with genes. If yours insn't included, select "Enter a sequence" above.</small><br>
+                    <small>Currently, %d out of %d genomes are annotated with genes. If yours insn't included, select "Enter a sequence" above.</small><br>
                 </div>
                 <div style="margin-top: 37px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
                 Insert :
@@ -14049,7 +14049,7 @@ def printBody(params):
                         print("<p>replacement of sequences longer than 10bp is currently not supported. If you want to replace a large sequence (eg. a CDS), please refer to LINK</p>")
                     elif kiType == "multiInsert":
                         printCrisporBodyStart()
-                        print("<p>Multiple insertions are currenlty not supported</p>")
+                        print("<p>Multiple insertions are currently not supported</p>")
                     elif kiType == "multiDel":
                         printCrisporBodyStart()
                         print("<p>Multiple deletions are currently not supported</p>")
