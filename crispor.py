@@ -4604,7 +4604,7 @@ You can adapt the global score to your delivery method (select below), which cha
         if chrom[0].isdigit():
             chrom = "chrom " + chrom
         print(
-            """<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()">%s only (chromosome of target sequence)"""
+            """<input type="checkbox" id="onlySameChromBox" onchange="onlySameChrom()"> on %s only (chromosome of target sequence)"""
             % chrom
         )
     else:
