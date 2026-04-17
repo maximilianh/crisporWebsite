@@ -2540,7 +2540,7 @@ def showSeqAndPams(
             % (len(seq), len(guideScores))
         )
         print(
-            """ Shown below are the possible guide sequences for the following PAMs : %s .<br> PAMs highlighted in blue corresponds to guides that overlap the edition site.<br>"""
+            """ Shown below are the possible guide sequences for the following PAMs : %s .<br> PAMs highlighted in blue corresponds to guides that overlap the position of the edit.<br>"""
             % ", ".join(pamList)
         )
         print("Click on a PAM below to show its corresponding guide sequence.<br>")
@@ -9310,8 +9310,8 @@ def KiResultsPage(params, batchId, download=False):
         print("""
         <div style="width: 100%; display: flex; flex-direction: row; gap: 12px; margin-top: 24px; overflow-x: scroll; max-width: 1650px; min-width: 1650px;">
         <p style="width: 50%;">
-        Note : by default, only the guides that result in a DSB less than 10bp from the edition site are displayed.<br>
-        If the sequence viewer is empty or you want more to be displayed, use the two options on the right to either increase this theshold, or show the position of other PAM patterns on the sequence (in gray on the sequence viewer). Note that these added PAMs don't have any specificity or efficiency scores for ther guide sequence yet. You can then submit a new search with the selected PAM (or list of PAMs) to get the corresponding guides and scores.
+        Note : by default, only guides that result in a DSB less than 10bp away from the edit site are displayed.<br>
+        If there are no guides found or you want to examine more possible guides, either increase this theshold, or look for other PAMs in the sequence (in gray on the sequence viewer). Note that guides with other PAMs don't have any specificity or efficiency scores yet. You can submit a new search with the selected PAMs to get the corresponding guides and scores.
         </p>
         """)
 
@@ -9341,7 +9341,7 @@ def KiResultsPage(params, batchId, download=False):
             <div style="display: flex">
                 <div>
                 <input type=range value=%s min=10 max=%d name="pamWindow" oninput="this.nextElementSibling.value = this.value"/>
-                Show PAMS <output>%s</output> bp from the edition site
+                Show PAMS <output>%s</output> bp from the edit site
         """ % (pamWindow, max(len(seq[0:insertIdx]), len(seq[insertIdx:len(seq)])), pamWindow))
 
         print("""
