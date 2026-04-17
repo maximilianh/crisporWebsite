@@ -17252,8 +17252,8 @@ def donorDesignPage(params):
                 Select donor type  <img src=" %(htmlprefix)s image/info-small.png" title="Choose between a single stranded oligodeoxyribonucleotide (ssODN), recommended for small (<50bp) edits, and a double stranded donor DNA, recommended for knock-in of large sequences. The maximum length of the ssODN can't exceed 200 bases" class="tooltipsterInteract"><br>
 
 
-                <input type="radio" form="main" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double strand Donor<br>
-                <input type="radio" form="main" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single strand Donor<br>
+                <input type="radio" form="main" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double-stranded donor<br>
+                <input type="radio" form="main" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single-stranded donor<br>
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
                 Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
