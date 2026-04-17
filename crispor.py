@@ -13940,7 +13940,7 @@ function changeSeqCase(value) {
                             <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
                         </div>
                     </div>
-                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
+                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Types of modification supported are insertion, deletion, single substitution and replacements (up to 10 bp, including e.g. with two substitions 10 bp apart)."></textarea>
                 </div>
 
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
