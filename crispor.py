@@ -13895,7 +13895,7 @@ function changeSeqCase(value) {
                     <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag a protein in Nter or Cter</div>
             </div>
             <div id="seqTarget" style="margin-top:20px;">
-                Enter the target sequence manually here
+                Enter the target sequence (max 2300 bp)
                 <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
@@ -13932,7 +13932,7 @@ function changeSeqCase(value) {
                 <div id="endSeqDisplay" style="display: block; margin-bottom:12px; margin-top:12px;">
                     <div style="display: flex; flex-direction: row;">
                         <div style="margin-right:20px;">
-                            Re-enter the target sequence and edit it<br>
+                            Enter the edited sequence (target sequence with edits)<br>
                             <small>modified bases in UPPERCASE, with the rest in lowercase</small>
                         </div>
                         <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%%;">
