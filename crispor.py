@@ -10168,10 +10168,10 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
             printGeneModel(geneModel, exonSeqs, koMethod, commonExons=commonExons)
         print(
-            """<p>Below are the target and PAM sequences. lowercase bases corresponds to an extension of the target region (to allow hybridization of the spacer sequence of the guide).<p>""")
+            """<p>Below are the target and PAM sequences. Lowercase bases corresponds to an extension of the target exon sequence (to identify guides that bind exon boundaries and induce a DSB in the exon).<p>""")
         if koMethod == "frameshift":
             print("""
-            In-frame methionines are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.
+            In-frame methionine codons are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.
                   """)
 
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
@@ -10463,7 +10463,7 @@ function toggleExonSeq(selectedValue) {
 
     if exonSeqs:
         print(
-            """<div style="margin-top:8px; margin-bottom:8px"> below is the gene model. Click on an exon to show the corresponding guides, or
+            """<div style="margin-top:8px; margin-bottom:8px"> Below is the gene model. Click on an exon to show the corresponding guides, or
             <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
             style="width:110spx; height:25px"><small>show all exons</small></button> </div>"""
         )
