@@ -7257,7 +7257,7 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     if commonExons and len(transList) == 1:
                         transList.insert(0, {
                             "id": "%s~SYM" % sym,
-                            "text": "Search common exons for all transcripts in %s" % sym,
+                            "text": "Search exons common to all transcripts in %s" % sym,
                             "exonCount": 0
                             })
                     # show the MANE transcript at the top of the options
