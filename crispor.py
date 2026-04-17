@@ -277,14 +277,14 @@ multiPamDict = {
         "TTN",
         "TTTV-21",
         "NNGRRT"
-    ], "PAMs from commercially available nucleases (including only non-engineered PAMs)"),
+    ], "PAMs from commercially available nucleases including only non-engineered PAMs"),
     "pamless": ([
         "TNN",
-        ], "PAMs from commercially available nucleases with lower specificity engineered PAMs"),
+        ], "PAMs from commercially available nucleases including lower specificity engineered PAMs"),
     "plasmid": ([
 
         ],
-                "Expression plasmid available from addGene (to be added)")
+                "Expression plasmid available from Addgene (to be added)")
 }
 
 
