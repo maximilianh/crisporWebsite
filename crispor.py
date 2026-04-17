@@ -284,7 +284,7 @@ multiPamDict = {
     "plasmid": ([
 
         ],
-                "Expression plasmid available from Addgene (to be added)")
+                "PAMs from nucleases with expression plasmid available from Addgene (to be added)")
 }
 
 
