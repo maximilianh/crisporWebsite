@@ -10465,7 +10465,7 @@ function toggleExonSeq(selectedValue) {
         print(
             """<div style="margin-top:8px; margin-bottom:8px"> Below is the gene model. Click on an exon to show the corresponding guides, or
             <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
-            style="width:110spx; height:25px"><small>show all exons</small></button> </div>"""
+            style="width:110spx; height:25px"><small>show all common exons targeted</small></button> </div>"""
         )
 
         shownExonMsgs = set()
