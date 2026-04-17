@@ -208,6 +208,13 @@ genomesDir = join(baseDir, "genomes")
 DEFAULTORG = "hg19"
 DEFAULTSEQ = "cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccggaagtggccagggcgggggcgacctcggctcacagcgcgcccggctattctcgcagctcaccatgGATGATGATATCGCCGCGCTCGTCGTCGACAACGGCTCCGGCATGTGCAAGGCCGGCTTCGCGGGCGACGATGCCCCCCGGGCCGTCTTCCCCTCCATCGTGGGGCGCC"
 
+DEFAULTKISEQ = "cctgcgaactagtcggtggctcgggcgccggcggggagctgctcggcggcggacagtgtaATGTTGGGTGGGAGTGCGGGACGCCTCAAAATGTCTTCCAGTGGCACCCTCAGCAACTA"
+DEFAULTINSERT = DEFAULTKISEQ[0:63].lower() + "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTA" + DEFAULTKISEQ[63:].lower()
+DEFAULTDEL = DEFAULTKISEQ[0:45].lower() + DEFAULTKISEQ[60:].lower()
+DEFAULTSUBST = DEFAULTKISEQ[0:62].lower() + "A" + DEFAULTKISEQ[63:].lower()
+DEFAULTREPL = DEFAULTKISEQ[0:60].lower() + "TAG" + DEFAULTKISEQ[63:].lower()
+
+
 # used if hg19 is not available
 ALTORG = "sacCer3"
 ALTSEQ = "ATTCTACTTTTCAACAATAATACATAAACatattggcttgtggtagCAACACTATCATGGTATCACTAACGTAAAAGTTCCTCAATATTGCAATTTGCTTGAACGGATGCTATTTCAGAATATTTCGTACTTACACAGGCCATACATTAGAATAATATGTCACATCACTGTCGTAACACTCT"
@@ -1833,20 +1840,23 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                     line[labStart - 1] = " "
                     line[labStart + len(exonLabel)] = " "
             else:
-                exonDesc = "gene %s<br>transcript %s<br>exon %d<br>start phase %s" % (
-                    symbol,
-                    transId,
-                    exNum + 1,
-                    exFrame,
-                )
-                if nextFrame is not None:
-                    exonDesc += "<br>end phase %s" % nextFrame
-                    if (exFrame + nextFrame) % 3 == 0:
-                        exonDesc += "<br>Removing the exon retains the reading frame"
-                    else:
-                        exonDesc += (
-                            "<br>Removing the exon will destroy the reading frame"
-                        )
+                if transId == "manual annotation":
+                    exonDesc = "manually annotated coding sequence<br>start phase %s" % exFrame
+                else:
+                    exonDesc = "gene %s<br>transcript %s<br>exon %d<br>start phase %s" % (
+                        symbol,
+                        transId,
+                        exNum + 1,
+                        exFrame,
+                    )
+                    if nextFrame is not None:
+                        exonDesc += "<br>end phase %s" % nextFrame
+                        if (exFrame + nextFrame) % 3 == 0:
+                            exonDesc += "<br>Removing the exon retains the reading frame"
+                        else:
+                            exonDesc += (
+                                "<br>Removing the exon will destroy the reading frame"
+                            )
 
                 mouseOvers[exStart] = exonDesc
                 mouseOvers[exEnd] = None
@@ -1860,7 +1870,6 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                     codon = seq[i: i + 3]
                     if len(codon) == 3:
                         shortAa = codonTable[codon]
-                        # in knock-out mode, highlight M codons in blue
                         if exStrand == "+":
                             longAa = shortAa + "]]"
                         else:
@@ -1869,6 +1878,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                         # codon is split by splice site
                         longAa = "-"
                     for j in range(0, len(longAa)):
+                        # in knock-out mode, highlight methionines in green
                         if koMethod == "frameshift" and longAa[j] == "M":
                             line[i + j] = """<span style="background-color: rgba(0, 255, 0, 0.5)">%s</span>""" % longAa[j]
                         else:
@@ -1882,7 +1892,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                     newLine.append(
                         "<span class='tooltipsterInteract' title='%s'>" % overString
                     )
-                if char == "-":
+                if char == "-" and selTransId != "manual annotation":
                     newLine.append(
                         "<span class='tooltipsterInteract' title='This codon goes over a splice site. The nucleotides of the split codon are not translated to amino acids but shown as dashes.'>-</span>"
                     )
@@ -1927,11 +1937,17 @@ def getGeneModels(org):
     return ret
 
 
-def getSelGeneModel(org, noGenes=True):
+def getSelGeneModel(org, noGenes=True, manual=False):
     "return (list of (name, desc) of models, selected gene model name)"
     geneModels = getGeneModels(org)
     selGeneModel = None
     selTransId = None
+
+    if manual:
+        if geneModels:
+            geneModels.append(("manual", "manual annotation"))
+        else:
+            geneModels = [("manual", "manual annotation")]
 
     if geneModels:
         if noGenes:
@@ -2191,7 +2207,7 @@ def showExonAndPams(
             exonDisplay = "none"
     else:
         exonDisplay = "block"
-    
+
     _, _, _, strand = parsePos(position)
     # don't display the exons where no PAMs were found
     if len(pamSeqs) == 0:
@@ -2395,7 +2411,9 @@ def showSeqAndPams(
     linkToTable=True,
     pamIdToSuppInfo=None,
     pamWindow=None,
-    otherPam=None
+    otherPam=None,
+    strand=None,
+    clippedSeq=None
 ):
     "show the sequence and the PAM sites underneath in a sequence viewer"
 
@@ -2477,7 +2495,10 @@ def showSeqAndPams(
     editLines = []
     exonLines = []
 
-    geneModels, selGeneModel, selTransId = getSelGeneModel(org)
+    if pamFullName:
+        geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
+    else:
+        geneModels, selGeneModel, selTransId = getSelGeneModel(org)
     # selGeneModel = None
     # geneModels = None
 
@@ -2539,13 +2560,16 @@ def showSeqAndPams(
             """ The target region is %d bp long. It contains %d possible guide sequences.<br>"""
             % (len(seq), len(guideScores))
         )
+        if clippedSeq is True:
+            print("""<p>You input sequence was reduced to a maximum of 60bp on each site of the edition site to save computation time.<br>
+                  Guides outsite this range will almost certainly not result in a successful knock-in experiment.</p>""")
         print(
             """ Shown below are the possible guide sequences for the following PAMs : %s .<br> PAMs highlighted in blue corresponds to guides that overlap the position of the edit.<br>"""
             % ", ".join(pamList)
         )
         print("Click on a PAM below to show its corresponding guide sequence.<br>")
 
-    if baseEditor or varDb or selGeneModel:
+    if baseEditor or varDb or selGeneModel or pamFullName:
         print(
             (
                 """<form style="display:inline" id="paramForm" action="%s" method="GET">"""
@@ -2555,22 +2579,86 @@ def showSeqAndPams(
 
     if geneModels:
         print("""<div style="margin-top: 12px;">Select a gene model and a transcript below to display the translated coding sequences : <br>""")
+
         print("Gene Models:")
         printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em")
-        if selGeneModel != "noGenes":
+
+        if selGeneModel == "manual":
+
+            manualExStart = cgiParams.get("manualExStart", "1")
+            if not manualExStart.isdigit():
+                manualExStart = 0
+            else:
+                manualExStart = int(manualExStart) if int(manualExStart) > 0 else 0
+
+            manualExEnd = cgiParams.get("manualExEnd", str(len(seq)))
+            if not manualExEnd.isdigit():
+                manualExEnd = len(seq)
+            else:
+                manualExEnd = int(manualExEnd) if int(manualExEnd) < len(seq) else len(seq)
+
+            manualExFrame = int(cgiParams.get("manualExFrame", "0"))
+            print("""
+                coding start:&nbsp<input name="manualExStart" value=%s style="width: 30px;"/>&nbsp
+                coding end:&nbsp<input name="manualExEnd" value=%s style="width: 30px;"/>&nbsp
+                <span class="tooltipsterInteract" title="phase is relative to the coding start position">phase</span>:&nbsp<select name="manualExFrame">&nbsp
+            """ % (manualExStart, manualExEnd))
+
+            # exFrame is the number of bases already present in the codon (not the shift of the phase)
+            for exFrame in [0, 2, 1]:
+                if exFrame == 2:
+                    frameStr = "+1"
+                elif exFrame == 1:
+                    frameStr = "+2"
+                else:
+                    frameStr = str(exFrame)
+
+                if exFrame == manualExFrame:
+                    selected = "selected"
+                else:
+                    selected = ""
+                print("""<option %s value=%d>%s</option>""" % (selected, exFrame, frameStr))
+            print("</select>&nbsp")
+
+            exonInfo = {("manual annotation",
+                         "manual annotation"):
+                        [(1,
+                          manualExStart,
+                          manualExEnd,
+                          manualExFrame,
+                          0,
+                          "+")]}
+
+            selTransId = "manual annotation"
+            labelLen = max(labelLen, len(selTransId))
+        # remove manual annotation parameters if not selected
+        else:
+            cgiParams.pop("manualExStart", None)
+            cgiParams.pop("manualExEnd", None)
+            cgiParams.pop("manualExframe", None)
+
+        if selGeneModel not in ["noGenes", "manual"]:
             print("Transcript:")
             transIdInfo = [("allTrans", "All Transcripts")]
             for transId, sym in list(exonInfo.keys()):
                 transIdInfo.append((transId, sym + " / " + transId))
 
             printDropDown("transId", transIdInfo, selTransId, style="width:20em")
+
+        if selGeneModel != "noGenes":
             # XX XXXXXX
             exonLines = makeExonLines(exonInfo, seq, selTransId)
             # exonLines = []
+
         print(
             """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">"""
         )
         print("""</div><br>""")
+
+    elif pamFullName:
+        cgiParams.pop("manualExStart", None)
+        cgiParams.pop("manualExEnd", None)
+        cgiParams.pop("manualExframe", None)
 
     if baseEditor:
         print("Base Editor modification window:")
@@ -4079,7 +4167,7 @@ def sortGuideData(guideData, sortBy, returnGuideData=False, exonSort=False):
         guideData.sort(key=getPrefix)
 
 
-def printDownloadTableLinks(batchId, addTsv=False):
+def printDownloadTableLinks(batchId, addTsv=False, kiMode=False):
     print('<div id="downloads" style="text-align:left">')
     print("Download as Excel tables: ", end=" ")
     print(
@@ -4094,13 +4182,14 @@ def printDownloadTableLinks(batchId, addTsv=False):
             end=" ",
         )
     print(
-        '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>&nbsp;/&nbsp;'
+        '<a href="crispor.py?batchId=%s&download=offtargets&format=xls">Off-targets</a>'
         % batchId,
         end=" ",
     )
-    print(
+    if not kiMode:
+        print(
         (
-            '<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis assistant</a><br>'
+            '&nbsp;/&nbsp;<a href="crispor.py?batchId=%s&satMut=1">Saturating mutagenesis assistant</a><br>'
             % batchId
         )
     )
@@ -4160,7 +4249,7 @@ def printTableHead(
         )
     print("</div>")
 
-    printDownloadTableLinks(batchId)
+    printDownloadTableLinks(batchId, kiMode=pamFullName)
 
     print(
         """
@@ -4776,6 +4865,9 @@ def showGuideTable(
     "shows table of all PAM motif matches"
     if pamFullName:
         batchInfo = readBatchAsDict(batchId)
+        manualExStart = cgiParams.get("manualExStart")
+        manualExEnd = cgiParams.get("manualExEnd")
+        manualExFrame = cgiParams.get("manualExFrame")
 
     if koMethod is not None:
         if koMethod == "excision":
@@ -5090,8 +5182,8 @@ def showGuideTable(
         if pamFullName and batchInfo.get("posStr") != "?":
             print(
                 (
-                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s&insertDistance=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
-                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream, effScores.get("insertDistance"))
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s&insertDistance=%s&manualExStart=%s&manualExEnd=%s&manualExFrame=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
+                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream, effScores.get("insertDistance"), manualExStart, manualExEnd, manualExFrame)
                 )
             )
             print("<br>")
@@ -7913,7 +8005,8 @@ def newMultiPamBatch(
     kiType=None,
     tagNames=None,
     geneModel=None,
-    nonCoding=None
+    nonCoding=None,
+    clippedSeq=None
 ):
 
     if seq:
@@ -7950,6 +8043,8 @@ def newMultiPamBatch(
             batchData["tagNames"] = tagNames
         if geneModel:
             batchData["geneModel"] = geneModel
+        if clippedSeq:
+            batchData["clippedSeq"] = clippedSeq
 
         writeBatchAsDict(batchData, batchId)
 
@@ -8610,7 +8705,10 @@ def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=None):
         else:
             # if the sequence start inside en exon, the frame can be truncated
             if exFrame is not None and exFrame != -1:
-                exFrame = (exFrame - exStart) % 3
+                # take into account the phase shift due to the missing part of the exon
+                # use a positive value for the missing length!
+                exOffset = abs(exStart) % 3
+                exFrame = (exFrame + exOffset) % 3
             exStart = 0
 
     # Trim end
@@ -8890,6 +8988,7 @@ def crisprSearch(params):
                 kiType = params.get("kiType")
                 tagNames = params.get("tagNames")
                 nonCoding = params.get("nonCoding")
+                clippedSeq = params.get("clippedSeq")
                 if isinstance(tagNames, str):
                     tagNames = json.loads(tagNames)
                 batchId = newMultiPamBatch(
@@ -8906,7 +9005,8 @@ def crisprSearch(params):
                     kiType,
                     tagNames,
                     geneModel,
-                    nonCoding
+                    nonCoding,
+                    clippedSeq
                 )
             else:
                 assist = params["assist"]
@@ -9162,6 +9262,7 @@ def KiResultsPage(params, batchId, download=False):
     geneModel = batchInfo.get("geneModel")
     tagNames = batchInfo.get("tagNames")
     nonCoding = batchInfo.get("nonCoding")
+    clippedSeq = batchInfo.get("clippedSeq")
     kiType = batchInfo.get("kiType")
     if kiType:
         insertSeq = batchInfo["insertSeq"]
@@ -9300,7 +9401,9 @@ def KiResultsPage(params, batchId, download=False):
             multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
             pamIdToSuppInfo=allPamIdToSuppInfo,
             pamWindow=pamWindow,
-            otherPam=otherPam
+            otherPam=otherPam,
+            strand=strand,
+            clippedSeq=clippedSeq
         )
 
         showSeqDownloadMenu(batchId)
@@ -9327,7 +9430,12 @@ def KiResultsPage(params, batchId, download=False):
                                    "geneModelSelection": None,
                                    "globEffScore": None,
                                    "pamWindow": None,
-                                   "otherPam": None})
+                                   "otherPam": None,
+                                   "submit": None,
+                                   "geneModelSelection": None,
+                                   "manualExStart": None,
+                                   "manualExEnd": None,
+                                   "manualExFrame": None})
         # add variant selection params too
 
         print("""
@@ -9427,12 +9535,12 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
-def printKiSteps(batchId: str, step=1):
+def printKiSteps(batchId: str, step=1, annotationParams=None):
     """
     prints an interactive recap of the workflow for KI experiments
     """
 
-    if step not in [1, 2, 3]:
+    if step not in range(1, 4):
         return
 
     # make the current step bold
@@ -9458,7 +9566,7 @@ def printKiSteps(batchId: str, step=1):
     guideHtml = ''' <a href="%s" class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select guide sequences</a> ''' % (backUrl, guideSelectText, stepStyles[0])
 
     donorDesignText = """
-    Once you selected an suitable guide sequence, click on 'design donor DNA' under the 'guide sequence + PAM' column of the table.<br>
+    Once you have selected a suitable guide sequence, click on 'design donor DNA' under the 'guide sequence + PAM' column of the table.<br>
     Note that the target region (guide + PAM) may be identical between the genome and the donor DNA.<br>
     <ul>
         <li>This can result in the cutting of the donor, or re-cutting of the inserted sequence after a successful edit.</li>
@@ -9470,8 +9578,14 @@ def printKiSteps(batchId: str, step=1):
 
     # second step
     if step == 3:
-        # make the "design donor DNA" step clibkable only as a return link in the last step, to avoid confusion
+        # make the "design donor DNA" step clickable only as a return link in the last step, to avoid confusion
         donorBackUrl = printBackLink(toDonorPage=True, returnUrl=True)
+
+        # if present, include manual annotation params in the url
+        if annotationParams:
+            for name, val in annotationParams.items():
+                donorBackUrl += "&%s=%s" % (name, val)
+
         donorDesignHtml = """<a href="%s" class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</a> """ % (donorBackUrl, donorDesignText, stepStyles[0])
 
     else:
@@ -9479,8 +9593,8 @@ def printKiSteps(batchId: str, step=1):
 
     # third step
     donorDisplayText = """
-    Once you have chosen the donor DNA design parameters, its sequence will be displayed with annotations.<br>
-    Then, you may trim the sequence to facilitate its synthesis (for example by removing homopolymers), or generate alternative designs with a barcode to check for homozygous editing (<i>not implemented yet</i>).<br>
+    After designing the donor DNA, its sequence will be displayed with some annotations.<br>
+    Then, you may trim the sequence to facilitate its synthesis (for example by removing repeated regions), or generate alternative designs with a barcode to check for homozygous editing (<i>not implemented yet</i>).<br>
     """
     donorDisplayHtml = """ <div class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Visualize and download guide + donor DNA</div> """ % (donorDisplayText, stepStyles[2])
 
@@ -9521,6 +9635,15 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
 
+    # save manual annotation params to include it in the return link in printKiSteps()
+    annotationParams = {}
+    for param in ["manualExStart", "manualExEnd", "manualExFrame"]:
+        val = params.get(param)
+        if val:
+            annotationParams[param] = val
+    if len(annotationParams) != 3:
+        annotationParams = None
+
     # change the insert sequence on this page
     if "newInsertSeq" in params:
         insertSeq = params["newInsertSeq"]
@@ -9534,13 +9657,6 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
 
     pamSeq, guideStart, pamStrand = guideInfo.strip("(").strip(")").replace("'", "").replace(" ", "").split(",")
     pamStart = int(pamId.split('.')[1].strip('[s+-]'))
-
-    editStart = len(HA5)
-    if kiType not in ["substitution", "deletion"]:
-        # really 0-based ?
-        editEnd = editStart + len(insertSeq)
-    else:
-        editEnd = editStart + 1
 
     if donorType == "ss":
         polarity = params["polarity"]
@@ -9585,6 +9701,17 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     donorBins, homopolymers = processDonor(donorSeq)
     highlights = []
 
+    if donorType == "ss" and templateStrand != strand:
+        editStart = len(HA3)
+    else:
+        editStart = len(HA5)
+
+    if kiType not in ["substitution", "deletion"]:
+        # really 0-based ?
+        editEnd = editStart + len(insertSeq)
+    else:
+        editEnd = editStart + 1
+
     # coordinates of the PAM + guide
     # + avoid out of bounds coordinates
 
@@ -9608,10 +9735,12 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     else:
         pamCoordList = [(pamStartCoord, pamEndCoord)]
 
-    if pamStrand == "+" or (pamStrand == "-" and pamIsFirst) or (donorType == "ss" and templateStrand != strand):
+    # need to simplify the logic
+    # 3 cases : --<<NGG-- + strand, - strand with Cas12a or - strand with inverse polarity ssODN
+    if (pamStrand == "+" and donorType != "ss" or donorType == "ss" and templateStrand == strand) or (pamStrand == "-" and pamIsFirst) or (donorType == "ss" and templateStrand != strand and pamStrand == "-"):
         guideStartCoord = pamStartCoord - len(guideSeq)
         guideEndCoord = pamStartCoord
-    else:
+    elif (pamStrand == "-" and donorType != "ss" or donorType == "ss" and templateStrand == strand) or (donorType == "ss" and templateStrand != strand and pamStrand == "+"):
         guideStartCoord = pamEndCoord
         guideEndCoord = guideStartCoord + len(guideSeq)
 
@@ -9721,7 +9850,7 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
 
-    printKiSteps(batchId, step=3)
+    printKiSteps(batchId, step=3, annotationParams=annotationParams)
 
     '''
     print(
@@ -13306,6 +13435,24 @@ def printKoForm(params):
         toggleMethod();
     })
     </script>
+
+<script>
+    /* hide the track hub note if genome is not hg19 */
+    ucscTrackDbs=['hg19', 'hg38', 'rn5', 'mm10', 'mm9', 'ci2', 'danRer7', 'sacCer3', 'dm6'];
+    function showHideHubNote() {
+        var valSel = $("#genomeDropDown").val();
+        if (jQuery.inArray(valSel, ucscTrackDbs)!=-1)
+            {
+            $("#trackHubNote").css('visibility', 'visible');
+            $("#hgTracksLink").attr("href", "http://genome.ucsc.edu/cgi-bin/hgTracks?db="+valSel+"&crispr=show");
+            }
+        else
+            $("#trackHubNote").css('visibility', 'hidden');
+    }
+    $("#genomeDropDown").on('change', showHideHubNote);
+    showHideHubNote();
+</script>
+
           """
     )
 
@@ -13806,9 +13953,59 @@ function changeSeqCase(value) {
     textarea.setRangeText(modText, start, end, 'select');
 }
 
+
+    /* hide the track hub note if genome is not hg19 */
+    ucscTrackDbs=['hg19', 'hg38', 'rn5', 'mm10', 'mm9', 'ci2', 'danRer7', 'sacCer3', 'dm6'];
+    function showHideHubNote() {
+        var valSel = $("#genomeDropDown").val();
+        if (jQuery.inArray(valSel, ucscTrackDbs)!=-1)
+            {
+            $("#trackHubNote").css('visibility', 'visible');
+            $("#hgTracksLink").attr("href", "http://genome.ucsc.edu/cgi-bin/hgTracks?db="+valSel+"&crispr=show");
+            }
+        else
+            $("#trackHubNote").css('visibility', 'hidden');
+    }
+    $("#genomeDropDown").on('change', showHideHubNote);
+    showHideHubNote();
+
+</script>
+    """)
+
+    print("""
+    <script>
+/* set the dropbox to hg19 and paste the example sequence into the input box. */
+function resetToExample() {
+    $("textarea[name='startSeq']").val("%s");
+    $("#genomeDropDown").val("%s");
+    }
+
+function insertExample() {
+    $("textarea[name='endSeq']").val("%s");
+    }
+function delExample() {
+    $("textarea[name='endSeq']").val("%s");
+    }
+function substExample() {
+    $("textarea[name='endSeq']").val("%s");
+    }
+function replExample() {
+    $("textarea[name='endSeq']").val("%s");
+    }
+
+/* clear the startSeq and endSeq input boxes
+should pass element name as a parameter, but it
+doesn't work ? */
+
+function clearStartSeq() {
+    $('textarea[name="startSeq"]').val("");
+    }
+function clearEndSeq() {
+    $('textarea[name="endSeq"]').val("");
+    }
+
     </script>
-    """
-    )
+    """ % (DEFAULTKISEQ, DEFAULTORG, DEFAULTINSERT, DEFAULTDEL, DEFAULTSUBST, DEFAULTREPL))
 
     print(
         """
@@ -13894,9 +14091,13 @@ function changeSeqCase(value) {
                     <input type="radio" checked name="targetRegions" value="seq" onchange="toggleTargetRegion()" autocomplete="off"/>Enter a sequence with the desired modifications<br>
                     <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag a protein in Nter or Cter</div>
             </div>
-            <div id="seqTarget" style="margin-top:20px;">
-                Enter the target sequence (max 2300 bp)
-                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+            <div id="seqTarget" style="margin-top:20px; display: flex; flex-direction: column;">
+                Enter the target sequence manually here<br>
+                <div style="display:flex; flex-direction: row; margin-top: 6px; gap: 4px;">
+                    <small><a href="javascript:clearStartSeq()">Clear Box</a> - </small>
+                    <small><a href="javascript:resetToExample()">Reset to default</a></small>
+                </div>
+                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
@@ -13925,7 +14126,7 @@ function changeSeqCase(value) {
 
     print(
         """
-            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:100%%; grid-column:2; grid-row:2;">
+            <div class="windowstep subpanel" style="display:flex; flex-direction:column; width:100%%;">
                 <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                     Step 4
                 </div>
@@ -13939,8 +14140,21 @@ function changeSeqCase(value) {
                             <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
                             <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
                         </div>
+                    </div><br>
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="display: flex; flex-direction: row; gap: 4px;">
+                            <small><a href="javascript:clearEndSeq()">Clear Box</a> -</small>
+                            <small>Set an example for :</small>
+                            <small><a href="javascript:insertExample()"> Insertion</a></small>
+                            <small>/</small>
+                            <small><a href="javascript:delExample()"> Deletion</a></small>
+                            <small>/</small>
+                            <small><a href="javascript:substExample()"> Substitution</a></small>
+                            <small>/</small>
+                            <small><a href="javascript:replExample()"> Replacement</a></small>
+                        </div>
+                        <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
                     </div>
-                    <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in UPPERCASE (except for deletions), with the rest of the sequence in lowercase. Types of modification currently supported:insertion, deletion, single substitution and short replacements (up to 10 bp, including e.g. with two substitions 10 bp apart)."></textarea>
                 </div>
 
                 <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
@@ -14037,7 +14251,7 @@ def printBody(params):
                 endSeq = params.get("endSeq")
                 endSeq = re.sub('[\t\n\s]', '', endSeq)
                 if startSeq and endSeq:
-                    kiType, insertIdx, insertSeq = processCustomInsertSeq(startSeq, endSeq)
+                    kiType, insertIdx, startSeq, insertSeq, clippedSeq = processCustomInsertSeq(startSeq, endSeq)
                     if kiType is None:
                         printCrisporBodyStart()
                         print("<p>Insertion type currently not supported.</p>")
@@ -14061,6 +14275,7 @@ def printBody(params):
                         params["insertIdx"] = insertIdx
                         params["insertSeq"] = insertSeq
                         params["seq"] = startSeq
+                        params["clippedSeq"] = clippedSeq
 
             # Knock-in : protein tagging mode
             elif targetRegion == "gene" and koGeneId and (("tagseq" in params and "linkerseq" in params) or "insertSeq" in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params)):
@@ -14193,7 +14408,7 @@ def processCustomInsertSeq(startSeq, endSeq):
 
     if startSeq.lower() == endSeq.lower():
         kiType = "noEdits"
-        return kiType, None, None
+        return kiType, None, None, None, None
 
     noEditEndSeq = ''.join([base for base in endSeq if base.islower()])
 
@@ -14219,23 +14434,26 @@ def processCustomInsertSeq(startSeq, endSeq):
             deletion_info = deletions[0]
             insertIdx = deletion_info['start']
             insertSeq = deletion_info['seq']
+            # for deletions, don't clip the sequence to a maximum length
+            clippedSeq = False
 
             # insertSeq = ''.join(deletions)
 
+            # will never happen now
             if len(insertSeq) > 500:
-                return "longDel", None, None
+                return "longDel", None, None, None, None
             else:
-                return kiType, insertIdx, insertSeq
+                return kiType, insertIdx, startSeq, insertSeq, clippedSeq
         elif len(deletions) > 1:
-            return "multiDel", None, None
+            return "multiDel", None, None, None, None
         else:
-            return None, None, None
+            return None, None, None, None, None
 
     elif len(startSeq) - len(noEditEndSeq) > 1:
         replace = True
         doProcessInsert = True
     else:
-        return None, None, None
+        return None, None, None, None, None
 
     if doProcessInsert:
         editSeqs = []
@@ -14256,10 +14474,10 @@ def processCustomInsertSeq(startSeq, endSeq):
                     else:
                         editStretch.append(editBase)
         if len(editSeqs) == 0:  # multiple insertions need to be close enough to use a single donor DNA
-            return None, None, None
+            return None, None, None, None, None
         if len(editSeqs) > 1:
             kiType = "multiInsert"
-            return kiType, None, None
+            return kiType, None, None, None, None
         elif len(editSeqs) == 1 and replace:
             if len(editSeqs[0][1]) > 10:
                 kiType = "longReplacement"
@@ -14270,10 +14488,28 @@ def processCustomInsertSeq(startSeq, endSeq):
         elif len(editSeqs) == 1 and len(editSeqs[0][1]) == 1:
             kiType = "substitution"
         else:
-            return None, None, None
+            return None, None, None, None, None
         insertIdx, insertSeq = editSeqs[0]
 
-    return kiType, insertIdx, insertSeq
+    # clip the sequence 60bp in 5' and 3' of the edition site
+    clippedSeq = False
+    if insertIdx > 61:
+        clippedSeq = True
+        newInsertIdx = 60
+        seqStart = insertIdx - newInsertIdx
+    else:
+        seqStart = 0
+        newInsertIdx = insertIdx
+
+    if len(startSeq) - insertIdx > 61:
+        clippedSeq = True
+        seqEnd = insertIdx + 60
+    else:
+        seqEnd = len(startSeq)
+
+    newStartSeq = startSeq[seqStart:seqEnd]
+
+    return kiType, newInsertIdx, newStartSeq, insertSeq, clippedSeq
 
     # Old version : alignement of the two sequences instead of edits in uppercase bases
     """
@@ -14656,6 +14892,10 @@ def writeDonorSeq(params):
     recodeSeed = params.get("recodeSeed")
     recodeGap = params.get("recodeGap")
     selGeneModel = params.get("geneModelSelection")
+    manualExStart = params.get("manualExStart")
+    manualExEnd = params.get("manualExEnd")
+    manualExFrame = params.get("manualExFrame")
+    useManualAnnotation = params.get("useManualAnnotation")
     # trimGC = params.get("trimGC")
     # trimHomopolymers = params.get("trimHomopolymers")
     # trimRepeat = params.get("trimRepeats")
@@ -14667,8 +14907,7 @@ def writeDonorSeq(params):
     kiType = batchInfo.get("kiType")
     insertSeq = batchInfo.get("insertSeq")
     chrom, start, end, strand = parsePos(posStr)
-
-    # convert to string of the original list to a list again (not optimal at all)
+    # convert to string representation of the original tuple to a tuple again (not optimal at all)
     guideInfo = guideInfo.strip("(").strip(")").replace("'", "").replace(" ", "").split(",")
     pamPat = pamId.split(".")[0]
 
@@ -14679,7 +14918,10 @@ def writeDonorSeq(params):
     else:
         transId = geneId
 
-    if selGeneModel:
+    if manualExStart is not None and manualExEnd is not None and manualExFrame is not None and useManualAnnotation == "True":
+        selExon = [(1, int(manualExStart), int(manualExEnd), int(manualExFrame), 0, strand)]
+
+    elif selGeneModel:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
 
         # retreive the exon corresponding to the selected transcript
@@ -14688,10 +14930,9 @@ def writeDonorSeq(params):
             if transId == transcriptId:
                 selExon = exonInfo[transcriptInfo]
                 break
-            # if selGeneModel isn't transmitted, select a transcript anyways
+            # if selGeneModel isn't transmitted, select a transcript anyway
             else:
                 selExon = exonInfo[transcriptInfo]
-
     if strand == "+":
         insertCoord = int(start + insertIdx)
     else:
@@ -14712,8 +14953,8 @@ def writeDonorSeq(params):
         arm3start, arm3end = checkCoords(insertCoord, insertCoord + arm3Len, org, chrom)
         newInsertSeq = insertSeq.upper()
 
-    # for substitutions / replacments, remove the edited  in the homology arm and extend the arm by 1bp
-    if kiType == "substitution" or kiType == "replacement":
+    # for substitutions / replacments, remove the edited region in the homology arm and extend the arm by Nbp
+    if kiType in ["substitution", "replacement"]:
         if strand == "+":  # à vérifier !! -> OK
             arm3start += len(insertSeq)
             arm3end += len(insertSeq)
@@ -14736,7 +14977,8 @@ def writeDonorSeq(params):
 
     # get the position of the PAM + guide
     # recoding
-    if (recodePam or recodeSeed or recodeGap) and selGeneModel is not None:
+    if (recodePam or recodeSeed or recodeGap) and (selGeneModel is not None) or \
+            (manualExStart is not None and manualExEnd is not None and manualExFrame is not None):
 
         noModel = False
         # load codon frequency file
@@ -14752,12 +14994,12 @@ def writeDonorSeq(params):
             annotationCoords, recodeCoords, recodeArm = getArmCoords(HA5, HA3, strand, seq,
                                                                      insertIdx, guideSeq, guideInfo,
                                                                      kiType, donorType, insertSeq,
-                                                                     selExon=selExon)
+                                                                     selExon=selExon, manual=useManualAnnotation)
         else:
             annotationCoords, recodeCoords, recodeArm = getArmCoords(HA3, HA5, strand, seq,
                                                                      insertIdx, guideSeq, guideInfo,
                                                                      kiType, donorType, insertSeq,
-                                                                     selExon=selExon)
+                                                                     selExon=selExon, manual=useManualAnnotation)
         if recodeArm == "HA5":
             recodedArmSeq, mutEvents = recodeDonor(HA5, annotationCoords, recodeCoords, recodePam, recodeSeed,
                                                    recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
@@ -14766,7 +15008,8 @@ def writeDonorSeq(params):
                                                    recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
     else:
         # if no recoding could happen because no annotation file is available, signal it
-        if (recodePam or recodeSeed or recodeGap) and selGeneModel is None:
+        if (recodePam or recodeSeed or recodeGap) and (selGeneModel is None) or \
+                manualExStart is None or manualExEnd is None or manualExFrame is None:
             noModel = True
         else:
             noModel = False
@@ -14799,7 +15042,7 @@ def findRepeats(seq):
 
 
 def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
-                 guideInfo, kiType, donorType, insertSeq, selExon=None):
+                 guideInfo, kiType, donorType, insertSeq, selExon=None, manual=None):
     """
     on both homology arms, get the coordinates of the codons
     and the regions to recode
@@ -14816,7 +15059,6 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
 
     # convert the coordinates of the guide and the exon relative to the homology arms
     pamSeq, guideStart, guideStrand = guideInfo
-
     guideStart = int(guideStart)
 
     # position of the PAM
@@ -14930,7 +15172,8 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                     spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA5) else len(HA5))
                     spliceCoords.append(spliceAcc)
 
-                for i in range(exonStartPos + exonFrame, exonEndPos, 3):
+                exonOffset = (3 - exonFrame) % 3
+                for i in range(exonStartPos + exonOffset, exonEndPos, 3):
                     if i + 3 > exonEndPos:
                         break
                     codonPos.append(i)
@@ -14942,14 +15185,9 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
 
                 if kiType in ["deletion", "substitution", "replacement"] and exonEnd < insertIdx + len(insertSeq):
                     continue
-                exonStartPos = 0
-                if kiType in ["deletion", "substitution"]:
-                    # stay in phase relative to the length of the deletion / replacement
-                    # TO VERIFY
-                    exonFrame += len(insertSeq) % 3
-                    exonEndPos = exonEnd + (insertIdx + len(insertSeq))
-                else:
-                    exonEndPos = exonEnd - insertIdx
+                exonStartPos = exonStart - insertIdx
+                exonEndPos = exonEnd - insertIdx
+                print(exonStartPos, exonEndPos)
 
                 # correct codon positions for replacements
 
@@ -14972,14 +15210,15 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                     spliceAcc = (exonEndPos, exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3))
                     spliceCoords.append(spliceAcc)
 
-                for i in range(exonStartPos + exonFrame, exonEndPos, 3):
+                exonOffset = (3 - exonFrame) % 3
+                for i in range(exonStartPos + exonOffset, exonEndPos, 3):
                     if i + 3 > exonEndPos:
                         break
                     else:
                         codonPos.append(i)
 
+            # edit site overlaps the exon
             else:
-                # edit site overlaps the exon
                 if recodeArm == "HA5":
                     exonStartPos = len(HA5) - (insertIdx - exonStart)
                     exonEndPos = len(HA5)
@@ -14994,7 +15233,14 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                         continue
 
                     exonStartPos = 0
+                    # here, exonFrame changes according to the "missing" part of the exon!
+                    exonMissingLen = len(HA5) - (len(HA5) - (insertIdx - exonStart))
+                    exonOffset = exonMissingLen % 3
+                    exonFrame = (exonFrame + exonMissingLen) % 3
+
+                    # for deletions, replacement or substitutions the homology arm has been shifted, so the exonFrame needs to be adjusted
                     if kiType in ["deletion", "substitution", "replacement"]:
+                        exonFrame = (exonFrame + len(insertSeq) % 3) % 3
                         exonEndPos = exonStartPos + exonEnd - (insertIdx + len(insertSeq))
                     else:
                         exonEndPos = exonEnd - insertIdx
@@ -15011,7 +15257,8 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                     UTR3coords.append((exonStartPos, exonEndPos))
                     continue
                 # get the start position of codons in the homology arm to recode
-                for i in range(exonStartPos + exonFrame, exonEndPos, 3):
+                exonOffset = (3 - exonFrame) % 3
+                for i in range(exonStartPos + exonOffset, exonEndPos, 3):
                     if i + 3 > exonEndPos:
                         # end of exon is not in frame : don't recode
                         oofCoords.append((i, exonEndPos))
@@ -16965,6 +17212,10 @@ def donorDesignPage(params):
     doRecoding = params["doRecoding"]
     cutUpstream = params["cutUpstream"]
     insertDistance = params["insertDistance"]
+    manualExStart = params.get("manualExStart")
+    manualExEnd = params.get("manualExEnd")
+    manualExFrame = params.get("manualExFrame")
+    useManualAnnotation = params.get("useManualAnnotation")
     # selGeneModel = params.get("geneModelSelection")
     pamFullName = pamId.split(".")[0]
     pam = setupPamInfo(pamFullName)
@@ -17152,6 +17403,17 @@ def donorDesignPage(params):
         }
     }
 
+    function toggleTranscriptSelection() {
+        let manualAnnotation = document.getElementById('useManualAnnotation')
+        let transcriptSelection = document.getElementById('transcriptSelection')
+
+        if (manualAnnotation.checked) {
+            transcriptSelection.style.display = "None";
+        } else {
+            transcriptSelection.style.display = "block";
+        }
+    }
+
     </script>
     """ % locals())
     print(
@@ -17225,14 +17487,20 @@ def donorDesignPage(params):
         "pamId": pamId,
         "doRecoding": doRecoding,
         "insertDistance": insertDistance,
-        "cutUpstream": cutUpstream,
+        "cutUpstream": cutUpstream
     }
 
     updateChanges = commonChanges.copy()
     updateChanges.update({"geneModelSelection": None, "transId": selTransId})
     printHiddenFields(params, updateChanges, form="updateModel")
-
     mainChanges = commonChanges.copy()
+
+    """
+    mainChanges.update({"manualExStart": manualExStart,
+                        "manualExEnd": manualExEnd,
+                        "manualExFrame": manualExFrame,
+                        "useManualAnnotation": useManualAnnotation})
+    """
     mainChanges.update({"geneModelSelection": selGeneModel})
     if geneId is None:
         mainChanges["transId"] = None
@@ -17295,9 +17563,16 @@ def donorDesignPage(params):
         """ % locals())
 
     # Transcript model selection
+
+    if manualExStart != "None" and manualExEnd != "None" and manualExFrame != "None":
+        transcriptDisplay = "None"
+        print("""<input type="checkbox" onchange="toggleTranscriptSelection()" form="main" value=True checked id="useManualAnnotation" name="useManualAnnotation" style="margin-top: 12px;"/>Use the manual annotation as a model for recoding""")
+    else:
+        transcriptDisplay = "block"
+
     if geneModels:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
-
+        print("""<div id="transcriptSelection" style="display: %s;">""" % transcriptDisplay)
         if geneId is None:
             print("""<p>Select a transcript ID to use as a model for recoding <img src=" %s image/info-small.png" title="This step will attempt to introduce synonymous mutations, so a gene model needs to be selected to get the position of codons.<br> To visualize the sequence of each transcript, you can go back to the previous step by clicking on 'Select guide sequences' above. Then, select a gene model and a transcript using the dropdown menu on top of the sequence." class="tooltipsterInteract"></p>""" % HTMLPREFIX)
             print("Gene model:")
@@ -17308,6 +17583,7 @@ def donorDesignPage(params):
                 transIdInfo.append((transId, sym + " / " + transId))
             printDropDown("transId", transIdInfo, selTransId, style="width:20em", form="main")
             print("""<br>""")
+        print("</div>")
 
     recodeTooltip = """
     Select the regions in which to introduce blocking mutations (you can check multiple boxes).<br>

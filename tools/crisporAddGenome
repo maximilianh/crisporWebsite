@@ -674,7 +674,7 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
             cmd = "wget http://hgdownload.cse.ucsc.edu/gbdb/%(db)s/%(queryTable)s.bb -O %(bbTmp)s" % locals()
             runCmd(cmd, mustRun=False)
         else:
-            cmd = f"{baseDir}/usrLocalBin/bedToBigBed -type=bed12+ -as={baseDir}/bigGenePred.as {bgpTmp} {sizesTmp} {bbTmp} -tab"
+            cmd = f"{binDir}/bedToBigBed -type=bed12+ -as={baseDir}/bigGenePred.as {bgpTmp} {sizesTmp} {bbTmp} -tab"
             runCmd(cmd)
 
     return gpTmp, bbTmp, overwrite

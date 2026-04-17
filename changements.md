@@ -1434,3 +1434,57 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - remplacement bedToBigBed par la dernière version
 - si pas de colonne "bin" dans genePred, celle-ci n'est pas retirée
 - retrait des chromosomes "fix" et "patches" pour les génomes humains
+
+## knock-in mode
+
+- dans showSeqAndPams : ajout d'une annotation manuelle des séquences codantes (suggestion de Anne)
+    - au cas où pas d'annotation / annotation incomplète
+    - sélection début / fin / phase
+    - puis affichage de la séquence traduite
+
+- correction bug : si ssODN à polarité inverse + bras d'homologie asymétriques -> mauvaise position de l'édit sur la séquence
+
+## à faire :
+
+- adapter le code génétique à l'organisme / gene
+- en mode KO / KI -> ajouter javascript pour que "pre-calculated exonic guides" ne soit affiché que pour l'humain
+- ajouter clearBox aux inputs dans printKoForm() / printKiForm()
+- duplication des params en mode "manual annotation" + frame 1 = frame 2 ??
+
+# 16/04/26
+
+## knock-in mode
+
+- correction d'un bug (encore!) lors du surlignage du guide pour ssODN à polarité inverse (mauvaise orientation du guide par rapport au PAM si polarité inverse et bras d'homologie asymétriques)
+- correction de la duplication des params dans showSeqAndPams() : call unique de printHiddenFields()
+- ajustement de la phase pour annotation manuelle : phase = décalage de la phase de 3 - exFrame % 3
+- dans getArmCoords : correction du calcul de la phase des exons si : 
+    - l'exon est en 3' du site d'édition
+    - l'exon chevauche le site d'édition
+    - + ajustement de la prise en compte du "décalage" de la position des bras d'homologie en mode substitution / remplacement / délétion 
+
+# 17/04/26
+
+## global
+
+- correction d'un bug dans trimExonAndFlip() : si début de l'exon < début de la séquence, la taille de partie manquante (servant à corriger la phase) était un nombre négatif (%3 =/=)
+
+## knock-in mode
+
+- réduction de la séquence d'input à 60bp de part et d'autre du site d'édition (focus sur guides d'intérêt + rechargement de la page + fluide)
+- dans donorDesignPage() : le menu de sélection d'un transcrit modèle n'est affiché que si la checkbox "use manual annotation" n'est pas cochée
+- dans printKiForm() : ajout des options "clear box" et "reset to default" + ajout d'exemples d'insertion / délétion / substitution / remplacement
+- retrait du lien vers saturating mutagenesis assistant
+
+## à faire
+
+- ajouter crispor batch à printAssistant()
+- faire le manuel + tuto (à l'avenir)
+- enlever lien sat mut depuis KI page
+- dans le back link vers donorDesignPage, sauvegarder l'annotation manuelle
+- si changement de la séquence d'insert dans showDonor(), le surlignage du PAM est parfois remplacé par la couleur du guide (si sq. plus courte) + décalage!
+
+## bugs
+
+- dans printBody(), rediriger vers une nouvelle page si type d'édition non implémenté
+- plus de guides n'ayant pas besoin de recoding en mode subtitution ??
