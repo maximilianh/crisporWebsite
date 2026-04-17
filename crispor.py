@@ -13375,7 +13375,7 @@ def printKoForm(params):
             <div class="title" style="cursor:pointer; margin-bottom:20px;" onclick="$('#helpstep3').toggle('fast')">
                 Step 3
             </div>
-            <div style="margin-bottom:12px;"> Select a transcript and choose an approach to inactivate its product</div>
+            <div style="margin-bottom:12px;"> Select a gene and choose to target a specific transcript or exons common to all transcripts</div>
           """
     )
 
@@ -13386,7 +13386,7 @@ def printKoForm(params):
                 <div style="margin-top:12px;">
                     <small>Currently, %d out of %d genomes are annotated with genes. If yours isn't included, use CRISPOR classic.</small><br>
                 </div>
-            <p style="margin-top:50px">Select one of the following approaches to inactivate your gene</p>
+            <p style="margin-top:50px">Choose one of the following approaches to inactivate your gene</p>
 
             <input type="radio" checked name="koMethod" id="frameshift" value="frameshift" onchange="toggleMethod()"/> Frameshift mutation in the first third of the coding sequence<br>
             <input type="radio" name="koMethod" id="excision" value="excision" onchange="toggleMethod()"/> Excision of the gene locus<br>
