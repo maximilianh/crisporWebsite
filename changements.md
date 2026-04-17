@@ -1476,6 +1476,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - dans printKiForm() : ajout des options "clear box" et "reset to default" + ajout d'exemples d'insertion / délétion / substitution / remplacement
 - retrait du lien vers saturating mutagenesis assistant
 
+
 ## à faire
 
 - ajouter crispor batch à printAssistant()
@@ -1488,3 +1489,4 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - dans printBody(), rediriger vers une nouvelle page si type d'édition non implémenté
 - plus de guides n'ayant pas besoin de recoding en mode subtitution ??
+- dans cripsorAddGenome : retrait accidented du ficher 2bit / sizes ?? + vérifier droits écriture des ficihers

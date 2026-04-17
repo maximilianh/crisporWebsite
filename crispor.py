@@ -2598,6 +2598,11 @@ def showSeqAndPams(
                 manualExEnd = int(manualExEnd) if int(manualExEnd) < len(seq) else len(seq)
 
             manualExFrame = int(cgiParams.get("manualExFrame", "0"))
+
+            # write defaults back to cgiParams so they persist in hidden fields/URLs
+            cgiParams["manualExStart"] = str(manualExStart)
+            cgiParams["manualExEnd"] = str(manualExEnd)
+            cgiParams["manualExFrame"] = str(manualExFrame)
             print("""
                 coding start:&nbsp<input name="manualExStart" value=%s style="width: 30px;"/>&nbsp
                 coding end:&nbsp<input name="manualExEnd" value=%s style="width: 30px;"/>&nbsp
@@ -2635,7 +2640,7 @@ def showSeqAndPams(
         else:
             cgiParams.pop("manualExStart", None)
             cgiParams.pop("manualExEnd", None)
-            cgiParams.pop("manualExframe", None)
+            cgiParams.pop("manualExFrame", None)
 
         if selGeneModel not in ["noGenes", "manual"]:
             print("Transcript:")
@@ -2658,7 +2663,7 @@ def showSeqAndPams(
     elif pamFullName:
         cgiParams.pop("manualExStart", None)
         cgiParams.pop("manualExEnd", None)
-        cgiParams.pop("manualExframe", None)
+        cgiParams.pop("manualExFrame", None)
 
     if baseEditor:
         print("Base Editor modification window:")
