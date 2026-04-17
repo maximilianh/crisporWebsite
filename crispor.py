@@ -2299,7 +2299,7 @@ def showExonAndPams(
         exonLen = len("".join(base for base in seq if base.isupper()))
         exonNumberText = exonId + 1
         print(
-            "Coding exon %d (%s) is %d bp long (non extented). It contains %d possible guide sequences.<br>"
+            "The target coding exon %d (%s) which is %d bp long, and 14 bp flanking intron sequences are shown. They contain %d possible guide sequences.<br>"
             % (exonNumberText, browserlink, exonLen, len(guideScores))
         )
     elif koMethod == "excision":
