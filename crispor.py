@@ -10140,7 +10140,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         elif koMethod == "excision":
             titleText = "excision of the gene locus"
         elif koMethod == "promoter":
-            titleText = "removal of the promoter"
+            titleText = "excision of the promoter"
         elif koMethod == "splicing":
             titleText = "disrupting splicing"
         else:
