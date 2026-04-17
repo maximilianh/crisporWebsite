@@ -13896,7 +13896,7 @@ function changeSeqCase(value) {
             </div>
             <div id="seqTarget" style="margin-top:20px;">
                 Enter the target sequence manually here
-                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp). This sequence should correspond to the locus around the knock-in position. It is recommended to extend no more than 60bp in 5' and 3' around this position, since is it critical to get a DSB as close as possible to the intended modification." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <textarea name="startSeq" style="display: block; margin-top:8px;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
