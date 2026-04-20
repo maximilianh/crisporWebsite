@@ -1446,10 +1446,10 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire :
 
-- adapter le code génétique à l'organisme / gene
+- adapter le code génétique à l'organisme / gene (+ tard)
 - en mode KO / KI -> ajouter javascript pour que "pre-calculated exonic guides" ne soit affiché que pour l'humain
-- ajouter clearBox aux inputs dans printKoForm() / printKiForm()
-- duplication des params en mode "manual annotation" + frame 1 = frame 2 ??
+- ajouter clearBox aux inputs dans printKoForm() / printKiForm() DONE
+- duplication des params en mode "manual annotation" + frame 1 = frame 2 ?? DONE
 
 # 16/04/26
 
@@ -1467,7 +1467,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## global
 
-- correction d'un bug dans trimExonAndFlip() : si début de l'exon < début de la séquence, la taille de partie manquante (servant à corriger la phase) était un nombre négatif (%3 =/=)
+- correction d'un bug dans trimExonAndFlip() : 
+    - si début de l'exon < début de la séquence, la taille de partie manquante (servant à corriger la phase) était un nombre négatif (%3 !=)
 
 ## knock-in mode
 
@@ -1481,12 +1482,42 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - ajouter crispor batch à printAssistant()
 - faire le manuel + tuto (à l'avenir)
-- enlever lien sat mut depuis KI page
-- dans le back link vers donorDesignPage, sauvegarder l'annotation manuelle
+- enlever lien sat mut depuis KI page DONE
+- dans le back link vers donorDesignPage, sauvegarder l'annotation manuelle DONE
 - si changement de la séquence d'insert dans showDonor(), le surlignage du PAM est parfois remplacé par la couleur du guide (si sq. plus courte) + décalage!
 
 ## bugs
 
 - dans printBody(), rediriger vers une nouvelle page si type d'édition non implémenté
-- plus de guides n'ayant pas besoin de recoding en mode subtitution ??
-- dans cripsorAddGenome : retrait accidented du ficher 2bit / sizes ?? + vérifier droits écriture des ficihers
+- dans cripsorAddGenome : retrait accidentel du ficher 2bit / sizes ?? + vérifier droits écriture des ficihers DONE
+- pour replacement, la séquence remplacée dans showDonor() doit être de la même taille (ou adapter bras d'homologie)
+- si ssODN possible -> cocher par défaut DONE
+- pour ssODN a polarité inverse, la base recodée n'est pas la bonne dans le tableau (mais OK sur la séquence du donneur) DONE ? avec fix de getExonInfo
+
+# 20/04/26
+
+## crisporAddGenome
+
+- pour knownGene, ajout du mapping des symbols sur transcript IDs (via knownToRefSeq.txt)
+    - mais de nombreux gènes non mappés + coordonnées tronquées !?
+
+## global
+
+- dans dbsearchGene, correction d'un bug (lorsque l'option "common exons" ajoutée, le transcrit correspondant n'était pas ajouté
+- utilisation de Claude pour ajuster la largeur des colonnes du tableau par rapport à l'en-tête :
+    - création de colgroups entre les deux tableaux
+    - ajout d'une fonction JS pour aligner les colonnes des deux tableaux 
+- correction d'un bug dans showSeqAndPams() : référencement de pamFullName au lieu de multiPamInfo
+- dans getExonInfo() : reset de la phase pour le "premier" exon  uniquement sur le brin + (évite décalage de la phase sur brin -)
+    - + reset de la phase à 0 sur le "dernier" exon pour brin -
+- correction d'un bug dans getVariants : retourne varDb
+
+## knock-in mode 
+
+- affichage des SNPs en mode KI (en dessous de l'edit)
+- ajustement de l'affichage de "show PAMs Nbp from the edit site"
+- ajout d'une input pour modifier le replacement dans showDonor() : séquence remplacée de la même taille uniquement
+
+## bugs
+
+- bug dépendances tensorFlow sur le serveur

@@ -2495,7 +2495,7 @@ def showSeqAndPams(
     editLines = []
     exonLines = []
 
-    if pamFullName:
+    if multiPamInfo:
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
     else:
         geneModels, selGeneModel, selTransId = getSelGeneModel(org)
@@ -2521,7 +2521,6 @@ def showSeqAndPams(
     if selGeneModel is not None:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, position)
         labelLen = max(labelLen, maxTransIdLen)
-
     if baseEditor:
         labelLen = max(labelLen, getMaxLen(editLines))
     if selGeneModel:
@@ -2732,9 +2731,6 @@ def showSeqAndPams(
     print(("{:" + str(labelLen) + "s} ").format(posLabel), end=" ")
     print(rulerString(len(seq)))
 
-    if varHtmls is not None:
-        print(("{:" + str(labelLen) + "s} ").format(varLabel), end=" ")
-        print("".join(varHtmls))
     if multiPamInfo:
         # rangeChar was used to highlight a n bp region up/dowstream of the edition site
         if kiType == "deletion":
@@ -2750,6 +2746,10 @@ def showSeqAndPams(
 
         print(("{:" + str(labelLen) + "s} ").format(insertLabel), end=" ")
         print(leftSpace + insertChar)
+
+    if varHtmls is not None:
+        print(("{:" + str(labelLen) + "s} ").format(varLabel), end=" ")
+        print("".join(varHtmls))
 
     print(("{:" + str(labelLen) + "s} ").format(seqLabel), end=" ")
     print(seq)
@@ -4223,6 +4223,79 @@ def hasGeneModels(org):
     return isfile(geneFname)
 
 
+def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames):
+    """Return a dict of px widths shared by printTableHead() and showGuideTable().
+    This is the single source of truth for column widths so the two (intentionally
+    separate) tables stay column-aligned across every PAM/score/mode combination."""
+    if len(scoreNames) == 2 or pamIsCpf1(pam) or (pamIsSaCas9(pam) and pamFullName is None):
+        effTotal = 150
+    else:
+        effTotal = 270
+
+    if len(mutScoreNames) <= 1:
+        outcomeTotal = 45
+    else:
+        outcomeTotal = 67
+
+    nEff = max(len(scoreNames), 1)
+    nOutcome = max(len(mutScoreNames), 1)
+
+    return {
+        "pos": 80,
+        "guide": 235 if pamFullName else 245,
+        "distance": 110,
+        "globalScore": 150,
+        "mitSpec": 80,
+        "cfdSpec": 60,
+        "effTotal": effTotal,
+        "effCol": effTotal // nEff,
+        "outcomeTotal": outcomeTotal,
+        "outcomeCol": outcomeTotal // nOutcome,
+        "offTargets": 117,
+        "browser": 500,
+    }
+
+
+def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths):
+    """Yield (dataColId, widthPx) for every visual column, in body-row order.
+    Used both for emitting the shared <colgroup> and for computing total width."""
+    yield ("pos", colWidths["pos"])
+    yield ("guide", colWidths["guide"])
+    if pamFullName:
+        yield ("distance", colWidths["distance"])
+    yield ("global", colWidths["globalScore"])
+    if not pamIsCpf1(pam):
+        yield ("mit", colWidths["mitSpec"])
+    if "cfdGuideScore" in showColumns:
+        yield ("cfd", colWidths["cfdSpec"])
+    for scoreName in scoreNames:
+        if scoreName in ("oof", "proxGc"):
+            continue
+        yield ("eff-" + scoreName, colWidths["effCol"])
+    if "proxGc" in scoreNames:
+        yield ("proxGc", colWidths["effCol"])
+    if not baseEditor:
+        for mutScoreName in mutScoreNames:
+            yield ("outcome-" + mutScoreName, colWidths["outcomeCol"])
+    yield ("offtargets", colWidths["offTargets"])
+    yield ("browser", colWidths["browser"])
+
+
+def printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths):
+    """Emit the <colgroup> that both the header and body tables share.
+    Under table-layout:fixed, <col> widths are authoritative, so an identical
+    colgroup in both tables pins their columns to the same pixel widths."""
+    print("<colgroup>")
+    for colId, width in _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths):
+        print('<col data-col-id="%s" style="width:%dpx;">' % (colId, width))
+    print("</colgroup>")
+
+
+def getOtTableTotalWidth(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths):
+    "sum of all per-column widths — used to set table width + container min-width consistently"
+    return sum(w for _, w in _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths))
+
+
 def printTableHead(
     pam, batchId, chrom, org, varHtmls, showColumns, geneId, pamFullName=None
 ):
@@ -4462,32 +4535,32 @@ def printTableHead(
 
     print('<div id="guideTableScroll" style="overflow-x:auto; max-width:100vw;">')
 
-    tableWidth = 1650
-    print("""<div style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
+    colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames)
+    tableWidth = max(1650, getOtTableTotalWidth(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths))
+
+    print("""<div class="otTableWrap" style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
     print(
-            '<table id="otTableHeader" style="background:white; table-layout:fixed; width: 100%;">'
+            '<table id="otTableHeader" style="background:white; table-layout:fixed; width: %dpx;">'
+            % tableWidth
     )
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths)
 
     print("""<thead style="position:sticky;">""")
     print(
-            '<tr style="top: 1px; z-index:2; box-shadow: inset 0 1px black; width:80px; border-left:5px solid black; border-bottom: none; background-color:#F0F0F0; background-clip: padding-box;">'
+            '<tr style="top: 1px; z-index:2; box-shadow: inset 0 1px black; width:%dpx; border-left:5px solid black; border-bottom: none; background-color:#F0F0F0; background-clip: padding-box;">'
+            % colWidths["pos"]
     )
 
     print(
-            '<th style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
-            % batchId
+            '<th data-col-id="pos" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=pos" class="tooltipster" title="Click to sort the table by the position of the PAM site">Position/<br>Strand</a>'
+            % (colWidths["pos"], batchId)
     )
     htmlHelp(
         "You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page."
     )
     print("</th>")
 
-    # in KI mode, the filter checkboxed are removed, making the column wider
-    if pamFullName:
-        guideColWidth = 235
-    else:
-        guideColWidth = 245
-    print('<th style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%spx; border-bottom:none">Guide Sequence + <i>PAM</i><br>' % guideColWidth)
+    print('<th data-col-id="guide" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Guide Sequence + <i>PAM</i><br>' % colWidths["guide"])
 
     if not pamFullName:
         print("+ Restriction Enzymes")
@@ -4521,18 +4594,18 @@ def printTableHead(
 
     if pamFullName:
         print(
-            """ <th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:110px; border-bottom:none;">
+            """ <th data-col-id="distance" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none;">
             <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edition site. Click to sort this table by this distance (default)">Distance between cut site and edition site</a><br>
             </th>"""
-            % batchId
+            % (colWidths["distance"], batchId)
         )
         isDefaultText = ""
     else:
         isDefaultText = " (default)"
     print(
-        """<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:150px; border-bottom:none;">
+        """<th data-col-id="global" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none;">
         <a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score%s. Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a>"""
-        % (batchId, isDefaultText)
+        % (colWidths["globalScore"], batchId, isDefaultText)
     )
 
     if pamFullName:
@@ -4579,8 +4652,8 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if not pamIsCpf1(pam):
         print(
-            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
-            % batchId
+            '<th data-col-id="mit" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
+            % (colWidths["mitSpec"], batchId)
         )
         if pamIsSaCas9(pam):
             htmlHelp(
@@ -4598,8 +4671,8 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if "cfdGuideScore" in showColumns:
         print(
-            '<th style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:60px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>'
-            % batchId
+            '<th data-col-id="cfd" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=cfdSpec" class="tooltipster" title="Click to sort the table by CFD specificity score">CFD Spec. score</a>'
+            % (colWidths["cfdSpec"], batchId)
         )
         htmlHelp(
             "The CFD specificity score, inspired like guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
@@ -4608,13 +4681,13 @@ You can adapt the global score to your delivery method (select below), which cha
 
     if len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam) and pamFullName is None:
         print(
-            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:150px; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
-            % (len(scoreNames))
+            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
+            % (colWidths["effTotal"], len(scoreNames))
         )
     else:
         print(
-            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:80px; width:270px; border-bottom:none" colspan="%d">Predicted Efficiency'
-            % (len(scoreNames))
+            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none" colspan="%d">Predicted Efficiency'
+            % (colWidths["effTotal"], len(scoreNames))
         )  # -1 because proxGc is in scoreNames but has no column
 
     htmlHelp(
@@ -4644,25 +4717,19 @@ You can adapt the global score to your delivery method (select below), which cha
     if not baseEditor:
         if len(mutScoreNames) <= 1:
             mhColName = ""
-            oofWidth = 45
-            # oofDesc = "Click on score to show micro-homology"
-            # oofDesc = ""
-        else:
-            oofWidth = 67
-            # oofDesc = "Click score for details"
 
         colSpan = len(mutScoreNames)
         print(
-            '<th colspan=%d style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>'
-            % (colSpan, oofWidth, batchId, mhColName)
+            '<th colspan=%d style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=oof" class="tooltipster" title="Prediction of the DNA sequence after strand break repair. Click to sort the table by frameshift/out-of-frame scores. Hover over the score names to show information about a particular score. Click a score number to see the predicted indel pattern around the guide.">%s</a>'
+            % (colSpan, colWidths["outcomeTotal"], batchId, mhColName)
         )
         # htmlHelp(scoreDescs["oof"][1])
         # print "<small>%s</small>" % oofDesc
         print("</th>")
 
     print(
-        '<th style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:80px; width:117px; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>'
-        % (batchId)
+        '<th data-col-id="offtargets" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=offCount" class="tooltipster" title="Click to sort the table by number of off-targets">Off-targets for <br>0-1-2-3-4 mismatches<br></a><span style="color:grey">+ next to PAM </span>'
+        % (colWidths["offTargets"], batchId)
     )
 
     altPamsHelp = [pam]
@@ -4676,7 +4743,8 @@ You can adapt the global score to your delivery method (select below), which cha
 
     print("</th>")
     print(
-        '<th style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:500px; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
+        '<th data-col-id="browser" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
+        % colWidths["browser"]
     )
     htmlHelp(
         "For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.<br>On most organisms, you can click the links below to open a window with a genome browser at this position."
@@ -4731,14 +4799,14 @@ You can adapt the global score to your delivery method (select below), which cha
             continue
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print(
-            '<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterinteract" href="crispor.py?batchid=%s&sortby=%s">%s</a></span></div></th>'
-            % (scoreDesc, batchId, scoreName, scoreLabel)
+            '<th data-col-id="eff-%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterinteract" href="crispor.py?batchid=%s&sortby=%s">%s</a></span></div></th>'
+            % (scoreName, scoreDesc, batchId, scoreName, scoreLabel)
         )
 
     if "proxGc" in scoreNames:
         # the ProxGC score comes next
         print(
-            """<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border: none; border-top:none; border-right: none; border-left:none" class="rotate">"""
+            """<th data-col-id="proxGc" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border: none; border-top:none; border-right: none; border-left:none" class="rotate">"""
         )
         print("""<div><span style="border-bottom:none">""")
         print(
@@ -4750,8 +4818,8 @@ You can adapt the global score to your delivery method (select below), which cha
     for scoreName in mutScoreNames:
         scoreLabel, scoreDesc = scoreDescs[scoreName]
         print(
-            '<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
-            % (scoreDesc, batchId, scoreName, scoreLabel)
+            '<th data-col-id="outcome-%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
+            % (scoreName, scoreDesc, batchId, scoreName, scoreLabel)
         )
 
     print('<th style="position: sticky; top: 125px; box-shadow: inset -1px 0 black; z-index:25; border-top:none"></th>')
@@ -4931,32 +4999,21 @@ def showGuideTable(
     effScoresCount = 0
     showProxGcCol = "proxGc" in scoreNames
 
-    # compute per-column widths to match the header table
-    # to adjsut for all possible cases!
-    if pamFullName is not None:
-        effTotalWidth = 235
-    elif len(scoreNames) == 2 or pamIsCpf1(pam) or pamIsSaCas9(pam):
-        effTotalWidth = 140
-    elif cgiParams.get("showAllScores", "0") == "1":
-        effTotalWidth = 190
-    else:
-        effTotalWidth = 240
-
-    effColWidth = effTotalWidth // len(scoreNames) if len(scoreNames) > 0 else 0
-
-    if not baseEditor:
-        if len(mutScoreNames) <= 1:
-            outcomeTotalWidth = 45
-        else:
-            outcomeTotalWidth = 58
-        outcomeColWidth = outcomeTotalWidth // len(mutScoreNames) if len(mutScoreNames) > 0 else 0
+    # single source of truth shared with printTableHead so the two tables stay aligned
+    colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames)
+    effTotalWidth = colWidths["effTotal"]
+    effColWidth = colWidths["effCol"]
+    outcomeColWidth = colWidths["outcomeCol"]
+    tableWidth = max(1650, getOtTableTotalWidth(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths))
 
     highlightedGuidesIds = []
     highlightedGuidesPos = []
 
-    print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: fixed; max-height: 75vh;">')
-    print('<table id="otTable" style="table-layout: fixed; width: 100%;">')
-    print('<tobody>')
+    print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: auto; max-height: 75vh;">')
+    print("""<div class="otTableWrap" style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
+    print('<table id="otTable" style="table-layout: fixed; width: %dpx;">' % tableWidth)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths)
+    print('<tbody>')
     for guideIdx, guideRow in enumerate(guideData):
         (
             guideScore,
@@ -5043,7 +5100,7 @@ def showGuideTable(
 
         # position and strand
         # print '<td id="%s">' % pamId
-        print("""<td style="width:80px; background-color:%s;">""" % backgroundColor)
+        print("""<td style="width:%dpx; background-color:%s;">""" % (colWidths["pos"], backgroundColor))
         print('<a href="#list%s">' % (pamId))
         print(str(pamStart + 1) + " /")
         if strand == "+":
@@ -5100,11 +5157,7 @@ def showGuideTable(
 
         # sequence with variants and PCR primer link
 
-        if pamFullName:
-            guideColWidth = 235
-        else:
-            guideColWidth = 245
-        print("""<td style="width:240px; background-color:%s;">""" % backgroundColor)
+        print("""<td style="width:%dpx; background-color:%s;">""" % (colWidths["guide"], backgroundColor))
         print("<small>")
 
         # guide sequence + PAM sequence
@@ -5223,12 +5276,12 @@ def showGuideTable(
         if pamFullName:
             insertDistance = effScores.get("insertDistance")
 
-            print('<td style="width:110px;">')
+            print('<td style="width:%dpx;">' % colWidths["distance"])
             print("%d bp" % insertDistance)
             print("</td>")
 
         # Global Score
-        print(""" <td style="width:150px; background-color:%s;"> """ % backgroundColor)
+        print(""" <td style="width:%dpx; background-color:%s;"> """ % (colWidths["globalScore"], backgroundColor))
         if guideScore == None or mainScore == "NA":
             print("No matches")
         else:
@@ -5237,7 +5290,7 @@ def showGuideTable(
 
         # off-target score, aka specificity score aka MIT score
         if not pamIsCpf1(pam):
-            print(""" <td style="width:80px; background-color:%s;"> """ % backgroundColor)
+            print(""" <td style="width:%dpx; background-color:%s;"> """ % (colWidths["mitSpec"], backgroundColor))
             if guideScore == None:
                 print("No matches")
             else:
@@ -5246,7 +5299,7 @@ def showGuideTable(
 
         # guide score based on CFD scores, aka guidescan score
         if "cfdGuideScore" in showColumns:
-            print(""" <td style="width:60px; background-color:%s;"> """ % backgroundColor)
+            print(""" <td style="width:%dpx; background-color:%s;"> """ % (colWidths["cfdSpec"], backgroundColor))
             if guideCfdScore == None:
                 print("No matches")
             else:
@@ -5339,7 +5392,7 @@ def showGuideTable(
                 print("</td>")
 
         # mismatch description
-        print("""<td style="width:117px; background-color:%s;">""" % backgroundColor)
+        print("""<td style="width:%dpx; background-color:%s;">""" % (colWidths["offTargets"], backgroundColor))
         # otCount = sum([int(x) for x in otDesc.split("/")])
         if otData == None:
             # no genome match
@@ -5364,7 +5417,7 @@ def showGuideTable(
         print("</td>")
 
         # links to offtargets
-        print("""<td style=" width: 500px; background-color:%s;"><small>""" % backgroundColor)
+        print("""<td style=" width: %dpx; background-color:%s;"><small>""" % (colWidths["browser"], backgroundColor))
         if otData != None:
             if len(otData) > 500 and len(guideData) > 1:
                 otData, cutoff = findOtCutoff(otData)
@@ -5424,11 +5477,52 @@ def showGuideTable(
     
     print('</tbody>')
     print("</table>")
-    print("</div>")
-    print("</div>")
-    print("</div>")
+    print("</div>")  # body otTableWrap
+    print("</div>")  # guideRowsScroll
+    print("</div>")  # header otTableWrap
+    print("</div>")  # guideTableScroll
 
-    printDownloadTableLinks(batchId, addTsv=True)
+    # Column widths drift when the two tables reflow independently (colspans in
+    # the header vs one-cell-per-column in the body). This script copies each
+    # rendered header column width onto the matching body <col> on load/resize.
+    print("""
+    <script type="text/javascript">
+    (function() {
+        function syncOtTableColumns() {
+            var header = document.getElementById('otTableHeader');
+            var body = document.getElementById('otTable');
+            if (!header || !body) return;
+            var bodyCols = body.querySelectorAll('col[data-col-id]');
+            if (!bodyCols.length) return;
+            for (var i = 0; i < bodyCols.length; i++) {
+                var colId = bodyCols[i].getAttribute('data-col-id');
+                var headerCell = header.querySelector('[data-col-id="' + colId + '"]');
+                if (!headerCell) continue;
+                var rect = headerCell.getBoundingClientRect();
+                if (rect.width > 0) {
+                    bodyCols[i].style.width = rect.width + 'px';
+                }
+            }
+        }
+        function schedule() {
+            if (window.requestAnimationFrame) {
+                window.requestAnimationFrame(syncOtTableColumns);
+            } else {
+                setTimeout(syncOtTableColumns, 0);
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', schedule);
+        } else {
+            schedule();
+        }
+        window.addEventListener('load', schedule);
+        window.addEventListener('resize', schedule);
+    })();
+    </script>
+    """)
+
+    printDownloadTableLinks(batchId, addTsv=True, kiMode=pamFullName)
 
     printNoEffScoreFoundWarn(effScoresCount, pam)
 
@@ -7282,10 +7376,10 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
     genomePath = join(genomesDir, org)
 
     gpFiles = [f for f in os.listdir(genomePath) if f.endswith(".gp")]
-    if len(gpFiles) == 0:
+    if not gpFiles:
         print(
             json.dumps(
-                {"results": [{"id": "", "text": "No gene files for this organism"}]}
+                {"results": [{"id": "0", "text": "No gene files for this organism"}]}
             )
         )
         sys.exit(0)
@@ -7341,6 +7435,7 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
         else:
             matchText = "%s (%s exons%s)" % (transcript, exonCount, codingStr)
 
+        maneCount = 0
         if sym in seen:
             for symDict in symDicts:
                 selSym = symDict["text"]
@@ -7351,15 +7446,16 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                         "text": matchText,
                         "exonCount": exonCount
                         }
-                    if commonExons and len(transList) == 1:
+                    if commonExons and (len(transList) - maneCount) == 2:
                         transList.insert(0, {
                             "id": "%s~SYM" % sym,
                             "text": "Search exons common to all transcripts in %s" % sym,
                             "exonCount": 0
                             })
-                    # show the MANE transcript at the top of the options
-                    elif isMane:
-                        transList.insert(1, transDict)
+                    # show the MANE select transcript at the top of the options
+                    if isMane:
+                        maneCount += 1
+                        transList.insert(0, transDict)
                     else:
                         transList.append(transDict)
 
@@ -8710,6 +8806,7 @@ def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=None):
         else:
             # if the sequence start inside en exon, the frame can be truncated
             if exFrame is not None and exFrame != -1:
+                print(exStart, exEnd, exStrand, seqLen, seqStrand)
                 # take into account the phase shift due to the missing part of the exon
                 # use a positive value for the missing length!
                 exOffset = abs(exStart) % 3
@@ -8829,7 +8926,8 @@ def getExonInfo(org, geneName, position, extendPos=False):
             # figure out exon start/end: special case for UTRs: trim down to CDS start/end
             if exChromStart < thickStart < exChromEnd:
                 exStart = thickStart - seqStart
-                exonFrame = 0  # Segments starting at translation start always have frame 0
+                if strand == "+":
+                    exonFrame = 0  # Segments starting at translation start always have frame 0 (only for the + strand)
                 # add the UTR as a special exon
                 utrStart, utrEnd, _, utrStrand = trimExonAndFlip(
                     exChromStart - seqStart, exStart, exStrand, seqLen, seqStrand
@@ -8841,6 +8939,8 @@ def getExonInfo(org, geneName, position, extendPos=False):
             else:
                 exStart = chromStart + blockStart - seqStart
             if exChromStart < thickEnd < exChromEnd:
+                if strand == "-":
+                    exonFrame = 0
                 exEnd = thickEnd - seqStart
                 # add the UTR as a special exon
                 utrStart, utrEnd, _, utrStrand = trimExonAndFlip(
@@ -9218,7 +9318,7 @@ def crisprSearch(params):
                 )
             )
 
-        varHtmls, varDbs = getVariants(
+        varHtmls, varDbs, varDb = getVariants(
             seq, org, varDb, position, chrom, start, end, strand, minFreq
         )
 
@@ -9379,7 +9479,7 @@ def KiResultsPage(params, batchId, download=False):
         else:
             strandStr = " reverse genomic strand"
 
-        varHtmls, varDbs = getVariants(
+        varHtmls, varDbs, varDb = getVariants(
             seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
         )
 
@@ -9396,10 +9496,10 @@ def KiResultsPage(params, batchId, download=False):
             None,
             None,
             allGuideScores,
-            None,
-            None,
-            None,
-            0.0,
+            varHtmls,
+            varDbs,
+            varDb,
+            minFreq,
             posStr,
             allPamIdToSeq,
             browserLinkHtml=browserLinkHtml,
@@ -9453,8 +9553,10 @@ def KiResultsPage(params, batchId, download=False):
             </div>
             <div style="display: flex">
                 <div>
-                <input type=range value=%s min=10 max=%d name="pamWindow" oninput="this.nextElementSibling.value = this.value"/>
-                Show PAMS <output>%s</output> bp from the edit site
+                <div style="display: flex; flex-direction: row; align-items: center; gap: 6px;">
+                Show PAMS <input type=range value=%s min=10 max=%d name="pamWindow" oninput="this.nextElementSibling.value = this.value"/>
+                <output>%s</output> bp from the edit site
+                </div>
         """ % (pamWindow, max(len(seq[0:insertIdx]), len(seq[insertIdx:len(seq)])), pamWindow))
 
         print("""
@@ -9495,10 +9597,7 @@ def KiResultsPage(params, batchId, download=False):
             if "geneModel" in newParams:
                 newParams["geneModel"] = json.dumps(newParams["geneModel"])
             newParams.update({"newSearch": 1, "submit": "submit"})
-            if otherPam is not None:
-                newParams.update({"multipam": otherPam})
-            else:
-                newParams.update({"multipam": multipam})
+            newParams.update({"multipam": otherPam})
             actionStr = "?" + urllib.parse.urlencode(newParams)
 
             print("""
@@ -9649,13 +9748,16 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     if len(annotationParams) != 3:
         annotationParams = None
 
-    # change the insert sequence on this page
-    if "newInsertSeq" in params:
-        insertSeq = params["newInsertSeq"]
-        insertSeq = re.sub(r'[^ATGCNatgcn]', '', insertSeq)
     if ("tagseq" in params and "linkerseq") in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params):
         tagNames, insertSeq = getInsertSeq(params.get("linkerseq"),  params.get("tagseq"), params.get("markerseq"),
                                            params.get("expressionSeq"), params.get("qTag"), batchInfo["insertpos"])
+
+    # change the insert sequence on this page
+    if "newInsertSeq" in params:
+        newInsertSeq = params["newInsertSeq"]
+        newInsertSeq = re.sub(r'[^ATGCNatgcn]', '', newInsertSeq)
+        if not (len(newInsertSeq) != len(insertSeq) and kiType == "replacement"):
+            insertSeq = newInsertSeq
 
     dbInfo = readDbInfo(org)
     chrom, start, end, strand = parsePos(posStr)
@@ -10068,7 +10170,12 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         for base in [base for base in ["A", "T", "G", "C"] if base != insertSeq.upper()]:
             print("""<option value="%s">%s</option>""" % (base, base))
         print("</select>")
-
+    elif kiType == "replacement":
+        replaceLen = len(insertSeq)
+        print("""
+            <p>If you want to change the replaced sequence, paste a new one here and click on the update button. The sequence should be of the same length as the current one (%(replaceLen)d bp). Updating with an empty box will restore the original sequence.</p>
+            <input name="newInsertSeq" style="width: 45%%;" maxlength=%(replaceLen)d minlength=%(replaceLen)d placeholder="paste a new sequence replacement here (%(replaceLen)d bp)"/>
+        """ % locals())
     else:
         print("""
             <p>If you want to change the insert sequence, paste a new one here and click on the update button. Updating with an empty box will restore the original sequence.</p>
@@ -10397,7 +10504,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 dbInfo, posStr, oneBasedPosition, None, ["tooltipster"]
             )
 
-            varHtmls, varDbs = getVariants(
+            varHtmls, varDbs, varDb = getVariants(
                 seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
             )
 
@@ -10503,7 +10610,7 @@ def getVariants(seq, org, varDb, position, chrom, start, end, strand, minFreq):
 
     varHtmls = varDictToHtml(varDict, seq, varShortLabel)
 
-    return varHtmls, varDbs
+    return varHtmls, varDbs, varDb
 
 
 def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos=None, kiType=None, tagNames=None, commonExons=False):
@@ -12984,7 +13091,7 @@ can be selectively amplified from the pool.<br>
     print("</form>")
 
 
-def printLibForm(params):
+def printLibForm(params, returnLink=True):
     """ """
     sampleGenes = "PITX2\nMTOR\nTP53\nABO\n3661\nNM_134261"
     print(("""<form id="libForm" action="%s" method="POST">""" % basename(__file__)))
@@ -12993,8 +13100,9 @@ def printLibForm(params):
     # printDropDown("org", [("human", "Human"),("mouse", "Mouse")], "human")
     # print("<br>")
 
-    url = "crispor.py"
-    print(("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url))
+    if returnLink:
+        url = "crispor.py"
+        print(("<p><a href='%s'>&larr; return to the CRISPOR main page</a></p>" % url))
 
     print(
         "<h2>CRISPOR Batch Gene Targeting Assistant: Paste a list of genes to download a list of guides</h2>"
@@ -14158,7 +14266,7 @@ function clearEndSeq() {
                             <small>/</small>
                             <small><a href="javascript:replExample()"> Replacement</a></small>
                         </div>
-                        <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Insertion, deletion and substitution are supported. Editing at multiple positions is not supported."></textarea>
+                        <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Types of modification supported are insertion, deletion, single substitution and replacements (up to 10 bp, including e.g. with two substitions 10 bp apart)."></textarea>
                     </div>
                 </div>
 
@@ -14395,8 +14503,8 @@ def printBody(params):
         elif expType == "classic":
             printForm(params)
         elif "libDesign" in params:
-            printCrisporBodyStart()
-            printLibForm(params)
+            # printCrisporBodyStart()
+            printLibForm(params, returnLink=False)
         elif "geneIds" in params:
             printCrisporBodyStart()
             printLibGuides(params)
@@ -17240,13 +17348,17 @@ def donorDesignPage(params):
 
     htmlprefix = HTMLPREFIX
 
+    # check if an ssODN can be used
     maxssLen = 200 - len(insertSeq)
     if maxssLen < 40 and kiType != "deletion":
-        donorTypeDisplay = "none"
         donorTypeMsg = "the insert sequence is too long to use a single stranded oligonucleotide as the HDR template"
+        ssChecked = ""
+        dsChecked = "checked"
     else:
         donorTypeDisplay = "block"
         donorTypeMsg = ""
+        ssChecked = "checked"
+        dsChecked = ""
 
     # from CRISPRdesigner : use the genomic strand if the cut site is downstream of the insertion site,
     # use the reverse complement if the cut site is upstream of the insertion site
@@ -17408,6 +17520,12 @@ def donorDesignPage(params):
         }
     }
 
+    $(document).ready(function() {
+        if ($('input[name="donorType"][value="ss"]').is(':checked')) {
+            toggleTemplateStrand();
+        }
+    });
+
     function toggleTranscriptSelection() {
         let manualAnnotation = document.getElementById('useManualAnnotation')
         let transcriptSelection = document.getElementById('transcriptSelection')
@@ -17525,8 +17643,8 @@ def donorDesignPage(params):
                 Select donor type  <img src=" %(htmlprefix)s image/info-small.png" title="Choose between a single stranded oligodeoxyribonucleotide (ssODN), recommended for small (<50bp) edits, and a double stranded donor DNA, recommended for knock-in of large sequences. The maximum length of the ssODN can't exceed 200 bases" class="tooltipsterInteract"><br>
 
 
-                <input type="radio" form="main" checked name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double-stranded donor<br>
-                <input type="radio" form="main" name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single-stranded donor<br>
+                <input type="radio" form="main" %(dsChecked)s name="donorType" value="ds" autocomplete="off" onchange="toggleTemplateStrand()"/>Double-stranded donor<br>
+                <input type="radio" form="main" %(ssChecked)s name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single-stranded donor<br>
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
                 Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
@@ -18443,12 +18561,15 @@ def printAssistant(params):
                     column-gap: 5%;
                     border-width:1px;
                     border-radius:8px;">
-            <button style="width:25%; min-width: 150px;" class="tooltipsterInteract" Title="Enter a sequence to find guides"
+            <button style="width:15%; min-width: 150px;" class="tooltipsterInteract" Title="Enter a sequence to find guides"
                 value="classic">CRISPOR Classic</button>
             <button style="width:25%; min-width: 420px;" name="expType" class="tooltipsterInteract" Title="Select a transcript and find guides to inactivate its product"
                 value="ko">CRISPOR Assistant for Knock-out Experiments (CAKoE)</button>
             <button style="width:25%; min-width: 150px;" name="expType" class="tooltipsterInteract" Title="Design a donor DNA and guides to knock-in a sequence at a genome position"
                 value="ki">CRISPOR Assistant for Knock-in Experiments (CAKiE)</button>
+            <button style="width:20%; min-width: 150px;" name="libDesign" class="tooltipsterInteract" Title="Saturating mutagenesis assistant : enter a list of genes to get a list of guides. Only available for human and mouse genomes."
+                value=1>CRISPOR batch</button>
+
             <br>
             <div style="margin-top: auto; width: 100%">
                  CRISPOR (<a href="https://academic.oup.com/nar/article/46/W1/W242/4995687">citation</a>) is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system. <a target=_blank href="/manual/">CRISPOR Manual</a>
