@@ -17673,7 +17673,7 @@ def donorDesignPage(params):
           """ % locals())
 
     if doRecoding == "True":
-        recodingMsg = "If you use this guide, XX bp of the target sequence are present in the donor DNA with the default design. The donor will likely be cleaved or the locus re-cleaved after insertion by the nuclease, so recoding is strongly recommended."
+        recodingMsg = "If you use this guide, XX bp of the target sequence are present in the donor DNA with the default design . The donor will likely be cleaved or the locus re-cleaved after insertion by the nuclease, so recoding is strongly recommended."
 
     else:
         recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will differ. The donor will not be cleaved (or re-cleaved after insertion) by the nuclease, so recoding is not needed in this case."
@@ -17711,11 +17711,11 @@ def donorDesignPage(params):
     recodeTooltip = """
     Select the regions in which to introduce blocking mutations (you can check multiple boxes).<br>
     <ul>
-        <li>If recoding is needed, the default is to introduce a PAM blocking mutation to prevent binding of the Cas protein (first option).</li>
-        <li>By checking the second option, hybridization of the guide can be prevented by introducing mutations in the 15 nucleotides at the PAM-proximal end of the guide (seed region).</li>
-        <li>Additionally, mutations can be introduced in the entire region between the cut site and insertion site. to make sure that the RNP complex doesn't bind to the donor (third option).</li>
+        <li>If recoding is needed, the default is to introduce a PAM blocking silent mutation to prevent binding of the Cas protein (first option).</li>
+        <li>By checking the second option, silent mutations are introduced in the 15 nucleotides at the PAM-proximal end of the guide (seed region) to prevent stable guide hybridization and DNA cleavage.</li>
+        <li>Additionally, silent mutations can be introduced in the entire region between the cut site and insertion site to make sure that the RNP complex doesn't bind to the donor (third option).</li>
         </ul>
-        For more information on recoding guidelines, see <a target='blank' href='https://doi.org/10.1038/s41598-021-98965-y'>Schubert et al. 2021</a> (for ssODN).
+        For more information on recoding guidelines, see <a target='blank' href='https://doi.org/10.1038/s41598-021-98965-y'>Schubert et al. 2021</a>.
     """
     print("""
         <p>Choose below which regions of the donor DNA to recode </p>
