@@ -17673,7 +17673,7 @@ def donorDesignPage(params):
           """ % locals())
 
     if doRecoding == "True":
-        recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will be identical. The donor will likely be cleaved or the locus re-cleaved after insertion by the nuclease, so recoding is recommended in this case."
+        recodingMsg = "If you use this guide, XX bp of the target sequence are present in the donor DNA with the default design. The donor will likely be cleaved or the locus re-cleaved after insertion by the nuclease, so recoding is strongly recommended."
 
     else:
         recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will differ. The donor will not be cleaved (or re-cleaved after insertion) by the nuclease, so recoding is not needed in this case."
