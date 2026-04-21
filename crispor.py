@@ -4967,7 +4967,7 @@ def showGuideTable(
 
     elif pamFullName:
         print(
-            """ <br> <div class="title">Guide sequences for PAMs %s bp around the edition site</div>""" % pamWindow
+            """ <br> <div class="title">Guide sequences for PAMs %s bp around the edit site</div>""" % pamWindow
         )
     else:
         print("<br><div class='title'>Predicted guide sequences for PAMs</div>")
