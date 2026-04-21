@@ -2560,7 +2560,7 @@ def showSeqAndPams(
             % (len(seq), len(guideScores))
         )
         if clippedSeq is True:
-            print("""<p>You input sequence was reduced to a maximum of 60bp on each site of the edition site to save computation time.<br>
+            print("""<p>You input sequence was reduced to a maximum of 60bp on each side of the edit site to limit computation time.<br>
                   Guides outsite this range will almost certainly not result in a successful knock-in experiment.</p>""")
         print(
             """ Shown below are the possible guide sequences for the following PAMs : %s .<br> PAMs highlighted in blue corresponds to guides that overlap the position of the edit.<br>"""
@@ -2732,7 +2732,7 @@ def showSeqAndPams(
     print(rulerString(len(seq)))
 
     if multiPamInfo:
-        # rangeChar was used to highlight a n bp region up/dowstream of the edition site
+        # rangeChar was used to highlight a n bp region up/dowstream of the edit site
         if kiType == "deletion":
             delRange = ''.join(["x" for i in range(len(insertSeq))])
             insertChar = "\%s/" % delRange
@@ -4595,7 +4595,7 @@ def printTableHead(
     if pamFullName:
         print(
             """ <th data-col-id="distance" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none;">
-            <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edition site. Click to sort this table by this distance (default)">Distance between cut site and edition site</a><br>
+            <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edit site. Click to sort this table by this distance (default)">Distance between cut site and editing site</a><br>
             </th>"""
             % (colWidths["distance"], batchId)
         )
@@ -9655,16 +9655,16 @@ def printKiSteps(batchId: str, step=1, annotationParams=None):
 
     # first step
     guideSelectText = """
-    First, select guides that introduce a DSB as close as the possible to the edition site.<br>
-    By default, the table is sorted by this distance and only guides that result in a cut at less than 10bp from the edition site are shown.<br>
+    First, select guides that introduce a DSB as close as the possible to the editing site.<br>
+    By default, the table is sorted by this distance and only guides that result in a cut at less than 10bp from the editing site are shown.<br>
     If no guides satisfies this condition, go to the 'Options to modify the display of PAMs on the sequence viewer' box.<br>
     You can either :
     <ul>
-        <li>Display guides that cut further away from the edition site (using the cursor).</li>
+        <li>Display guides that cut further away from the editing site (using the cursor).</li>
         <li>See if another enzyme may be more appropriate by showing other PAM patterns.</li>
     </ul>
-    Using guides distant to the edition site may result in a low efficiency.<br>
-    In this case, using nickases with two guides that flank the edition site (double nicking strategy) may yield better results (see Schubert et al. 2021 - fig. 2).<br>
+    Using guides distant to the editing site may result in a low efficiency.<br>
+    In this case, using nickases with two guides that flank the editing site (double nicking strategy) may yield better results (see Schubert et al. 2021 - fig. 2).<br>
     """
 
     guideHtml = ''' <a href="%s" class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select guide sequences</a> ''' % (backUrl, guideSelectText, stepStyles[0])
@@ -14604,7 +14604,7 @@ def processCustomInsertSeq(startSeq, endSeq):
             return None, None, None, None, None
         insertIdx, insertSeq = editSeqs[0]
 
-    # clip the sequence 60bp in 5' and 3' of the edition site
+    # clip the sequence 60bp in 5' and 3' of the editing site
     clippedSeq = False
     if insertIdx > 61:
         clippedSeq = True
@@ -15246,7 +15246,7 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
         spliceCoords = []  # position of splice sites : 5bp upstream / downstream of coding exons (except upstream of the first and downstream of the last exon)
         oofCoords = []
         codonPos = []
-        # splittedCodonPos = []  # for codons that overlap with the edition site
+        # splittedCodonPos = []  # for codons that overlap with the editing site
         for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon:
 
             isUTR5 = exonNumber == -1 and exonFrame == -1
@@ -17545,9 +17545,9 @@ def donorDesignPage(params):
     print("""<h2>guide Sequence : %s</h2>""" % guideSeqHtml)
     if insertDistance != "None":
         if insertDistance == "0":
-            print("<small>DSB at the edition site</small>")
+            print("<small>DSB at the editing site</small>")
         else:
-            print("<small>DSB %s bp  %s of the edition site</small>" % (insertDistance, cutUpstream.lstrip("onPos")))
+            print("<small>DSB %s bp  %s of the editing site</small>" % (insertDistance, cutUpstream.lstrip("onPos")))
 
     # showDonor(donorSeq, armLen, insertPos, geneId, inSeq, kiType)
 
@@ -17647,7 +17647,7 @@ def donorDesignPage(params):
                 <input type="radio" form="main" %(ssChecked)s name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single-stranded donor<br>
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
-                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the edition site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
+                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the editing site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
 <br>
                 <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand<br>
                 <input type="radio" form="main" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
