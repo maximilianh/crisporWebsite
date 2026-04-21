@@ -17578,7 +17578,7 @@ def donorDesignPage(params):
     if doRecoding == "True":
         print("""<div style="display:flex; flex-direction: row; align-items: center;">""")
         htmlWarn("Donor needs recoding")
-        print("""<p style="font-style: italic;">&nbsp Warning : Using this guide will likely result in the cleavage of the donor DNA if no mutations are introduced in its sequence</p>""")
+        print("""<p style="font-style: italic;">&nbsp Warning : This guide will likely cleave the edited sequence after knock-in. Additional mutations should be introduced in the donor DNA to prevent this (see recoding options below) </p>""")
         print("</div>")
         recodeChecked = "checked"
     else:
