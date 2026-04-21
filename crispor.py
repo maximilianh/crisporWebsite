@@ -10259,7 +10259,7 @@ def getHighlightedRow(seq, rowStart, rowEnd, highlights):
 
 
 def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev):
-    """ displays the synonymous mutations introduced by recoding """
+    """ displays the silent mutations introduced by recoding """
 
     codonTable = buildCodonTable()
 
@@ -17697,7 +17697,7 @@ def donorDesignPage(params):
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
         print("""<div id="transcriptSelection" style="display: %s;">""" % transcriptDisplay)
         if geneId is None:
-            print("""<p>Select a transcript ID to use as a model for recoding <img src=" %s image/info-small.png" title="This step will attempt to introduce synonymous mutations, so a gene model needs to be selected to get the position of codons.<br> To visualize the sequence of each transcript, you can go back to the previous step by clicking on 'Select guide sequences' above. Then, select a gene model and a transcript using the dropdown menu on top of the sequence." class="tooltipsterInteract"></p>""" % HTMLPREFIX)
+            print("""<p>Select a transcript ID to use as a model for recoding <img src=" %s image/info-small.png" title="This step will attempt to introduce silent mutations, so a gene model needs to be selected to get the position of codons.<br> To visualize the sequence of each transcript, you can go back to the previous step by clicking on 'Select guide sequences' above. Then, select a gene model and a transcript using the dropdown menu on top of the sequence." class="tooltipsterInteract"></p>""" % HTMLPREFIX)
             print("Gene model:")
             printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em", form="updateModel", onChange="updateModel.submit()")
             print("Transcript:")
