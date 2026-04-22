@@ -2283,37 +2283,6 @@ def showExonAndPams(
             )
         )
 
-    if varDb is not None and (exonId == 0 and koMethod not in ["excision", "promoter"]):
-        print("Variant database:")
-        varDbList = [(b, c) for a, b, c, d in varDbs]  # only keep fname+label
-        printDropDown("varDb", varDbList, varDb)
-
-        if minFreq == 0.0:
-            minFreq = "0.0"
-        else:
-            minFreq = str(minFreq)
-
-        # pull out the hasAF field for this varDb
-        varDbHasAF = False
-        for shortLabel, fname, desc, hasAF in varDbs:
-            if fname == varDb:
-                varDbHasAF = hasAF
-                break
-
-        if varDbHasAF:
-            print("""&nbsp; Min. frequency: """)
-            print(
-                ("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq)
-            )
-        print(
-            """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">"""
-        )
-        print(
-            (
-                "<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can add it.</a></small>"
-                % contactEmail
-            )
-        )
 
     print(
         """ <div name="exonDisplay" class="exonGroup%s" style="display:%s;"> """
@@ -7055,6 +7024,10 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
 def processMultiSeqSubmission(
     multiseq, genome, pam, batchBase, batchId, queue, koMethod
 ):
+    """ In Ko mode, writes the off-target and efficiency scores for multiple sequences :
+    - writes efficiency scores to batchId.effScores.tab in a loop
+    - writes off-targets from a fasta file containing the PAMs of all sequences
+    """
 
     pam = setupPamInfo(pam)
 
@@ -7164,7 +7137,8 @@ def processMultiSeqSubmission(
 
 
 def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId, queue):
-    """For each PAM in multiPamDesc, creates a fasta file containing guides for each sequence in multiseq.
+    """In KI mode : 
+    For each PAM in multiPamDesc, creates a fasta file containing guides for each sequence in multiseq.
     Then, search these files against genome, filter for pam matches and append to bedFName.
     optionally write status updates to work queue. Remove faFname.
     """
@@ -9761,7 +9735,7 @@ def printKiSteps(batchId: str, step=1, annotationParams=None):
       )
 
 
-def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats, params):
+def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats, params):
     """Dispays the donor DNA sequence"""
 
     donorType = params["donorType"]
@@ -9775,13 +9749,15 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     kiType = batchInfo.get("kiType")
     org = batchInfo["org"]
     seq = batchInfo["seq"]
+    # newInsertSeq = sequence to use in the donor DNA ("" for deletions)
+    # insertSeq = deleted sequence in deletion mode
+    # outside of deletions, insertSeq = newInsertSeq
     insertSeq = batchInfo["insertSeq"]
     posStr = batchInfo["posStr"]
     insertIdx = int(batchInfo["insertIdx"])
     tagNames = batchInfo.get("tagNames")
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
-
     # save manual annotation params to include it in the return link in printKiSteps()
     annotationParams = {}
     for param in ["manualExStart", "manualExEnd", "manualExFrame"]:
@@ -9792,15 +9768,15 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         annotationParams = None
 
     if ("tagseq" in params and "linkerseq") in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params):
-        tagNames, insertSeq = getInsertSeq(params.get("linkerseq"),  params.get("tagseq"), params.get("markerseq"),
-                                           params.get("expressionSeq"), params.get("qTag"), batchInfo["insertpos"])
+        tagNames, replaceInsertSeq = getInsertSeq(params.get("linkerseq"),  params.get("tagseq"), params.get("markerseq"),
+                                                  params.get("expressionSeq"), params.get("qTag"), batchInfo["insertpos"])
 
     # change the insert sequence on this page
-    if "newInsertSeq" in params:
-        newInsertSeq = params["newInsertSeq"]
-        newInsertSeq = re.sub(r'[^ATGCNatgcn]', '', newInsertSeq)
-        if not (len(newInsertSeq) != len(insertSeq) and kiType == "replacement"):
-            insertSeq = newInsertSeq
+    if "replaceInsertSeq" in params:
+        replaceInsertSeq = params["replaceInsertSeq"]
+        replaceInsertSeq = re.sub(r'[^ATGCNatgcn]', '', replaceInsertSeq)
+        if not (len(replaceInsertSeq) != len(insertSeq) and kiType == "replacement"):
+            newInsertSeq = replaceInsertSeq
 
     dbInfo = readDbInfo(org)
     chrom, start, end, strand = parsePos(posStr)
@@ -9820,13 +9796,13 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         templateStrand = strand
 
     if recodedArmSeq:
-        orgDonor = HA5 + insertSeq + HA3
+        orgDonor = HA5 + newInsertSeq + HA3
         if recodeArm == "HA3":
-            donorSeq = HA5 + insertSeq + recodedArmSeq
+            donorSeq = HA5 + newInsertSeq + recodedArmSeq
         else:
-            donorSeq = recodedArmSeq + insertSeq + HA3
+            donorSeq = recodedArmSeq + newInsertSeq + HA3
     else:
-        donorSeq = HA5 + insertSeq + HA3
+        donorSeq = HA5 + newInsertSeq + HA3
         orgDonor = donorSeq
 
     if strand != templateStrand:
@@ -9856,23 +9832,34 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     else:
         editStart = len(HA5)
 
-    if kiType not in ["substitution", "deletion"]:
-        # really 0-based ?
-        editEnd = editStart + len(insertSeq)
-    else:
+    # highlight the substitution
+    if kiType == "substitution":
         editEnd = editStart + 1
+    # highlight insert
+    else:
+        editEnd = editStart + len(insertSeq)
 
     # coordinates of the PAM + guide
     # + avoid out of bounds coordinates
-
+    pamInDel = False
     if pamStart < insertIdx:
         pamStartCoord = len(HA5) - (insertIdx - pamStart)
         # invert the coordinates for ssODN with reverse polarity
         if donorType == "ss" and templateStrand != strand:
             pamStartCoord = len(donorSeq) - pamStartCoord - len(pamSeq)
         pamEndCoord = pamStartCoord + len(pamSeq)
+
+    # PAM inside the deletion : don't highlight it
+    elif kiType == "deletion" and pamStart >= insertIdx and pamStart + len(pamSeq) <= insertIdx + len(insertSeq):
+        pamInDel = True
+        pamStartCoord, pamEndCoord = editStart, editStart
+        # distance between the PAM and deletion start
+        pamDistFromEdit = pamStart - insertIdx
     else:
-        if kiType in ["substitution", "deletion", "replacement"]:
+        if kiType in ["substitution", "deletion"]:
+            print(pamStart - insertIdx)
+            pamStartCoord = len(HA5) + (pamStart - insertIdx - len(insertSeq))
+        elif kiType == "replacement":
             pamStartCoord = len(HA5) + (pamStart - insertIdx)
         else:
             pamStartCoord = len(HA5) + len(insertSeq) + (pamStart - insertIdx)
@@ -9885,14 +9872,62 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
     else:
         pamCoordList = [(pamStartCoord, pamEndCoord)]
 
-    # need to simplify the logic
-    # 3 cases : --<<NGG-- + strand, - strand with Cas12a or - strand with inverse polarity ssODN
-    if (pamStrand == "+" and donorType != "ss" or donorType == "ss" and templateStrand == strand) or (pamStrand == "-" and pamIsFirst) or (donorType == "ss" and templateStrand != strand and pamStrand == "-"):
+    # the logic is getting out of hand
+    # 3 cases : --ggPAM-- + strand, - strand with Cas12a or - strand with inverse polarity ssODN
+    pamFirst = (pamStrand == "+" and templateStrand == strand or pamIsFirst) \
+                or (pamStrand == "-" and (pamIsFirst or templateStrand != strand))
+    # PAM in 3'
+    if pamFirst:
         guideStartCoord = pamStartCoord - len(guideSeq)
         guideEndCoord = pamStartCoord
-    elif (pamStrand == "-" and donorType != "ss" or donorType == "ss" and templateStrand == strand) or (donorType == "ss" and templateStrand != strand and pamStrand == "+"):
+        # OK
+        if kiType == "deletion":
+
+            # the guide start inside the deletion : clip its length to the deletion end
+            # --xxxxxxxx------
+            # ----gggggggPAM---
+            if guideStartCoord > editStart and guideEndCoord < editEnd:
+                guideStartCoord = editEnd
+
+            #        <--> pamDistFromEdit
+            # -------xxxxxxxx--
+            # ----gggggggPAM---
+            elif guideStartCoord < editStart and pamInDel:
+                guideStartCoord = editStart - (len(guideSeq) - pamDistFromEdit)
+                guideEndCoord = editStart
+
+            # the guide sequence overlaps the deletion : reduce its length
+            # -----xxxxx------
+            # ----gggggggPAM---
+            elif guideStartCoord < editStart and editEnd < pamStartCoord:
+                guideStartCoord += len(insertSeq)
+
+    # PAM in 5'
+    else:
         guideStartCoord = pamEndCoord
         guideEndCoord = guideStartCoord + len(guideSeq)
+        # OK
+        if kiType == "deletion":
+            # ------xxxxxxxxx--
+            # ---PAMgggggg-----
+            if guideEndCoord > editStart and guideEndCoord < editEnd:
+                guideEndCoord = editStart
+
+            # -xxxxxxxxx-------
+            # -----PAMggggg----
+            elif guideEndCoord > editEnd and pamInDel:
+                guideStartCoord = editStart
+
+                # with ssODN in reverse polarity, pamDistFromEdit is calculated as if the PAM is in 3'
+                if templateStrand != strand:
+                    guideEndCoord = editStart + (len(guideSeq) - pamDistFromEdit)
+                else:
+                    guideEndCoord = editStart + len(guideSeq) - (len(insertSeq) - (pamDistFromEdit + len(pamSeq)))
+
+            # ------xxxx--------
+            # ---PAMgggggg-----
+            elif guideEndCoord > editEnd and pamEndCoord < editStart:
+                guideEndCoord -= len(insertSeq)
 
     if guideStartCoord < len(HA5) + len(insertSeq) and guideEndCoord > len(HA5) + len(insertSeq) and kiType not in ["substitution", "deletion", "replacement"]:
         guideCoordList = [(guideStartCoord - len(insertSeq), len(HA5)), (len(HA5) + len(insertSeq), guideEndCoord)]
@@ -9930,6 +9965,9 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
             highlights.append((start, end, {"background-color": "rgba(0, 0, 255, 0.5)"}, "guideCoord"))
 
     # priority to insert sequence
+    if kiType == "deletion":
+        # highlight deletion start / end in this case
+        editStart, editEnd = (editStart - 1, editStart + 1)
     highlights.append((editStart, editEnd, {"background-color": "rgba(255, 255, 0, 0.5)"}, "insertCoord"))
 
     if not donorName:
@@ -10196,45 +10234,45 @@ def showDonor(HA5, HA3, insertSeq, recodedArmSeq, mutEvents, noModel, recodeArm,
         printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev)
 
     # form to change the insert sequence
+    if kiType != "deletion":
+        print("<form>")
+        print("""<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto; margin-right: 30%; min-width: 800px;"> """)
+        if kiType == "tagging":
+            print("""<p>If you want to select other markers, use the dropdown menu below and click on update button. Updating with nothing selected will restore the original sequence.</p>""")
+            printTagsAndLinkers(qTAG=False)
 
-    print("<form>")
-    print("""<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto; margin-right: 30%; min-width: 800px;"> """)
-    if kiType == "tagging":
-        print("""<p>If you want to select other markers, use the dropdown menu below and click on update button. Updating with nothing selected will restore the original sequence.</p>""")
-        printTagsAndLinkers(qTAG=False)
+        elif kiType == "qTag":
+            print("""<p>If you want to select other elements, use the dropdown menu below and click on the update button. Updating with nothing selected will restore the original sequence.</p>""")
+            printTagsAndLinkers(tag=False)
 
-    elif kiType == "qTag":
-        print("""<p>If you want to select other elements, use the dropdown menu below and click on the update button. Updating with nothing selected will restore the original sequence.</p>""")
-        printTagsAndLinkers(tag=False)
+        elif kiType == "substitution":
+            print("""<p>If you want to change the substitution, select another base from the dropdown menu below and click on the update button.</p>""")
+            print("""<select name="relpaceInsertSeq" style="width: 48px;">""")
+            for base in [base for base in ["A", "T", "G", "C"] if base != insertSeq.upper()]:
+                print("""<option value="%s">%s</option>""" % (base, base))
+            print("</select>")
+        elif kiType == "replacement":
+            replaceLen = len(insertSeq)
+            print("""
+                <p>If you want to change the replaced sequence, paste a new one here and click on the update button. The sequence should be of the same length as the current one (%(replaceLen)d bp). Updating with an empty box will restore the original sequence.</p>
+                <input name="replaceInsertSeq" style="width: 45%%;" maxlength=%(replaceLen)d minlength=%(replaceLen)d placeholder="paste a new sequence replacement here (%(replaceLen)d bp)"/>
+            """ % locals())
+        else:
+            print("""
+                <p>If you want to change the insert sequence, paste a new one here and click on the update button. Updating with an empty box will restore the original sequence.</p>
+                <textarea name="newInsertSeq" maxlength=5000 cols=100 rows=6 placeholder="paste a new insert sequence here (max 5kb)"></textarea>
+            """)
 
-    elif kiType == "substitution":
-        print("""<p>If you want to change the substitution, select another base from the dropdown menu below and click on the update button.</p>""")
-        print("""<select name="newInsertSeq" style="width: 48px;">""")
-        for base in [base for base in ["A", "T", "G", "C"] if base != insertSeq.upper()]:
-            print("""<option value="%s">%s</option>""" % (base, base))
-        print("</select>")
-    elif kiType == "replacement":
-        replaceLen = len(insertSeq)
-        print("""
-            <p>If you want to change the replaced sequence, paste a new one here and click on the update button. The sequence should be of the same length as the current one (%(replaceLen)d bp). Updating with an empty box will restore the original sequence.</p>
-            <input name="newInsertSeq" style="width: 45%%;" maxlength=%(replaceLen)d minlength=%(replaceLen)d placeholder="paste a new sequence replacement here (%(replaceLen)d bp)"/>
-        """ % locals())
-    else:
-        print("""
-            <p>If you want to change the insert sequence, paste a new one here and click on the update button. Updating with an empty box will restore the original sequence.</p>
-            <textarea name="newInsertSeq" maxlength=5000 cols=100 rows=6 placeholder="paste a new insert sequence here (max 5kb)"></textarea>
-        """)
+        printHiddenFields(params, {"insertSeq": insertSeq,
+                                   "replaceInsertSeq": None,
+                                   "tagseq": None,
+                                   "linkerseq": None,
+                                   "markerseq": None,
+                                   "expressionSeq": None,
+                                   "qTag": None})
 
-    printHiddenFields(params, {"insertSeq": insertSeq,
-                               "newInsertSeq": None,
-                               "tagseq": None,
-                               "linkerseq": None,
-                               "markerseq": None,
-                               "expressionSeq": None,
-                               "qTag": None})
-
-    print("""<button style="text-align: center; width: 125px;" type="submit" value="update">update</button>""")
-    print("</form>")
+        print("""<button style="text-align: center; width: 125px;" type="submit" value="update">update</button>""")
+        print("</form>")
     print("</div>")
     print("</div>")
 
@@ -10414,7 +10452,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
-
     if not download:
 
         print("""<div class="title" style="text-align:center; margin-bottom: 50px;">""")
@@ -10439,7 +10476,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         else:
             transcriptUrl = "https://www.ncbi.nlm.nih.gov/nuccore/%s/" % koGeneId
 
-        if commonExons:
+        if commonExons and koMethod not in ["excision", "promoter"]:
             commonExonStr = " (common exons)"
         else:
             commonExonStr = ""
@@ -10455,7 +10492,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             """<p>Below are the target and PAM sequences. Lowercase bases corresponds to an extension of the target exon sequence (to identify guides that bind exon boundaries and induce a DSB in the exon).<p>""")
         if koMethod == "frameshift":
             print("""
-            In-frame methionine codons are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.
+            In-frame methionine codons are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.<br>
                   """)
 
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
@@ -10506,6 +10543,56 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         exonId, seq = exonSeqInfo
         uppSeq = seq.upper()
         startDict, endSet = findAllPams(uppSeq, pam, exonId)
+        chrom, start, end, strand = parsePos(posStr)
+
+        if not download:
+            start = str(int(start) + 1)
+            chrom = applyChromAlias(org, chrom)
+            oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
+
+            browserLink = makeBrowserLink(
+                dbInfo, posStr, oneBasedPosition, None, ["tooltipster"]
+            )
+
+            varHtmls, varDbs, varDb = getVariants(
+                seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
+            )
+
+            if varDb is not None and (exonId == 0 and koMethod not in ["excision", "promoter"]):
+                print("Variant database:")
+                varDbList = [(b, c) for a, b, c, d in varDbs]  # only keep fname+label
+                printDropDown("varDb", varDbList, varDb)
+
+                if minFreq == 0.0:
+                    minFreq = "0.0"
+                else:
+                    minFreq = str(minFreq)
+
+                # pull out the hasAF field for this varDb
+                varDbHasAF = False
+                for shortLabel, fname, desc, hasAF in varDbs:
+                    if fname == varDb:
+                        varDbHasAF = hasAF
+                        break
+
+                if varDbHasAF:
+                    print("""&nbsp; Min. frequency: """)
+                    print(
+                        ("""<input type="text" name="minFreq" size="8" value="%s">""" % minFreq)
+                    )
+                print(
+                    """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">"""
+                )
+                print(
+                    (
+                        "<small style='margin-left:30px'><a href='mailto:%s'>Missing a variant database? We can add it.</a></small>"
+                        % contactEmail
+                    )
+                )
+
+        if koMethod == "splicing" and exonId % 2 == 0 and not exonSelect.isnumeric() and not download:
+            originalExon = ((exonId + 1) // 2)
+            print("""<h3 class="exonGroup%s" name="exonDisplay">Guides for exon %d</h3>""" % (originalExon, (originalExon + 1)))
 
         if koMethod in ["excision", "promoter"] and not download:
             if exonId == 0:
@@ -10538,18 +10625,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             allPamIdToSeq.update(pamIdToSeq.copy())
 
         if not download:
-            chrom, start, end, strand = parsePos(posStr)
-            start = str(int(start) + 1)
-            chrom = applyChromAlias(org, chrom)
-            oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
 
-            browserLink = makeBrowserLink(
-                dbInfo, posStr, oneBasedPosition, None, ["tooltipster"]
-            )
-
-            varHtmls, varDbs, varDb = getVariants(
-                seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
-            )
 
             showExonAndPams(
                 org,
@@ -13180,7 +13256,7 @@ def showWarningPage(params):
     msg = params["warnMsg"]
     expType = params.get("expType")
     if expType:
-        expTypeParam = "kiType=%s" % expType
+        expTypeParam = "expType=%s" % expType
     else:
         expTypeParam = ""
 
@@ -17693,6 +17769,13 @@ def donorDesignPage(params):
     else:
         recodeChecked = ""
 
+    if strand == "+":
+        positiveStrandStr = "<small>(strand of the sequence)</small>"
+        negativeStrandStr = ""
+    else:
+        positiveStrandStr = ""
+        negativeStrandStr = "<small>(strand of the sequence)</small>"
+
     print("<hr>")
     print("""<form id="main" action="%s" method="GET"></form>""" % basename(__file__))
     print("""<form id="updateModel"></form>""")
@@ -17758,7 +17841,7 @@ def donorDesignPage(params):
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
                 Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the editing site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
 <br>
-                <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand<br>
+                <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand %(positiveStrandStr)s <br>
                 <input type="radio" form="main" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
             </div>
             <div id="ssODNmsg" style="display: none;">
@@ -17782,7 +17865,7 @@ def donorDesignPage(params):
           """ % locals())
 
     if doRecoding == "True":
-        recodingMsg = "If you use this guide, XX bp of the target sequence are present in the donor DNA with the default design . The donor will likely be cleaved or the locus re-cleaved after insertion by the nuclease, so recoding is strongly recommended."
+        recodingMsg = "If you use this guide, at least 15 bp of the target sequence is present in the donor DNA with the default design. The donor will likely be cleaved or the locus re-cleaved after insertion by the nuclease, so recoding is strongly recommended."
 
     else:
         recodingMsg = "If you use this guide, the target sequence between the genome and the donor DNA will differ. The donor will not be cleaved (or re-cleaved after insertion) by the nuclease, so recoding is not needed in this case."
@@ -18238,7 +18321,7 @@ def runQueueWorker(noFork):
             if not jobError:
                 q.jobDone(batchId)
 
-        elif jobType == "multipam" or jobType == "multiseq":
+        elif jobType in ["multipam", "multiseq"]:
             # search for multiple pams
             print("found job - multi sequence mode")
             logging.info("executed multisearch job")
@@ -18274,7 +18357,7 @@ def runQueueWorker(noFork):
                         print(traceback.format_exc())
                     jobError = True
 
-            elif jobType == "multiseq":
+            else:
                 try:
                     processMultiSeqSubmission(
                         multiseq, org, pam, batchBase, batchId, q, koMethod

@@ -1567,3 +1567,10 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - modif du texte "trimming"
 - ajout mouseover surlignage repeats
+- correction d'un bug dans writeDonorSeq(): en mode délétion, prise en compte de la bonne variable pour ne pas insérer la séquence délétée
+- correction du surlignage de la séquence du guide et du PAM en mode délétion (lorseque PAM dans délétion ou guide dépasse en 5' ou 3')
+
+## à faire
+
+- en mode KO, ne pas afficher "coding exons" pour gènes non codants
+- en mode KO splicing -> ajouter un séparateur pour l'affichage des différents exons (page peu lisible)
