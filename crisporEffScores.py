@@ -871,11 +871,11 @@ def calcFreeEnergyViennaRNA(seq, temperature=37):
     cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), binDir, temperature)
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
     vienna = proc.stdout.read()
-    proc.wait()  #useless in this case ? 
+    proc.wait()  # useless in this case ?
     viennaouts = [out for out in vienna.split(' ')]
     deltaG = viennaouts.pop()
-    #structure (unused for now, needs to be displayed with a monospaced font)
-    #seqStructure = ''.join(viennaouts)
+    # structure (unused for now, needs to be displayed with a monospaced font)
+    # seqStructure = ''.join(viennaouts)
 
     return float(deltaG.strip().replace(')', '').replace('(', ''))
 
@@ -902,6 +902,7 @@ def calcFreeEnergyRNAStructure(seq):
 def calcEvaLikeScore(seqs):
     """
     Returns the EVA score without the MIT weigth.
+    Also returns the free energy from viennaRNA
     from Riesenberg et al. 2025.
     Predicts the activity of synthetic guides
 
@@ -930,11 +931,14 @@ def calcEvaLikeScore(seqs):
 
     """
 
-    scores = []
+    evaScores = []
+    freeEnergies = []
     for seq in seqs:
         freeEnergy = calcFreeEnergyViennaRNA(seq)
         if freeEnergy >= -3:
-            freeEnergy = -3
+            clippedFreeEnergy = -3
+        else:
+            clippedFreeEnergy = freeEnergy
 
         nGA = seq.upper().count('GA')
         if len(seq) > 17 and seq[16] == 'G':
@@ -945,9 +949,10 @@ def calcEvaLikeScore(seqs):
             C20 = 1
         else:
             C20 = 0
-        score = 83.5821 + 6.5242*freeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
-        scores.append(score)
-    return scores
+        EVA = 83.5821 + 6.5242*clippedFreeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
+        evaScores.append(EVA)
+        freeEnergies.append(freeEnergy)
+    return evaScores, freeEnergies
 
 
 def inList(l, name):
@@ -958,9 +963,9 @@ def inList(l, name):
 # 2025: had to remove aziInVitro - not supported anymore, Jennifer Listgarden does not reply to emails about this anymore
 possibleScores = {
     "spcas9" : ["fusi", "rs3", "housden", "wang", "doench", "ssc",
-        "wuCrispr", "chariRank", "crisprScan", "ccTop", "oof", "EVA"],
-    "cpf1" : ["seqDeepCpf1", "oof"],
-    "sacas9" : ["najm", "oof"]
+        "wuCrispr", "chariRank", "crisprScan", "ccTop", "oof", "EVA", "freeEnergy"],
+    "cpf1" : ["seqDeepCpf1", "oof", "EVA", "freeEnergy"],
+    "sacas9" : ["najm", "oof", "EVA", "freeEnergy"]
 }
 
 # list of possible DSB repair score names, by enzyme
@@ -1005,16 +1010,6 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
 
     if inList(scoreNames, "finalGg"):
         scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
-
-    if inList(scoreNames, "freeEnergy"):
-        pass
-        #logging.debug("freeEnergy")
-        #score["freeEnergy"] = calcFreeEnergy(trimSeqs(seqs, -24, 6))
-
-    if inList(scoreNames, "EVA"):
-        pass
-        #logging.debug("EVA score")
-        #score["EVA"] = calcEvaScore(trimSeqs(seqs, -24, 6), MITscore, scores["freeEnergy"])
 
     unknownScores = set(scoreNames) - set(possibleScores[enzyme])
     if len(unknownScores)!=0:
@@ -1081,11 +1076,21 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
             chariScores = calcChariScores(trimSeqs(seqs, -20, 1))
             scores["chariRaw"] = chariScores[0]
             scores["chariRank"] = chariScores[1]
-        
+
         if inList(scoreNames, "EVA"):
-            logging.debug("EVA score (without MIT weight)")
-            evaScores = calcEvaLikeScore(trimSeqs(seqs, -20, 0))
+            logging.debug("EVA score (without MIT weight) and free energy")
+            evaScores, freeEnergies = calcEvaLikeScore(trimSeqs(seqs, -20, 0))
+            scores["freeEnergy"] = freeEnergies
             scores["EVA"] = evaScores
+        # if the EVA score is not calculated, get the free energy anyway
+        else:
+            logging.debug("free energy")
+            freeEnergies = []
+            trimmedSeqs = trimSeqs(seqs, -20, 0)
+            for seq in trimmedSeqs:
+                freeEnergy = calcFreeEnergyViennaRNA(seq)
+                freeEnergies.append(freeEnergy)
+            scores["freeEnergy"] = freeEnergies
 
         #if inList(scoreNames, "aziInVitro"):
             #logging.debug("Azimuth in-vitro")
@@ -1093,7 +1098,7 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
 
         if inList(scoreNames, "ccTop"):
             scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
-    
+
     elif enzyme=="cpf1":
         deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
         cpfScores = calcDeepCpf1Scores(deepSeqs)

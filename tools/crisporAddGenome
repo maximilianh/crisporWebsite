@@ -631,19 +631,15 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
         cmd = "cp -f %(gpTmp)s %(gpTmp)s.uncut && cut -f2- < %(gpTmp)s.uncut > %(gpTmp)s && rm %(gpTmp)s.uncut" % locals()
         runCmd(cmd)
 
-    # for human genomes, remove patches and fixes ("_" in chr column)
-    # also remove mitochondrial genome (MT in hg19 / M in hg38)
-    # instead, exclude chromosomes that are not in the sizes file for all genomes
+    # exclude chromosomes that are not in the sizes file (for all genomes)
 
     printMsg("Removing chromosomes in %s that are not present in %s" % (gpTmp, sizesTmp))
-    cmd = """cp -f %(gpTmp)s %(gpTmp)s.original""" % locals()
-    runCmd(cmd)
 
-    cmd = """awk 'NR==FNR{a[$1]; next} $2 in a' %(sizesTmp)s %(gpTmp)s.original > %(gpTmp)s""" % locals()
+    cmd = """awk 'NR==FNR{a[$1]; next} $2 in a' %(sizesTmp)s %(gpTmp)s > %(gpTmp)s.tmp && mv %(gpTmp)s.tmp %(gpTmp)s""" % locals()
     runCmd(cmd)
 
     # sucessful download : convert the file to bgp > bb
-    if outFname == "ensGene":
+    if outFname == "ensGene" or (outFname == "knownGene" and db == "hg19"):
         # knownGene symbols are not shared with refSeq,
         accToSymTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
 
@@ -655,11 +651,21 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
         # with ensToGeneName.txt ($1 : ENS ; $2 = symbol)
         # from https://backreference.org/2010/02/10/idiomatic-awk/
         # not all transcripts ID have a match in accToSymTmp
-        cmd = """awk 'NR==FNR{a[$1]=$2;next} {split($1,key,"\\."); if(key[1] in a) $11=a[key[1]]}1' OFS='\\t' %(accToSymTmp)s %(gpTmp)s > %(gpTmp)s.gp""" % locals()
-        runCmd(cmd)
+        # unmapped rows are removed
+        if isfile(accToSymTmp):
+            # make knownGene in exented genePred format
+            if outFname == "knownGene":
+                bedOpt = "$11=0;"
+            else:
+                bedOpt = ""
+            cmd = """awk 'NR==FNR{a[$1]=$2;next} {split($1,key,"\\."); \
+                    if(key[1] in a) {%(bedOpt)s $12=a[key[1]]; print}}' OFS='\\t' \
+                    %(accToSymTmp)s %(gpTmp)s > %(gpTmp)s.tmp && mv %(gpTmp)s.tmp %(gpTmp)s""" % locals()
+
+            runCmd(cmd)
 
     # for human genomes, map the symbols to knownGene
-    elif outFname == "knownGene" and db[0:2] == "hg":
+    elif outFname == "knownGene" and db == "hg38":
         printMsg("mapping gene symbols to knownGene")
         knownToRefSeq = join(dbTmpDir, "knownToRefSeq.txt")
         refSeqGp = join(dbTmpDir, "refSeq.gp")
@@ -667,9 +673,12 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
         cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/knownToRefSeq.txt.gz -O - | zcat | sort -k1,1 > %s" % (db, knownToRefSeq)
         runCmd(cmd)
 
-        cmd = """awk 'NR==FNR {toId[$1]=$2; next}  \
-                    FILENAME==ARGV[2] {toSym[$1]=$12; next}  \
-                    $1 in toId && toId[$1] in toSym {$12 = toSym[toId[$1]]}1' OFS='\\t' \
+        # map knownGene IDs to symbols using knownToRefSeq -> refSeqIDs -> symbol
+        cmd = """awk -v f1=%(knownToRefSeq)s -v f2=%(refSeqGp)s \
+                    'FILENAME==f1 {toId[$1]=$2; next}  \
+                    FILENAME==f2 && NF>=12 {toSym[$1]=$12; next}  \
+                    {split($1, transId, "_");
+                        if (transId[1] in toId && toId[transId[1]] in toSym) {$11=0; $12=toSym[toId[transId[1]]]; print}}' OFS='\\t' \
                     %(knownToRefSeq)s %(refSeqGp)s %(gpTmp)s > %(gpTmp)s.tmp \
                     && mv %(gpTmp)s.tmp %(gpTmp)s """ % locals()
         runCmd(cmd)
@@ -702,6 +711,8 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
             printMsg("converting %s to bigBed" % gpTmp)
             cmd = f"{binDir}/bedToBigBed -type=bed12+ -as={baseDir}/bigGenePred.as {bgpTmp} {sizesTmp} {bbTmp} -tab"
             runCmd(cmd)
+    else:
+        printMsg("Could not download or process %s" % gpTmp)
 
     return gpTmp, bbTmp, overwrite
 

@@ -1371,7 +1371,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire
 
-- afficher "common exons" sur le gene model
+- afficher "common exons" sur le gene model DONE
 - dans l'affichage des la séquence protéique, le n° d'exon n'est pas le bon en mode "common exons"
 
 # 08/04/26
@@ -1418,7 +1418,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## à faire
 
 - ajouter mouseover pour annotation repeats (si génome ucsc -> annotation TRF + repeatMasker, sinon peut être =/=)
-- sur le serveur : /lib64/libpng16.so.12 (= dépendance genePredToBigGenePred) n'existe pas (version 16) : symlink version12 -> version16
+- sur le serveur : /lib64/libpng16.so.12 (= dépendance genePredToBigGenePred) n'existe pas (version 16) : symlink version12 -> version16 DONE : nouveau binary
 
 # 14/04/26
 
@@ -1447,7 +1447,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## à faire :
 
 - adapter le code génétique à l'organisme / gene (+ tard)
-- en mode KO / KI -> ajouter javascript pour que "pre-calculated exonic guides" ne soit affiché que pour l'humain
+- en mode KO / KI -> ajouter javascript pour que "pre-calculated exonic guides" ne soit affiché que pour l'humain DONE
 - ajouter clearBox aux inputs dans printKoForm() / printKiForm() DONE
 - duplication des params en mode "manual annotation" + frame 1 = frame 2 ?? DONE
 
@@ -1480,18 +1480,18 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire
 
-- ajouter crispor batch à printAssistant()
+- ajouter crispor batch à printAssistant() DONE
 - faire le manuel + tuto (à l'avenir)
 - enlever lien sat mut depuis KI page DONE
 - dans le back link vers donorDesignPage, sauvegarder l'annotation manuelle DONE
-- si changement de la séquence d'insert dans showDonor(), le surlignage du PAM est parfois remplacé par la couleur du guide (si sq. plus courte) + décalage!
+- si ssODN possible -> cocher par défaut DONE
+- dans printBody(), rediriger vers une nouvelle page si type d'édition non implémenté DONE
 
 ## bugs
 
-- dans printBody(), rediriger vers une nouvelle page si type d'édition non implémenté
+- si changement de la séquence d'insert dans showDonor(), le surlignage du PAM est parfois remplacé par la couleur du guide (si sq. plus courte) + décalage!
 - dans cripsorAddGenome : retrait accidentel du ficher 2bit / sizes ?? + vérifier droits écriture des ficihers DONE
-- pour replacement, la séquence remplacée dans showDonor() doit être de la même taille (ou adapter bras d'homologie)
-- si ssODN possible -> cocher par défaut DONE
+- pour replacement, la séquence remplacée dans showDonor() doit être de la même taille (ou adapter bras d'homologie) DONE
 - pour ssODN a polarité inverse, la base recodée n'est pas la bonne dans le tableau (mais OK sur la séquence du donneur) DONE ? avec fix de getExonInfo
 
 # 20/04/26
@@ -1521,3 +1521,49 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## bugs
 
 - bug dépendances tensorFlow sur le serveur
+
+# 21/04/26
+
+## crisporAddGenome
+
+- correction du script awk pour mapping knownGene IDs -> gene symbol (via refSeq genePred)
+- crisporAddGenome (à peu près) fonctionnel
+
+## global
+
+- ajustement de printAssistant pour affichage à basses résolutions
+- correction d'un bug dans writeOnTargetAmpliconFile() : prise en compte des nouvelles données dans guideData
+- les boutons "New Query" redirigent vers le formulaire correspondant au mode sélectionné (classic / ko / ki)
+- intégration de criporBatch au nouveau workflow (redirection vers une nouvelle page si "submit")
+- fix du script de l'affichage "pre calculated exonic guides" en mode KO / KI -> exécution après print html
+- dans makeExonLines(), prise en compte du décalage de la phase pour les exons sur le brin inverse de celui affiché
+- remplacement de var -> const dans javascript
+
+## knock-in mode 
+
+- si type d'édition non supporté, redirection vers une page d'avertissement (showWarningPage())
+- dans KiResultsPage(), pré-sélection de gene model si la recherche a été faite à partir d'un geneId
+
+## à faire
+
+- ajouter l'option allGenomes à crisporAddGenome
+- ajouter customPam aux modes KI et KO ?
+- prise en compte modifs multiple (e.g insertion + délétion) -> warnMsg 
+
+# 22/04/26
+
+## global
+
+- transfert du calcul de l'énergie libre à crisporEffScores.py (peut être recalculé en cliquant sur "show secondary structure")
+- ajustement du formulaire dans showSecondaryStructure()
+
+## knowk-out mode
+
+- correction d'un bug : si pas de guides dans le premier exon, les headers des scores d'efficacité ne sont pas écrits
+    - modif dans createBatchEffScoresTable() / calcSaveEffScores() : si pas d'effScores, pas d'écriture du header. Si fileHandle vide -> écriture du header
+- dans printGeneModel(), retrait du boutton "show all exons" pour gènes à un seul exon + ajustement de la taille du sequence viewer par défaut
+
+## knock-in mode
+
+- modif du texte "trimming"
+- ajout mouseover surlignage repeats
