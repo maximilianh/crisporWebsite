@@ -1582,3 +1582,17 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 - ajout d'un header avant chaque exon en mode splicing
 - correction d'un bug dans recodeDonor : reset de keep = False à chaque codon synonyme (évite que les codons qui introduisent une mutation dans le "N" du PAM soient acceptés)
 - correction du calcul des coordonées du PAM (pour surlignage) en mode substitution
+
+## notes JP / Max
+
+- table kgxref (knownGene to symbol)
+- cibler out of frame exons (+ modif texte form)
+- dans dbsearchGene, afficher exons out of frame ou non (filtrer)
+- reset to default -> example sequence
+- input cDNA -> BLAT
+- afficher possibilité manual annotation ds titre
+- phase -> reading frame
+- ne pas proposer option "use manual annotation" -> msg
+- agrandir warning recodage (+ tout)
+- chatbot / formulaire -> url page pré-remplie
+- tuto interactif (cf. ucsc) / sheperd.js
