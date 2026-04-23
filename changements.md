@@ -1574,3 +1574,11 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - en mode KO, ne pas afficher "coding exons" pour gènes non codants
 - en mode KO splicing -> ajouter un séparateur pour l'affichage des différents exons (page peu lisible)
+
+# 23/04/26
+
+## knock-out mode 
+
+- ajout d'un header avant chaque exon en mode splicing
+- correction d'un bug dans recodeDonor : reset de keep = False à chaque codon synonyme (évite que les codons qui introduisent une mutation dans le "N" du PAM soient acceptés)
+- correction du calcul des coordonées du PAM (pour surlignage) en mode substitution

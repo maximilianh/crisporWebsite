@@ -9856,10 +9856,9 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
         # distance between the PAM and deletion start
         pamDistFromEdit = pamStart - insertIdx
     else:
-        if kiType in ["substitution", "deletion"]:
-            print(pamStart - insertIdx)
+        if kiType == "deletion":
             pamStartCoord = len(HA5) + (pamStart - insertIdx - len(insertSeq))
-        elif kiType == "replacement":
+        elif kiType in ["substitution", "replacement"]:
             pamStartCoord = len(HA5) + (pamStart - insertIdx)
         else:
             pamStartCoord = len(HA5) + len(insertSeq) + (pamStart - insertIdx)
@@ -9875,7 +9874,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
     # the logic is getting out of hand
     # 3 cases : --ggPAM-- + strand, - strand with Cas12a or - strand with inverse polarity ssODN
     pamFirst = (pamStrand == "+" and templateStrand == strand or pamIsFirst) \
-                or (pamStrand == "-" and (pamIsFirst or templateStrand != strand))
+        or (pamStrand == "-" and (pamIsFirst or templateStrand != strand))
     # PAM in 3'
     if pamFirst:
         guideStartCoord = pamStartCoord - len(guideSeq)
@@ -15621,6 +15620,9 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
                 splicePos.add(i)
 
     recodePos = set()
+    # dict to store where each position is (PAM / seed / gap)
+    # this is to add an input for the user to define the number of blocking mutations in each region
+    posToFeature = {}
     if recodePam:
         pamStart, pamEnd = pamCoords
         # make sure to mutate only the non N bases of the PAM
@@ -15629,11 +15631,16 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
             patPos = i - pamStart if guideStrand == "+" else pamEnd - i - 1
             if pamPat[patPos] != "N" and pamEnd < len(HA):
                 recodePos.add(i)
+                posToFeature[i] = "PAM"
 
     for start, end in recodeRegions:
         if end > len(HA):
             end = len(HA)
         for i in range(start, end):
+            if recodeSeed and i in range(seedCoords[0], seedCoords[1]):
+                posToFeature[i] = "seed"
+            elif recodeGap and i in range(gapCoords[0], gapCoords[1]):
+                posToFeature[i] = "gap"
             recodePos.add(i)
     if not recodePos:
         return HA, None
@@ -15691,30 +15698,30 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
             continue
         synCodons = revCodonTable.get(aa)
         # check codons that introduce a mutation at recodePos
-        keep = False
-        lastFreq = 0
 
         # show a special message for the START codon
         if {codonStart, codonStart + 1, codonStart + 2} == startPos and HA[codonStart:codonStart + 3].upper() == "ATG":
             mutEvents[(codon, "1", codonStart)] = ("No (START codon)", None)
             continue
 
+        lastFreq = 0
         for synCodon in synCodons:
-
             # in case we want to codon with the closest frequency as the original one
             # codonFreq = codonFrequency[codon][2]
+            keep = False
 
             if codonFrequency:
                 synCodonFreq = codonFrequency[synCodon][2]
                 # keep the codon with the highest frequency
-                if lastFreq != 0 and synCodonFreq < lastFreq:
+                # print(codon, synCodon, synCodonFreq, lastFreq)
+                if lastFreq != 0 and synCodonFreq <= lastFreq:
                     continue
             else:
                 synCodonFreq = None
 
             if synCodon == codon:
                 continue
-
+            # print(f"codon : {codon} ; synCodon : {synCodon} ; synFreq : {synCodonFreq} ; lastFreq : {lastFreq}<br>")
             # keep the codon that introduces a mutation at recodePos
             for i in range(3):
                 mutPos = codonStart + i
@@ -15727,14 +15734,15 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
                         mutEvents[(codon, round(codonFreq, 2), codonStart)] = (synCodon, round(synCodonFreq, 2))
                         lastFreq = synCodonFreq
             # mutate the homolgy arm with synCodon and flag the mutation in uppercase (repeated until no codon with a higher frequency is found)
-            if keep:
+            if keep is True:
                 for i in range(3):
-                    mutHA[codonStart + i] = synCodon[i].upper() if mutHA[codonStart + i].upper() != synCodon[i].upper() else synCodon[i].lower()
+                    mutHA[codonStart + i] = synCodon[i].upper() if codon[i].upper() != synCodon[i].upper() else synCodon[i].lower()
                 # if no codon frequency table is availble, keep the first synonymous codon
                 if codonFrequency is None:
                     break
     mutDonor = ''.join(mutHA)
 
+    # print(mutEvents)
     # store codons that were not muted
     mutList = [mutEvent[0] for mutEvent in mutEvents]
     for codonStart in list(sorted(mutCodons)):
@@ -17839,7 +17847,7 @@ def donorDesignPage(params):
                 <input type="radio" form="main" %(ssChecked)s name="donorType" value="ss" autocomplete="off" onchange="toggleTemplateStrand()"/>Single-stranded donor<br>
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
-                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the editing site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template.<br> Otherwise, selecting the strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
+                Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the editing site, and the negative strand is used if the DSB occurs upstream of this position.<br> If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template. In this case, the strand of the input sequence is selected by default.<br> Otherwise, selecting a template strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>" class="tooltipsterInteract">
 <br>
                 <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand %(positiveStrandStr)s <br>
                 <input type="radio" form="main" %(antisenseChecked)s name="polarity" value="negative" autocomplete="off"/>negative strand
