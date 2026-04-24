@@ -1577,22 +1577,47 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 23/04/26
 
+## global
+
+- fix de la fonction JS pour reset le génome sur hg19
+- dans dbSearchGene, ajout des exonFrames puis calcul des exon out of frame dans printBody -> affichage dans le menu de sélection des exons
+    - à vérifier
+
 ## knock-out mode 
 
 - ajout d'un header avant chaque exon en mode splicing
 - correction d'un bug dans recodeDonor : reset de keep = False à chaque codon synonyme (évite que les codons qui introduisent une mutation dans le "N" du PAM soient acceptés)
 - correction du calcul des coordonées du PAM (pour surlignage) en mode substitution
 
+## knock-in mode
+
+- dans donorDesignPage : utilisation du geneModel ou de l'annotation précédemment sélectionnée comme modèle pour le recodage
+- sinon -> affichage du menu de sélection des transcrits
+
 ## notes JP / Max
 
-- table kgxref (knownGene to symbol)
+- table kgxref (knownGene to symbol) en cours
 - cibler out of frame exons (+ modif texte form)
 - dans dbsearchGene, afficher exons out of frame ou non (filtrer)
-- reset to default -> example sequence
+- reset to default -> example sequence DONE
 - input cDNA -> BLAT
-- afficher possibilité manual annotation ds titre
-- phase -> reading frame
-- ne pas proposer option "use manual annotation" -> msg
+- afficher possibilité manual annotation ds titre DONE
+- phase -> reading frame DONE
+- ne pas proposer option "use manual annotation" -> msg DONE
 - agrandir warning recodage (+ tout)
 - chatbot / formulaire -> url page pré-remplie
 - tuto interactif (cf. ucsc) / sheperd.js
+
+# 24/04/26
+
+- corrections de duplication des paramètres dans showSeqAndPams()
+- dans donorDesignPage(), fusion des options "recode PAM" et "recode Seed" + ajout mouseover
+    - à ajouter : dans writeDonorSeq -> call de recodeDonor avec recodePam puis, si pas de recodage, call de recodeDonor avec recodeSeed = True
+
+## knock-in mode
+
+-  dans printMutEventsTable(), ajouter l'option de sélectionner un autre codon + ajouter une autre rangée (recodage dans régions non-codantes)
+
+## à faire
+
+- ajouter input pour nombre de blocking mutations dans pam / seed

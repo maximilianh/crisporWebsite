@@ -1947,7 +1947,7 @@ def getGeneModels(org):
     return ret
 
 
-def getSelGeneModel(org, noGenes=True, manual=False):
+def getSelGeneModel(org, noGenes=True, manual=False, noAllTrans=False):
     "return (list of (name, desc) of models, selected gene model name)"
     geneModels = getGeneModels(org)
     selGeneModel = None
@@ -1965,13 +1965,20 @@ def getSelGeneModel(org, noGenes=True, manual=False):
             geneModels.insert(0, ("noGenes", "Do not show"))
         else:
             selGeneModel = cgiParams.get("geneModelSelection", geneModels[0][0])
+            if selGeneModel == "None":
+                selGeneModel = geneModels[0][0]
+
         possNames = [x for x, y in geneModels]
         if selGeneModel not in possNames:
             errAbort(
                 "The gene model name specified with the argument geneModel is invalid"
             )
 
-        selTransId = cgiParams.get("transId", "allTrans")
+        selTransId = cgiParams.get("selTransId", None)
+
+        # in the donor design page, allTrans needs to be returned as None
+        if noAllTrans and selTransId in ["allTrans", "None"]:
+            selTransId = None
 
     return geneModels, selGeneModel, selTransId
 
@@ -2571,8 +2578,11 @@ def showSeqAndPams(
         )
 
     if geneModels:
-        print("""<div style="margin-top: 12px;">Select a gene model and a transcript below to display the translated coding sequences : <br>""")
-
+        print("<h4>Annotation of the coding sequence</h4>")
+        print("""<div>Select a gene model and a transcript below to display the translated coding sequences.<br>
+              If there is no available annotation or if it is incomplete, you can manually annotate the coding sequence by selecting "manual annotation".<br>""")
+        if multiPamInfo:
+            print("Once you selected a transcript, it will be used as a model to recode the donor DNA, if needed.<br>")
         print("Gene Models:")
         printDropDown("geneModelSelection", geneModels, selGeneModel, style="width:20em")
 
@@ -2599,15 +2609,15 @@ def showSeqAndPams(
             print("""
                 coding start:&nbsp<input name="manualExStart" value=%s style="width: 30px;"/>&nbsp
                 coding end:&nbsp<input name="manualExEnd" value=%s style="width: 30px;"/>&nbsp
-                <span class="tooltipsterInteract" title="phase is relative to the coding start position">phase</span>:&nbsp<select name="manualExFrame">&nbsp
+                <span class="tooltipsterInteract" title="the reading frame is relative to the coding start position">reading frame</span>:&nbsp<select name="manualExFrame">&nbsp
             """ % (manualExStart, manualExEnd))
 
             # exFrame is the number of bases already present in the codon (not the shift of the phase)
             for exFrame in [0, 2, 1]:
                 if exFrame == 2:
-                    frameStr = "+1"
+                    frameStr = "1"
                 elif exFrame == 1:
-                    frameStr = "+2"
+                    frameStr = "2"
                 else:
                     frameStr = str(exFrame)
 
@@ -2631,9 +2641,11 @@ def showSeqAndPams(
             labelLen = max(labelLen, len(selTransId))
         # remove manual annotation parameters if not selected
         else:
+            """
             cgiParams.pop("manualExStart", None)
             cgiParams.pop("manualExEnd", None)
             cgiParams.pop("manualExFrame", None)
+            """
 
         if selGeneModel not in ["noGenes", "manual"]:
             print("Transcript:")
@@ -2641,7 +2653,13 @@ def showSeqAndPams(
             for transId, sym in list(exonInfo.keys()):
                 transIdInfo.append((transId, sym + " / " + transId))
 
-            printDropDown("transId", transIdInfo, selTransId, style="width:20em")
+            cgiParams["geneModelSelection"] = selGeneModel
+            cgiParams["selTransId"] = selTransId
+
+            printDropDown("selTransId", transIdInfo, selTransId, style="width:20em")
+        else:
+            cgiParams.pop("geneModelSelection", None)
+            cgiParams.pop("selTransId", None)
 
         if selGeneModel != "noGenes":
             # XX XXXXXX
@@ -2653,10 +2671,12 @@ def showSeqAndPams(
         )
         print("""</div><br>""")
 
-    elif pamFullName:
+    elif multiPamInfo:
         cgiParams.pop("manualExStart", None)
         cgiParams.pop("manualExEnd", None)
         cgiParams.pop("manualExFrame", None)
+        cgiParams.pop("geneModelSelection", None)
+        cgiParams.pop("selTransId", None)
 
     if baseEditor:
         print("Base Editor modification window:")
@@ -4300,6 +4320,7 @@ def printTableHead(
         print(
             """<div class='substep'>Ranked by default from highest to lowest Global Score. Click on a column title to rank by a specific score.<br>"""
         )
+        print("</div>")
     if pamFullName:
         print(
             """Hover over the PAM in the first column of the table to show information about its corresponding enzyme<br> """
@@ -4319,7 +4340,6 @@ def printTableHead(
             """<img src="%simage/info-small.png" title="A guide is defined as overlapping with another one if their region 10bp upstream of PAM to 3bp downstream of the guide insersects. This region represents the occupancy of the RNP on the DNA strand (see LINK), so you can use these guides simultaneously." class="tooltipster">"""
             % HTMLPREFIX
         )
-    print("</div>")
 
     printDownloadTableLinks(batchId, nonClassicMode=nonClassicMode)
 
@@ -4534,15 +4554,14 @@ def printTableHead(
 
     print("""<div class="otTableWrap" style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
     print(
-            '<table id="otTableHeader" style="background:white; table-layout:fixed; width: %dpx;">'
+            '<table id="otTableHeader" style="background:white; table-layout:fixed; width: %dpx; border-collapse: collapse;">'
             % tableWidth
     )
     printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths)
 
     print("""<thead style="position:sticky;">""")
     print(
-            '<tr style="top: 1px; z-index:2; box-shadow: inset 0 1px black; width:%dpx; border-left:5px solid black; border-bottom: none; background-color:#F0F0F0; background-clip: padding-box;">'
-            % colWidths["pos"]
+            '<tr style="top: 1px; z-index:2; box-shadow: inset 0 1px black; border-left:5px solid black; border-bottom: none; background-color:#F0F0F0; background-clip: padding-box;">'
     )
 
     print(
@@ -4643,7 +4662,7 @@ You can adapt the global score to your delivery method (select below), which cha
             % (scoreVal, checked, scoreLabel)
         )
     print("</small>")
-
+    print("</th>")
     if not pamIsCpf1(pam):
         print(
             '<th data-col-id="mit" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none"><a href="crispor.py?batchId=%s&sortBy=spec" class="tooltipster" title="Click to sort the table by specificity score. Hover over the (i) bubble on the right to get more information about the specificity score.">MIT Specificity Score</a>'
@@ -4772,7 +4791,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
     # subheaders
     print(
-            '<tr style="position: sticky; top: 125px; z-index:25; width:80px; border-top:none; border-bottom: none; border-left: solid black 5px; background-color:#F0F0F0">'
+            '<tr style="position: sticky; top: 125px; z-index:25; border-top:none; border-bottom: none; border-left: solid black 5px; background-color:#F0F0F0">'
     )
 
     # offset subheaders
@@ -4822,6 +4841,7 @@ You can adapt the global score to your delivery method (select below), which cha
     print("</tr>")
     print("</thead>")
     print("</table>")
+    print("</div>")
 
 
 def scoreToColor(guideScore):
@@ -4932,6 +4952,8 @@ def showGuideTable(
     "shows table of all PAM motif matches"
     if pamFullName:
         batchInfo = readBatchAsDict(batchId)
+        selGeneModel = cgiParams.get("geneModelSelection")
+        selTransId = cgiParams.get("selTransId")
         manualExStart = cgiParams.get("manualExStart")
         manualExEnd = cgiParams.get("manualExEnd")
         manualExFrame = cgiParams.get("manualExFrame")
@@ -5010,7 +5032,7 @@ def showGuideTable(
 
     print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: auto; max-height: 75vh;">')
     print("""<div class="otTableWrap" style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
-    print('<table id="otTable" style="table-layout: fixed; width: %dpx;">' % tableWidth)
+    print('<table id="otTable" style="table-layout: fixed; width: %dpx; border-collapse: collapse;">' % tableWidth)
     printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths)
     print('<tbody>')
     for guideIdx, guideRow in enumerate(guideData):
@@ -5093,7 +5115,7 @@ def showGuideTable(
             else:
                 classStr += " exonRow exon-" + str(exonId)
         print(
-            '<tr id="%s" class="%s" style="border-left: 5px solid %s">'
+            '<tr id="%s" class="%s" style="border-left: 5px solid %s; background-clip: padding-box;">'
             % (pamId, classStr, color)
         )
 
@@ -5239,8 +5261,8 @@ def showGuideTable(
         if pamFullName and batchInfo.get("posStr") != "?":
             print(
                 (
-                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s&insertDistance=%s&manualExStart=%s&manualExEnd=%s&manualExFrame=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
-                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream, effScores.get("insertDistance"), manualExStart, manualExEnd, manualExFrame)
+                    '&nbsp;<a href="%s?batchId=%s&pamId=%s&pam=%s&doRecoding=%s&cutUpstream=%s&insertDistance=%s&manualExStart=%s&manualExEnd=%s&manualExFrame=%s&geneModelSelection=%s&selTransId=%s" target="_blank"><strong>Design Donor DNA</strong></a>'
+                    % (scriptName, batchId, urllib.parse.quote(str(pamId)), pam, doRecoding, cutUpstream, effScores.get("insertDistance"), manualExStart, manualExEnd, manualExFrame, selGeneModel, selTransId)
                 )
             )
             print("<br>")
@@ -5473,12 +5495,10 @@ def showGuideTable(
 
         print("</tr>")
         count = count + 1
-    
     print('</tbody>')
     print("</table>")
     print("</div>")  # body otTableWrap
     print("</div>")  # guideRowsScroll
-    print("</div>")  # header otTableWrap
     print("</div>")  # guideTableScroll
 
     # Column widths drift when the two tables reflow independently (colspans in
@@ -7428,11 +7448,14 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     altId = cols[11]
                 else:
                     altId = ""
-
+                if len(cols) >= 14 and coding:
+                    exFrames = cols[14]
+                else:
+                    exFrames = ""
                 if isAltName and term in altId.lower() and onlySymbol is True:
                     foundGenes += 1
                     exonCount = cols[7]
-                    matches.append((altId, mainId, exonCount, coding, isMane))
+                    matches.append((altId, mainId, exonCount, exFrames, coding, isMane))
 
     # select2 data formats : https://select2.org/data-sources/formats
 
@@ -7441,12 +7464,12 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
     # merge transcripts belonging to the same gene
 
     for match in matches:
-        sym, transcript, exonCount, coding, isMane = match
+        sym, transcript, exonCount, exFrames, coding, isMane = match
         if coding:
             codingStr = ""
         else:
             codingStr = ", non coding"
-
+            exFrames = ""
         if isMane:
             matchText = "Mane select transcript for %s (%s - %s exons%s)" % (sym, transcript, exonCount, codingStr)
         else:
@@ -7461,13 +7484,15 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     transDict = {
                         "id": transcript,
                         "text": matchText,
-                        "exonCount": exonCount
+                        "exonCount": exonCount,
+                        "exFrames": exFrames
                         }
                     if commonExons and (len(transList) - maneCount) == 2:
                         transList.insert(0, {
                             "id": "%s~SYM" % sym,
                             "text": "Search exons common to all transcripts in %s" % sym,
-                            "exonCount": 0
+                            "exonCount": 0,
+                            "exFrames": ""
                             })
                     # show the MANE select transcript at the top of the options
                     if isMane:
@@ -7480,7 +7505,8 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
             symTransList = [{
                 "id": transcript,
                 "text": matchText,
-                "exonCount": exonCount
+                "exonCount": exonCount,
+                "exFrames": exFrames
                                 }]
 
             symDicts.append({"text": sym,
@@ -7545,7 +7571,10 @@ def printGeneSelection(paramName, onlySymbol=False, commonExons=False):
             var data = e.params.data;
             if (data.exonCount) {
                 $('#exonCountVal').val(data.exonCount);
-            }
+            };
+            if (data.exFrames) {
+                $('#exFrames').val(data.exFrames);
+            };
         });
 
     });
@@ -7768,7 +7797,7 @@ def printForm(params):
 /* set the dropbox to hg19 and paste the example sequence into the input box. */
 function resetToExample() {
     $("textarea[name='seq']").val("%s");
-    $("#genomeDropDown").val("%s");
+    $("#genomeDropDown").val("%s").trigger("chosen:updated");
     $("select[name='pam']").val("NGG");
     }
 
@@ -7817,10 +7846,25 @@ $(document).ready(function() {
         var data = e.params.data;
         var exonSelect = $('#exonSelect');
         exonSelect.empty();
+
+        // get exon frames
+        var exFrames = data.exFrames.split(',').map(s => s.trim());
+
         if (data.exonCount) {
             for (var i = 0; i < data.exonCount; i++) {
-                j = i+1
-                var option = new Option('find guides for exon ' + j, i, false, false);
+                j = i+1;
+
+                // if the current frame and the next frame are the same, removing the exon won't destroy the reading frame
+                // test version, will be moved to printKoForm in "splcing" mode
+
+                var frame = exFrames[i];
+                var nextFrame = exFrames[j];
+                if (frame === nextFrame) {
+                    oofText = ""
+                } else {oofText = " (out of frame exon)"};
+
+                var exonText = 'find guides for exon ' + j;
+                var option = new Option(exonText, i, false, false);
                 exonSelect.append(option);
             }
             exonSelect.trigger('change');
@@ -9547,18 +9591,7 @@ def KiResultsPage(params, batchId, download=False):
             )
         )
 
-        printHiddenFields(params, {"batchId": batchId,
-                                   "transId": None,
-                                   "geneModelSelection": None,
-                                   "globEffScore": None,
-                                   "pamWindow": None,
-                                   "otherPam": None,
-                                   "submit": None,
-                                   "geneModelSelection": None,
-                                   "manualExStart": None,
-                                   "manualExEnd": None,
-                                   "manualExFrame": None})
-        # add variant selection params too
+        print("""<input type="hidden" name="batchId" value="%s"/>""" % batchId)
 
         print("""
         <div style="align-items: center; border: 1px dashed black;
@@ -10262,15 +10295,18 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
                 <textarea name="newInsertSeq" maxlength=5000 cols=100 rows=6 placeholder="paste a new insert sequence here (max 5kb)"></textarea>
             """)
 
-        printHiddenFields(params, {"insertSeq": insertSeq,
-                                   "replaceInsertSeq": None,
-                                   "tagseq": None,
-                                   "linkerseq": None,
-                                   "markerseq": None,
-                                   "expressionSeq": None,
-                                   "qTag": None})
+        print("""<input type="hidden" name=%s value=%s />""" % ("insertSeq", insertSeq))
 
         print("""<button style="text-align: center; width: 125px;" type="submit" value="update">update</button>""")
+        print("""
+            <div id="trimOptions">
+                <strong>Trim the donor to facilitate its synthesis</strong> <i>(not implemented yet)</i><br>
+                <input type="checkbox" name="trimHomopolymers" form="main" value="True" autocomplete="off"/>Trim homopolymers<br>
+                <input type="checkbox" name="trimGC" form="main" value="True" autocomplete="off"/>Trim regions with high GC content<br>
+                <input type="checkbox" name="trimRepeat" form="main" value="True" autocomplete="off"/>Trim repeated sequences<br>
+            </div>
+            """)
+
         print("</form>")
     print("</div>")
     print("</div>")
@@ -14249,7 +14285,7 @@ function changeSeqCase(value) {
 /* set the dropbox to hg19 and paste the example sequence into the input box. */
 function resetToExample() {
     $("textarea[name='startSeq']").val("%s");
-    $("#genomeDropDown").val("%s");
+    $("#genomeDropDown").val("%s").trigger("chosen:updated");
     }
 
 function insertExample() {
@@ -14367,7 +14403,7 @@ function clearEndSeq() {
                 Enter the target sequence manually here<br>
                 <div style="display:flex; flex-direction: row; margin-top: 6px; gap: 4px;">
                     <small><a href="javascript:clearStartSeq()">Clear Box</a> - </small>
-                    <small><a href="javascript:resetToExample()">Reset to default</a></small>
+                    <small><a href="javascript:resetToExample()">Set a default example</a></small>
                 </div>
                 <textarea name="startSeq" style="display: block;" rows="7" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
@@ -15185,8 +15221,8 @@ def writeDonorSeq(params):
     donorType = params["donorType"]
     recodePam = params.get("recodePam")
     pamId = params["pamId"]
-    recodeSeed = params.get("recodeSeed")
     recodeGap = params.get("recodeGap")
+    recodeSeed = params.get("recodeSeed")
     selGeneModel = params.get("geneModelSelection")
     manualExStart = params.get("manualExStart")
     manualExEnd = params.get("manualExEnd")
@@ -15210,7 +15246,7 @@ def writeDonorSeq(params):
     pamPat = setupPamInfo(pamPat)
 
     if geneId is None:
-        transId = params.get("transId")
+        transId = params.get("selTransId")
     else:
         transId = geneId
 
@@ -15229,6 +15265,8 @@ def writeDonorSeq(params):
             # if selGeneModel isn't transmitted, select a transcript anyway
             else:
                 selExon = exonInfo[transcriptInfo]
+    else:
+        selExon = None
     if strand == "+":
         insertCoord = int(start + insertIdx)
     else:
@@ -15273,7 +15311,7 @@ def writeDonorSeq(params):
 
     # get the position of the PAM + guide
     # recoding
-    if (recodePam or recodeSeed or recodeGap) and (selGeneModel is not None) or \
+    if (recodePam or recodeGap) and (selGeneModel is not None) or \
             (manualExStart is not None and manualExEnd is not None and manualExFrame is not None):
 
         noModel = False
@@ -15297,6 +15335,9 @@ def writeDonorSeq(params):
                                                                      kiType, donorType, insertSeq,
                                                                      selExon=selExon, manual=useManualAnnotation)
         if recodeArm == "HA5":
+            # need to attempt recoding the PAM, then recode the seed region if no recoding could happen
+            # call recodeDonor two times 
+            # will need to move the logic to a new function
             recodedArmSeq, mutEvents = recodeDonor(HA5, annotationCoords, recodeCoords, recodePam, recodeSeed,
                                                    recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
         else:
@@ -15621,7 +15662,9 @@ def recodeDonor(HA, annotationCoords, recodeCoords, recodePam,
 
     recodePos = set()
     # dict to store where each position is (PAM / seed / gap)
-    # this is to add an input for the user to define the number of blocking mutations in each region
+    # this is to limit the number of mutations in each region
+    print(pamCoords)
+    print(seedCoords)
     posToFeature = {}
     if recodePam:
         pamStart, pamEnd = pamCoords
@@ -16584,12 +16627,16 @@ def mergeParamDicts(params, changeParams):
     return newParams
 
 
-def printHiddenFields(params, changeParams, form=None):
+def printHiddenFields(params, changeParams, form=None, excludeParams=None):
     " "
 
     formStr = ""
     if form:
         formStr = """ form="%s" """ % form
+
+    if excludeParams and isinstance(excludeParams, list):
+        for param in excludeParams:
+            params.pop(param, None)
 
     newParams = mergeParamDicts(params, changeParams)
     for key, val in newParams.items():
@@ -17517,10 +17564,23 @@ def donorDesignPage(params):
     cutUpstream = params["cutUpstream"]
     insertDistance = params["insertDistance"]
     manualExStart = params.get("manualExStart")
+    if manualExStart == "None":
+        manualExStart = None
     manualExEnd = params.get("manualExEnd")
+    if manualExEnd == "None":
+        manualExEnd = None
     manualExFrame = params.get("manualExFrame")
-    useManualAnnotation = params.get("useManualAnnotation")
-    # selGeneModel = params.get("geneModelSelection")
+    if manualExFrame == "None":
+        manualExFrame = None
+    selGeneModel = params.get("geneModelSelection")
+    useManualAnnotation = None
+    if selGeneModel == "None":
+        selGeneModel = None
+    elif selGeneModel == "manual":
+        useManualAnnotation = True
+    selTransId = params.get("selTransId")
+    if selTransId in ["allTrans", "None"]:
+        selTransId = None
     pamFullName = pamId.split(".")[0]
     pam = setupPamInfo(pamFullName)
 
@@ -17536,7 +17596,6 @@ def donorDesignPage(params):
     donorSeq = batchInfo.get("donorSeq")
     posStr = batchInfo["posStr"]
     chrom, start, end, strand = parsePos(posStr)
-
     htmlprefix = HTMLPREFIX
 
     # check if an ssODN can be used
@@ -17674,7 +17733,6 @@ def donorDesignPage(params):
         if (selectedValue === 'ss') {
             strandDisplay.style.display = 'block';
             ssODNmsg.style.display = 'block';
-            trimOptions.style.display = 'none';
 
             const minVal = 20;
             const maxVal = %(maxssLen)s - minVal;
@@ -17697,7 +17755,6 @@ def donorDesignPage(params):
         } else {
             strandDisplay.style.display = 'none';
             ssODNmsg.style.display = 'none';
-            trimOptions.style.display = 'block';
 
             const minVal = 50;
             const maxVal = 2000;
@@ -17717,17 +17774,6 @@ def donorDesignPage(params):
             toggleTemplateStrand();
         }
     });
-
-    function toggleTranscriptSelection() {
-        let manualAnnotation = document.getElementById('useManualAnnotation')
-        let transcriptSelection = document.getElementById('transcriptSelection')
-
-        if (manualAnnotation.checked) {
-            transcriptSelection.style.display = "None";
-        } else {
-            transcriptSelection.style.display = "block";
-        }
-    }
 
     </script>
     """ % locals())
@@ -17755,8 +17801,7 @@ def donorDesignPage(params):
     ofh.close()
     ctUrl = batchDir + "/%s.txt" % batchId
     """
-
-    if geneModel:
+    if geneId:
         if "ENST" in geneId:
             transcriptUrl = """<a href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1" target="blank">%s</a>""" % (geneId, geneId)
         else:
@@ -17783,24 +17828,25 @@ def donorDesignPage(params):
     else:
         positiveStrandStr = ""
         negativeStrandStr = "<small>(strand of the sequence)</small>"
-
     print("<hr>")
     print("""<form id="main" action="%s" method="GET"></form>""" % basename(__file__))
     print("""<form id="updateModel"></form>""")
-
-    geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
-    if geneId and geneModels:
-        found = False
-        for (model, modelStr) in geneModels:
-            exonInfo, _ = getExonInfo(org, model, posStr)
-            for tId, sym in list(exonInfo.keys()):
-                if tId == geneId:
-                    selGeneModel = model
-                    selTransId = tId
-                    found = True
+    if useManualAnnotation is None and (selTransId is None or selGeneModel is None):
+        geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False, noAllTrans=True)
+        if geneId and geneModels:
+            found = False
+            for (model, modelStr) in geneModels:
+                exonInfo, _ = getExonInfo(org, model, posStr)
+                for tId, sym in list(exonInfo.keys()):
+                    if tId == geneId:
+                        selGeneModel = model
+                        selTransId = tId
+                        found = True
+                        break
+                if found:
                     break
-            if found:
-                break
+    else:
+        geneModels = None
 
     commonChanges = {
         "batchId": batchId,
@@ -17814,21 +17860,15 @@ def donorDesignPage(params):
     }
 
     updateChanges = commonChanges.copy()
-    updateChanges.update({"geneModelSelection": None, "transId": selTransId})
+    updateChanges.update({"geneModelSelection": None, "selTransId": selTransId})
     printHiddenFields(params, updateChanges, form="updateModel")
     mainChanges = commonChanges.copy()
 
-    """
-    mainChanges.update({"manualExStart": manualExStart,
-                        "manualExEnd": manualExEnd,
-                        "manualExFrame": manualExFrame,
-                        "useManualAnnotation": useManualAnnotation})
-    """
     mainChanges.update({"geneModelSelection": selGeneModel})
     if geneId is None:
-        mainChanges["transId"] = None
+        mainChanges["selTransId"] = None
     else:
-        mainChanges["transId"] = selTransId
+        mainChanges["selTransId"] = selTransId
     printHiddenFields(params, mainChanges, form="main")
 
     print("""
@@ -17887,13 +17927,16 @@ def donorDesignPage(params):
 
     # Transcript model selection
 
-    if manualExStart != "None" and manualExEnd != "None" and manualExFrame != "None":
+    transcriptDisplay = "block"
+    if selGeneModel == "manual" and manualExStart is not None and manualExEnd is not None and manualExFrame is not None:
         transcriptDisplay = "None"
-        print("""<input type="checkbox" onchange="toggleTranscriptSelection()" form="main" value=True checked id="useManualAnnotation" name="useManualAnnotation" style="margin-top: 12px;"/>Use the manual annotation as a model for recoding""")
-    else:
-        transcriptDisplay = "block"
+        print("""<input type="hidden" form="main" value=True id="useManualAnnotation" name="useManualAnnotation" style="margin-top: 12px;"/>
+              <p>The manual annotation you specified will be used as a model for recoding.</p>""")
+    elif selGeneModel is not None and selTransId is not None:
+        print("""<p>The transcript you selected (%s) will be used as a model for recoding""" % selTransId)
+        transcriptDisplay = "None"
 
-    if geneModels:
+    elif geneModels and (selGeneModel is None or selTransId is None):
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
         print("""<div id="transcriptSelection" style="display: %s;">""" % transcriptDisplay)
         if geneId is None:
@@ -17904,7 +17947,7 @@ def donorDesignPage(params):
             transIdInfo = []
             for transId, sym in list(exonInfo.keys()):
                 transIdInfo.append((transId, sym + " / " + transId))
-            printDropDown("transId", transIdInfo, selTransId, style="width:20em", form="main")
+            printDropDown("selTransId", transIdInfo, selTransId, style="width:20em", form="main")
             print("""<br>""")
         print("</div>")
 
@@ -17923,15 +17966,12 @@ def donorDesignPage(params):
             <div>
                 <strong>Recode the donor to avoid re-cleavage</strong>
                 <img src=" %(htmlprefix)s image/info-small.png" title="%(recodeTooltip)s" class="tooltipsterInteract"><br>
-                <input type="checkbox" %(recodeChecked)s form="main" name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif<br>
-                <input type="checkbox" name="recodeSeed" form="main" value="True" autocomplete="off"/>Recode PAM proximal end the guide<br>
-                <input type="checkbox" name="recodeGap" form="main" value="True" autocomplete="off"/>Recode between the cut site and insertion site<br>
-            </div>
-            <div id="trimOptions">
-                <strong>Trim the donor to facilitate its synthesis</strong> <i>(not implemented yet)</i><br>
-                <input type="checkbox" name="trimHomopolymers" form="main" value="True" autocomplete="off"/>Trim homopolymers<br>
-                <input type="checkbox" name="trimGC" form="main" value="True" autocomplete="off"/>Trim regions with high GC content<br>
-                <input type="checkbox" name="trimRepeat" form="main" value="True" autocomplete="off"/>Trim repeated sequences<br>
+                <div style="display: flex; flex-direction: row; gap: 4px;">
+                    <div><input type="checkbox" %(recodeChecked)s form="main" name="recodePam" value="True" autocomplete="off"/>Recode the PAM motif or the PAM-proximal end of the guide</div>
+                    <img src=" %(htmlprefix)s image/info-small.png" style="width: 16px; height: 16px;" title="This step will attempt to introduce a single PAM-blocking mutation. If the PAM motif can't be recoded, two mutations will be introduced in the 15 PAM-proximal end of the guide (seed region)." class="tooltipsterInteract"><br>
+                </div>
+                <div><input type="checkbox" name="recodeGap" form="main" value="True" autocomplete="off"/>Recode between the cut site and insertion site</div>
+                </div>
             </div>
         </div>
     </div>

@@ -399,7 +399,7 @@ def fixSymFile(accToSymTmp, symFixFile):
         ofh.write("%s\t%s\n" % (key, val))
     ofh.close()
 
-def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp,  geneModels, twoBitTmp, finalDbDir):
+def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp,  geneModels, twoBitTmp, finalDbDir, onlyGenes):
     " copy seg, sizes and twobit to finalDbDir and clean up dbTmpDir "
     if accToSymTmp:
         cmd = "rm %s" % accToSymTmp
@@ -415,7 +415,8 @@ def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp,  geneModels, twoBitTmp,
         for model in geneModels:
             outFnames.extend([model])
 
-    outFnames.extend([sizesTmp, twoBitTmp])
+    if not onlyGenes:
+        outFnames.extend([sizesTmp, twoBitTmp])
     if not isdir(finalDbDir):
         os.makedirs(finalDbDir)
     moveToDest(outFnames, finalDbDir)
@@ -552,7 +553,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
                 printMsg("Downloading ensembl transcripts to gene name table")
                 cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/ensemblToGeneName.txt.gz -O - | zcat > %s" % (db, accToSymTmp)
             runCmd(cmd, mustRun=False)
-            assert(getsize(accToSymTmp)!=0) # no symbols - email Max!
+            assert(os.path.getsize(accToSymTmp)!=0)  # no symbols - email Max!
 
             if symFixFile:
                 fixSymFile(accToSymTmp, symFixFile)
@@ -570,7 +571,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
 
         geneModels, overwrite = getUcscGeneModels(db, dbTmpDir, sizesTmp)
 
-        ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, geneModels, twoBitTmp, finalDbDir)
+        ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp, geneModels, twoBitTmp, finalDbDir, onlyGenes)
 
         # write (or append to) a file to list available gene models
         # instead, re-write the file and search for bb files every time (but no custom description)
@@ -591,6 +592,7 @@ def getUcscGenomes(rows, geneTable, symFixFile, onlyGenes):
                     newLine = "%s\t%s\n" % (bb, bb.split(".")[0])
                     if newLine not in previousModels:
                         modelListFh.write(newLine)
+                modelListFh.close()
 
         writeGenomeInfo(row, addUcsc=True)
 
@@ -665,22 +667,19 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
             runCmd(cmd)
 
     # for human genomes, map the symbols to knownGene
-    elif outFname == "knownGene" and db == "hg38":
-        printMsg("mapping gene symbols to knownGene")
-        knownToRefSeq = join(dbTmpDir, "knownToRefSeq.txt")
-        refSeqGp = join(dbTmpDir, "refSeq.gp")
+    # kfXref.txt.gz -> $1 is knownGene ID / $5 is symbol and $8 is a description of the transcript (might be useful to display)
+    elif outFname == "knownGene" and db[0:2] == "hg":
 
-        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/knownToRefSeq.txt.gz -O - | zcat | sort -k1,1 > %s" % (db, knownToRefSeq)
+        printMsg("mapping gene symbols to knownGene")
+        kgXref = join(dbTmpDir, "kgXref.txt.gz")
+
+        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/knownToRefSeq.txt.gz -O - | zcat | sort -k1,1 > %s" % (db, kgXref)
         runCmd(cmd)
 
-        # map knownGene IDs to symbols using knownToRefSeq -> refSeqIDs -> symbol
-        cmd = """awk -v f1=%(knownToRefSeq)s -v f2=%(refSeqGp)s \
-                    'FILENAME==f1 {toId[$1]=$2; next}  \
-                    FILENAME==f2 && NF>=12 {toSym[$1]=$12; next}  \
-                    {split($1, transId, "_");
-                        if (transId[1] in toId && toId[transId[1]] in toSym) {$11=0; $12=toSym[toId[transId[1]]]; print}}' OFS='\\t' \
-                    %(knownToRefSeq)s %(refSeqGp)s %(gpTmp)s > %(gpTmp)s.tmp \
-                    && mv %(gpTmp)s.tmp %(gpTmp)s """ % locals()
+        # need to check the command
+        cmd = """awk 'NR==FNR{idToSym[$1]=$5; next} \
+                if($1 in idToSym) {$12 = idToSym[1]]; print}' OFS='\\t' \
+                %(kgXref)s %(gpTmp)s > %(gpTmp).tmp && mv %(gpTmp)s.tmp %(gpTmp)s""" % locals()
         runCmd(cmd)
 
     """
