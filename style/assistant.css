@@ -1,0 +1,109 @@
+:root {
+--crispor-orange:      #E67E22;
+--crispor-orange-dark: #B45309;
+--crispor-orange-soft: #FCEAD9;
+--crispor-ink:         #2A2419;
+--crispor-muted:       #8A8278;
+--crispor-border:      #E8E3D9;
+--crispor-navy:        #1E3A5F;
+--crispor-navy-soft:   #E1EAF3;
+--crispor-bg:          #FAF8F4;
+}
+
+/* The tab-row container (equivalent of <div class="assistantMenu">) */
+.assistantMenu {
+background: #fff;
+display: flex;
+flex-direction: row;
+gap: 50px;
+border-bottom: 1.5px solid var(--crispor-navy-soft);
+border-top: 1.5px solid var(--crispor-navy-soft);
+padding: 12px 32px;
+margin: 0;
+/*
+box-shadow: 0 0 8px 3px rgba(47, 129, 203, 0.1);
+*/
+}
+.assistantMenu .tabs {
+display: flex;
+flex: 1;                /* fill the full width of .assistantMenu */
+flex-wrap: nowrap;      /* keep all tabs on a single line */
+align-items: stretch;
+gap: 4px;
+}
+
+/* Individual tab button */
+button.assistantButton {
+all: unset;
+box-sizing: border-box;
+display: inline-flex;
+align-items: center;
+justify-content: left;  /* centre the icon+label inside the now-wider button */
+flex: 1;                  /* every tab takes an equal share of .tabs width */
+min-width: 0;             /* allow the button to shrink below its content min-width if needed */
+gap: 10px;
+padding: 16px 20px 14px;
+background: transparent;
+border: none;
+border-bottom: 3px solid transparent;
+color: var(--crispor-muted);
+font-size: 28px;
+font-weight: 500;
+font-family: inherit;
+cursor: pointer;
+position: relative;
+margin-bottom: -14px;
+transition: color 120ms ease, border-bottom-color 120ms ease;
+}
+button.assistantButton:hover {
+color: var(--crispor-ink);
+}
+
+/* Active tab — orange underline.
+   Uses ::after so it sits flush with the assistantMenu's bottom border,
+   even after `all: unset` would otherwise wipe the border styling. */
+button.assistantButton.active {
+color: var(--crispor-ink);
+font-weight: 600;
+}
+button.assistantButton.active::after {
+content: "";
+position: absolute;
+left: 0;
+right: 0;
+bottom: -1px;
+height: 3px;
+background: var(--crispor-orange);
+border-radius: 2px 2px 0 0;
+}
+
+/* Icon stroke colour follows the active state */
+button.assistantButton .tabIcon { stroke: var(--crispor-muted); }
+button.assistantButton.active .tabIcon { stroke: var(--crispor-orange); }
+
+/* Icon fill colour (e.g. inner dot) follows the active state too */
+button.assistantButton .tabIcon .tabIconFill { fill: var(--crispor-muted); }
+button.assistantButton.active .tabIcon .tabIconFill { fill: var(--crispor-orange); }
+
+/* Small uppercase pill — used for ASSISTANT and BETA-style badges */
+.tabBadge {
+font-size: 9.5px;
+padding: 2px 6px;
+border-radius: 3px;
+font-weight: 700;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+line-height: 1.2;
+}
+.tabBadge.assistant {
+background: #F3F1EC;
+color: var(--crispor-muted);
+}
+button.assistantButton.active .tabBadge.assistant {
+background: var(--crispor-orange-soft);
+color: var(--crispor-orange-dark);
+}
+.tabBadge.info {
+background: var(--crispor-navy-soft);
+color: var(--crispor-navy);
+}

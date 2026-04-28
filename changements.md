@@ -1610,14 +1610,60 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 24/04/26
 
+## global
+
 - corrections de duplication des paramètres dans showSeqAndPams()
 - dans donorDesignPage(), fusion des options "recode PAM" et "recode Seed" + ajout mouseover
     - à ajouter : dans writeDonorSeq -> call de recodeDonor avec recodePam puis, si pas de recodage, call de recodeDonor avec recodeSeed = True
+- fix d'un bug d'affichage avec Claude - plus de bordures dans le tableau en mode classic (~100k tokens pour fermer un div...)
 
 ## knock-in mode
 
 -  dans printMutEventsTable(), ajouter l'option de sélectionner un autre codon + ajouter une autre rangée (recodage dans régions non-codantes)
+- refactorisation du recodeDonor en deux fonctions :
+    - getRecodeCodons : obtient les positions des régions à recoder, puis exécute recodeDonor
+    - recodeDonor : effectue le recodage et retourne un dict des codons recodés
 
 ## à faire
 
-- ajouter input pour nombre de blocking mutations dans pam / seed
+- vérifier recodage 
+- si codon déjà recodé pour le PAM -> l'exclure par la suite DONE
+
+# 27/04/26
+
+## global
+
+- retrait de l'option "all transcripts" pour refSeq select (un seul transcrit par symbol)
+- amélioration de l'affichage du menu de printAssistant() à partir de designs Claude Design
+
+## crisporAddGenome
+
+- pour génomes humains : utilisation du tableau kgXref pour mapper knownGene ID -> symbol (terminé)
+ 
+## knock-in mode
+
+- Correction du formulaire de sélection du geneModel avec Claude : seul les transcrits correspondants au geneModel sélectionnés sont écrits dans les params.
+
+- finalisation du recodage : 
+    - limitation du nombre mutation synonymes dans le guide à 2
+    - les codons proches du PAM sont recodés en priorité
+
+## à faire
+
+- uppercase de la séquence codante des exons tranqués en mode KO / frameshift
+- en mode KO / common exons, proposer dropdown sélection transcrit / gene ? 
+
+# 28/04/26
+
+## global
+
+- amélioration du menu : police + grande et + lisible + ajout d'effets
+
+## knock-out mode
+
+- dans showExonAndPams, les séquences correspondant à une extension de l'exon dans une région codante ne sont plus en lowercase
+
+## knock-in mode 
+
+- correction d'un bug dans writeDonorSeq() : erreur si pas aucun transcrit à la position recherchée
+- correction du calcul des coordonnées pour guides chevanchant le site d'édition en mode insertion

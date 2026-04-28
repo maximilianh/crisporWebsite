@@ -641,7 +641,7 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
     runCmd(cmd)
 
     # sucessful download : convert the file to bgp > bb
-    if outFname == "ensGene" or (outFname == "knownGene" and db == "hg19"):
+    if outFname == "ensGene":
         # knownGene symbols are not shared with refSeq,
         accToSymTmp = join(dbTmpDir, db+".ensemblToGeneName.txt")
 
@@ -671,15 +671,16 @@ def downloadUcscGeneModel(db, dbTmpDir, sizesTmp, queryTable, outFname, overwrit
     elif outFname == "knownGene" and db[0:2] == "hg":
 
         printMsg("mapping gene symbols to knownGene")
-        kgXref = join(dbTmpDir, "kgXref.txt.gz")
+        kgXref = join(dbTmpDir, "knownToSym.txt.gz")
 
-        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/knownToRefSeq.txt.gz -O - | zcat | sort -k1,1 > %s" % (db, kgXref)
+        cmd = "wget http://hgdownload.cse.ucsc.edu/goldenPath/%s/database/kgXref.txt.gz -O - | zcat | sort -k1,1 > %s" % (db, kgXref)
         runCmd(cmd)
 
         # need to check the command
-        cmd = """awk 'NR==FNR{idToSym[$1]=$5; next} \
-                if($1 in idToSym) {$12 = idToSym[1]]; print}' OFS='\\t' \
-                %(kgXref)s %(gpTmp)s > %(gpTmp).tmp && mv %(gpTmp)s.tmp %(gpTmp)s""" % locals()
+        # specify tab as separator (last columns has spaces)
+        cmd = """awk -F'\t' 'NR==FNR{idToSym[$1]=$5; next} \
+                $1 in idToSym {$11=0; $12=idToSym[$1]; print}' OFS='\\t' \
+                %(kgXref)s %(gpTmp)s > %(gpTmp)s.tmp && mv %(gpTmp)s.tmp %(gpTmp)s""" % locals()
         runCmd(cmd)
 
     """
