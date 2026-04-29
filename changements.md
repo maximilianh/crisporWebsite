@@ -1675,6 +1675,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - dans getExonInfo et trimExonAndFlip, conservation de la phase de l'exon entier (avant ajustement par rapport à la séquence target)
     - détermination des out-of-frame exons avec cette phase (et non la phase ajustée par rapport à la séquence)
+- fix d'un bug dans l'affichage du tableau avec Claude : le contenu du tableau au delà du scroll n'apparaissait pas
+- finalisation de l'affichage du menu : CRISPOR en orange, logos à droite
 
 ## knock-out mode
 

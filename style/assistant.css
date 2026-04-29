@@ -16,8 +16,9 @@ background: #fff;
 display: flex;
 flex-direction: row;
 gap: 50px;
-border-bottom: 2px solid var(--crispor-navy-soft);
-border-top: 1.5px solid var(--crispor-navy-soft);
+border-bottom: 1px solid var(--crispor-navy-soft);
+/* border-top: 1px solid var(--crispor-navy-soft); */
+box-shadow:  0 4px 8px -4px var(--crispor-navy-soft);
 padding: 12px 32px;
 margin: 0;
 /*

@@ -2499,7 +2499,7 @@ def showSeqAndPams(
 
             otherLines, maxY = layoutPamLines(otherPamLines, len(seq))
             otherPamLinesHtml = list(makePamLines(otherLines, maxY, None, None, pamWindow=pamWindow, otherPam=otherPam, insertIdx=insertIdx))
-
+    
     posLabel = "Position"
     varLabel = "Variants"
     if multiPamInfo:
@@ -2564,47 +2564,61 @@ def showSeqAndPams(
     if selGeneModel:
         labelLen = max(labelLen, exonLabelLen)
 
-    if multiPamInfo is None:
-        print("<div class='substep'>")
-        print('<a id="seqStart"></a>')
-        print(
-            "Your input sequence is %d bp long. It contains %d possible guide sequences.<br>"
-            % (len(seq), len(guideScores))
-        )
-
-        if not pamIsFirst:
-            print(
-                "Shown below are their PAM sites and the expected cleavage position located -3bp 5' of the PAM site.<br>"
-            )
-            print(
-                "Click on a match for the PAM %s below to show its %d bp-long guide sequence. "
-                % (pam, GUIDELEN)
-            )
-            print(
-                "(Need help? Look at the <a target=_blank href='manual/#annotseq'>CRISPOR manual</a>)<br>"
-            )
-            print(
-                """Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>"""
-            )
-        else:
-            print(
-                "Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>"
-                % (pam, GUIDELEN)
-            )
-
+    if multiPamInfo is not None:
+        print("<details style='margin-bottom: 12px;'>")
+        print("<summary>Click here to display the legend and global information about the results</summary>")
     else:
-        print(
-            """ The target region is %d bp long. It contains %d possible guide sequences.<br>"""
-            % (len(seq), len(guideScores))
-        )
+        print("<div class='substep' style='margin-top: 24px;'>")
+        print('<a id="seqStart"></a>')
+
+    print(
+        "Your input sequence is %d bp long. It contains %d possible guide sequences.<br>"
+        % (len(seq), len(guideScores))
+    )
+
+    if multiPamInfo:
+
         if clippedSeq is True:
             print("""<p>The input sequence was trimmed to 60bp on each side of the edit site to save computation time.<br>
                   Guides outsite this range are too distant to result in a successful knock-in experiment.</p>""")
+
+        if len(pamList) == 1:
+            print(
+                """Shown below are ther PAM sites and the expected cleavage position located -3bp 5' of the PAM site, for PAM %s.<br>
+                """ % "".join(pamList))
+        else:
+            print(
+                """Shown below are ther PAM sites and the expected cleavage position, for the following PAMs : %s.<br>
+                """ % ", ".join(pamList))
+        print("PAMs highlighted in blue corresponds to guides that overlap the position of the edit.<br>")
         print(
-            """ Shown below are the possible guide sequences for the following PAMs : %s .<br> PAMs highlighted in blue corresponds to guides that overlap the position of the edit.<br>"""
-            % ", ".join(pamList)
+            """Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>"""
         )
-        print("Click on a PAM below to show its corresponding guide sequence.<br>")
+
+    elif not pamIsFirst:
+        print(
+            "Shown below are their PAM sites and the expected cleavage position located -3bp 5' of the PAM site.<br>"
+        )
+        print(
+            """Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>"""
+        )
+        print(
+            "Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>"
+            % (pam, GUIDELEN)
+        )
+
+    else:
+        print(
+            "Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>"
+            % (pam, GUIDELEN)
+        )
+
+    if multiPamInfo:
+        print("</details>")
+
+    print(
+        "(Need help? Look at the <a target=_blank href='manual/#annotseq'>CRISPOR manual</a>)<br>"
+    )
 
     if baseEditor or varDb or selGeneModel or pamFullName:
         print(
@@ -4836,7 +4850,7 @@ You can adapt the global score to your delivery method (select below), which cha
 
     # subheaders
     print(
-            '<tr style="position: sticky; top: 125px; z-index:25; border-top:none; border-bottom: none; border-left: solid black 5px; background-color:#F0F0F0">'
+            '<tr style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none; border-bottom: none; border-left: solid black 5px; background-color:#F0F0F0">'
     )
 
     # offset subheaders
@@ -7782,6 +7796,7 @@ def printForm(params):
     print(
         """
     <small>Currently, %d out of %d genomes are annotated with genes. If your genome isn't included, paste a sequence above.</small>
+    </details>
 <div style="width:100%%; margin-top: 25px; margin-left:50px; text-align:center; display:block">
     <input type="submit" name="submit" value="SUBMIT" tabindex="4" style="height:40px; width:100px;"/>
 </div>
@@ -9538,11 +9553,11 @@ def KiResultsPage(params, batchId, download=False):
             transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
 
         print(
-            """<div class="title" style="text-align:center; margin-bottom:12px;margin-top:12px;"><i>%s</i> : %s %s </div><br> """
+            """<div class="title" style="text-align:left; margin-bottom:12px;margin-top:12px;"><i>%s</i> : %s %s </div><br> """
             % (dbInfo.scientificName, seqMsg, transcriptUrl)
         )
 
-        printKiSteps(batchId, step=1)
+        printKiSteps(batchId, step=1, align="left")
 
         if nonCoding is not None:
             htmlWarn("Could not get START or STOP codons ")
@@ -9761,7 +9776,7 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
-def printKiSteps(batchId: str, step=1, annotationParams=None):
+def printKiSteps(batchId: str, step=1, annotationParams=None, align="center"):
     """
     prints an interactive recap of the workflow for KI experiments
     """
@@ -9826,9 +9841,9 @@ def printKiSteps(batchId: str, step=1, annotationParams=None):
 
     # print all steps
     print(
-        """<div style="text-align: center; margin-bottom: 48px;">
+        """<div style="text-align: %s; margin-bottom: 48px;">
             <p>Workflow overview <small>(hover on each step to get details, or click on a previous step to go back)</small></p>
-            <div style="display: flex; flex-direction: row; justify-content: center;">
+            <div style="display: flex; flex-direction: row; justify-content: %s;">
                 %s
                 <div style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8594</div>
                 %s
@@ -9836,7 +9851,7 @@ def printKiSteps(batchId: str, step=1, annotationParams=None):
                 %s
             </div>
         </div>
-       """ % (guideHtml, donorDesignHtml, donorDisplayHtml)
+       """ % (align, align, guideHtml, donorDesignHtml, donorDisplayHtml)
       )
 
 
@@ -9987,7 +10002,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
 
     # the logic is getting out of hand
     # 3 cases : --ggPAM-- + strand, - strand with Cas12a or - strand with inverse polarity ssODN
-    guideFirst = (pamStrand == "+" and templateStrand == strand or pamIsFirst) \
+    guideFirst = (pamStrand == "+" and not pamIsFirst and templateStrand == strand) or (pamIsFirst and pamStrand == "-" and templateStrand == strand) \
         or (pamStrand == "-" and (pamIsFirst or templateStrand != strand))
 
     # PAM in 3'
@@ -10566,7 +10581,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
     allPamIdToSeq = {}
     if not download:
 
-        print("""<div class="title" style="text-align:center; margin-bottom: 50px;">""")
+        print("""<div class="title" style="text-align:left; margin-bottom: 50px;">""")
         print("%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name))
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
@@ -11267,9 +11282,8 @@ def printCrisporBodyStart():
 def printTeforBodyStart():
     print("""<div style="display: flex; flex-direction: row; gap:2%; align-items: center; padding: 12px; margin-left: 24px;">""")
     # print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
-
-    print("""
-        """)
+    
+    '''
     print(
         """<a href='crispor.py'><img style='width:150px; margin-left:25px' src='%simage/2021-Logo-Do-3.jpg' alt='UCSC Logo'></a>"""
         % (HTMLPREFIX)
@@ -11285,12 +11299,10 @@ def printTeforBodyStart():
         """ % (HTMLPREFIX)
     )
 
-    '''
     print(
         """<a href='crispor.py'><img style='width:70px; margin-left:25px' src='%simage/logo_tefor.png' alt=''></a>"""
         % (HTMLPREFIX)
     )
-    '''
     print("""<div style="margin-left: auto; margin-right: 5%%; display: flex; flex-direction: row; gap: 12px; min-width: 250px;">
                 <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" target=_blank href="/manual/">Documentation</a>
                 <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="https://academic.oup.com/nar/article/46/W1/W242/4995687">Citation</a>
@@ -11299,6 +11311,7 @@ def printTeforBodyStart():
         """ % contactEmail)
 
     print("</div>")
+    '''
 
     print('<div id="bd">')
     print('<div class="centralpanel" style="margin-left:0px">')
@@ -13459,7 +13472,11 @@ def printLibForm(params, returnLink=True):
         )
     )
 
-    print("""<input id="submitGenes" type="submit" name="SUBMIT" value="Submit">""")
+    print("""<div style="text-align: center;">
+                <input style="height:40px; width:100px;" id="submitGenes" type="submit" name="SUBMIT" value="Submit">
+          </div>
+          """)
+
     print('<input type="hidden" name="libDesign" value="1">')
     print("""</form>""")
     print("</div>")
@@ -14663,7 +14680,7 @@ def printBody(params):
     customPamErr = "<p>The custom PAM you entered either contains less than two non N nucleotides, unexpected characters or is not 3-8 nt long. Please use A, T, G, C or N only.</p>"
 
     errMsg = "<p>Something unexpected occured. This is probably a bug, please contact us at %s and send us the information below: <br> %s <br></p>" % (contactEmail, params)
-
+    printTeforBodyStart()
     if submit is None and "batchId" not in params and "geneIds" not in params and "warnMsg" not in params:
         printAssistant(params)
     global doCfdFix
@@ -14866,7 +14883,7 @@ def printBody(params):
 
         else:
             printForm(params)
-        
+
         printReleaseNote()
 
 
@@ -15540,7 +15557,7 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
     guideStart = int(guideStart)
 
     # position of the PAM
-    if guideStrand == "+" or (guideStrand == "-" and pamIsFirst):
+    if (guideStrand == "+" and not pamIsFirst) or (guideStrand == "-" and pamIsFirst):
         pamStart = guideStart + len(guideSeq)
     else:
         pamStart = guideStart - 3
@@ -15570,7 +15587,7 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
         pamCoords = (pamStartPos, pamEndPos)
 
     # position of the seed region (15 pam-proximal bases of the spacer)
-    if guideStrand == "+" or (guideStrand == "-" and pamIsFirst):
+    if (guideStrand == "+" and not pamIsFirst) or (guideStrand == "-" and pamIsFirst):
         seedStartPos = pamStartPos - 15
         if seedStartPos < 0:
             seedStartPos = 0
@@ -15798,7 +15815,7 @@ def getRecodeCodons(HA, annotationCoords, recodeCoords, recodePam,
             else:
                 splicePos.add(i)
 
-    if recodePam:
+    if recodePam and pamCoords is not None:
         pamPos = set()
         # the positions of the N bases of the PAM motif : to be removed from gapCoords
         pamNpos = set()
@@ -15817,7 +15834,7 @@ def getRecodeCodons(HA, annotationCoords, recodeCoords, recodePam,
             seedPos.add(i)
 
     # recode the region between the cut site and edit site
-    if recodeGap:
+    if recodeGap and gapCoords is not None:
         gapPos = set()
         gapStart, gapEnd = gapCoords
         for i in range(gapStart, gapEnd):
@@ -15828,12 +15845,12 @@ def getRecodeCodons(HA, annotationCoords, recodeCoords, recodePam,
     noRecodePos = (kozakPos, splicePos, UTRpos, startPos)
 
     # first, attempt to recode the PAM motif
-    if recodePam:
+    if recodePam and pamCoords is not None:
         recodedCodons = []
         mutHA, mutEvents, recodedCodons = recodeDonor(HA, pamPos, noRecodePos, codonPos, codonFrequency, maxMut=1, motif="pam")
 
         # couldn't recode the PAM motif : try to recode the seed region
-        if mutHA.lower() == HA.lower() or recodeGap:
+        if mutHA.lower() == HA.lower() or (recodeGap and gapCoords is not None):
             # when recoding between the cut site and insertion site, try to recode all codons
             if recodeGap:
                 maxMut = len(seedPos)
@@ -15843,7 +15860,7 @@ def getRecodeCodons(HA, annotationCoords, recodeCoords, recodePam,
             recodedCodons.extend(recodedSeedCodons)
             mutEvents.update(seedMutEvents.items())
 
-        if recodeGap:
+        if recodeGap and gapCoords is not None:
             mutHA, gapMutEvents, _ = recodeDonor(mutHA, gapPos, noRecodePos, codonPos, codonFrequency, excludeCodons=recodedCodons, motif="gap")
             mutEvents.update(gapMutEvents.items())
     else:
