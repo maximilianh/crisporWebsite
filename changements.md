@@ -1684,3 +1684,9 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - correction du formulaire pour remplacer l'edit dans showDonor() + adaptation du calcul des coordonnées pour surligner PAM + guide si changement de taille de la séquence
 - dans le menu de sélection de tags / linkers / qTAG dans showDonor(), pré-sélection des éléments de la requête originale
+
+## à faire 
+
+- clarifier l'affichage de KiResultsPage
+- réparer scroll horizontal du tableau (otTable)
+- masquer affichage pam / génome dans page d'acceuil ?

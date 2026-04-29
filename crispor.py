@@ -1852,7 +1852,8 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                     if nextFrame is not None:
                         exonDesc += "<br>end phase %s" % nextFrame
                         # oldExFrame is the phase of the whole exon (before trimming to the sequence window)
-                        if (oldExFrame + nextFrame) % 3 == 0:
+                        # if (oldExFrame + nextFrame) % 3 == 0:
+                        if oldExFrame == nextFrame:
                             exonDesc += "<br>Removing the exon retains the reading frame"
                         else:
                             exonDesc += (
@@ -7781,7 +7782,6 @@ def printForm(params):
     print(
         """
     <small>Currently, %d out of %d genomes are annotated with genes. If your genome isn't included, paste a sequence above.</small>
-</details>
 <div style="width:100%%; margin-top: 25px; margin-left:50px; text-align:center; display:block">
     <input type="submit" name="submit" value="SUBMIT" tabindex="4" style="height:40px; width:100px;"/>
 </div>
@@ -7794,6 +7794,7 @@ def printForm(params):
         </div>
         Select a genome
     </div>
+
     """
         % (len(annGenomes), len(genomes))
     )
@@ -11314,10 +11315,16 @@ def printReleaseNote():
 
 
 def printTeforBodyEnd():
-    print('<div style="clear:both; text-align:center">Version %s - ' % versionStr)
-    print(
-        """<a href="downloads/">Downloads/local installation</a> - <a href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a></div>"""
-    )
+
+    print('<div style="clear:both; text-align:center; margin-left: auto; margin-right: 5%%; display: flex; flex-direction: row; gap: 12px; min-width: 250px;">')
+    print("""<div style="margin-left: auto; margin-right: auto;">
+                Version %s -
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" target=_blank href="/manual/">Documentation</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="https://academic.oup.com/nar/article/46/W1/W242/4995687">Citation</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="downloads/">Downloads / local installation</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a>
+                <a href='mailto:%s'>Contact us</a>
+        """ % (versionStr, contactEmail))
 
     print("</div>")
     print(
@@ -14657,7 +14664,6 @@ def printBody(params):
 
     errMsg = "<p>Something unexpected occured. This is probably a bug, please contact us at %s and send us the information below: <br> %s <br></p>" % (contactEmail, params)
 
-    printTeforBodyStart()
     if submit is None and "batchId" not in params and "geneIds" not in params and "warnMsg" not in params:
         printAssistant(params)
     global doCfdFix
@@ -14860,7 +14866,7 @@ def printBody(params):
 
         else:
             printForm(params)
-
+        
         printReleaseNote()
 
 
@@ -19018,16 +19024,18 @@ def printAssistant(params):
     <form action="crispor.py" name="main" method="get">
         <div class="assistantMenu" style="margin-bottom: 24px; margin-left: 18px; margin-top: -6px;">
             <div class="tabs" style="gap: 5%%;">
-                <div class="title" style="font-size: 60px; font-weight: 500; font-family: Helvetica; text-shadow: 1px 1px 2px lightblue; transform: skewX(-3deg); align-self: center;" class="toolstipsterInteract" title="CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.">CRISPOR</div>
+                <div class="title" style="font-size: 60px; font-weight: 500; font-family: Helvetica; text-shadow: 1px 1px 2px #fae4d1; align-self: center; color: #ff7f04;" class="toolstipsterInteract" title="CRISPOR is a program that helps design, evaluate and clone guide sequences for the CRISPR/Cas9 system.">CRISPOR</div>
 
                 <button type="submit" name="mode" value="classic"
                         class="%s"
+                        style="min-width: 100px;"
                         title="Original mode : enter a sequence to find guides.">
                     Classic
                 </button>
 
                 <button type="submit" name="libDesign" value="1"
                         class="%s"
+                        style="min-width: 100px;"
                         title="Retrieve guide sequences and scores from pre-calculated results: enter a list of genes to get a list of guides.<br>Only available for human and mouse genomes.">
                     Batch
                 </button>
@@ -19047,11 +19055,24 @@ def printAssistant(params):
                     Knock-in
                     <span class="tabBadge assistant">New</span>
                 </button>
+                <div style="display: flex; flex-direction: row;">
+                    <a style='width:150px; align-self: center;' href='crispor.py'>
+                        <img style='width:150px; align-self: center;' src='%simage/2021-Logo-Do-3.jpg' alt='UCSC Logo'>
+                    </a>
+                    <a class="tooltipsterInteract" style="align-self: center; margin-top: 8px;" title="CELPHEDIA (The National Infrastructure for model organisms in health and biomedical research) is a national operational research infrastructure distributed over the French territory.<br>Its mission is to support academic and industrial scientific community to accelerate discoveries in biology and improve biomedical research. To this end, CELPHEDIA operates in 3 main activities with respect of ethical principles and animal welfare.<br>
+                    <ul>
+                        <li>Standardized service offers, in the areas of creation, functional exploration, archiving and distribution of animal models, necessary for fundamental research and preclinical approaches: rodents with the mouse as the leader, non-human primates and non-mammals including aquatic vertebrates.</li>
+                        <li>Research and development activity for new technological offers.</li>
+                        <li>Training courses adapted to users needs either for the use of animals in research with respect to institutional regulations or to develop specific technological skills.</li>
+                    </ul>" href='https://celphedia.eu/en/' target="_blank">
+                        <img style='width:150px; margin-left:25px' src='%simage/logo_Celphedia.jpg' alt='Celphedia'>
+                    </a>
+                </div>
 
             </div>
         </div>
     </form>
-    """ % (cls("classic"), cls("batch"), cls("ko"), cls("ki")))
+    """ % (cls("classic"), cls("batch"), cls("ko"), cls("ki"), HTMLPREFIX, HTMLPREFIX))
 
     # image / drawing to display near each mode
     """
@@ -19059,7 +19080,7 @@ def printAssistant(params):
                          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="5" class="tabIconFill" stroke="none"/>
                     </svg>
-    """ 
+    """
 
 
 def mainCgi():

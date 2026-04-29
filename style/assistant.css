@@ -1,5 +1,5 @@
 :root {
---crispor-orange:      #E67E22;
+--crispor-orange:      #ff7f04;
 --crispor-orange-dark: #B45309;
 --crispor-orange-soft: #FCEAD9;
 --crispor-ink:         #2A2419;
@@ -16,7 +16,7 @@ background: #fff;
 display: flex;
 flex-direction: row;
 gap: 50px;
-border-bottom: 1.5px solid var(--crispor-navy-soft);
+border-bottom: 2px solid var(--crispor-navy-soft);
 border-top: 1.5px solid var(--crispor-navy-soft);
 padding: 12px 32px;
 margin: 0;
@@ -52,7 +52,7 @@ font-weight: 500;
 font-family: inherit;
 cursor: pointer;
 position: relative;
-margin-bottom: -14px;
+margin-bottom: -15px;
 transition: color 120ms ease, border-bottom-color 120ms ease;
 }
 button.assistantButton:hover {
