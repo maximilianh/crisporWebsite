@@ -5072,8 +5072,8 @@ def showGuideTable(
     highlightedGuidesIds = []
     highlightedGuidesPos = []
 
-    print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: auto; max-height: 75vh;">')
-    print("""<div class="otTableWrap" style="width: 100%%; min-width: %dpx; display: table;">""" % tableWidth)
+    print('<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: hidden; max-height: 75vh; min-width: %dpx;">' % tableWidth)
+    print("""<div class="otTableWrap" style="width: 100%%; min-width: %dpx;">""" % tableWidth)
     print('<table id="otTable" style="table-layout: fixed; width: %dpx; border-collapse: collapse;">' % tableWidth)
     printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, colWidths)
     print('<tbody>')
