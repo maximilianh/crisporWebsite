@@ -1658,6 +1658,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## global
 
 - amélioration du menu : police + grande et + lisible + ajout d'effets
+- ajouts / mise à jour des gene models sur le serveur pour hg38 / danRer11 / mm39
 
 ## knock-out mode
 
@@ -1667,3 +1668,19 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - correction d'un bug dans writeDonorSeq() : erreur si pas aucun transcrit à la position recherchée
 - correction du calcul des coordonnées pour guides chevanchant le site d'édition en mode insertion
+
+# 29/04/26
+
+## global
+
+- dans getExonInfo et trimExonAndFlip, conservation de la phase de l'exon entier (avant ajustement par rapport à la séquence target)
+    - détermination des out-of-frame exons avec cette phase (et non la phase ajustée par rapport à la séquence)
+
+## knock-out mode
+
+- pour KO / splicing, correction des labels des sites donneurs / accepteurs d'épissage dans showExonAndPam
+
+## knock-in mode
+
+- correction du formulaire pour remplacer l'edit dans showDonor() + adaptation du calcul des coordonnées pour surligner PAM + guide si changement de taille de la séquence
+- dans le menu de sélection de tags / linkers / qTAG dans showDonor(), pré-sélection des éléments de la requête originale

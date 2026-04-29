@@ -1823,7 +1823,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
             continue
         line = [" "] * seqLen
         mouseOvers = {}  # position -> mouseOver-text or null, for end of mouse over
-        for exIdx, (exNum, exStart, exEnd, exFrame, nextFrame, exStrand) in enumerate(
+        for exIdx, (exNum, exStart, exEnd, exFrame, oldExFrame, nextFrame, exStrand) in enumerate(
             exRows
         ):
             if exFrame == -1:
@@ -1841,17 +1841,18 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                     line[labStart + len(exonLabel)] = " "
             else:
                 if transId == "manual annotation":
-                    exonDesc = "manually annotated coding sequence<br>start phase %s" % exFrame
+                    exonDesc = "manually annotated coding sequence<br>start phase %s" % oldExFrame
                 else:
                     exonDesc = "gene %s<br>transcript %s<br>exon %d<br>start phase %s" % (
                         symbol,
                         transId,
                         exNum + 1,
-                        exFrame,
+                        oldExFrame,
                     )
                     if nextFrame is not None:
                         exonDesc += "<br>end phase %s" % nextFrame
-                        if (exFrame + nextFrame) % 3 == 0:
+                        # oldExFrame is the phase of the whole exon (before trimming to the sequence window)
+                        if (oldExFrame + nextFrame) % 3 == 0:
                             exonDesc += "<br>Removing the exon retains the reading frame"
                         else:
                             exonDesc += (
@@ -2293,9 +2294,9 @@ def showExonAndPams(
 
     if koMethod == "splicing":
         if exonId % 2 == 0:
-            spliceLabel = "Splicing donor site"
-        else:
             spliceLabel = "Splicing acceptor site"
+        else:
+            spliceLabel = "Splicing donor site"
         labelLen = max(labelLen, len(spliceLabel))
 
     exonLines = []
@@ -2311,7 +2312,7 @@ def showExonAndPams(
             transId, sym = exonDesc
             if transId != selTransId:
                 continue
-            for exFrame, exStart, exEnd, _, _, _ in exonCoords:
+            for exFrame, exStart, exEnd, exFrame, _, _, _ in exonCoords:
                 if exFrame >= 0 and (len(seq) - exEnd) < 14:
                     seq = seq[:exStart] + seq[exStart:exEnd].upper() + seq[exEnd:]
                     break
@@ -2370,7 +2371,7 @@ def showExonAndPams(
             )
         else:
             print(
-                " the around the splicing donor site of exon %s (%s) contains %d possible guide sequences.<br>"
+                " the region around the splicing donor site of exon %s (%s) contains %d possible guide sequences.<br>"
                 % (exonNumberText, browserlink, len(guideScores))
             )
 
@@ -2413,6 +2414,7 @@ def showExonAndPams(
 
     print("""</div>""")
     print("""</div>""")
+
 
 def showSeqAndPams(
     org,
@@ -2686,6 +2688,7 @@ def showSeqAndPams(
                         [(1,
                           manualExStart,
                           manualExEnd,
+                          manualExFrame,
                           manualExFrame,
                           0,
                           "+")]}
@@ -8914,11 +8917,17 @@ def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=None):
         exStart, exEnd = seqLen - exEnd, seqLen - exStart
         exStrand = "+" if exStrand == "-" else "-"
 
+    # save the unadjusted exFrame, to check if removing the exon destroys the reading frame (even after trimming)
+    if exFrame is not None:
+        oldExFrame = exFrame
+    else:
+        oldExFrame = None
+
     # Trim start
     if exStart < 0:
         if exEnd < 0:
             # the whole exon is outside the view on the left side
-            return None, None, None, None
+            return None, None, None, None, None
         else:
             # if the sequence start inside en exon, the frame can be truncated
             if exFrame is not None and exFrame != -1:
@@ -8932,12 +8941,12 @@ def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=None):
     if exEnd > seqLen:
         if exStart > seqLen:
             # the whole exon is outside the view on the right side
-            return None, None, None, None
+            return None, None, None, None, None
         else:
             # truncate the end
             exEnd = seqLen
 
-    return exStart, exEnd, exFrame, exStrand
+    return exStart, exEnd, exFrame, oldExFrame, exStrand
 
 
 def getExonInfo(org, geneName, position, extendPos=False):
@@ -9044,31 +9053,32 @@ def getExonInfo(org, geneName, position, extendPos=False):
                 if strand == "+":
                     exonFrame = 0  # Segments starting at translation start always have frame 0 (only for the + strand)
                 # add the UTR as a special exon
-                utrStart, utrEnd, _, utrStrand = trimExonAndFlip(
+                utrStart, utrEnd, _, _, utrStrand = trimExonAndFlip(
                     exChromStart - seqStart, exStart, exStrand, seqLen, seqStrand
                 )
                 if utrStart is not None:
                     ret[(name, symbol)].append(
-                        (-1, utrStart, utrEnd, -1, nextFrame, utrStrand)
+                        (-1, utrStart, utrEnd, -1, -1, nextFrame, utrStrand)
                     )
             else:
                 exStart = chromStart + blockStart - seqStart
             if exChromStart < thickEnd < exChromEnd:
                 if strand == "-":
                     exonFrame = 0
+
                 exEnd = thickEnd - seqStart
                 # add the UTR as a special exon
-                utrStart, utrEnd, _, utrStrand = trimExonAndFlip(
+                utrStart, utrEnd, _, _, utrStrand = trimExonAndFlip(
                     exEnd, exChromEnd - seqStart, exStrand, seqLen, seqStrand
                 )
                 if utrStart is not None:
                     ret[(name, symbol)].append(
-                        (-1, utrStart, utrEnd, -1, nextFrame, utrStrand)
+                        (-1, utrStart, utrEnd, -1, -1, nextFrame, utrStrand)
                     )
             else:
                 exEnd = chromStart + blockStart + blockSize - seqStart
             # print chromStart, chromStart+blockSize, seqStart, "<br>"
-            exStart, exEnd, exonFrame, exStrand = trimExonAndFlip(
+            exStart, exEnd, exonFrame, oldExonFrame, exStrand = trimExonAndFlip(
                 exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=exonFrame
             )
             if exStart is None:
@@ -9078,7 +9088,7 @@ def getExonInfo(org, geneName, position, extendPos=False):
             if geneName2 != "":
                 symbol = geneName2
             ret[(name, symbol)].append(
-                (exIdx, exStart, exEnd, exonFrame, nextFrame, exStrand)
+                (exIdx, exStart, exEnd, exonFrame, oldExonFrame, nextFrame, exStrand)
             )
             maxIdLen = max(maxIdLen, len(name))
 
@@ -9830,7 +9840,11 @@ def printKiSteps(batchId: str, step=1, annotationParams=None):
 
 
 def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeArm, HA5repeats, HA3repeats, params):
-    """Dispays the donor DNA sequence"""
+
+    """
+    Dispays the donor DNA sequence
+    needs a lot of reactoring, contains a lot more features than anticipated
+    """
 
     donorType = params["donorType"]
     batchId = params["batchId"]
@@ -9863,7 +9877,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
         annotationParams = None
 
     if ("tagseq" in params and "linkerseq") in params or ("markerseq" in params and "expressionSeq" in params and "qTag" in params):
-        tagNames, replaceInsertSeq = getInsertSeq(params.get("linkerseq"),  params.get("tagseq"), params.get("markerseq"),
+        tagNames, newInsertSeq = getInsertSeq(params.get("linkerseq"),  params.get("tagseq"), params.get("markerseq"),
                                                   params.get("expressionSeq"), params.get("qTag"), batchInfo["insertpos"])
 
     # change the insert sequence on this page
@@ -9874,7 +9888,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
             newInsertSeq = replaceInsertSeq
 
     dbInfo = readDbInfo(org)
-    chrom, start, end, strand = parsePos(posStr)
+    chrom, seqStart, seqEnd, strand = parsePos(posStr)
 
     pamSeq, guideStart, pamStrand = guideInfo.strip("(").strip(")").replace("'", "").replace(" ", "").split(",")
     pamStart = int(pamId.split('.')[1].strip('[s+-]'))
@@ -9907,15 +9921,15 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
     else:
         isRev = False
 
-    insertCoord = "%s:%s" % (chrom, start+insertIdx)
+    insertCoord = "%s:%s" % (chrom, seqStart+insertIdx)
     if kiType == "substitution":
-        kiTypeStr = "%s-%ssubst" % (seq[insertIdx], insertSeq)
+        kiTypeStr = "%s-%ssubst" % (seq[insertIdx], newInsertSeq)
     elif kiType == "deletion":
         kiTypeStr = "del%sbp" % (len(insertSeq))
     elif kiType == "replacement":
-        kiTypeStr = "replace%sbp" % (len(insertSeq))
+        kiTypeStr = "replace%sbp" % (len(newInsertSeq))
     else:
-        kiTypeStr = "insert%sbp" % (len(insertSeq))
+        kiTypeStr = "insert%sbp" % (len(newInsertSeq))
 
     # move this to a new function (annotateDonor)
 
@@ -9931,6 +9945,8 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
     if kiType == "substitution":
         editEnd = editStart + 1
     # highlight insert
+    elif kiType != "deletion":
+        editEnd = editStart + len(newInsertSeq)
     else:
         editEnd = editStart + len(insertSeq)
 
@@ -9945,6 +9961,8 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
         pamEndCoord = pamStartCoord + len(pamSeq)
 
     # PAM inside the deletion : don't highlight it
+    # for deletions, adjust corrdinates with insertSeq
+    # for other edits, adjust with insertSeq (replaced sequence), "" for deletions
     elif kiType == "deletion" and pamStart >= insertIdx and pamStart + len(pamSeq) <= insertIdx + len(insertSeq):
         pamInDel = True
         pamStartCoord, pamEndCoord = editStart, editStart
@@ -9956,13 +9974,13 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
         elif kiType in ["substitution", "replacement"]:
             pamStartCoord = len(HA5) + (pamStart - insertIdx)
         else:
-            pamStartCoord = len(HA5) + len(insertSeq) + (pamStart - insertIdx)
+            pamStartCoord = len(HA5) + len(newInsertSeq) + (pamStart - insertIdx)
         if donorType == "ss" and templateStrand != strand:
             pamStartCoord = len(donorSeq) - pamStartCoord - len(pamSeq)
         pamEndCoord = pamStartCoord + len(pamSeq)
 
     if pamStartCoord < len(HA5) and pamEndCoord > len(HA5) and kiType not in ["substitution", "deletion", "replacement"]:
-        pamCoordList = [(pamStartCoord, len(HA5)), (len(HA5) + len(insertSeq), pamEndCoord + len(insertSeq))]
+        pamCoordList = [(pamStartCoord, len(HA5)), (len(HA5) + len(newInsertSeq), pamEndCoord + len(newInsertSeq))]
     else:
         pamCoordList = [(pamStartCoord, pamEndCoord)]
 
@@ -10025,12 +10043,12 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
                 guideEndCoord -= len(insertSeq)
 
     """
-    if guideStartCoord < len(HA5) + len(insertSeq) and guideEndCoord > len(HA5) + len(insertSeq) and kiType not in ["substitution", "deletion", "replacement"]:
-        guideCoordList = [(guideStartCoord - len(insertSeq), len(HA5)), (len(HA5) + len(insertSeq), guideEndCoord)]
+    if guideStartCoord < len(HA5) + len(newInsertSeq) and guideEndCoord > len(HA5) + len(newInsertSeq) and kiType not in ["substitution", "deletion", "replacement"]:
+        guideCoordList = [(guideStartCoord - len(newInsertSeq), len(HA5)), (len(HA5) + len(newInsertSeq), guideEndCoord)]
     """
     # insert sequence inside the guide
     if guideStartCoord < len(HA5) and guideEndCoord > len(HA5) and kiType not in ["substitution", "deletion", "replacement"]:
-        guideCoordList = [(guideStartCoord, len(HA5)), (len(HA5) + len(insertSeq), guideEndCoord + len(insertSeq))]
+        guideCoordList = [(guideStartCoord, len(HA5)), (len(HA5) + len(newInsertSeq), guideEndCoord + len(newInsertSeq))]
 
     else:
         guideCoordList = [(guideStartCoord, guideEndCoord)]
@@ -10050,7 +10068,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
         if kiType in ["substitution", "deletion", "replacement"]:
             offset = len(HA3)
         else:
-            offset = len(HA3) + len(insertSeq)
+            offset = len(HA3) + len(newInsertSeq)
 
     for repeatStart, repeatEnd in HA3repeats:
         highlights.append((repeatStart + offset, repeatEnd + offset, {"background-color": "rgba(0, 0, 0, 0)"}, "repeatCoord"))
@@ -10106,13 +10124,13 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
     )
 
     if kiType == "substitution":
-        seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
+        seqMsg = "%s -> %s substitution" % (seq[insertIdx], newInsertSeq)
     elif kiType == "deletion":
         seqMsg = "%dbp deletion" % len(insertSeq)
     elif kiType == "replacement":
         seqMsg = "%dbp replacement" % len(insertSeq)
     else:
-        seqMsg = "knock-in of a %s bp sequence" % len(insertSeq)
+        seqMsg = "knock-in of a %s bp sequence" % len(newInsertSeq)
 
     if geneId:
         if "ENST" in geneId:
@@ -10126,7 +10144,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
                 % (insertPos, geneId, geneId)
             )
     else:
-        transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
+        transcriptUrl = "at position %s in %s" % (seqStart+insertIdx, chrom)
 
     print(
         """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
@@ -10293,20 +10311,34 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
 
     # form to change the insert sequence
     if kiType != "deletion":
+
         print("<form>")
+
+        # to verify
+        if recodedArmSeq:
+            printHiddenFields(params, {"batchId": batchId, "recodedDonorSeq": donorSeq, "donorSeq": orgDonor,
+                                       "pamId": pamId, "guideSeq": guideSeq, "donorName": donorName, "donorType": donorType,
+                                       "replaceInsertSeq": None, "newInsertSeq": None,
+                                       "tagseq": None, "markerseq": None, "expressionSeq": None, "qTag": None})
+        else:
+            printHiddenFields(params, {"batchId": batchId, "donorSeq": donorSeq, "pamId": pamId,
+                                       "guideSeq": guideSeq, "donorName": donorName, "donorType": donorType,
+                                       "replaceInsertSeq": None, "newInsertSeq": None,
+                                       "tagseq": None, "markerseq": None, "expressionSeq": None, "qTag": None})
+
         print("""<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto; margin-right: 30%; min-width: 800px;"> """)
         if kiType == "tagging":
             print("""<p>If you want to select other markers, use the dropdown menu below and click on update button. Updating with nothing selected will restore the original sequence.</p>""")
-            printTagsAndLinkers(qTAG=False)
+            printTagsAndLinkers(qTAG=False, tagNames=tagNames)
 
         elif kiType == "qTag":
             print("""<p>If you want to select other elements, use the dropdown menu below and click on the update button. Updating with nothing selected will restore the original sequence.</p>""")
-            printTagsAndLinkers(tag=False)
+            printTagsAndLinkers(tag=False, tagNames=tagNames)
 
         elif kiType == "substitution":
             print("""<p>If you want to change the substitution, select another base from the dropdown menu below and click on the update button.</p>""")
-            print("""<select name="relpaceInsertSeq" style="width: 48px;">""")
-            for base in [base for base in ["A", "T", "G", "C"] if base != insertSeq.upper()]:
+            print("""<select name="replaceInsertSeq" style="width: 48px;">""")
+            for base in [base for base in ["A", "T", "G", "C"] if base not in [insertSeq.upper(), seq[insertIdx]]]:
                 print("""<option value="%s">%s</option>""" % (base, base))
             print("</select>")
         elif kiType == "replacement":
@@ -10318,11 +10350,15 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
         else:
             print("""
                 <p>If you want to change the insert sequence, paste a new one here and click on the update button. Updating with an empty box will restore the original sequence.</p>
-                <textarea name="newInsertSeq" maxlength=5000 cols=100 rows=6 placeholder="paste a new insert sequence here (max 5kb)"></textarea>
+                <textarea name="replaceInsertSeq" maxlength=5000 cols=100 rows=6 placeholder="paste a new insert sequence here (max 5kb)"></textarea>
             """)
 
-        print("""<input type="hidden" name=%s value=%s />""" % ("insertSeq", insertSeq))
+        # print("""<input type="hidden" name=%s value=%s />""" % ("insertSeq", insertSeq))
+        # print("""<input type="hidden" name=%s value=%s />""" % ("donorType", donorType))
 
+        # trimming options
+        # to add : minimun length of homology arms
+        '''
         if donorType == "ds":
             print("""
                 <div id="trimOptions">
@@ -10332,10 +10368,11 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
                     <input type="checkbox" name="trimRepeat" form="main" value="True" autocomplete="off"/>Trim repeated sequences<br>
                 </div>
                 """)
+        '''
 
         print("""<button style="align-self: center; width: 125px;" type="submit" value="update">update</button>""")
-
         print("</form>")
+
     print("</div>")
     print("</div>")
 
@@ -10700,7 +10737,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             allPamIdToSeq.update(pamIdToSeq.copy())
 
         if not download:
-
 
             showExonAndPams(
                 org,
@@ -13782,31 +13818,46 @@ def printKoForm(params):
         }
     }
 
-    // get the exon number for the selected geneID
-    $(document).ready(function() {
-        $('.js-select-gene').on('select2:select', function (e) {
-            const data = e.params.data;
-            const exonSelect = $('#exonSelect');
-            exonSelect.empty();
-            if (data.exonCount != undefined) {
-                const allExonsOpt = new Option('target all exons ', 'allExons', false, false);
-                exonSelect.append(allExonsOpt);
-                for (const i = 0; i < data.exonCount; i++) {
-                    j = i+1
-                    const option = new Option('target exon ' + j, i, false, false);
-                    exonSelect.append(option);
-                }
-                exonSelect.trigger('change');
+
+// get the exon number for the selected geneID
+$(document).ready(function() {
+    $('.js-select-gene').on('select2:select', function (e) {
+        var data = e.params.data;
+        var exonSelect = $('#exonSelect');
+        exonSelect.empty();
+
+        // get exon frames
+        var exFrames = data.exFrames.split(',').map(s => s.trim());
+
+        if (data.exonCount != undefined) {
+
+            const allExonsOpt = new Option('target all exons ', 'allExons', false, false);
+            exonSelect.append(allExonsOpt);
+
+            for (var i = 0; i < data.exonCount; i++) {
+                j = i+1;
+
+                // if the current frame and the next frame are the same, removing the exon won't destroy the reading frame
+                // test version, not sure if labeled exons are really out-of-frame
+
+                var frame = exFrames[i];
+                var nextFrame = exFrames[j];
+
+                // don't take UTRs into account
+                if (frame === nextFrame || frame === -1) {
+                    oofText = ""
+                } else {oofText = " (out of frame exon)"};
+
+                var exonText = 'target exon ' + j + oofText;
+                var option = new Option(exonText, i, false, false);
+                exonSelect.append(option);
             }
-        });
+            exonSelect.trigger('change');
+        }
+    });
+});
+</script>
 
-        $(".js-select-hidden").select2({
-             minimumResultsForSearch: -1,
-             placeholder: 'Select the exon to target'});
-
-        toggleMethod();
-    })
-    </script>
     """)
 
     print(
@@ -13953,9 +14004,11 @@ def printKoForm(params):
           """)
 
 
-
-def printTagsAndLinkers(tag=True, qTAG=True):
-    """prints the dropdown menus for tags and linkers"""
+def printTagsAndLinkers(tag=True, qTAG=True, tagNames=None):
+    """
+    prints the dropdown menus for tags and linkers
+    Optionally, the tags in tagNames (list) can be preselected
+    """
 
     print(
         """
@@ -14094,7 +14147,11 @@ def printTagsAndLinkers(tag=True, qTAG=True):
         for linkerType in linkers:
             print("""<optgroup label="%s">""" % linkerType)
             for linker in linkers[linkerType]:
-                print("""<option value="%s">%s</option>""" % (linker, linker))
+                if tagNames and linker in tagNames:
+                    selected = "selected"
+                else:
+                    selected = ""
+                print("""<option %s value="%s">%s</option>""" % (selected, linker, linker))
             print("</optgroup>")
 
         print("</select>")
@@ -14112,7 +14169,12 @@ def printTagsAndLinkers(tag=True, qTAG=True):
         for tagType in tags:
             print("""<optgroup label="%s">""" % tagType)
             for tag in tags[tagType]:
-                print("""<option value="%s">%s</option>""" % (tag, tag))
+                if tagNames and tag in tagNames:
+                    selected = "selected"
+                else:
+                    selected = ""
+
+                print("""<option %s value="%s">%s</option>""" % (selected, tag, tag))
             print("</optgroup>")
 
         print(
@@ -14139,7 +14201,11 @@ def printTagsAndLinkers(tag=True, qTAG=True):
         for tagType in qTags:
             print("""<optgroup label="%s">""" % tagType)
             for tag in qTags[tagType]:
-                print("""<option value="%s">%s</option>""" % (tag, tag))
+                if tagNames and tag in tagNames:
+                    selected = "selected"
+                else:
+                    selected = ""
+                print("""<option %s value="%s">%s</option>""" % (selected, tag, tag))
             print("</optgroup>")
         print("""
         </select>
@@ -14157,7 +14223,12 @@ def printTagsAndLinkers(tag=True, qTAG=True):
         for markerType in markers:
             print("""<optgroup label="%s">""" % markerType)
             for marker in markers[markerType]:
-                print("""<option value="%s">%s</option>""" % (marker, marker))
+                if tagNames and marker in tagNames:
+                    selected = "selected"
+                else:
+                    selected = ""
+
+                print("""<option %s value="%s">%s</option>""" % (selected, marker, marker))
             print("</optgroup>")
         print("""
         </select>
@@ -14173,11 +14244,16 @@ def printTagsAndLinkers(tag=True, qTAG=True):
         print("<option></option>")
         print("""<option value="none">in-frame fusion to target gene</option>""")
         for expressionSeq in expressionSeqs:
+            if tagNames and expressionSeq in tagNames:
+                selected = "selected"
+            else:
+                selected = ""
+
             if expressionSeq == "EF1":
                 expressionSeqHtml = expressionSeq + "&alpha;"
             else:
                 expressionSeqHtml = expressionSeq
-            print("""<option value="%s">%s</option>""" % (expressionSeq, expressionSeqHtml))
+            print("""<option %s value="%s">%s</option>""" % (selected, expressionSeq, expressionSeqHtml))
         print("""
         </select>
         </div>
@@ -15306,13 +15382,13 @@ def writeDonorSeq(params):
         transId = geneId
 
     if manualExStart is not None and manualExEnd is not None and manualExFrame is not None and useManualAnnotation == "True":
-        selExon = [(1, int(manualExStart), int(manualExEnd), int(manualExFrame), 0, strand)]
+        selExon = [(1, int(manualExStart), int(manualExEnd), int(manualExFrame), int(manualExFrame), 0, strand)]
 
     elif selGeneModel:
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
         # no transcript at this position : load an empty non-coding region
         if len(exonInfo) == 0:
-            selExon = [(0, 0, 0, 0, 0, strand)]
+            selExon = [(0, 0, 0, 0, 0, 0, strand)]
         # retreive the exon corresponding to the selected transcript
         for transcriptInfo in exonInfo:
             transcriptId, symbol = transcriptInfo
@@ -15530,13 +15606,13 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
         oofCoords = []
         codonPos = []
         # splittedCodonPos = []  # for codons that overlap with the editing site
-        for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon:
+        for exonNumber, exonStart, exonEnd, exonFrame, oldExonFrame, nextExonFrame, exonStrand in selExon:
 
             isUTR5 = exonNumber == -1 and exonFrame == -1
             isUTR3 = exonNumber != -1 and exonFrame == -1
 
             # number of coding exons
-            codingExonLen = len([exonStart for exonNumber, exonStart, exonEnd, exonFrame, nextExonFrame, exonStrand in selExon if exonNumber != -1])
+            codingExonLen = len([exonStart for exonNumber, exonStart, exonEnd, exonFrame, oldExonFrame, nextExonFrame, exonStrand in selExon if exonNumber != -1])
 
             # whole exon in the 5' homology arm
             if exonStart < insertIdx and exonEnd < insertIdx:
