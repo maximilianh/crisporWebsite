@@ -1694,7 +1694,23 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 # 30/04/26
 
+- ajout de la fréquence des codons pour danRer11 / mm39 sur le serveur
+
+## global
+
+- ajout des logos UCSC / Celphedia à crisporBodyStart
+- ajouts de boutons pour masquer step1 / step 2
+- ajustement de la taille des menus : ~ 40% pam / génome, ~ 60% séquence / gène
+- homogénéisation des titres / contenus entre pages classic / KO / KI
+
 ## knock-in mode 
 
 - ajout d'éléments details pour masquer certaines parties de la page de résultats
 - ajout d'une fonction JS pour conserver l'état des éléments details lorsque la page est rechargée
+- ajout du lien vers le brower dans le titre
+
+## bugs
+
+- si pas de guides en mode classic + custom PAM -> message d'erreur printBody()
+
+

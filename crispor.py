@@ -2566,7 +2566,7 @@ def showSeqAndPams(
 
     if multiPamInfo is not None:
         print("""<details id="2" open style="margin-bottom: 12px;">""")
-        print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Legend and global information about the results</summary>""")
+        print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Legend and general information about the results</summary>""")
     else:
         print("<div class='substep' style='margin-top: 24px;'>")
         print('<a id="seqStart"></a>')
@@ -2932,7 +2932,7 @@ def flankSeqIter(seq, startDict, pamLen, doFilterNs, exonId=None, pamFullName=No
         yield pamId, pamStart, guideStart, strand, flankSeq, pamSeq, pamPlusSeq
 
 
-def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None):
+def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None, returnUrl=False):
     "return link to genome browser (ucsc or ensembl) at pos, with given text"
     if dbInfo is None:
         errAbort(
@@ -3004,12 +3004,16 @@ def makeBrowserLink(dbInfo, pos, text, title, cssClasses, ctUrl=None):
             title = "Link to %s Genome Browser" % urlLabel
         else:
             title = "No Genome Browser link available yet for this organism"
-    return """<a title="%s"%s target="_blank" href="%s">%s</a>""" % (
-        title,
-        classStr,
-        url,
-        text,
-    )
+
+    if returnUrl:
+        return url
+    else:
+        return """<a title="%s"%s target="_blank" href="%s">%s</a>""" % (
+            title,
+            classStr,
+            url,
+            text,
+        )
 
 
 def highlightMismatches(guide, offTarget, pamLen):
@@ -7438,7 +7442,7 @@ def readAnnGenomes():
 def printOrgDropDown(lastorg, genomes):
     "print the organism drop down box."
     print(
-        '<select id="genomeDropDown" class style="max-width:600px" name="org" tabindex="2">'
+            '<select id="genomeDropDown" class style="width: 85%; max-width:600px;" name="org" tabindex="2">'
     )
     print("<option ")
     if lastorg == "noGenome":
@@ -7664,7 +7668,7 @@ def printPamDropDown(lastpam, name=None):
         name = "pam"
 
     print(
-        '<select class="js-example-basic-single" style="float:left" name="%s" tabindex="3">' % name
+            '<select class="js-example-basic-single" style="float:left; width: 85%%;" name="%s" tabindex="3">' % name
     )
     for key, value in pamDesc:
         print("<option ")
@@ -7750,7 +7754,7 @@ def printForm(params):
         """
 <form id="main-form" method="post" action="%s">
 
-<div style="display:grid; clear:both; width: %%; min-width: 1500px; grid-template-columns: 47%% 53%%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+<div style="display:grid; clear:both; width: %%; min-width: 1500px; grid-template-columns: 42%% 58%%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
 
 <div class="windowstep subpanel" style="width:100%%; grid-column:2; grid-row:-1/1;">
     <div class="substep">
@@ -7803,7 +7807,10 @@ def printForm(params):
 </div>
 
 </div>
+
 <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:1;">
+    <details id="1" open>
+    <summary><small>Show / Hide step 1</small></summary>
     <div class="substep" style="margin-bottom: 1px">
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep2').toggle('fast')">
             Step 1
@@ -7831,7 +7838,11 @@ def printForm(params):
     print(
         """
     </div>
+    </details>
     <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2;">
+    <details id="2" open>
+    <summary><small>Show / Hide step 2</small></summary>
+
     <div class="substep">
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
             Step 2
@@ -7861,6 +7872,7 @@ def printForm(params):
     </details>
 
     </div>
+    </details>
     </div>
           """
         % (HTMLPREFIX, contactEmail)
@@ -7954,6 +7966,24 @@ $(".js-select-hidden").select2({
      minimumResultsForSearch: -1,
      placeholder: 'Select the exon to target'})
 </script>
+
+<script>
+// save the states of detail elements on page reload
+(function() {
+    var $details = $('details[id]');
+    $details.each(function() {
+        var savedState = localStorage.getItem('details-' + this.id);
+        if (savedState !== null) {
+            this.open = savedState === 'true';
+        }
+    });
+
+    $details.on('toggle', function() {
+        localStorage.setItem('details-' + this.id, this.open);
+    });
+})();
+</script>
+
 </form>
     """
         % (DEFAULTSEQ, DEFAULTORG)
@@ -9494,6 +9524,8 @@ def KiResultsPage(params, batchId, download=False):
     """
     Parses and prints the results from Knock-in jobs.
     Optionnally returns the data formatted for downloadFile()
+
+    Note : print calls should only occur when download is False
     """
 
     batchInfo = readBatchAsDict(batchId)
@@ -9530,6 +9562,38 @@ def KiResultsPage(params, batchId, download=False):
     minFreq, varDb = checkOtherArgs(params)
 
     if not download:
+
+        genomePosStr = ":".join(posStr.split(":")[:2])
+        chrom, start, end, strand = parsePos(posStr)
+        start = str(int(start) + 1)
+        chrom = applyChromAlias(org, chrom)
+        oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
+
+        # mouseOver = "link to UCSC,Ensembl or Gbrowse Genome Browser"
+        mouseOver = None
+        if dbInfo.server == "manual":
+            mouseOver = "no genome browser link available for this organism"
+        if strand == "+":
+            strandStr = " forward genomic strand"
+        else:
+            strandStr = " reverse genomic strand"
+
+        browserLink = makeBrowserLink(dbInfo, genomePosStr, oneBasedPosition,
+                                      mouseOver, ["tooltipster"], ctUrl=None)
+
+        # should build the link here instead to avoid calling the function twice
+        browserUrl = makeBrowserLink(dbInfo, genomePosStr, oneBasedPosition,
+                                     mouseOver, ["tooltipster"], ctUrl=None, returnUrl=True)
+
+        browserLinkHtml = """<div>
+        <em>%s</em> (%s),
+        %s  %s
+        </div>""" % (dbInfo.scientificName, dbInfo.name, browserLink, strandStr)
+
+        varHtmls, varDbs, varDb = getVariants(
+            seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
+        )
+
         if kiType == "substitution":
             seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
         elif kiType == "deletion":
@@ -9551,11 +9615,12 @@ def KiResultsPage(params, batchId, download=False):
                     % (insertPos, geneId, geneId)
                 )
         else:
-            transcriptUrl = "at position %s in %s" % (start+insertIdx, chrom)
+            chromPos = int(start) + int(insertIdx)
+            transcriptUrl = "at position <a target='blank' href='%s'>%d</a> in %s" % (browserUrl, chromPos, chrom)
 
         print(
-            """<div class="title" style="text-align:left; margin-bottom:12px;margin-top:12px;"><i>%s</i> : %s %s </div><br> """
-            % (dbInfo.scientificName, seqMsg, transcriptUrl)
+            """<div class="title" style="text-align:left; margin-bottom:12px;margin-top:12px;"><i>%s (%s)</i> : <span style="text-decoration:underline">%s %s</span></div><br> """
+            % (dbInfo.scientificName, org, seqMsg, transcriptUrl)
         )
 
         printKiSteps(batchId, step=1, align="left")
@@ -9568,7 +9633,6 @@ def KiResultsPage(params, batchId, download=False):
             exonSeqsPlaceholder = []
             print("<p>Show below is the gene model with the edits. Hover on these to get their full name and length</p>")
             printGeneModel(geneModel, exonSeqsPlaceholder, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
-
 
     allGuideData = []
     allGuideScores = {}
@@ -9607,31 +9671,6 @@ def KiResultsPage(params, batchId, download=False):
     if download:
         return seq, org, pam, posStr, allGuideData
     else:
-        genomePosStr = ":".join(posStr.split(":")[:2])
-        chrom, start, end, strand = parsePos(posStr)
-        start = str(int(start) + 1)
-        chrom = applyChromAlias(org, chrom)
-        oneBasedPosition = "%s:%s-%s:%s" % (chrom, start, end, strand)
-
-        # mouseOver = "link to UCSC,Ensembl or Gbrowse Genome Browser"
-        mouseOver = None
-        if dbInfo.server == "manual":
-            mouseOver = "no genome browser link available for this organism"
-        if strand == "+":
-            strandStr = " forward genomic strand"
-        else:
-            strandStr = " reverse genomic strand"
-
-        varHtmls, varDbs, varDb = getVariants(
-            seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
-        )
-
-        browserLink = makeBrowserLink(dbInfo, genomePosStr, oneBasedPosition,
-                                      mouseOver, ["tooltipster"], ctUrl=None)
-        browserLinkHtml = """<div>
-        <em>%s</em> (%s),
-        %s  %s
-        </div>""" % (dbInfo.scientificName, dbInfo.name, browserLink, strandStr)
 
         showSeqAndPams(
             org,
@@ -9779,11 +9818,9 @@ def KiResultsPage(params, batchId, download=False):
             '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
         )
 
-    # Run synchronously (no $(document).ready) so the open state is set before
-    # the browser paints — using ready waits for DOMContentLoaded, by which time
-    # the default-open details have already been rendered, causing a visible flash.
     print("""
     <script>
+    // save the states of detail elements on page reload
     (function() {
         var $details = $('details[id]');
         $details.each(function() {
@@ -9792,13 +9829,13 @@ def KiResultsPage(params, batchId, download=False):
                 this.open = savedState === 'true';
             }
         });
-        // Bind directly to each element because the toggle event does not
-        // bubble, so delegation via document would never fire.
+
         $details.on('toggle', function() {
             localStorage.setItem('details-' + this.id, this.open);
         });
     })();
-    </script> """)
+    </script>
+          """)
 
 
 def printKiSteps(batchId: str, step=1, annotationParams=None, align="center"):
@@ -10607,7 +10644,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
     if not download:
 
         print("""<div class="title" style="text-align:left; margin-bottom: 50px;">""")
-        print("%s (%s)</em>, " % (dbInfo.scientificName, dbInfo.name))
+        print("<i>%s (%s)</i></em> : " % (dbInfo.scientificName, dbInfo.name))
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
         elif koMethod == "excision":
@@ -10638,6 +10675,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         )
         print("""</div>""")
 
+        print("""<div style="margin-bottom: 24px;">""")
+
         if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
             printGeneModel(geneModel, exonSeqs, koMethod, commonExons=commonExons)
         print(
@@ -10646,6 +10685,16 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             print("""
             In-frame methionine codons are highlighted in green, to avoid selecting guides that could result in a DSB upstream of an alternative START codon.<br>
                   """)
+
+        print(
+            """Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<br>"""
+        )
+        print(
+            "Click on a match for the PAM %s below to show its %d bp-long guide sequence.<br>"
+            % (pam, GUIDELEN)
+        )
+
+        print("</div>")
 
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
         if geneModels:
@@ -11293,9 +11342,31 @@ def printFile(fname):
 
 def printCrisporBodyStart():
     # print("""<a href='crispor.py'><img style='width:70px' src='%simage/2021-Logo-Do-3.jpg' alt='UCSC Logo'></a>""" % (HTMLPREFIX))
+
+    print("""<div style=" width: 100%; display: flex; flex-direction: row; justify-content: space-between;">""")
     print(
-        """<div style='margin-top:10px'><a href='crispor.py'>&nbsp;&larr; Back to CRISPOR homepage</a></div>"""
+            """<div style='margin-top:10px;'><a href='crispor.py'>&nbsp;&larr; Back to CRISPOR homepage</a></div>"""
     )
+    print("""<div style="display: flex; flex-direction: row;">""")
+    print(
+        """<a href='crispor.py'><img style='width:150px; margin-left:25px' src='%simage/2021-Logo-Do-3.jpg' alt='UCSC Logo'></a>"""
+        % (HTMLPREFIX)
+    )
+    print(
+        """
+        <div style="margin-top: 6px;" >
+        <a class="tooltipsterInteract" title="CELPHEDIA (The National Infrastructure for model organisms in health and biomedical research) is a national operational research infrastructure distributed over the French territory.<br>Its mission is to support academic and industrial scientific community to accelerate discoveries in biology and improve biomedical research. To this end, CELPHEDIA operates in 3 main activities with respect of ethical principles and animal welfare.<br>
+        <ul>
+            <li>Standardized service offers, in the areas of creation, functional exploration, archiving and distribution of animal models, necessary for fundamental research and preclinical approaches: rodents with the mouse as the leader, non-human primates and non-mammals including aquatic vertebrates.</li>
+            <li>Research and development activity for new technological offers.</li>
+            <li>Training courses adapted to users needs either for the use of animals in research with respect to institutional regulations or to develop specific technological skills.</li>
+        </ul>" href='https://celphedia.eu/en/' target="_blank"><img style='width:150px; margin-left:25px;' src='%simage/logo_Celphedia.jpg' alt='Celphedia'></a>
+        </div>
+        """ % (HTMLPREFIX)
+    )
+    print("</div>")
+    print("</div")
+
     print('<div id="bd">')
     print('<div class="centralpanel" style="margin-left:0px">')
     print('<div class="subpanel" style="background:transparent;box-shadow:none;">')
@@ -11307,7 +11378,7 @@ def printCrisporBodyStart():
 def printTeforBodyStart():
     print("""<div style="display: flex; flex-direction: row; gap:2%; align-items: center; padding: 12px; margin-left: 24px;">""")
     # print """<a href='http://genome.ucsc.edu'><img style='vertical-align: top; height: 40px' src='%s/image/ucscBioinf.jpg' alt=''></a>""" % (HTMLPREFIX)
-    
+
     '''
     print(
         """<a href='crispor.py'><img style='width:150px; margin-left:25px' src='%simage/2021-Logo-Do-3.jpg' alt='UCSC Logo'></a>"""
@@ -11354,14 +11425,13 @@ def printReleaseNote():
 
 def printTeforBodyEnd():
 
-
     print('<div style="clear:both; text-align:center; margin-left: auto; margin-right: 5%%; display: flex; flex-direction: row; gap: 12px; min-width: 250px;">')
     print("""<div style="margin-left: auto; margin-right: auto;">
                 Version %s -
-                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" target=_blank href="/manual/">Documentation</a>
-                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="https://academic.oup.com/nar/article/46/W1/W242/4995687">Citation</a>
-                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="downloads/">Downloads / local installation</a>
-                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0;" href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0; margin-right: 4px;" target=_blank href="/manual/">Documentation</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0; margin-right: 4px;" href="https://academic.oup.com/nar/article/46/W1/W242/4995687">Citation</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0; margin-right: 4px;" href="downloads/">Downloads / local installation</a>
+                <a style="border-right: solid 1px lightgrey; padding: 0 8px 0 0; margin-right: 4px;" href="https://github.com/maximilianh/crisporWebsite/blob/master/LICENSE.txt">License</a>
                 <a href='mailto:%s'>Contact us</a>
         """ % (versionStr, contactEmail))
 
@@ -13916,8 +13986,11 @@ $(document).ready(function() {
 
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ko">
-        <div style="display:grid; clear:both; width: 100%%; min-width: 1650px; grid-template-columns: 47% 53%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+        <div style="display:grid; clear:both; width: 100%%; min-width: 1650px; grid-template-columns: 42% 58%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1;">
+
+            <details id="1" open>
+            <summary><small>Show / Hide step 1</small></summary>
             <div class="title" style="cursor:pointer" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
             </div>
@@ -13937,12 +14010,16 @@ $(document).ready(function() {
             <small style="float:left">We have %d genomes, but not yours? Search <a href="https://www.ncbi.nlm.nih.gov/assembly">NCBI assembly</a> and send a GCF_/GCA_ ID to <a href="mailto:%s">CRISPOR support</a>.</small><br>
             </div>
         </div>
+        </details>
     """
         % (len(genomes), contactEmail)
     )
     print(
         """
         <div class="windowstep subpanel" style="display:flex; width:90%%; flex-direction:column; grid-column:1; grid-row:2;">
+
+        <details id="2" open>
+        <summary><small>Show / Hide step 2</small></summary>
         <div>
             <div class="title" style="cursor:pointer;">
                 Step 2
@@ -13968,6 +14045,7 @@ $(document).ready(function() {
             </div>
         </div>
        </div>
+       </details>
         """)
 
     print(
@@ -14051,6 +14129,25 @@ $(document).ready(function() {
         $("#genomeDropDown").on('change', showHideHubNote);
         showHideHubNote();
     </script>
+
+<script>
+// save the states of detail elements on page reload
+(function() {
+    var $details = $('details[id]');
+    $details.each(function() {
+        var savedState = localStorage.getItem('details-' + this.id);
+        if (savedState !== null) {
+            this.open = savedState === 'true';
+        }
+    });
+
+    $details.on('toggle', function() {
+        localStorage.setItem('details-' + this.id, this.open);
+    });
+})();
+</script>
+
+
           """)
 
 
@@ -14182,7 +14279,7 @@ def printTagsAndLinkers(tag=True, qTAG=True, tagNames=None):
             }
 
     print(
-        """<div class="windowstep subpanel" id="tagPanel" style="width:100%; height:75px; display:flex; flex-direction:row;"> """
+            """<div class="windowstep subpanel" id="tagPanel" style="width:100%; height:75px; display:flex; flex-direction:row; margin-bottom: 18px;"> """
     )
 
     if tag:
@@ -14508,8 +14605,12 @@ function clearEndSeq() {
         <input type=hidden name="expType" value="ki">
 
        <div style="display:flex; clear:both; padding:12px; width: 100%; min-width: 1550px;">
-       <div style="flex:1; display:flex; flex-direction:column; gap:21%;">
-        <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:150px;">
+       <div style="width: 50% ;flex:0 0 41%; display:flex; flex-direction:column; gap:14%;">
+
+        <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:30%;">
+
+            <details id="1" open>
+            <summary><small>Show / Hide step 1</small></summary>
             <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
             </div>
@@ -14529,12 +14630,16 @@ function clearEndSeq() {
             <small style="float:left">We have %d genomes, but not yours? Search <a href="https://www.ncbi.nlm.nih.gov/assembly">NCBI assembly</a> and send a GCF_/GCA_ ID to <a href="mailto:%s">CRISPOR support</a>.</small><br>
             </div>
         </div>
+        </details>
     """
         % (len(genomes), contactEmail)
     )
     print(
         """
-        <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2;">
+        <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2; height: 30%%;">
+
+        <details id="2" open>
+        <summary><small>Show / Hide step 2</small></summary>
             <div class="title" style="cursor:pointer; margin-bottom:12px;" onclick="$('#helpstep3').toggle('fast')">
                 Step 2
             </div>
@@ -14546,7 +14651,7 @@ function clearEndSeq() {
     )
 
     print(
-        """ <select class=js-example-basic-single style="width:73%;" name="multipam"> """
+        """ <select class=js-example-basic-single style="width:85%;" name="multipam"> """
     )
     for pamKey in multiPamDict:
         pamText = multiPamDict[pamKey][1]
@@ -14560,17 +14665,21 @@ function clearEndSeq() {
             <br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
         </div>
         </div>
-        </div>""")
+        </div>
+        </details>
+        """)
 
     print(
         """
-        <div style="flex:1; display:flex; flex-direction:column;">
+        <div style="flex:0 0 59%; display:flex; flex-direction:column; width: 100%;">
         <div class="windowstep subpanel" style="width:100%; grid-column:2; grid-row:1;">
             <div class="title" style="cursor:pointer; margin-bottom:4px;" onclick="$('#helpstep3').toggle('fast')">
                 Step 3
             </div>
-            <div style="display:flex; align-items:center;">
-                Choose one of the following methods : &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+            <div style="display:flex; align-items:center; justify-contents: space-around; gap: 20%;">
+                <div style="align-self: left;">
+                Choose one of the following methods :
+                </div>
                 <div style="border:dashed 0.5px grey; border-radius:6px; padding:8px;">
                     <input type="radio" checked name="targetRegions" value="seq" onchange="toggleTargetRegion()" autocomplete="off"/>Enter a sequence with the desired modifications<br>
                     <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag a protein in Nter or Cter</div>
@@ -14581,7 +14690,7 @@ function clearEndSeq() {
                     <small><a href="javascript:clearStartSeq()">Clear Box</a> - </small>
                     <small><a href="javascript:resetToExample()">Set a default example</a></small>
                 </div>
-                <textarea name="startSeq" style="display: block;" rows="7" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
@@ -14595,7 +14704,7 @@ function clearEndSeq() {
                 <div style="margin-top:20px;">
                     <small>Currently, %d out of %d genomes are annotated with genes. If yours insn't included, select "Enter a sequence" above.</small><br>
                 </div>
-                <div style="margin-top: 37px; margin-bottom:8px; display:flex; flex-direction:row; align-items:center;">
+                <div style="margin-top: 37px; margin-bottom: 16px; display:flex; flex-direction:row; align-items:center;">
                 Insert :
                     <input type="radio" checked name="insertpos" value="Nter" onchange="toggleInsertpos()" autocomplete="off"/>After the START codon
                     <input type="radio" name="insertpos" value="Cter" onchange="toggleInsertpos()" autocomplete="off"/>Before the STOP codon
@@ -14641,15 +14750,15 @@ function clearEndSeq() {
                     </div>
                 </div>
 
-                <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:12px;">
+                <div id="tagInsertDisplay" style="display: none; margin-bottom:12px; margin-top:24px;">
                     Enter the sequence to insert<br>
-                    <input type="radio" checked style="margin-top:13px;" name="insertype" value="tagLinker" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
+                    <input type="radio" checked style="margin-top:24px;" name="insertype" value="tagLinker" onchange="toggleInsertseq()" autocomplete="off"/>Choose from a list of linkers and tags
 <input type="radio" style="margin-top:13px;" name="insertype" value="qTag" onchange="toggleInsertseq()" autocomplete="off"/>qTAG <img src=" %s image/info-small.png" class="tooltipsterInteract" title="The qTAG system combines the tagging sequence with a marker (fluorescent protein or antibiotic resistance gene). The marker is flanked by loxP sites to allow its removal when successfully edited cells have been selected. For more information, see <a href='https://doi.org/10.1038/s44318-024-00337-5' target='blank'>Philip et al. 2025</a>">
 
                     <input type="radio" name="insertype" value="custom" onchange="toggleInsertseq()" autocomplete="off"/>Paste a custom sequence
                     <textarea spellcheck="false" autocorrect="false" id="insertSeq" name="insertSeq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
 
-                <div style="width:95%%; display: block; margin-top: 14px;" id="taglist">
+                <div style="width:95%%; display: block; margin-top: 24px; margin-bottom: 24px;" id="taglist">
           """ % HTMLPREFIX
     )
 
@@ -14688,6 +14797,24 @@ function clearEndSeq() {
         $("#genomeDropDown").on('change', showHideHubNote);
         showHideHubNote();
     </script>
+
+<script>
+// save the states of detail elements on page reload
+(function() {
+    var $details = $('details[id]');
+    $details.each(function() {
+        var savedState = localStorage.getItem('details-' + this.id);
+        if (savedState !== null) {
+            this.open = savedState === 'true';
+        }
+    });
+
+    $details.on('toggle', function() {
+        localStorage.setItem('details-' + this.id, this.open);
+    });
+})();
+</script>
+
     """)
 
 
@@ -14890,7 +15017,9 @@ def printBody(params):
             else:
                 print(errMsg)
 
-    if "batchId" not in params and submit is None:
+    # need to rewrite this in a cleaner way
+
+    elif "batchId" not in params and submit is None:
         if "warningPage" in params and "warnMsg" in params:
             showWarningPage(params)
             sys.exit(0)
@@ -14901,12 +15030,25 @@ def printBody(params):
         elif expType == "classic":
             printForm(params)
         elif "geneIds" in params:
-            # printCrisporBodyStart()
+            printCrisporBodyStart()
             printLibGuides(params)
         elif "libDesign" in params:
             # printCrisporBodyStart()
             printLibForm(params, returnLink=False)
 
+        else:
+            printForm(params)
+
+        printReleaseNote()
+
+    elif "batchId" not in params:
+        printAssistant(params)
+        if "libDesign" in params:
+            printLibForm(params)
+        elif params.get("expType") == "ki":
+            printKiForm(params)
+        elif params.get("expType") == "ko":
+            printKoForm(params)
         else:
             printForm(params)
 
