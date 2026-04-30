@@ -9779,24 +9779,23 @@ def KiResultsPage(params, batchId, download=False):
             '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
         )
 
+    # Run synchronously (no $(document).ready) so the open state is set before
+    # the browser paints — using ready waits for DOMContentLoaded, by which time
+    # the default-open details have already been rendered, causing a visible flash.
     print("""
     <script>
     (function() {
-        $(document).ready(function() {
-            // Restore state for all details elements with an ID
-            $('details[id]').each(function() {
-                var id = $(this).attr('id');
-                var savedState = localStorage.getItem('details-' + id);
-                if (savedState !== null) {
-                    $(this).prop('open', savedState === 'true');
-                }
-            });
-
-            // Save state on toggle
-            $(document).on('toggle', 'details[id]', function() {
-                var id = $(this).attr('id');
-                localStorage.setItem('details-' + id, this.open);
-            });
+        var $details = $('details[id]');
+        $details.each(function() {
+            var savedState = localStorage.getItem('details-' + this.id);
+            if (savedState !== null) {
+                this.open = savedState === 'true';
+            }
+        });
+        // Bind directly to each element because the toggle event does not
+        // bubble, so delegation via document would never fire.
+        $details.on('toggle', function() {
+            localStorage.setItem('details-' + this.id, this.open);
         });
     })();
     </script> """)
