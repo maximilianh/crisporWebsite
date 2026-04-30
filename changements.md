@@ -1690,5 +1690,11 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## à faire 
 
 - clarifier l'affichage de KiResultsPage
-- réparer scroll horizontal du tableau (otTable)
 - masquer affichage pam / génome dans page d'acceuil ?
+
+# 30/04/26
+
+## knock-in mode 
+
+- ajout d'éléments details pour masquer certaines parties de la page de résultats
+- ajout d'une fonction JS pour conserver l'état des éléments details lorsque la page est rechargée

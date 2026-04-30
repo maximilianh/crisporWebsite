@@ -2499,7 +2499,7 @@ def showSeqAndPams(
 
             otherLines, maxY = layoutPamLines(otherPamLines, len(seq))
             otherPamLinesHtml = list(makePamLines(otherLines, maxY, None, None, pamWindow=pamWindow, otherPam=otherPam, insertIdx=insertIdx))
-    
+
     posLabel = "Position"
     varLabel = "Variants"
     if multiPamInfo:
@@ -2565,8 +2565,8 @@ def showSeqAndPams(
         labelLen = max(labelLen, exonLabelLen)
 
     if multiPamInfo is not None:
-        print("<details style='margin-bottom: 12px;'>")
-        print("<summary>Click here to display the legend and global information about the results</summary>")
+        print("""<details id="2" open style="margin-bottom: 12px;">""")
+        print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Legend and global information about the results</summary>""")
     else:
         print("<div class='substep' style='margin-top: 24px;'>")
         print('<a id="seqStart"></a>')
@@ -2648,7 +2648,8 @@ def showSeqAndPams(
         if selGeneModel == "noGenes":
             cgiParams.pop("geneModelSelection", None)
 
-        print("<h4>Annotation of the coding sequence</h4>")
+        print("""<details id="3" open autocomplete="off">""")
+        print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Annotation of the coding sequence</summary>""")
         print("""<div>Select a gene model and a transcript below to display the translated coding sequences.<br>
               If there is no available annotation or if it is incomplete, you can manually annotate the coding sequence by selecting "manual annotation".<br>""")
         if multiPamInfo:
@@ -2735,7 +2736,7 @@ def showSeqAndPams(
         for key in ("manualExStart", "manualExEnd", "manualExFrame",
                     "geneModelSelection", "selTransId"):
             cgiParams.pop(key, None)
-
+    print("</details>")
     if baseEditor:
         print("Base Editor modification window:")
         print(
@@ -9568,6 +9569,7 @@ def KiResultsPage(params, batchId, download=False):
             print("<p>Show below is the gene model with the edits. Hover on these to get their full name and length</p>")
             printGeneModel(geneModel, exonSeqsPlaceholder, koMethod=None, insertSeq=insertSeq, insertPos=insertPos, kiType=kiType, tagNames=tagNames)
 
+
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
@@ -9656,7 +9658,8 @@ def KiResultsPage(params, batchId, download=False):
         showSeqDownloadMenu(batchId)
 
         # Sequence viewer filtering / display menu
-
+        print("""<details id="1" open>""")
+        print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Sequence viewer display and filtering</summary>""")
         print("""
         <div style="width: 100%; display: flex; flex-direction: row; gap: 12px; margin-top: 24px; overflow-x: scroll; max-width: 1650px; min-width: 1650px;">
         <p style="width: 50%;">
@@ -9744,6 +9747,7 @@ def KiResultsPage(params, batchId, download=False):
         </div>
         </form><br>
         """)
+        print("</details>")
 
         if posStr == "?":
             print("""
@@ -9774,6 +9778,28 @@ def KiResultsPage(params, batchId, download=False):
         print(
             '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
         )
+
+    print("""
+    <script>
+    (function() {
+        $(document).ready(function() {
+            // Restore state for all details elements with an ID
+            $('details[id]').each(function() {
+                var id = $(this).attr('id');
+                var savedState = localStorage.getItem('details-' + id);
+                if (savedState !== null) {
+                    $(this).prop('open', savedState === 'true');
+                }
+            });
+
+            // Save state on toggle
+            $(document).on('toggle', 'details[id]', function() {
+                var id = $(this).attr('id');
+                localStorage.setItem('details-' + id, this.open);
+            });
+        });
+    })();
+    </script> """)
 
 
 def printKiSteps(batchId: str, step=1, annotationParams=None, align="center"):
@@ -11328,6 +11354,7 @@ def printReleaseNote():
 
 
 def printTeforBodyEnd():
+
 
     print('<div style="clear:both; text-align:center; margin-left: auto; margin-right: 5%%; display: flex; flex-direction: row; gap: 12px; min-width: 250px;">')
     print("""<div style="margin-left: auto; margin-right: auto;">
