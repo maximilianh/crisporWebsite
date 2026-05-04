@@ -2565,7 +2565,7 @@ def showSeqAndPams(
         labelLen = max(labelLen, exonLabelLen)
 
     if multiPamInfo is not None:
-        print("""<details id="2" open style="margin-bottom: 12px;">""")
+        print("""<details id="results2" open style="margin-bottom: 12px;">""")
         print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Legend and general information about the results</summary>""")
     else:
         print("<div class='substep' style='margin-top: 24px;'>")
@@ -2648,7 +2648,7 @@ def showSeqAndPams(
         if selGeneModel == "noGenes":
             cgiParams.pop("geneModelSelection", None)
 
-        print("""<details id="3" open autocomplete="off">""")
+        print("""<details id="results3" open autocomplete="off">""")
         print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Annotation of the coding sequence</summary>""")
         print("""<div>Select a gene model and a transcript below to display the translated coding sequences.<br>
               If there is no available annotation or if it is incomplete, you can manually annotate the coding sequence by selecting "manual annotation".<br>""")
@@ -7777,7 +7777,7 @@ def printForm(params):
               placeholder="Paste here the genomic - not a cDNA - sequence of the exon you want to target. The sequence has to include the PAM site for your enzyme of interest, e.g. NGG. Maximum size %d bp. If you only have a cDNA, please BLAST or BLAT the cDNA first to find the right exon sequence for CRISPOR.">%s</textarea>
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 
-<details style = "margin-top:12px;">
+<details id="geneSelection" style = "margin-top:12px;">
     <summary>Click here to enter a gene ID and select a target exon instead</summary>
           """
         % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
@@ -7809,7 +7809,7 @@ def printForm(params):
 </div>
 
 <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:1;">
-    <details id="1" open>
+    <details id="classic1" open>
     <summary><small>Show / Hide step 1</small></summary>
     <div class="substep" style="margin-bottom: 1px">
         <div class="title" style="cursor:pointer;" onclick="$('#helpstep2').toggle('fast')">
@@ -7840,7 +7840,7 @@ def printForm(params):
     </div>
     </details>
     <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2;">
-    <details id="2" open>
+    <details id="classic2" open>
     <summary><small>Show / Hide step 2</small></summary>
 
     <div class="substep">
@@ -7858,7 +7858,7 @@ def printForm(params):
 
     print(
         """<br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
-    <details style = "margin-top:12px;">
+    <details id="customPAM" style = "margin-top:12px;">
         <input name = "customPAM" placeholder="PAM (> 1 non N, 3-8 nt)" style="height:22px; width:180px;" onkeydown="handleEnter(event)"></input>
         <select name = "customType" class="js-example-basic-single" style="width:25%%">
             <option value="">Select enzyme type</option>
@@ -7934,21 +7934,9 @@ $(document).ready(function() {
         var exonSelect = $('#exonSelect');
         exonSelect.empty();
 
-        // get exon frames
-        var exFrames = data.exFrames.split(',').map(s => s.trim());
-
         if (data.exonCount) {
             for (var i = 0; i < data.exonCount; i++) {
                 j = i+1;
-
-                // if the current frame and the next frame are the same, removing the exon won't destroy the reading frame
-                // test version, will be moved to printKoForm in "splcing" mode
-
-                var frame = exFrames[i];
-                var nextFrame = exFrames[j];
-                if (frame === nextFrame) {
-                    oofText = ""
-                } else {oofText = " (out of frame exon)"};
 
                 var exonText = 'find guides for exon ' + j;
                 var option = new Option(exonText, i, false, false);
@@ -9697,14 +9685,10 @@ def KiResultsPage(params, batchId, download=False):
         showSeqDownloadMenu(batchId)
 
         # Sequence viewer filtering / display menu
-        print("""<details id="1" open>""")
+        print("""<details id="results1" open>""")
         print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Sequence viewer display and filtering</summary>""")
         print("""
         <div style="width: 100%; display: flex; flex-direction: row; gap: 12px; margin-top: 24px; overflow-x: scroll; max-width: 1650px; min-width: 1650px;">
-        <p style="width: 50%;">
-        Note : by default, only guides that result in a DSB less than 10bp away from the edit site are displayed.<br>
-        If there are no guides found or you want to examine more possible guides, either increase this theshold, or look for other PAMs in the sequence (in gray on the sequence viewer). Note that guides with other PAMs don't have any specificity or efficiency scores yet. You can submit a new search with the selected PAMs to get the corresponding guides and scores.
-        </p>
         """)
 
         print(
@@ -9717,12 +9701,11 @@ def KiResultsPage(params, batchId, download=False):
         print("""<input type="hidden" name="batchId" value="%s"/>""" % batchId)
 
         print("""
-        <div style="align-items: center; border: 1px dashed black;
-                    padding: 12px; border-radius: 12px; margin-right: 32px;">
+        <div class="windowstep subpanel" style="align-items: center; padding: 12px; margin-right: 32px; box-shadow: 0 0 15px 4px rgba(47, 129, 203, 0.14);">
 
         <div style="display: flex; flex-direction: column;">
             <div style="display: flex; flex-direction: row; align-items: top; gap: 5%%; margin-bottom: 12px;">
-                <div style="font-weight: bold; font-size: 1.15em;">Options to modify the display of PAMs on the sequence viewer</div>
+                <div style="font-weight: bold; font-size: 18px;">Options to modify the display of PAMs on the sequence viewer</div>
             </div>
             <div style="display: flex">
                 <div>
@@ -9734,11 +9717,11 @@ def KiResultsPage(params, batchId, download=False):
 
         print("""
         <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
-        <p>Show the position of other PAMs on the sequence</p>
+        <p>Add PAMs</p>
               """)
 
         print(
-                """ <select style="width:50%; height: 25px;" name="otherPam"> """
+                """ <select style="width:80%; height: 25px;" name="otherPam"> """
             )
         print("""<option value="">only %s</option>""" % multiPamDict[multipam][1])
         for pamKey in multiPamDict:
@@ -9758,7 +9741,7 @@ def KiResultsPage(params, batchId, download=False):
                 </div>
             </div>
             <div style="margin-top: 24px; display: flex; flex-direction: row; gap: 10%; align-self: center;">
-                <button style="width: 220px; height: 32px; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update sequence viewer</button>
+                <button style="width: 80px; height: 32px; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update</button>
         """)
 
         if otherPam is not None:
@@ -9783,9 +9766,16 @@ def KiResultsPage(params, batchId, download=False):
 
         </div>
         </div>
-        </div>
-        </form><br>
+        </form>
         """)
+        print("""
+        <p style="width: 50%;">
+        Note : by default, only guides that result in a DSB less than 10bp away from the edit site are displayed.<br>
+        If there are no guides found or you want to examine more possible guides, either increase this theshold, or look for other PAMs in the sequence (in gray on the sequence viewer). Note that guides with other PAMs don't have any specificity or efficiency scores yet. You can submit a new search with the selected PAMs to get the corresponding guides and scores.
+        </p>
+        </div>
+        """)
+
         print("</details>")
 
         if posStr == "?":
@@ -11458,7 +11448,35 @@ $('.tooltipsterInteract').tooltipster({
     speed : 0
 });
 
-    </script> """
+    </script>
+
+
+<script>
+
+// keep scroll position on reload
+// from https://stackoverflow.com/questions/17642872
+
+    document.addEventListener("DOMContentLoaded", function(event) {
+        var scrollpos = localStorage.getItem('scrollpos');
+        if (scrollpos) {
+            window.scrollTo({top: parseInt(scrollpos),
+                             left: 0,
+                             behavior: 'auto'
+                             });
+            localStorage.removeItem('scrollpos');
+        };
+    });
+
+    window.onbeforeunload = function(e) {
+        localStorage.setItem('scrollpos', window.scrollY);
+    };
+
+    document.addEventListener('submit', function(e) {
+        localStorage.setItem('scrollpos', window.scrollY);
+    }, true);
+
+</script>
+"""
     )
 
     print(
@@ -13989,7 +14007,7 @@ $(document).ready(function() {
         <div style="display:grid; clear:both; width: 100%%; min-width: 1650px; grid-template-columns: 42% 58%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1;">
 
-            <details id="1" open>
+            <details id="ko1" open>
             <summary><small>Show / Hide step 1</small></summary>
             <div class="title" style="cursor:pointer" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
@@ -14018,7 +14036,7 @@ $(document).ready(function() {
         """
         <div class="windowstep subpanel" style="display:flex; width:90%%; flex-direction:column; grid-column:1; grid-row:2;">
 
-        <details id="2" open>
+        <details id="ko2" open>
         <summary><small>Show / Hide step 2</small></summary>
         <div>
             <div class="title" style="cursor:pointer;">
@@ -14609,7 +14627,7 @@ function clearEndSeq() {
 
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:30%;">
 
-            <details id="1" open>
+            <details id="ki1" open>
             <summary><small>Show / Hide step 1</small></summary>
             <div class="title" style="cursor:pointer;" onclick="$('#helpstep3').toggle('fast')">
                 Step 1
@@ -14638,7 +14656,7 @@ function clearEndSeq() {
         """
         <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2; height: 30%%;">
 
-        <details id="2" open>
+        <details id="ki2" open>
         <summary><small>Show / Hide step 2</small></summary>
             <div class="title" style="cursor:pointer; margin-bottom:12px;" onclick="$('#helpstep3').toggle('fast')">
                 Step 2
@@ -14830,9 +14848,11 @@ def printBody(params):
     expType = params.get("expType")
     submit = params.get("submit")
 
+    # need a different way to handle errors returned by crisprSearch()
     customPamErr = "<p>The custom PAM you entered either contains less than two non N nucleotides, unexpected characters or is not 3-8 nt long. Please use A, T, G, C or N only.</p>"
 
     errMsg = "<p>Something unexpected occured. This is probably a bug, please contact us at %s and send us the information below: <br> %s <br></p>" % (contactEmail, params)
+
     printTeforBodyStart()
     if submit is None and "batchId" not in params and "geneIds" not in params and "warnMsg" not in params:
         printAssistant(params)
@@ -15850,8 +15870,11 @@ def getArmCoords(HA5, HA3, strand, seq, insertIdx, guideSeq,
                     continue
                 exonStartPos = exonStart - insertIdx
                 exonEndPos = exonEnd - insertIdx
-
-                # correct codon positions for replacements
+                print(exonStartPos)
+                # correct codon positions for replacements and deletions
+                if kiType in ["deletion", "substitution", "replacement"]:
+                    exonStartPos = exonStartPos - len(insertSeq)
+                    print(exonStartPos)
 
                 if isUTR5:
                     UTR5coords.append((exonStartPos, exonEndPos - 6))

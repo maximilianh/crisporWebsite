@@ -1650,7 +1650,7 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire
 
-- uppercase de la séquence codante des exons tranqués en mode KO / frameshift
+- uppercase de la séquence codante des exons tranqués en mode KO / frameshift DONE
 - en mode KO / common exons, proposer dropdown sélection transcrit / gene ? 
 
 # 28/04/26
@@ -1689,8 +1689,8 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 ## à faire 
 
-- clarifier l'affichage de KiResultsPage
-- masquer affichage pam / génome dans page d'acceuil ?
+- clarifier l'affichage de KiResultsPage ~DONE
+- masquer affichage pam / génome dans page d'acceuil ? DONE
 
 # 30/04/26
 
@@ -1712,5 +1712,15 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## bugs
 
 - si pas de guides en mode classic + custom PAM -> message d'erreur printBody()
+- si nouvelle recherche avec "lower specificity engineered PAMs" -> erreur (uniquement sur le serveur ??)
 
+# 04/05/26
 
+## global
+
+- assignation d'id uniques des éléments details entre formulaires / page de résultats
+- ajout d'une function pour conserver la position du défilement lors du rechargement de la page
+
+## knock-in mode
+
+- Recodage : correction du calcul du coordonnées des exons situés en 3' du site d'édition en mode délétion / substitution / remplacement (prise en compte de la taille de l'edit)
