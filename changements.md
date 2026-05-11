@@ -1720,7 +1720,55 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 
 - assignation d'id uniques des éléments details entre formulaires / page de résultats
 - ajout d'une function pour conserver la position du défilement lors du rechargement de la page
+- déplacement de l'affichage des résultats en mode classic de crisprSearch vers une nouvelle fonction (classicResultsPage)
+- ajout de BE1 dans la liste des PAMs
+- en mode base editor, retrait des scores oof / lindel de la liste des scores à calculer
+
+## knock-out mode
+
+- correction du formualaire de sélection des variants
+- ajout de l'affichage des edits en mode baseEditor + ajout du formulaire de modification de la fenpetre d'édition
 
 ## knock-in mode
 
 - Recodage : correction du calcul du coordonnées des exons situés en 3' du site d'édition en mode délétion / substitution / remplacement (prise en compte de la taille de l'edit)
+
+# 05/05/26
+
+## global
+
+- correction de bugs : 
+    - lien vers tableau trié par global score changé en lowercase (Thomas Boulin)
+    - dans genbankWrite(), variable "start" à la place de "pamStart" (Thomas Boulin)
+- correction de newBatch : retourne le json si le fichier existe
+
+## base editing
+
+- ajout d'un texte explicatif de l'annotation des edits sur la séquence
+- changement de la couleur des edits + ajout d'un lien redirigeant vers la rangée du tableau correspondant au guide au plus haut Komor score
+- dans makeEditLines et getBeWin, limitation des coordonnées des edits à celles de la séquence
+- adaptation au mode KO : modification de makeEditLines / showExonAndPams 
+    - séparation des données json pour chaque séquence 
+    - écriture du json après processing de chaque séquence
+
+## knock-in mode
+
+- correction de la taille minimale des éléments sur la page des résultats.
+- correction du calcul des coordonnées du guide sur l'ADN donneur lorsque l'insertion chevauche le guide.
+
+## à faire
+
+- implémenter Komor Score
+
+# 11/05/26
+
+## global
+
+- adaptation du global score avec EVA (retour Stephan Riesenberg) : 
+    - utilisation de EVA comme un global score (conservation de la pénialité %GC)
+    - retrait de la pénalité de Graf (motif GCC) pour tous les scores : replacement par énergie libre
+    - remplacement des labels pour calcul du global score
+
+## à faire
+
+- adapter texte mouseover global score

@@ -406,8 +406,9 @@ def ucscCleanup(dbTmpDir, accToSymTmp, segTmp, sizesTmp,  geneModels, twoBitTmp,
         runCmd(cmd)
 
     printMsg("Moving output files into crispr tool directory")
-    outFnames = glob.glob(join(dbTmpDir, "*.fa.*")) # bwa output files
-    if segTmp:
+    outFnames = glob.glob(join(dbTmpDir, "*.fa.*"))  # bwa output files
+    # for now, don't rewrite segTmp to avoid permission errors
+    if segTmp and not onlyGenes:
         outFnames.extend([segTmp])
 
     # allow overwrite of gene models ?
