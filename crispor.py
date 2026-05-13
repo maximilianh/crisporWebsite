@@ -235,7 +235,7 @@ pamDesc = [
     ("NNGRRT-20", "20bp-NNG(A/G)(A/G)T - Cas9 S. Aureus with 20bp-guides"),
     ("NGK", "20bp-NG(G/T) - xCas9, recommended PAM, see notes"),
     # ('NGN','20bp-NGN or GA(A/T) - xCas9 (low efficiency, not recommended)'),
-    ('NGG-BE1','20bp-NGG - BaseEditor1, modifies C->T'),
+    ('NGG-BE1', '20bp-NGG - BaseEditor1, modifies C->T'),
     ("NNNRRT", "21bp-NNN(A/G)(A/G)T - KKH SaCas9"),
     ("NNNRRT-20", "20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides"),
     ("NGA", "20bp-NGA - Cas9 S. Pyogenes mutant VQR"),
@@ -274,6 +274,12 @@ pamDesc = [
     ("NYN", "20bp-NYN - SpRY (low efficiency PAM)"),
     # ('VTTV','(A/C)TT(A/C)-23bp - enCas12a S542R - Kleinstiver et al Nat Biot 2019'),
     # ('TRTV','T(A/G)T(A/C)-23bp - enCas12a K548R - Kleinstiver et al Nat Biot 2019'),
+]
+
+# list of base editors
+beDesc = [
+    ('NGG-BE1', '20bp-NGG - BaseEditor1, modifies C->T'),
+    ('NGG-BE4', '20bp-NGG - BaseEditor4, modifies C->T')
 ]
 
 # Ideally, pass pams in the batch parameters (to allow the user to select pams) ?
@@ -1402,7 +1408,7 @@ def showSecondaryStructure(params):
     print("""<div class="title">Spacer sequence of the guide : %s</div>""" % guideSeq)
     if addSeq and strSeq != guideSeq:
         print("<p>3' sequence : %s</p>" % addSeq)
-    print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is taken into account to calculate the EVA activity score. Structures with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracrRNA sequence in 3' to check the predicted structure of the guide and potential issues with guide RNA folding.</p>
+    print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is used to calculate the EVA activity score. Structures with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracrRNA sequence in 3' to check the predicted structure of the guide and potential issues with guide RNA folding.</p>
     """)
     print("""<p>Free energy of this structure : <b>%s kcal/mol</b></p>""" % freeEnergy)
 
@@ -1808,7 +1814,7 @@ def buildOneToThree():
     return oneToThree
 
 
-def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
+def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None):
     """create text that draws exons, input is transId -> (exonNumber, exStart, exEnd, exFrame).
     returns a list of (transId (=label), symbol (=mouseover), ASCII-line)"""
     lines = []
@@ -1817,6 +1823,18 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
     # oneToThree = buildOneToThree()
     seqLen = len(seq)
     seq = seq.upper()
+
+    if editInfo:
+        # need to add ABE / CBE instead of pam (which is just the pam motif)
+        pam, editData = editInfo
+
+        # {codon, position to mutate}, to adapt witht the deaminase
+        # for CBE
+        possibleStops = {"TGG": 1, "CAG": 0, "CGA": 0, "CAA": 0}
+
+    # list of guideIds that result in STOP codons
+    if koMethod is not None:
+        stopGuides = {}
 
     for (transId, symbol), exRows in exonInfo.items():
         if selTransId != "allTrans" and transId != selTransId:
@@ -1883,6 +1901,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                 else:
                     for i in range(exStart + exOffset, exEnd, 3):
                         codon = seq[i: i + 3]
+
                         if len(codon) == 3:
                             shortAa = codonTable[codon]
                             longAa = shortAa + "]]"
@@ -1891,10 +1910,24 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
                             longAa = "-"
                         for j in range(0, len(longAa)):
                             # in knock-out mode, highlight methionines in green
-                            if koMethod == "frameshift" and longAa[j] == "M":
-                                line[i + j] = """<span style="background-color: rgba(0, 255, 0, 0.5)">%s</span>""" % longAa[j]
+                            if koMethod in ["frameshift", "stop"] and codon.upper() == "ATG":
+                                line[i + j] = """<span style="background-color: rgba(0, 255, 0, 0.5); height: 15px; display: inline-block;">%s</span>""" % longAa[j]
+
+                            # in base editing mode, these codons can be transformed into STOP codons with CBEs
+                            elif koMethod == "stop" and codon.upper() in possibleStops and editData is not None:
+
+                                isStop, newStopGuides = checkStopCodons(codon.upper(), i, editData, possibleStops, stopGuides)
+
+                                if len(newStopGuides) > 0:
+                                    stopGuides.update(newStopGuides)
+
+                                if isStop:
+                                    line[i + j] = """<span style="background-color: rgba(255, 51, 0, 0.5); height: 15px; display: inline-block;">%s</span>""" % longAa[j]
+                                else:
+                                    line[i + j] = longAa[j]
                             else:
                                 line[i + j] = longAa[j]
+
         # now merge the mouse overs as span tags into the ASCII line
         newLine = []
         for pos, char in enumerate(line):
@@ -1920,10 +1953,42 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None):
         newLineStr = "".join(newLine)
         newLineStr = newLineStr.replace("[[", "<lc>&lt;&lt;</lc>")
         newLineStr = newLineStr.replace("]]", "<lc>&gt;&gt;</lc>")
+        newLineStr = newLineStr.replace("]", "<lc>&gt;</lc>")
 
         lines.append((symbol, transId, newLineStr))
         # maxLabelLen = max(maxLabelLen, len(transId))
-    return lines
+
+    if koMethod is not None:
+        return lines, stopGuides
+    else:
+        return lines
+
+
+def checkStopCodons(codon, codonStart, editData, possibleStops, stopGuides):
+    """
+    returns True if a guide in editData can be used to change the codon into a STOP codon
+    also returns the list of guides for which isStop is True
+    """
+
+    # need to do this before calling showExonAndPams and showGuideTable to filter possible guides early
+    # but this function needs all PAMs to be computed..
+
+    beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
+    isStop = False
+    stopGuides = {}
+
+    for seqIdx, editDict in editData.items():
+        for editPos, editData in editDict.items():
+
+            # may add a double check : mutated codon = revCodonTable[*]
+            # editBase = str(list(editData.keys())[0])
+
+            if editPos == codonStart + possibleStops[codon]:
+                stopGuides = {tpl[0]: editPos for tpl in list(editData.values())[0]}
+                isStop = True
+
+            # print(editPos, editData, "<br>")
+    return isStop, stopGuides
 
 
 def getGeneModels(org):
@@ -2022,14 +2087,24 @@ def calcKomorScore(guideSeq, pos):
     return pos / 7.0  # temporary hack
 
 
-def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0):
+def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGuides=None, substInfo=None):
     "create the lines that show the possible baseEditor edits"
     editInfos = []
     for i in range(0, len(seq)):
         editInfos.append(defaultdict(list))
 
+    # list of pam IDs that result in a substitution in KI mode
+    if substInfo is not None:
+        insertIdx, insertSeq = substInfo
+        substPamIds = []
+
     upSeq = seq.upper()
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
+
+        # in knock-out mode, discard guides that don't introduce a STOP codon
+        if stopGuides is not None and pamId not in stopGuides.keys():
+            continue
+
         specScore = guideScores[pamId]
         if strand == "+":
             fromPos = guideStart + winStart
@@ -2046,6 +2121,11 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0):
         for pos in range(fromPos, toPos):
             if pos >= len(seq) or pos < 0:
                 continue
+
+            # only keep pamIds that introduce the substitution
+            if substInfo is not None and pos == insertIdx and toNucl == insertSeq.upper():
+                substPamIds.append(pamId)
+
             # position of mutated nucl on forw strand guide
             if strand == "+":
                 mutPos = pos - guideStart
@@ -2058,6 +2138,7 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0):
                     (pamId, guideSeq, pamSeq, mutPos, beScore, specScore)
                 )
 
+    # print(editInfos)
     altNucls = ["A", "T"]
 
     editLabels = []
@@ -2073,16 +2154,45 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0):
     for pos, eiDict in enumerate(editInfos):
         if not eiDict:
             continue
+
         # in knock-out mode, separate the data from different sequences
         jsonData[exonId][pos] = dict(eiDict)
         for nucl, guideData in eiDict.items():
+
+            # for substitutins, remove PAMs that dont result in a substitution
+            # but keep bystander edits
+            if substInfo is not None:
+                noPam = False
+                for guideTpl in guideData:
+                    pamId = guideTpl[0]
+                    if pamId not in substPamIds:
+                        noPam = True
+                        guideData.remove(guideTpl)
+                if noPam:
+                    continue
+
+            # print(guideData, pos, "<br>")
+            if stopGuides is not None and pos in stopGuides.values():
+                style = "color: rgb(255, 51, 0); font-weight: bold;"
+            elif substInfo is not None and pos == insertIdx:
+                style = "color: rgb(255, 127, 4); font-weight: bold;"
+            else:
+                style = "color: rgb(255, 127, 4);"
+
+            # bystander edits in grey
+            if stopGuides is not None and pos not in stopGuides.values() \
+                    or substInfo is not None and pos != insertIdx:
+                style = "color: rgb(102, 102, 102)"
+
             pamIdLink = guideData[0][0]
             yPos = altNucls.index(nucl)
-            editLines[yPos][pos] = """<a href="#%s"><d pos=%d exonId=%d>%s</d></a>""" % (pamIdLink, pos, exonId, nucl)
+            editLines[yPos][pos] = """<a href="#%s" style="%s"><d pos=%d exonId=%d>%s</d></a>""" % (pamIdLink, style, pos, exonId, nucl)
 
     ret = []
     for label, lineChars in zip(editLabels, editLines):
-        ret.append((label, None, "".join(lineChars)))
+        # don't display a line with no edits
+        if len([char for char in lineChars if char != ' ']) > 0:
+            ret.append((label, None, "".join(lineChars)))
     return ret, jsonData
 
 
@@ -2092,6 +2202,7 @@ def makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable=True,
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId in lines[y]:
+
             if otherPam is None:
                 guideSeq = pamIdToSeq.get(pamId)
             else:
@@ -2229,7 +2340,7 @@ def showExonAndPams(
     selGeneModel=None,
     selTransId=None,
     exonSelect=None,
-    allJsonData=None
+    allJsonData={}
 ):
     pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True, exonId=exonId))
     if koMethod == "splicing":
@@ -2250,7 +2361,7 @@ def showExonAndPams(
     else:
         htmlExonId = exonId
 
-    if koMethod == "frameshift":
+    if koMethod in ["frameshift", "stop"]:
         if exonId == 0:
             exonDisplay = "block"
         else:
@@ -2278,7 +2389,7 @@ def showExonAndPams(
                 <p style="display: %s" class="exonGroup%s" name="exonDisplay" > No guide sequences were found at position %s</p>
                  """ % (exonDisplay, htmlExonId, browserlink)
              )
-        return
+        return allJsonData, {}
 
     # for the region upstream of the TSS, scroll to the left by default
     if koMethod == "excision" and exonId == 0:
@@ -2314,16 +2425,33 @@ def showExonAndPams(
         editLines, jsonData = makeEditLines(
             seq, pamSeqs, beWinStart, beWinEnd, guideScores, exonId
         )
-        allJsonData.update(jsonData)
-
-    if baseEditor:
         labelLen = max(labelLen, getMaxLen(editLines))
-
+    else:
+        jsonData = None
     exonLines = []
+
     if selGeneModel is not None:
+        if koMethod == "stop":
+            editInfo = (pam, jsonData)
+        else:
+            editInfo = None
         exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, position, extendPos=True)
         labelLen = max(labelLen, maxTransIdLen)
-        exonLines = makeExonLines(exonInfo, seq, selTransId, koMethod)
+        exonLines, stopGuides = makeExonLines(exonInfo, seq, selTransId, koMethod, editInfo=editInfo)
+    else:
+        stopGuides = {}
+
+    # rebuild editLines and pamLines, but only with edits that don't result in a STOP codon
+    if koMethod == "stop" and stopGuides is not None:
+        editLines, jsonData = makeEditLines(
+            seq, pamSeqs, beWinStart, beWinEnd, guideScores, exonId, stopGuides=stopGuides
+        )
+        lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam, exonId, stopGuides=stopGuides)
+        pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores))
+        labelLen = max(labelLen, getMaxLen(editLines))
+
+        if jsonData:
+            allJsonData.update(jsonData)
 
     # if the last exon on the first third of the coding sequence was extended 14bp inside a coding sequence,
     # avoid flagging this region as an intron
@@ -2351,7 +2479,7 @@ def showExonAndPams(
     )
     print(""" <div class="substep" """)
     print('<a id="seqStart"></a>')
-    if koMethod == "frameshift":
+    if koMethod in ["frameshift", "stop"]:
         exonLen = len("".join(base for base in seq if base.isupper()))
         exonNumberText = exonId + 1
         print(
@@ -2438,7 +2566,8 @@ def showExonAndPams(
     print("""</div>""")
     print("""</div>""")
 
-    return allJsonData
+    return allJsonData, stopGuides
+
 
 def showSeqAndPams(
     org,
@@ -2468,6 +2597,7 @@ def showSeqAndPams(
         pamSeqs = list(flankSeqIter(seq, startDict, len(pam), True))
         lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam)
         pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores, linkToTable))
+        substInfo = None
         # kiType = None
     else:
         pamList = multiPamInfo[0]
@@ -2476,6 +2606,13 @@ def showSeqAndPams(
         insertSeq = multiPamInfo[3]
         pamSeqs = []
         allPamLines = []
+        
+        # used in makeEditLines
+        if kiType == "substitution":
+            substInfo = (insertIdx, insertSeq)
+        else:
+            substInfo = None
+
         for pamFullName in pamList:
             pam = setupPamInfo(pamFullName)
             startDict, endSet = findAllPams(seq.upper(), pam)
@@ -2566,7 +2703,7 @@ def showSeqAndPams(
     if baseEditor:
         beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
         editLines, jsonData = makeEditLines(
-            seq, pamSeqs, beWinStart, beWinEnd, guideScores
+            seq, pamSeqs, beWinStart, beWinEnd, guideScores, substInfo=substInfo
         )
         printJson("editData", jsonData)
 
@@ -2764,10 +2901,20 @@ def showSeqAndPams(
     if baseEditor:
         print("""<details id="results4" open autocomplete="off">""")
         print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Base editing information</summary>""")
+        if multiPamInfo is not None:
+            print("""<p>Base editing can be used to introduce this substitution.<br>
+                  Using base editing bypasses the need for a double strand break and a donor DNA, which may be useful for therapeutic applications.</p>""")
+        print("""<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>""")
+        if multiPamInfo is not None:
+            print("""
+                  <ul>
+                        <li>Edits in orange corrspond to the substitution.</li>
+                        <li>Edits in grey corresponds to "bystander" edits (i.e, additional edits that can occur when using the same guide).</li>
+                  </ul>
+                  """)
 
-        print("""<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>
-                    Hover on an edit to show the corresponding guides and their Komor and specificity scores.<br>
-                    Clicking on the edit will redirect to the row corresponding to the guide with the highest Komor score.<br>""")
+        print("""Hover on an edit to show the corresponding guides and their Komor and specificity scores.<br>
+                 Clicking on the edit will redirect to the row of the guide with the highest Komor score.<br>""")
         print("Base Editor modification window:")
         selBeWin = "%s-%s" % (beWinStart, beWinEnd)
         print(
@@ -3954,8 +4101,6 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, GC, freeE, globEff
     if grafType and globEffScore != "seqDeepCpf1":
         if grafType == "tt" and globEffScore == "rs3":
             mainScore -= 25
-        elif grafType == "gcc":
-            mainScore -= 40
 
     if "TTTT" in guideSeq and (globEffScore == "rs3" or (globEffScore == "seqDeepCpf1" and selGlobEffScore == "rs3")):
         mainScore -= 25
@@ -5042,7 +5187,8 @@ def showGuideTable(
     koMethod=None,
     pamWindow=None,
     exonSelect=None,
-    annotParams=None
+    annotParams=None,
+    stopGuides=None
 ):
     "shows table of all PAM motif matches"
     if pamFullName:
@@ -5152,6 +5298,10 @@ def showGuideTable(
 
         guidelen = len(guideSeq)
         pamlen = len(pamSeq)
+
+        if koMethod == "stop" and pamId not in stopGuides:
+            continue
+
         if pamWindow and pamFullName and abs(effScores["insertDistance"] > pamWindow):
             continue
         # flag the 3 best non-overlapping guides
@@ -5916,7 +6066,7 @@ def firstFreeLine(lineMasks, y, start, end):
     # return None
 
 
-def layoutPamLines(pamLines, seqLen):
+def layoutPamLines(pamLines, seqLen, stopGuides=None):
     """place pam motifs on lines so they don't overlap"""
     # max number of lines in y direction to draw
     MAXLINES = 60
@@ -5936,6 +6086,10 @@ def layoutPamLines(pamLines, seqLen):
     pamLines.sort(key=lambda x: x[0])
 
     for startFt, endFt, label, strand, pamId in pamLines:
+
+        if stopGuides is not None and pamId not in stopGuides:
+            continue
+
         y = firstFreeLine(lineMasks, 0, startFt, endFt)
         if y == None:
             # errAbort("not enough space to plot features")
@@ -5954,12 +6108,12 @@ def layoutPamLines(pamLines, seqLen):
     return ftsByLine, maxY
 
 
-def distrOnLines(seq, startDict, featLen, pam, exonId=None):
+def distrOnLines(seq, startDict, featLen, pam, exonId=None, stopGuides=None):
     """given a dict with start -> (start,end,name,strand) and a motif len, create lines of annotations such that
     the motifs don't overlap on the lines
     """
     pamLines = getPamLines(seq, startDict, featLen, pam, exonId)
-    return layoutPamLines(pamLines, len(seq))
+    return layoutPamLines(pamLines, len(seq), stopGuides=stopGuides)
 
 
 def getPamLines(seq, startDict, featLen, pam, exonId=None, pamFullName=None):
@@ -6425,7 +6579,7 @@ def calcSaveEffScores(batchId, seq, extSeq, pam, queue, writeHeader, seqNumber=N
     return rows
 
 
-def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
+def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterIdx):
     """given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores.
     Return a
@@ -6439,9 +6593,6 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
     # need to reduce possible scores
     # need to create the same rows for all PAMs (if the score isn't calculated for this pam, assign the value 0 / NA)
     # move the score calculation to a shared function, and row creation to a specialized one ?
-
-    # Just a placeholder for now
-    # Will be used for multipam jobs
 
     seq = seq.upper()
     if extSeq:
@@ -6470,8 +6621,9 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
 
     outputScoreNames = list(allScoreNames) + ["seqDeepCpf1", "najm", "oof", "lindel"]
 
-    if baseEditor:
-        outputScoreNames.remove("oof").remove("lindel")
+    if baseEditor and outputScoreNames:
+        outputScoreNames.remove("oof")
+        outputScoreNames.remove("lindel")
 
     if len(longSeqs) > 0 and doEffScoring:
         enz = None
@@ -6545,7 +6697,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iter):
         rows.append(row)
 
     # avoid creating multiple headers for each pam
-    if iter == 0:
+    if iterIdx == 0:
         headerRow = ["guideId", "guide", "longSeq"]
         headerRow.extend(outputScoreNames)
         rows.insert(0, headerRow)
@@ -6619,7 +6771,7 @@ def createBatchEffScoreTable(
 
 
 def createMultiBatchEffScoreTable(
-    batchId, Fname, queue, pam, pamFullName, extSeq, iter
+    batchId, Fname, queue, pam, pamFullName, extSeq, iterIdx
 ):
 
     pam = setupPamInfo(pamFullName)
@@ -6632,7 +6784,7 @@ def createMultiBatchEffScoreTable(
     logging.info("writing eff scores for PAM %s" % pam)
     seq = seq.upper() if seq is not None else seq
     guideRows = calcMultiSaveEffScores(
-        batchId, seq, extSeq, pam, queue, pamFullName, iter
+        batchId, seq, extSeq, pam, queue, pamFullName, iterIdx
     )
 
     for row in guideRows:
@@ -6644,7 +6796,8 @@ def readEffScores(batchId, multipam=None):
 
     effScoreFname = join(batchDir, batchId) + ".effScores.tab"
     seqToScores = {}
-    if isfile(effScoreFname):
+    if isfile(effScoreFname) and os.path.getsize(effScoreFname) > 0:
+
         for row in lineFileNext(open(effScoreFname)):
             scoreDict = {}
             rowDict = row._asdict()
@@ -7271,7 +7424,7 @@ def processMultiSeqSubmission(
 
 
 def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId, queue):
-    """In KI mode : 
+    """In KI mode :
     For each PAM in multiPamDesc, creates a fasta file containing guides for each sequence in multiseq.
     Then, search these files against genome, filter for pam matches and append to bedFName.
     optionally write status updates to work queue. Remove faFname.
@@ -7281,10 +7434,17 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     global maxMMs
     maxMMs = 4
     batchInfo = readBatchAsDict(batchId)
+    # kiType = batchInfo["kiType"]
 
     if seq is None and posStr is None:
         return None, None
+
     pamList = multiPamDict[multipam][0]
+    """
+    if kiType == "substitution":
+        for bePam, beText in beDesc:
+            pamList.append(bePam)
+    """
     logging.info("PAMs are : %s" % ", ".join(pamList))
 
     bedFname = batchBase + ".bed.gz"
@@ -7704,7 +7864,7 @@ def printPamDropDown(lastpam, name=None):
         name = "pam"
 
     print(
-            '<select class="js-example-basic-single" style="float:left; width: 85%%;" name="%s" tabindex="3">' % name
+            '<select class="js-example-basic-single" id="pamDropDown" style="float:left; width: 85%%;" name="%s" tabindex="3">' % name
     )
     for key, value in pamDesc:
         print("<option ")
@@ -9297,6 +9457,7 @@ def crisprSearch(params):
                 clippedSeq = params.get("clippedSeq")
                 if isinstance(tagNames, str):
                     tagNames = json.loads(tagNames)
+
                 batchId = newMultiPamBatch(
                     newBatchName,
                     seq,
@@ -9611,10 +9772,22 @@ def KiResultsPage(params, batchId, download=False):
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId, multipam=multipam)
     globEffScore = params.get("globEffScore", "rs3")
-    pamWindow = int(params.get("pamWindow", 10))
+
+    # increase the default window for substitutions to display PAMs for base editing
+    if kiType == "substitution":
+        defaultWindow = 20
+    else:
+        defaultWindow = 10
+    pamWindow = int(params.get("pamWindow", defaultWindow))
     otherPam = params.get("otherPam")
 
     pamList = multiPamDict[multipam][0]
+    """
+    if kiType == "substitution":
+        for bePam, beText in beDesc:
+            pamList.append(bePam)
+    """
+
     chrom, start, end, strand = parsePos(posStr)
 
     minFreq, varDb = checkOtherArgs(params)
@@ -9652,7 +9825,10 @@ def KiResultsPage(params, batchId, download=False):
             seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
         )
 
-        if kiType == "substitution":
+        # Base editing can be used for these substitutions
+        if kiType == "substitution" and (seq[insertIdx].upper() == "C" and insertSeq == "T") or (seq[insertIdx].upper() == "G" and insertSeq == "A"):
+            global baseEditor
+            baseEditor = True
             seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
         elif kiType == "deletion":
             seqMsg = "%dbp deletion" % (len(batchInfo["insertSeq"]))
@@ -10707,6 +10883,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         print("<i>%s (%s)</i></em> : " % (dbInfo.scientificName, dbInfo.name))
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
+        elif koMethod == "stop":
+            titleText = "introducing premature STOP codons"
         elif koMethod == "excision":
             titleText = "excision of the gene locus"
         elif koMethod == "promoter":
@@ -10737,7 +10915,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
         print("""<div style="margin-bottom: 24px;">""")
 
-        if koMethod == "frameshift" or (koMethod == "splicing" and len(exonPosStr) > 2):
+        if koMethod in ["frameshift", "stop"] or (koMethod == "splicing" and len(exonPosStr) > 2):
             printGeneModel(geneModel, exonSeqs, koMethod, commonExons=commonExons)
         print(
             """<p>Below are the target and PAM sequences. Lowercase bases corresponds to an extension of the target exon sequence (to identify guides that bind exon boundaries and induce a DSB in the exon).<p>""")
@@ -10762,7 +10940,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 exonInfo, maxTransIdLen = getExonInfo(org, model, exonPosStr[0], extendPos=True)
                 for transId, sym in list(exonInfo.keys()):
                     # for common exons, koGeneId is a gene symbol : select the first transcript by default
-                    if transId == koGeneId or sym == koGeneId:
+                    if transId in koGeneId or koGeneId in transId or sym == koGeneId:
                         selGeneModel = model
                         selTransId = transId
                         break
@@ -10770,8 +10948,10 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
             # list to merge edit information into a single one
             allJsonData = {}
+            stopGuides = {}
         else:
             allJsonData = None
+            stopGuides = None
 
         if koMethod in ["excision", "promoter"]:
             # for experiments with a pair of guides, show two results pages
@@ -10833,9 +11013,16 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                     print("""<details id="results4" open autocomplete="off">""")
                     print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Base editing information</summary>""")
 
-                    print("""<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>
-                                Hover on an edit to show the corresponding guides and their Komor and specificity scores.<br>
-                                Clicking on the edit will redirect to the row corresponding to the guide with the highest Komor score.<br>""")
+                    print("<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>")
+                    if koMethod == "stop":
+                        print("""
+                              <ul>
+                                    <li>Edits in red result in the introduction of a premature STOP codon.</li>
+                                    <li>Edits in grey corresponds to "bystander" edits (i.e, additional edits that can occur when using the same guide).</li>
+                              </ul>
+                              """)
+                    print("""Hover on an edit to show the corresponding guides and their Komor and specificity scores.<br>
+                             Clicking on the edit will redirect to the row of the guide with the highest Komor score.<br>""")
                     print("Base Editor modification window:")
                     selBeWin = "%s-%s" % (beWinStart, beWinEnd)
                     print(
@@ -10915,8 +11102,11 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             allPamIdToSeq.update(pamIdToSeq.copy())
 
         if not download:
+
             # allJsonData is the base editing data that is appended to on each iteration
-            allJsonData = showExonAndPams(
+            # stopGuides is a list of pamIds that result in the introduction of a STOP codon with base editing
+
+            allJsonData, newStopGuides = showExonAndPams(
                 org,
                 seq,
                 startDict,
@@ -10937,6 +11127,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 allJsonData=allJsonData
             )
 
+            if koMethod == "stop":
+                stopGuides.update(newStopGuides)
+
             # for methods that require a pair of guides, two tables are shown
             if koMethod in ["excision", "promoter"]:
                 showGuideTable(
@@ -10955,8 +11148,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
     if not download:
         showSeqDownloadMenu(batchId)
-    if baseEditor:
-        printJson("editData", allJsonData)
+        if baseEditor:
+            printJson("editData", allJsonData)
+
     # for experiements using a pair of guides, sort the table by each target sequence
     # if koMethod in ["excision", "promoter"]:
     #    sortGuideData(allGuideData, sortBy, exonSort=True)
@@ -10977,7 +11171,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             None,
             koGeneId,
             koMethod=koMethod,
-            exonSelect=exonSelect
+            exonSelect=exonSelect,
+            stopGuides=stopGuides
         )
 
         print('<br><a class="neutral" href="crispor.py?expType=ko">')
@@ -11946,7 +12141,9 @@ def xlsWrite(
         ws.write(1, 1, seq)
         if multipam:
             ws.write(3, 0, "#PAMS")
+            # add BE pams for substitutions
             pamList = multiPamDict[multipam][0]
+
             ws.write(3, 1, ', '.join([pam for pam in pamList]))
         else:
             ws.write(3, 0, "# PAM")
@@ -14027,11 +14224,38 @@ def printKoForm(params):
     print(
         """
     <script>
+
+    function populatePamDropdown(desc) {
+
+        // populates the PAM dropdown with input PAM options list
+
+        $("#pamDropDown").empty();
+
+        // from https://stackoverflow.com/questions/740195
+
+        console.log(desc)
+
+        for (let i = 0; i < desc.length; i++) {
+
+            // console.log(desc[i][1]);
+
+            let pamItem = desc[i];
+            let pamOpt = new Option(pamItem[1], pamItem[0]);
+
+            $(pamOpt).html(pamItem[1]);
+            $("#pamDropDown").append(pamOpt);
+
+        };
+    }
+
     function toggleMethod() {
     const koMethods = document.getElementsByName('koMethod')
     const flankLen = document.getElementById('flankLen')
     const promoterLen = document.getElementById('promoterLen')
     const exonSelect = document.getElementById('exonSelect')
+    const beDesc = %s
+    const pamDesc = %s
+    const lastpam = %s
 
     let selectedValue;
     for (const method of koMethods){
@@ -14053,6 +14277,16 @@ def printKoForm(params):
             $('#exonSelectContainer').show();
         } else {
             $('#exonSelectContainer').hide();
+        }
+        if (selectedValue === 'stop') {
+
+            // this method uses base editors so the PAM dropdown needs to be updated
+            populatePamDropdown(beDesc)
+
+        } else {
+
+            // rebuild the original PAM dropdown
+            populatePamDropdown(pamDesc)
         }
     }
 
@@ -14096,7 +14330,7 @@ $(document).ready(function() {
 });
 </script>
 
-    """)
+    """ % (json.dumps(beDesc), json.dumps(pamDesc), json.dumps(lastpam)))
 
     print(
         """
@@ -14186,6 +14420,7 @@ $(document).ready(function() {
             <p style="margin-top:50px">Choose one of the following approaches to inactivate your gene</p>
 
             <input type="radio" checked name="koMethod" id="frameshift" value="frameshift" onchange="toggleMethod()"/> Frameshift mutation in the first third of the coding sequence<br>
+            <input type="radio" name="koMethod" id="stop" value="stop" onchange="toggleMethod()"/> Introduce a premature STOP codon in the first two thirds of the coding sequence with base editing<br>
             <input type="radio" name="koMethod" id="excision" value="excision" onchange="toggleMethod()"/> Excision of the gene locus<br>
 
             <small id="flankLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
@@ -15353,7 +15588,7 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
         maxLen = MAXSEQLEN
 
     chrom, strand, allExons = getGenePos(geneId, org, method, targetLen)
-    if method in ["frameshift", "splicing"]:
+    if method in ["frameshift", "stop", "splicing"]:
         if len(allExons) == 0:
             return None, None
         # exons is the list to be returned
@@ -15367,8 +15602,8 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
             if exonSelect == "allExons" or exonNumber == int(exonSelect):
                 exons.append((start - spliceDist, start + spliceDist))
                 exons.append((end - spliceDist, end + spliceDist))
-    elif method == "frameshift":
-        exons = getFirstThird(allExons, strand, GUIDELEN, maxLen)
+    elif method in ["frameshift", "stop"]:
+        exons = getFirstThird(allExons, strand, GUIDELEN, maxLen, method)
     else:
         exons = allExons
 
@@ -15518,7 +15753,7 @@ def getGenePos(geneID, org, method, targetLen):
             featureList = [downstreamPos, upstreamPos]
 
     # get the positions of the coding exons (5' and 3' UTRs removed)
-    elif method == "frameshift" or method == "allExons" or method == "splicing":
+    elif method in ["frameshift", "stop", "allExons", "splicing"]:
         cdsStart = geneInfo["cdsStart"]
         cdsEnd = geneInfo["cdsEnd"]
         exonStarts = geneInfo["exonStarts"]
@@ -15540,7 +15775,7 @@ def getGenePos(geneID, org, method, targetLen):
     return chrom, strand, featureList
 
 
-def getFirstThird(exons, strand, pamlen, maxLen, minLen=100):
+def getFirstThird(exons, strand, pamlen, maxLen, method, minLen=100):
     """from a list of exon positions get the first third of the sequence (whithin the boundaries of minLen / maxLen)
     input is a list of tuples [(start, end)]. Returns the same format as the input list.
     """
@@ -15550,7 +15785,11 @@ def getFirstThird(exons, strand, pamlen, maxLen, minLen=100):
     if totalLen <= minLen:
         return exons
 
-    thirdLen = math.ceil(totalLen / 3)
+    # few guides can introduce a STOP codon : search in the first two thrids of the coding sequence
+    if method == "stop":
+        thirdLen = 2*math.ceil(totalLen / 3)
+    else:
+        thirdLen = math.ceil(totalLen / 3)
     if thirdLen > maxLen:
         thirdLen = maxLen
 

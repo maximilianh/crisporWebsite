@@ -1772,3 +1772,77 @@ réécriture de getDonorSeq() : séparation en deux fonctions
 ## à faire
 
 - adapter texte mouseover global score
+
+## choix d'un score d'efficacité / outcome pour base editing
+
+- BE_DICT : https://doi.org/10.1038/s41467-021-25375-z - https://github.com/uzh-dqbm-cmi/crispr
+- BE_Hive : https://doi.org/10.1016/j.cell.2020.05.037 - https://github.com/maxwshen/be_predict_bystander
+- deepBE : https://doi.org/10.1038/s41587-020-0573-5 - https://github.com/MyungjaeSong/Paired-Library - https://github.com/CRISPRJWCHOI/BaseEditing_tool
+- FORECasT-BE : https://doi.org/10.1093/nar/gkac161 - https://github.com/ananth-pallaseni/FORECasT-BE
+- CRISPRonBE : https://doi.org/10.1038/s41467-025-65200-5 - https://github.com/RTH-tools/crispron-BE
+
+- database : https://doi.org/10.1186/s12859-024-05898-0 - https://github.com/Lucas749/be_datahive
+
+# 12/05/26
+
+## Base editing - KO
+
+- correction d'un bug dans l'affichage de la séquence codante : mismatch geneId sélectionnée / genePred
+- correction d'un bug en mode knock-out si aucun guide sur la séuquence target
+- ajout de l'option "KO par introduction d'un codon STOP prématuré"
+- ajout d'une fonction JS pour remplacer les valeurs du menu de sélection des PAMs par une liste de BE si l'option "codon STOP" est sélectionnée
+
+- dans makeExonLines : ajout du paramètre "editData" et de la fonction checkStopCodons() -> surlignage des codons pouvant être changés en STOP en fonction des guides possibles et de la fenêtre d'édition
+- filtrage des guides "STOP" dans showGuideTable
+
+## Notes
+
+- CRISPRonBE (vérifier licence "non-production use") :
+    - deux modèles : CBE (BE4-Gam)/ ABE (ABE7.10)
+    - data : HEK293T ~ 12k guides + deepBE + BE_Hive + (ABE uniquement) BEDICT2.0 (ABEmax / ABE8e)
+        - total data : ~19k CBE / ~18k ABE
+        - différents coefs. peuvent être donné pour chaque dataset en option (donner 100% au dataset utilisant l'enzyme sélectionnée)
+    - inputs (cf. CRISPRon)
+        - 5' 4nt + 20nt protospacer + 3nt PAM + 3nt 3' (30nt total)
+        - label des positions éditables
+        - énergie libre gRNA:target
+        - efficacité
+    - output : 
+        seq target + n(seq outcome + pred eff + pred freq)
+
+FORECasT-BE :
+    
+    - data : HEK293T & K562, ~14k guides 
+    - CBE : BE4GamRA / FNLS
+    - ABE : ABE8e / ABE20m
+
+- Base editing : centrer sur la mutation cible
+    - Knock-out -> afficher codons pouvant être modifiés en STOP -> tableau guides correspondants avec scores
+    - Knock-in -> afficher guide pouvant apporter la mutation ciblea
+
+## à faire
+
+- réinitialisation du menu PAM à chaque changement de méthode en mode KO -> peu pratique
+
+# 13/05/26
+
+## global
+
+- correction d'un bug : message d'erreur si le fichier effScores est vide 
+
+## knock-out mode - Base editing
+
+- surlignage des codons START / STOP sur toute la longeur du codon
+
+- recherche dans les deux premiers tiers de la séquence codante en mode "STOP"
+
+- affichage des edits formant un codon STOP uniquement :
+    - modification de showExonAndPams, makeExonLines, makeEditLines (dict stopGuides)
+    - "STOP" edits en orange / gras
+    - bystander edits en gris
+
+## knock-in mode
+
+- pour les subtitutions pouvant être faites par base editing, affichage des edits possibles
+    - edits correspondant à la substitution en orange / gras
+    - bystander edits en gris
