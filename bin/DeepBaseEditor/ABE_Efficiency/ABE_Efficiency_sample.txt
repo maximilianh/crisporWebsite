@@ -1,0 +1,2 @@
+Target number	30 bp target sequence (4 bp + 20 bp protospacer + PAM + 3 bp)
+1	AACTGAAGGCTGAACAGCAGGGGTGGGAGA

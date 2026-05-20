@@ -1320,22 +1320,40 @@ def pamIsSpCas9(pam):
     return pam in ["NGG", "NGA", "NGCG"]
 
 
-def saveSeqOrgPamToCookies(seq, org, pam):
+def saveSeqOrgPamToCookies(seq, org, pam, koMethod, multipam, expType):
     "create a cookie with seq, org and pam and print it"
     cookies = http.cookies.SimpleCookie()
     expires = 365 * 24 * 60 * 60
-    if len(seq) < 3000:
-        cookies["lastseq"] = seq
-    else:
-        cookies["lastseq"] = (
-            "(last sequence was too long, could not be saved in Internet Browser cookie)"
-        )
+    if seq is not None:
+        if len(seq) < 3000:
+            cookies["lastseq"] = seq
+        else:
+            cookies["lastseq"] = (
+                "(last sequence was too long, could not be saved in Internet Browser cookie)"
+            )
 
-    cookies["lastseq"]["expires"] = expires
-    cookies["lastorg"] = org
-    cookies["lastorg"]["expires"] = expires
-    cookies["lastpam"] = pam
-    cookies["lastpam"]["expires"] = expires
+    if expType == "ko":
+        cookies["lastKOorg"] = org
+        cookies["lastKOorg"]["expires"] = expires
+        cookies["lastKOpam"] = pam
+        cookies["lastKOpam"]["expires"] = expires
+        cookies["lastKOmethod"] = koMethod
+        cookies["lastKOmethod"]["expires"] = expires
+
+    elif expType == "ki":
+
+        cookies["lastKIorg"] = org
+        cookies["lastKIorg"]["expires"] = expires
+        cookies["lastKIpam"] = multipam
+        cookies["lastKIpam"]["expires"] = expires
+
+    else:
+        cookies["lastseq"]["expires"] = expires
+        cookies["lastorg"] = org
+        cookies["lastorg"]["expires"] = expires
+        cookies["lastpam"] = pam
+        cookies["lastpam"]["expires"] = expires
+
     print(cookies)
 
 
@@ -2079,15 +2097,86 @@ def printSeqForCopy(seq):
     print("</input>")
 
 
-def calcKomorScore(guideSeq, pos):
-    "return base editing score given the guide sequence and the position"
+def loadBeScoreModels(beType):
+    """
+    Load the deep learning models to calculate Base editing outcomes
+    The list of models is adjusted depending on the base editor
+    return a dict of list of tuples {"eff": [module, handle], "prop": [module, handle]}
+    If a new model is added, will need to add a "load model" function similar to DeepBe
+    """
 
-    # See https://github.com/NahyeKim/DeepBE
+    # placeholder, will need to add to the parameters
+    # here, get the model list from BE type
+    # will need to store beType -> model to  dict
+    if beType == "NGG-BE1":
+        editor = "CBE"
 
-    return pos / 7.0  # temporary hack
+    models = []
+
+    # DeepBaseEditor, see https://github.com/NahyeKim/DeepBE
+    # The source code was modified with Claude to use tensorflow 2.12.0 and to be imported as a module
+    sys.path.append("bin/DeepBaseEditor/%s_Efficiency" % editor)
+    sys.path.append("bin/DeepBaseEditor/%s_Proportion" % editor)
+
+    import TEST_CBE_Efficiency as modelEff
+    deepEffHandle = modelEff.load_model()
+    models.append(("eff", "DeepCBE", modelEff, deepEffHandle))
+
+    import TEST_CBE_Proportion as modelProp
+    deepPropHandle = modelProp.load_model()
+    models.append(("prop", "DeepCBE", modelProp, deepPropHandle))
+
+    return models
 
 
-def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGuides=None, substInfo=None):
+def closeBeModels(models):
+    " closes the handles for base editor scoring models"
+
+    for modelType, modelName, module, modelHandle in models:
+        module.close_model(modelHandle)
+
+
+def calcKomorScore(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models):
+    """
+    calculates base editing score given the guide sequence and the position
+    Returns a list of predicted efficiencies and a list of lists of frequencies of all possible edits
+    """
+
+    # Work in progress
+    # will add ForeCast-BE and CRISPRonBE
+    # change the model according to the base editor
+    # need to display efficiency prediction and outcome differently
+
+    effs = []
+    outcomes = []
+
+    extGuideSeq = seq[extGuideStart:extGuideEnd].upper()
+    if strand == "-":
+        extGuideSeq = revComp(extGuideSeq)
+
+    # print(len(extGuideSeq))
+    # could not extand the sequence
+    if len(extGuideSeq) != 30:
+        return 0, []
+
+    for modelType, modelName, module, modelHandle in models:
+
+        score = module.predict(modelHandle, [extGuideSeq])[0]
+
+        if modelType == "eff":
+            effs.append(score)
+        elif modelType == "prop":
+            outcomes.append(score)
+        else:
+            raise ValueError("Wrong model type")
+
+        # print(effs, "<br>")
+        # print(outcomes, "<br>")
+
+    return effs, outcomes
+
+
+def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGuides=None, substInfo=None, batchId=None):
     "create the lines that show the possible baseEditor edits"
     editInfos = []
     for i in range(0, len(seq)):
@@ -2099,6 +2188,15 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
         substPamIds = []
 
     upSeq = seq.upper()
+
+    # will probably need to calculate the scores in a separate function, by modifying JsonData
+    # load the scoring models
+    if (stopGuides is not None or substInfo is not None) and batchId is not None:
+
+        batchInfo = readBatchAsDict(batchId)
+        beType = batchInfo["pam"]
+        models = loadBeScoreModels(beType)
+
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
 
         # in knock-out mode, discard guides that don't introduce a STOP codon
@@ -2122,21 +2220,37 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
             if pos >= len(seq) or pos < 0:
                 continue
 
+            doScore = False
             # only keep pamIds that introduce the substitution
             if substInfo is not None and pos == insertIdx and toNucl == insertSeq.upper():
                 substPamIds.append(pamId)
+                doScore = True
 
             # position of mutated nucl on forw strand guide
             if strand == "+":
                 mutPos = pos - guideStart
+                # extended guide position, to be used by DeepBaseEditor
+                # 30 bp target sequence (4 bp + 20 bp protospacer + PAM + 3 bp)
+                extGuideStart = guideStart - 4
+                extGuideEnd = pamStart + len(pamSeq) + 3
             else:
                 mutPos = GUIDELEN - (pos - guideStart) - 1
+                extGuideStart = pamStart - len(pamSeq) + 3
+                extGuideEnd = guideStart + GUIDELEN + 4
 
             if upSeq[pos] == fromNucl:
-                beScore = calcKomorScore(guideSeq, mutPos)
+
+                # in KO mode, calculate the scores only in the second call
+                if doScore or stopGuides is not None:
+                    effs, outcomes = calcKomorScore(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models)
+                else:
+                    effs, outcomes = 0, []
                 editInfos[pos][toNucl].append(
-                    (pamId, guideSeq, pamSeq, mutPos, beScore, specScore)
+                    (pamId, guideSeq, pamSeq, mutPos, effs, outcomes, specScore)
                 )
+
+    if stopGuides is not None or substInfo is not None:
+        closeBeModels(models)
 
     # print(editInfos)
     altNucls = ["A", "T"]
@@ -2323,6 +2437,7 @@ def printJson(name, obj):
 
 
 def showExonAndPams(
+    batchId,
     org,
     seq,
     startDict,
@@ -2371,6 +2486,7 @@ def showExonAndPams(
 
     _, _, _, strand = parsePos(position)
     # don't display the exons where no PAMs were found
+
     if len(pamSeqs) == 0:
         if koMethod == "splicing":
             if exonSelect.isnumeric():
@@ -2444,7 +2560,7 @@ def showExonAndPams(
     # rebuild editLines and pamLines, but only with edits that don't result in a STOP codon
     if koMethod == "stop" and stopGuides is not None:
         editLines, jsonData = makeEditLines(
-            seq, pamSeqs, beWinStart, beWinEnd, guideScores, exonId, stopGuides=stopGuides
+            seq, pamSeqs, beWinStart, beWinEnd, guideScores, exonId, stopGuides=stopGuides, batchId=batchId
         )
         lines, maxY = distrOnLines(seq.upper(), startDict, len(pam), pam, exonId, stopGuides=stopGuides)
         pamLines = list(makePamLines(lines, maxY, pamIdToSeq, guideScores))
@@ -2606,7 +2722,7 @@ def showSeqAndPams(
         insertSeq = multiPamInfo[3]
         pamSeqs = []
         allPamLines = []
-        
+
         # used in makeEditLines
         if kiType == "substitution":
             substInfo = (insertIdx, insertSeq)
@@ -4637,8 +4753,8 @@ def printTableHead(
 
         var div = document.createElement('div');
         div.id = "editHover";
-        div.style.width="400px";
-        div.style.height="200px";
+        div.style.width="450px";
+        div.style.height="250px";
         div.style.border="1px solid black";
         div.style.padding="10px";
         div.style.position="fixed";
@@ -4666,18 +4782,37 @@ def printTableHead(
             guideSeq = guide[1];
             pam = guide[2];
             mutPos = guide[3];
-            beScore = guide[4];
-            specScore = guide[5];
+            effs = guide[4];
+            outcomes = guide[5];
+            specScore = guide[6];
 
             htmls.push("<tr>");
 
             htmls.push("<td>"+pamId+"</td>");
             htmls.push("<td><tt>"+colorChar(guideSeq, mutPos)+" "+pam+"</tt></td>");
-            htmls.push("<td>"+beScore.toFixed(2)+"</td>");
-            htmls.push("<td>"+specScore+"</td>");
 
+            for (eff of effs) {
+                htmls.push("<td>"+eff.toFixed(2)+"</td>");
+            }
+
+
+            htmls.push("<td>"+specScore+"</td>");
             htmls.push("</tr>");
-        }
+
+            // subtable to display the proportion of each edit
+            // A graph (similar to ForeCastBE) may be more readable
+            htmls.push("<table class='editTable'>");
+            htmls.push("<th>Edit</th><th>Frequency</th>")
+            for (outcome of outcomes) {
+
+                for (edit of outcome) {
+
+                    htmls.push("<tr><td>"+edit[0]+"</td><td>"+edit[1]+"</td>");
+                };
+            };
+            htmls.push("</table>");
+
+        };
 
         htmls.push("</table>");
         $(div).append(htmls.join(""));
@@ -11107,6 +11242,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             # stopGuides is a list of pamIds that result in the introduction of a STOP codon with base editing
 
             allJsonData, newStopGuides = showExonAndPams(
+                batchId,
                 org,
                 seq,
                 startDict,
@@ -11175,6 +11311,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             stopGuides=stopGuides
         )
 
+    if download is False:
         print('<br><a class="neutral" href="crispor.py?expType=ko">')
         print(
             '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
@@ -11223,13 +11360,16 @@ def printGeneModel(geneModel, exonSeqs, koMethod=None, insertSeq=None, insertPos
     Displays the gene model, from CDS start to CDS end
     Optionally make target exons as buttons"""
 
-    if koMethod == "frameshift" and exonSeqs:
+    if koMethod in ["frameshift", "stop"] and exonSeqs:
         thirdLen = 0
         for feature in geneModel:
             if feature[0] == "exon":
                 length = feature[2]
                 thirdLen += length
-        thirdLen = math.ceil(thirdLen / 3)
+        if koMethod == "stop":
+            thirdLen = 2 * math.ceil(thirdLen / 3)
+        else:
+            thirdLen = math.ceil(thirdLen / 3)
 
         lastseq = str(exonSeqs[-1][1])
 
@@ -11480,12 +11620,13 @@ function toggleExonSeq(selectedValue) {
             exonMouseOver = 'class="tooltipsterInteract" title="%s"' % fullExonTitle
 
             if exonSeqs:
-                if koMethod == "frameshift":
+                if koMethod in ["frameshift", "stop"]:
                     isSplittedExon = featureId + 1 == len(exonSeqs) and lastLen < length
                     isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
                 else:
                     isTargetExon = True
                     isSplittedExon = False
+
             # Only print the gene model, without highlighting target exons
             else:
                 isSplittedExon = None
@@ -14215,11 +14356,27 @@ def printLibGuides(params):
 def printKoForm(params):
     """form for knock-out mode"""
 
-    lastorg = DEFAULTORG
     genomes = readGenomes()
     annGenomes = readAnnGenomes()
     scriptName = basename(__file__)
-    lastpam = DEFAULTPAM
+
+    haveHuman = False
+    for g in genomes:
+        if g[0] == "hg19":
+            haveHuman = True
+
+    cookies = http.cookies.SimpleCookie(os.environ.get("HTTP_COOKIE"))
+    if "lastKOorg" in cookies and "lastKOpam" in cookies and "lastKOmethod" in cookies:
+        lastorg = cookies["lastKOorg"].value
+        lastpam = cookies["lastKOpam"].value
+        lastmethod = cookies["lastKOmethod"].value
+    else:
+        if not haveHuman:
+            global DEFAULTORG
+            DEFAULTORG = ALTORG
+        lastorg = DEFAULTORG
+        lastpam = DEFAULTPAM
+        lastmethod = "frameshift"
 
     print(
         """
@@ -14351,7 +14508,6 @@ $(document).ready(function() {
             <br>
             """
     )
-
     printOrgDropDown(lastorg, genomes)
 
     print(
@@ -14418,27 +14574,39 @@ $(document).ready(function() {
                     <small>Currently, %d out of %d genomes are annotated with genes. If yours isn't included, use CRISPOR classic.</small><br>
                 </div>
             <p style="margin-top:50px">Choose one of the following approaches to inactivate your gene</p>
+        """ % (len(annGenomes), len(genomes)))
 
-            <input type="radio" checked name="koMethod" id="frameshift" value="frameshift" onchange="toggleMethod()"/> Frameshift mutation in the first third of the coding sequence<br>
-            <input type="radio" name="koMethod" id="stop" value="stop" onchange="toggleMethod()"/> Introduce a premature STOP codon in the first two thirds of the coding sequence with base editing<br>
-            <input type="radio" name="koMethod" id="excision" value="excision" onchange="toggleMethod()"/> Excision of the gene locus<br>
+    # Knock out methods [(id, text, additional inputs)]
+    methods = [("frameshift", " Frameshift mutation in the first third of the coding sequence"),
+               ("stop", " Introduce a premature STOP codon in the first two thirds of the coding sequence with base editing"),
+               ("excision", " Excision of the gene locus"),
+               ("promoter", " Removal of the promoter"),
+               ("splicing", " Disruption of splicing by targeting a splice site")
+               ]
 
-            <small id="flankLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
-            <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
-            &nbsp&nbsp target&nbsp<output style="">500</output> bp upstream of the transcription start site (TSS) and downstream of the transcription end site (TES)
-            </small>
+    for methodId, methodDesc in methods:
+        if methodId == lastmethod:
+            methodChecked = "checked"
+        else:
+            methodChecked = ""
+        print("""
+        <input type="radio" %(methodChecked)s name="koMethod" id="%(methodId)s" value="%(methodId)s" onchange="toggleMethod()"/>%(methodDesc)s<br>
+        """ % locals())
 
-            <input type="radio" name="koMethod" id="promoter" value="promoter" onchange="toggleMethod()"/>Removal of the promoter<br>
-
-            <small id="promoterLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
-            <input type="range" name="promoterLen" value="500" min="50" max="2000" oninput="this.nextElementSibling.value = this.value"/>
-            &nbsp&nbsp Remove a&nbsp<output style="">500</output> bp region upstream of the transcription start site (TSS)
-            </small>
-
-            <input type="radio" name="koMethod" id="splicing" value="splicing" onchange="toggleMethod()"/> Disruption of splicing by targeting a splice site<br>
-            """
-        % (len(annGenomes), len(genomes))
-    )
+        if methodId == "excision":
+            print("""
+                <small id="flankLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
+                <input type="range" name="flankLen" value="500" min="100" max="1000" oninput="this.nextElementSibling.value = this.value"/>
+                &nbsp&nbsp target&nbsp<output style="">500</output> bp upstream of the transcription start site (TSS) and downstream of the transcription end site (TES)
+                </small>
+            """)
+        elif methodId == "promoter":
+            print("""
+                <small id="promoterLen" style="text-align:left; display:none; align-items:center; margin-left:25px; margin-top:12px; margin-bottom:12px;">
+                <input type="range" name="promoterLen" value="500" min="50" max="2000" oninput="this.nextElementSibling.value = this.value"/>
+                &nbsp&nbsp Remove a&nbsp<output style="">500</output> bp region upstream of the transcription start site (TSS)
+                </small>
+            """)
 
     print(
             """
@@ -14767,11 +14935,25 @@ def printKiForm(params):
     # form for knock-in mode in the assistant
     # inspired by the options from protoSpaceJam (https://protospacejam.sf.czbiohub.org/)
 
-    lastorg = DEFAULTORG
     genomes = readGenomes()
     annGenomes = readAnnGenomes()
     scriptName = basename(__file__)
-    lastpam = DEFAULTPAM
+
+    haveHuman = False
+    for g in genomes:
+        if g[0] == "hg19":
+            haveHuman = True
+
+    cookies = http.cookies.SimpleCookie(os.environ.get("HTTP_COOKIE"))
+    if "lastKIorg" in cookies:
+        lastorg = cookies["lastKIorg"].value
+        lastmultipam = cookies["lastKIpam"].value
+    else:
+        if haveHuman is False:
+            global DEFAULTORG
+            DEFAULTORG = ALTORG
+        lastorg = DEFAULTORG
+        lastmultipam = "20bp-NGG"
 
     print(
         """
@@ -15007,8 +15189,12 @@ function clearEndSeq() {
         """ <select class=js-example-basic-single style="width:85%;" name="multipam"> """
     )
     for pamKey in multiPamDict:
+        if pamKey == lastmultipam:
+            pamSelected = "selected"
+        else:
+            pamSelected = ""
         pamText = multiPamDict[pamKey][1]
-        print(""" <option value="%s">%s</option> """ % (pamKey, pamText))
+        print(""" <option %s value="%s">%s</option> """ % (pamSelected, pamKey, pamText))
     print(""" </select> """)
 
     print(
@@ -19678,10 +19864,13 @@ def mainCgi():
         return
 
     # save seq/org/pam into a cookie, if they were provided
-    if "seq" in params and "org" in params and "pam" in params:
-        seq, org, pam = params["seq"], params["org"], params["pam"]
-        seq, warnMsg = cleanSeq(seq, org)
-        saveSeqOrgPamToCookies(seq, org, pam)
+    if "org" in params and ("pam" in params or "multipam" in params or "expType" in params):
+        seq, org, pam, koMethod, multipam, expType = params.get("seq"), params["org"], params.get("pam"), \
+                params.get("koMethod"), params.get("multipam"), params.get("expType")
+
+        if seq is not None:
+            seq, warnMsg = cleanSeq(seq, org)
+        saveSeqOrgPamToCookies(seq, org, pam, koMethod, multipam, expType)
 
     # print headers
     if "downloadCrispresso" not in params:

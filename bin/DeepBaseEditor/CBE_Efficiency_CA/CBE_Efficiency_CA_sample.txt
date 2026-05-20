@@ -1,0 +1,2 @@
+reference seqeucne	"Chromatin accessibility (1= DNase I hypersensitive sites, 0 = Dnase I non-sensitive sites)"
+1	GGGCTGAACTAAAGCCTCCAGGGG	1

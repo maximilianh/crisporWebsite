@@ -1816,6 +1816,12 @@ FORECasT-BE :
     - CBE : BE4GamRA / FNLS
     - ABE : ABE8e / ABE20m
 
+- DeepBE :
+
+    - update 2024 (https://doi.org/10.1038/s41587-023-01792-x) 
+    - 7 desamiase variants : YE1-BE4max, SsAPOBEC3B, ABE8e(V106W), ABE8.17-m+V106W, CGBE1, miniCGBE1 and APOBEC-nCas9-Ung
+    - 10 Nickases à PAM variants : SpCas9-YE1-BE4max, SpCas9-NRCH-Y E1-BE4max, SpRY-YE1-BE4max, SpCas9-NRCH-SsAPOBEC3B, SpCas9-ABE8e(V106W), SpRY-ABE8e(V106W), SpCas9-NRCH-AB E8.17-m+V106W, SpRY-ABE8.17-m+V106W, SpCas9-miniCGBE1, SpCas9-NRCH-APOBEC-nCas9-Ung
+
 - Base editing : centrer sur la mutation cible
     - Knock-out -> afficher codons pouvant être modifiés en STOP -> tableau guides correspondants avec scores
     - Knock-in -> afficher guide pouvant apporter la mutation ciblea
@@ -1829,6 +1835,7 @@ FORECasT-BE :
 ## global
 
 - correction d'un bug : message d'erreur si le fichier effScores est vide 
+- import de DeepBaseEditor : python 2.7!! Tentative de converison en python 3.9
 
 ## knock-out mode - Base editing
 
@@ -1846,3 +1853,71 @@ FORECasT-BE :
 - pour les subtitutions pouvant être faites par base editing, affichage des edits possibles
     - edits correspondant à la substitution en orange / gras
     - bystander edits en gris
+
+## bug 
+
+- splitted exon en mode KO / stop non splitté DONE
+
+# 19/05/26
+
+## global
+
+- ajout de cookies spécifiques au modes KO / KI dans saveSeqOrgPamToCookies()
+
+## knock-out mode
+
+- simplification de l'impression des inputs pour les différentes méthodes de KO
+
+## base editing 
+
+- utilisation de Claude pour rendre deepBaseEditor compatible avec les versions de tensorflow existantes
+- utilisation de Claude pour utiliser deepBaseEditor comme API (au lieu d'exporter les résultats au format excel)
+
+   - Claude log : 
+   """
+      DeepBaseEditor is now compatible with your Python 3.9 / TensorFlow 2.12 venv without changing any package versions. The change set is minimal because TF 2.x still ships a
+      tf.compat.v1 shim that handles all the TF1 idioms these scripts use (tf.placeholder, tf.variable_scope, tf.train.Saver, tf.ConfigProto, tf.layers.dropout, tf.train.AdamOptimizer,
+      etc.), and the original TF1 checkpoint files (.meta/.index/.data) load through it unchanged.
+
+      Per-script edits (all 5 TEST_*.py)
+
+      1. Replace the TF import:
+      import tensorflow.compat.v1 as tf
+      tf.disable_v2_behavior()
+      2. Fix the broken Python 2 print line print("Non-ATGC character") + data[l] → print("Non-ATGC character " + data[l]) (was dead-branch code, but raised TypeError on non-ATGC input in
+      Py3).
+
+      Extra fix in ABE_Efficiency (pre-existing upstream bug — would have failed on TF1 too):
+      - preprocess_seq had length = 24, but the model's placeholder and FC1 checkpoint weights are sized for length = 25 (W_fcl1 is [1380, 500]). Set inner length = 25 and updated
+      ABE_Efficiency_sample.txt to a valid 25+ bp sequence (the one documented in README.txt). 
+      
+      Verified: all 5 scripts run end-to-end against the existing TF1 checkpoints, only emitting deprecation warnings, and each writes a fresh outputs/TEST_OUTPUT_fortest.xlsx.
+      CBE_Proportion's numeric output and ABE_Efficiency's activity score don't match the numbers printed in README.txt, but the bundled *_sample.txt files don't match the README's stated
+      example sequences either — that mismatch is upstream and predates these changes.
+
+      Caveats
+      - Inference runs on CPU (forced via CUDA_VISIBLE_DEVICES="" in my tests). To use GPU, set up CUDA for TF 2.12; the tf.ConfigProto(...gpu_options.allow_growth=True) block still works
+      through tf.compat.v1.
+      - Scripts still assume CWD == script directory (the path = "./" and os.listdir(os.getcwd()) lines). Call them with cd .../<subdir> && python ./TEST_*.py from your crispor wrapper.
+      - The deprecation warnings about tf.layers.dropout are non-fatal until a future TF release drops compat.v1.layers entirely; at that point you'd need a real port to Keras.
+  """ 
+
+- modification de calcKomorScore : retourne résultat CBE_Proportion de DeepBaseEditor à terminer
+
+# 20/05/26
+
+## base Editing
+
+- ajout des scores DeepBaseEditor : efficacité et proportion
+- modification du calcul des scores : 
+    - ajout de loadBeScoreModels() : chargements des modèles (exécuté une seule fois) + décision du type de modèle à utiliser en fonction de l'enzyme (à ajouter)
+    - modification de calcKomorScore() : pour chaque guide, calcul du score en fonction des modèles chargés
+        - séparation des scores d'éfficacité et de proportion de chaque edit
+    - ajout de closeBeScoreModels() : fermuture de chaque modèle ouvert
+
+- dans printTableHead(), modification de onEditHover() : affichage de l'effficacité prédite + proportion (à finir)
+
+## bugs / modifs
+
+- créer hover sur codon -> 1 seul mousehover, pas de répétition des outcomes pout chaque bystander edit
+- mauvaise position des base editées!! 
