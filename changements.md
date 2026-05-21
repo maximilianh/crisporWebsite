@@ -1906,6 +1906,12 @@ FORECasT-BE :
 
 # 20/05/26
 
+## global
+
+- amélioration de la gestion des erreurs pour PAMs custom
+- autorisation des PAM à un nucléotide non-N pour PAMs custom
+- ajout de l'option "Cytosine base editor" au PAMs custom
+
 ## base Editing
 
 - ajout des scores DeepBaseEditor : efficacité et proportion
@@ -1916,8 +1922,34 @@ FORECasT-BE :
     - ajout de closeBeScoreModels() : fermuture de chaque modèle ouvert
 
 - dans printTableHead(), modification de onEditHover() : affichage de l'effficacité prédite + proportion (à finir)
+- installation de FORECast-BE + ajout dand loadBeScoreModels
+- ajout de calcForeCastBE + calcul des scores d'efficacité / outcomes avec FORECasT-BE : formatage des résulats
 
 ## bugs / modifs
 
-- créer hover sur codon -> 1 seul mousehover, pas de répétition des outcomes pout chaque bystander edit
-- mauvaise position des base editées!! 
+- créer hover sur codon -> 1 seul mouseover, pas de répétition des outcomes pout chaque bystander edit
+
+# 21/06/26
+
+- lecture http://dx.doi.org/10.1038/nbt.3437 (rs2 & CFD scores)
+    - AltPams : NAG (26%), NCG (11%) and NGA (7%) -> éviter de former ces PAMs lors du recodage du donneur si possible
+        - alternative : faire comme protoSpaceJam : calculer CFD pour chaque design puis sélectionner le meilleur
+    - L'activité des guides sur sites off-target est bimodale -> donc classer guides en spécifiques / non spécifiques pour le global score ?
+    - modifier texte CFD score : prise en compte de l'identité des mismatches (en plus de la position)
+
+## global
+
+- amélioration de la gestions des inputs non supportés dans le formulaire KI
+
+## knock in mode
+
+- Correction d'un bug dans processCustomInsertSeq() : les insertions de 1bp ne sont plus considérées comme des substitutions (Valérie Risson)
+
+## knock-out mode 
+
+- affichage de tous les exons par défaut en mode "stop"
+
+## à faire
+
+- ajouter librairie Jacquere(https://doi.org/10.1016/j.xgen.2026.101190)
+- ajouter édition des sites d'épissage dans en mode KO / base editing

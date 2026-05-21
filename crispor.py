@@ -235,7 +235,7 @@ pamDesc = [
     ("NNGRRT-20", "20bp-NNG(A/G)(A/G)T - Cas9 S. Aureus with 20bp-guides"),
     ("NGK", "20bp-NG(G/T) - xCas9, recommended PAM, see notes"),
     # ('NGN','20bp-NGN or GA(A/T) - xCas9 (low efficiency, not recommended)'),
-    ('NGG-BE1', '20bp-NGG - BaseEditor1, modifies C->T'),
+    # ('NGG-BE1', '20bp-NGG - BaseEditor1, modifies C->T'),
     ("NNNRRT", "21bp-NNN(A/G)(A/G)T - KKH SaCas9"),
     ("NNNRRT-20", "20bp-NNN(A/G)(A/G)T - KKH SaCas9 with 20bp-guides"),
     ("NGA", "20bp-NGA - Cas9 S. Pyogenes mutant VQR"),
@@ -278,8 +278,7 @@ pamDesc = [
 
 # list of base editors
 beDesc = [
-    ('NGG-BE1', '20bp-NGG - BaseEditor1, modifies C->T'),
-    ('NGG-BE4', '20bp-NGG - BaseEditor4, modifies C->T')
+    ('NGG-BE1', '20bp-NGG - BaseEditor1, modifies C->T')
 ]
 
 # Ideally, pass pams in the batch parameters (to allow the user to select pams) ?
@@ -803,6 +802,8 @@ def setupPamInfo(pam):
         if ezType == "Cas12a":
             pamIsFirst = True
             scoreNames = cpf1ScoreNames
+        elif ezType in ["CBE", "ABE"]:
+            baseEditor = True
 
     elif pamIsCasX(pam):
         logging.debug("switching on CasX mode, guide length is 20bp")
@@ -2136,7 +2137,7 @@ def closeBeModels(models):
         module.close_model(modelHandle)
 
 
-def calcKomorScore(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models):
+def calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models):
     """
     calculates base editing score given the guide sequence and the position
     Returns a list of predicted efficiencies and a list of lists of frequencies of all possible edits
@@ -2155,25 +2156,68 @@ def calcKomorScore(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, st
         extGuideSeq = revComp(extGuideSeq)
 
     # print(len(extGuideSeq))
-    # could not extand the sequence
+    # could not extend the sequence
     if len(extGuideSeq) != 30:
         return 0, []
 
     for modelType, modelName, module, modelHandle in models:
-
         score = module.predict(modelHandle, [extGuideSeq])[0]
 
         if modelType == "eff":
-            effs.append(score)
+            effs.append(("DeepBE", score))
         elif modelType == "prop":
-            outcomes.append(score)
+            outcomes.append(("DeepBE", score))
         else:
             raise ValueError("Wrong model type")
 
         # print(effs, "<br>")
         # print(outcomes, "<br>")
 
+    forecastEff, forecastOutcomes = calcForeCastBE(extGuideSeq, "CBE")
+    effs.append(forecastEff)
+    outcomes.append(forecastOutcomes)
+
+    # print(effs, "<br>")
+    # print(outcomes, "<br>")
+
     return effs, outcomes
+
+
+def calcForeCastBE(extGuideSeq, editor):
+
+    """
+    calcultes the predicted efficiency and outcomes with FORECast-BE
+    see https://github.com/ananth-pallaseni/FORECasT-BE
+    """
+
+    sys.path.append("bin/FORECasT-BE")
+    import forecast_be as forecast
+
+    # to match the output of deepBE / CRISPRonBE, the 30bp extended guide sequence is returned
+    guideSeq = extGuideSeq[4:24]
+
+    # Predict the total fraction of edited reads for the target sequence
+    # If the `mean` and `std` arguments are None, then returns a z-score
+    # Input a mean and std to scale this into reael efficiency (good defaults are mean=0.5 & std=0.1)
+    mean, std = 0.5, 0.1
+
+    totalEff = forecast.predict_total(guideSeq, editor=editor, mean=mean, std=std)
+
+    # Predict the fraction of edited reads with the on-target substitituion at each position
+    # Returns a list of predictions
+    outcomes = []
+    posEff = forecast.predict(guideSeq, editor=editor, mean=mean, std=std)
+    for pos, freq in posEff:
+        if freq is None:
+            continue
+        idx = pos - 1
+        # will need to adjust for ABE and reverse strand using fromNucl / toNucl
+        outcomeSeq = extGuideSeq[0:4] + guideSeq[0:idx] + "T" + guideSeq[pos:] + extGuideSeq[24:]
+        outcomes.append((outcomeSeq, freq))
+
+        # print(outcomes, freq, "<br>")
+
+    return ("FORECasT-BE", totalEff), ("FORECasT-BE", outcomes)
 
 
 def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGuides=None, substInfo=None, batchId=None):
@@ -2191,10 +2235,14 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
 
     # will probably need to calculate the scores in a separate function, by modifying JsonData
     # load the scoring models
-    if (stopGuides is not None or substInfo is not None) and batchId is not None:
+    if (stopGuides is not None and batchId is not None) or substInfo is not None:
 
-        batchInfo = readBatchAsDict(batchId)
-        beType = batchInfo["pam"]
+        if substInfo is not None:
+            beType = "NGG-BE1"
+            # beType = "CBE" if insertSeq in ["C", "T"] else "ABE"
+        else:
+            batchInfo = readBatchAsDict(batchId)
+            beType = batchInfo["pam"]
         models = loadBeScoreModels(beType)
 
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
@@ -2229,7 +2277,7 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
             # position of mutated nucl on forw strand guide
             if strand == "+":
                 mutPos = pos - guideStart
-                # extended guide position, to be used by DeepBaseEditor
+                # extended guide position, to be used by DeepBaseEditor and CRISPRonBE
                 # 30 bp target sequence (4 bp + 20 bp protospacer + PAM + 3 bp)
                 extGuideStart = guideStart - 4
                 extGuideEnd = pamStart + len(pamSeq) + 3
@@ -2242,7 +2290,7 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
 
                 # in KO mode, calculate the scores only in the second call
                 if doScore or stopGuides is not None:
-                    effs, outcomes = calcKomorScore(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models)
+                    effs, outcomes = calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models)
                 else:
                     effs, outcomes = 0, []
                 editInfos[pos][toNucl].append(
@@ -2476,7 +2524,7 @@ def showExonAndPams(
     else:
         htmlExonId = exonId
 
-    if koMethod in ["frameshift", "stop"]:
+    if koMethod in ["frameshift"]:
         if exonId == 0:
             exonDisplay = "block"
         else:
@@ -2558,7 +2606,8 @@ def showExonAndPams(
         stopGuides = {}
 
     # rebuild editLines and pamLines, but only with edits that don't result in a STOP codon
-    if koMethod == "stop" and stopGuides is not None:
+    if baseEditor and koMethod == "stop" and stopGuides is not None:
+        beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
         editLines, jsonData = makeEditLines(
             seq, pamSeqs, beWinStart, beWinEnd, guideScores, exonId, stopGuides=stopGuides, batchId=batchId
         )
@@ -2811,10 +2860,8 @@ def showSeqAndPams(
                     break
             if found:
                 break
-    elif multiPamInfo:
-        geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
-    else:
-        geneModels, selGeneModel, selTransId = getSelGeneModel(org)
+
+    geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
 
     if baseEditor:
         beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
@@ -4753,8 +4800,8 @@ def printTableHead(
 
         var div = document.createElement('div');
         div.id = "editHover";
-        div.style.width="450px";
-        div.style.height="250px";
+        div.style.width="auto";
+        div.style.height="auto";
         div.style.border="1px solid black";
         div.style.padding="10px";
         div.style.position="fixed";
@@ -4771,11 +4818,9 @@ def printTableHead(
             origNucl = "G";
         var htmls=[];
         htmls.push("The following guides can mutate "+origNucl+" to "+nucl+" at position "+pos+":<br>");
-        htmls.push("<table class='editTable'>");
-        htmls.push("<tr><th>Guide ID</th><th>Guide Sequence</th><th>Komor score<br><i>(Placeholder)</i></th><th>Spec. Score</th></tr>");
 
         var guides = editData[exonId][pos][nucl];
-        guides.sort( function (a, b) { a[4] - b[4] } ); // sort by komor score
+        guides.sort( function (a, b) { a[6] - b[6] } ); // sort by the first eddiciency score
         for (var i=0; i<guides.length; i++) {
             guide = guides[i];
             pamId = guide[0];
@@ -4786,28 +4831,64 @@ def printTableHead(
             outcomes = guide[5];
             specScore = guide[6];
 
-            htmls.push("<tr>");
+            htmls.push("<p style='font-weight: bold;'>Guide ID : "+pamId+"</p>")
+            htmls.push("<table class='editTable' style='margin-bottom: 8px;'>");
 
-            htmls.push("<td>"+pamId+"</td>");
-            htmls.push("<td><tt>"+colorChar(guideSeq, mutPos)+" "+pam+"</tt></td>");
-
+            // Header row
+            htmls.push("<tr>")
             for (eff of effs) {
-                htmls.push("<td>"+eff.toFixed(2)+"</td>");
+                let scoreName = eff[0];
+                htmls.push("<th>Predicted Efficiency ("+scoreName+")</th>");
             }
 
+            htmls.push("<th>Spec. Score</th></tr>");
+
+            htmls.push("<tr>");
+
+            /*
+            htmls.push("<td>"+pamId+"</td>");
+            htmls.push("<td><tt>"+colorChar(guideSeq, mutPos)+" "+pam+"</tt></td>");
+            */
+
+            for (eff of effs) {
+                let scoreVal = eff[1];
+                htmls.push("<td>"+scoreVal.toFixed(2)+"</td>");
+            }
 
             htmls.push("<td>"+specScore+"</td>");
             htmls.push("</tr>");
+            htmls.push("</table>");
 
             // subtable to display the proportion of each edit
             // A graph (similar to ForeCastBE) may be more readable
+
             htmls.push("<table class='editTable'>");
-            htmls.push("<th>Edit</th><th>Frequency</th>")
+
+            previousModel = ""
+
             for (outcome of outcomes) {
 
-                for (edit of outcome) {
+                let modelName = outcome[0];
+                let modelVals = outcome[1];
 
-                    htmls.push("<tr><td>"+edit[0]+"</td><td>"+edit[1]+"</td>");
+                if (modelName != previousModel) {
+                    htmls.push("<th>Outcome sequence - "+modelName+"</th><th>Predicted Frequency</th>");
+                    previousModel = modelName
+                    }
+
+                modelVals.sort((a, b) => b[1] - a[1] ); // sort by frequency
+                for (edit of modelVals) {
+                    seq = edit[0];
+                    freq = (edit[1]*100).toFixed(2)+" %";
+                    ext1 = seq.slice(0, 4);
+                    guide1 = seq.slice(4, mutPos+4);
+                    edit = seq.slice(mutPos+4, mutPos+5);
+                    guide2 = seq.slice(mutPos+5, 24);
+                    pam = seq.slice(24, 27);
+                    ext2 = seq.slice(27, 30);
+                    annSeq = ext1+"<span style='background-color: rgba(0, 0, 255, 0.5)'>"+guide1+"</span><span style='background-color: rgba(255, 255, 0, 0.5)'>"+edit+"</span><span style='background-color: rgba(0, 0, 255, 0.5)'>"+guide2+"</span><span style='background-color: rgba(0, 255, 255, 0.5)'>"+pam+"</span>"+ext2
+
+                    htmls.push("<tr><td>"+annSeq+"</td><td>"+freq+"</td></td></tr>");
                 };
             };
             htmls.push("</table>");
@@ -5060,7 +5141,7 @@ You can adapt the global score to your delivery method (select below), which cha
             % (colWidths["cfdSpec"], batchId)
         )
         htmlHelp(
-            "The CFD specificity score, inspired like guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
+            "The CFD specificity score, inspired by guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score tken into account the identity of mismatches and correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
         )
         print("</th>")
 
@@ -8017,27 +8098,6 @@ def printPamDropDown(lastpam, name=None):
     )
 
 
-def processCustomPam(params):
-    # initialize PAM based of custom specifications
-    # Reduce MAXSEQLEN to 500bp for safety reasons ?
-
-    pamSeq = params["customPAM"]
-    ezType = params["customType"]
-    guideLen = params["customGUIDELEN"]
-
-    legalChars = ["N", "A", "T", "G", "C"]
-    ncount = 0
-    for char in pamSeq:
-        if char not in legalChars:
-            raise ValueError("char")
-        if char == "N":
-            ncount += 1
-    if ncount > 1:
-        raise ValueError("N")
-    else:
-        params["pam"] = "%(pamSeq)s.%(ezType)s.%(guideLen)s.custom" % locals()
-
-
 def printForm(params):
     "print html input form for classic mode"
     scriptName = basename(__file__)
@@ -8195,6 +8255,8 @@ def printForm(params):
             <option value="">Select enzyme type</option>
             <option value="Cas9">Cas9</option>
             <option value="Cas12a">Cas12a (Cpf1)</option>
+            <!--<option value="CBE">Cytosine base editor</option>-->
+            <!--<option value="ABE">Adenine Base Editor (ABE)</option>-->
         </select>
         <input type="range" id="customGUIDELEN" name="customGUIDELEN" value="20" min="16" max="30" style="vertical-align:middle; width:15%%;" oninput="this.nextElementSibling.value = this.value">
         <output>20</output> nt guide
@@ -9541,22 +9603,26 @@ def crisprSearch(params):
             and "customType" in params
             and "customGUIDELEN" in params
         ):
-            pamSeq = params["customPAM"]
+            pamSeq = params["customPAM"].upper()
             ezType = params["customType"]
             guideLen = params["customGUIDELEN"]
 
             if len(pamSeq) < 3 or len(pamSeq) > 8:
-                raise ValueError("pamLen")
+                print("Please use a PAM sequence between 3nt and 8nt long")
+                return
 
             legalChars = ["N", "A", "T", "G", "C"]  # add Y / R / V ?
             ncount = 0
             for char in pamSeq:
                 if char not in legalChars:
-                    raise ValueError("char")
+                    print("Please use only ATGCN nucleotides in the PAM sequence")
+                    return
+
                 if char != "N":
                     ncount += 1
-            if ncount < 2:
-                raise ValueError("N")
+            if ncount < 1:
+                print("Please use at least one non-N nucleotide in the PAM sequence")
+                return
 
             pamDesc = "%(pamSeq)s.%(ezType)s.%(guideLen)s.custom" % locals()
         else:
@@ -9962,8 +10028,8 @@ def KiResultsPage(params, batchId, download=False):
 
         # Base editing can be used for these substitutions
         if kiType == "substitution" and (seq[insertIdx].upper() == "C" and insertSeq == "T") or (seq[insertIdx].upper() == "G" and insertSeq == "A"):
-            global baseEditor
-            baseEditor = True
+            # global baseEditor
+            # baseEditor = True
             seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
         elif kiType == "deletion":
             seqMsg = "%dbp deletion" % (len(batchInfo["insertSeq"]))
@@ -11147,7 +11213,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 if baseEditor:
                     print("""<details id="results4" open autocomplete="off">""")
                     print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Base editing information</summary>""")
-
+                    print("<i>Note : this feature is currently in early development</i>")
                     print("<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>")
                     if koMethod == "stop":
                         print("""
@@ -13922,41 +13988,6 @@ can be selectively amplified from the pool.<br>
     print("</form>")
 
 
-def warningPage(msg, toForm=None):
-
-    if toForm and toForm in ["ki", "ko"]:
-        formParam = "&expType=%s" % toForm
-    else:
-        formParam = ""
-
-    link = "crispor.py?warningPage=1&warnMsg=%s%s" % (msg, formParam)
-
-    print("""
-    <script>
-        window.onload = function() {
-            const link = document.getElementById('warnLink');
-            link.click();
-        };
-    </script>
-    """)
-
-    print("""<a id="warnLink" href="%s" style="display: none;"></a> """ % link)
-
-
-def showWarningPage(params):
-
-    msg = params["warnMsg"]
-    expType = params.get("expType")
-    if expType:
-        expTypeParam = "expType=%s" % expType
-    else:
-        expTypeParam = ""
-
-    print("""<div style='margin-top:10px; margin-left: 15px;'><a href='crispor.py?%s'>&nbsp;&larr; Back to CRISPOR homepage</a>""" % expTypeParam)
-    print("<p style='margin-left: 24px;'>%s</p>" % msg)
-    print("</div>")
-
-
 def printLibForm(params, returnLink=True):
     """ """
     sampleGenes = "PITX2\nMTOR\nTP53\nABO\n3661\nNM_134261"
@@ -14369,14 +14400,12 @@ def printKoForm(params):
     if "lastKOorg" in cookies and "lastKOpam" in cookies and "lastKOmethod" in cookies:
         lastorg = cookies["lastKOorg"].value
         lastpam = cookies["lastKOpam"].value
-        lastmethod = cookies["lastKOmethod"].value
     else:
         if not haveHuman:
             global DEFAULTORG
             DEFAULTORG = ALTORG
         lastorg = DEFAULTORG
         lastpam = DEFAULTPAM
-        lastmethod = "frameshift"
 
     print(
         """
@@ -14389,8 +14418,6 @@ def printKoForm(params):
         $("#pamDropDown").empty();
 
         // from https://stackoverflow.com/questions/740195
-
-        console.log(desc)
 
         for (let i = 0; i < desc.length; i++) {
 
@@ -14585,7 +14612,7 @@ $(document).ready(function() {
                ]
 
     for methodId, methodDesc in methods:
-        if methodId == lastmethod:
+        if methodId == "frameshift":
             methodChecked = "checked"
         else:
             methodChecked = ""
@@ -15357,6 +15384,19 @@ function clearEndSeq() {
     """)
 
 
+def wrongInputRedirect(msg):
+    """Show a warning message and exits"""
+
+    printCrisporBodyStart()
+
+    print("""<div style="justify-content: center; display: flex; gap: 12px; margin-top: 24px; margin-bottom: 24px;">""")
+    print("<p>Sorry, the input you entered can't be used by CRISPOR : %s</p><br>" % msg)
+    print("</div>")
+
+    printTeforBodyEnd()
+    sys.exit(0)
+
+
 def printBody(params):
     "main dispatcher function"
 
@@ -15370,7 +15410,6 @@ def printBody(params):
     submit = params.get("submit")
 
     # need a different way to handle errors returned by crisprSearch()
-    customPamErr = "<p>The custom PAM you entered either contains less than two non N nucleotides, unexpected characters or is not 3-8 nt long. Please use A, T, G, C or N only.</p>"
 
     errMsg = "<p>Something unexpected occured. This is probably a bug, please contact us at %s and send us the information below: <br> %s <br></p>" % (contactEmail, params)
 
@@ -15394,6 +15433,10 @@ def printBody(params):
                     targetLen = int(params.get("flankLen"))
                 elif koMethod == "promoter":
                     targetLen = int(params.get("promoterLen"))
+                # if the form was accessed by "return back", the PAM dropdown may not reset to base editors
+                # select a base editor anyway to prevent any bugs
+                elif koMethod == "stop" and "BE" not in pam:
+                    pam = "NGG-BE1" 
                 else:
                     targetLen = None
                 exonSelect = params.get("exonSelect")
@@ -15408,8 +15451,9 @@ def printBody(params):
                     printCrisporBodyStart()
                     if geneModel and len(geneModel) == 0:
                         print(
-                            "this is a non-coding transcript. Please choose another method to perform a knock-out on it, such as removing the promoter or the gene entirely."
+                            "this is a non-coding transcript. Please choose another method to perform a knock-out on it, such as removing the promoter of its gene."
                         )
+                        return
                     else:
                         crisprSearch(params)
 
@@ -15426,22 +15470,28 @@ def printBody(params):
                     kiType, insertIdx, startSeq, insertSeq, clippedSeq = processCustomInsertSeq(startSeq, endSeq)
                     if kiType is None:
                         msg = "Insertion type currently not supported"
-                        warningPage(msg, toForm="ki")
+                        wrongInputRedirect(msg)
+
                     elif kiType == "noEdits":
                         msg = "No edits were found in the sequence"
-                        warningPage(msg, toForm="ki")
+                        wrongInputRedirect(msg)
+
                     elif kiType == "longReplacement":
                         msg = "replacement of sequences longer than 10bp is currently not supported. If you want to replace a large sequence (eg. a CDS), please refer to LINK"
-                        warningPage(msg, toForm="ki")
+                        wrongInputRedirect(msg)
+
                     elif kiType == "multiInsert":
                         msg = "Multiple insertions are currently not supported"
-                        warningPage(msg, toForm="ki")
+                        wrongInputRedirect(msg)
+
                     elif kiType == "multiDel":
                         msg = "Multiple deletions are currently not supported"
-                        warningPage(msg, toForm="ki")
+                        wrongInputRedirect(msg)
+
                     elif kiType == "longDel":
                         msg = "Deletions larger than 500bp are currently not supported"
-                        warningPage(msg, toForm="ki")
+                        wrongInputRedirect(msg)
+
                     else:
                         # don't forget to cleanSeq()
                         params["kiType"] = kiType
@@ -15553,17 +15603,11 @@ def printBody(params):
         try:
             crisprSearch(params)
         except ValueError:
-            if "customPam" in params:
-                print(customPamErr)
-            else:
-                print(errMsg)
+            print(errMsg)
 
     # need to rewrite this in a cleaner way
 
     elif "batchId" not in params and submit is None:
-        if "warningPage" in params and "warnMsg" in params:
-            showWarningPage(params)
-            sys.exit(0)
         if expType == "ko":
             printKoForm(params)
         elif expType == "ki":
@@ -15678,10 +15722,10 @@ def processCustomInsertSeq(startSeq, endSeq):
                 kiType = "longReplacement"
             else:
                 kiType = "replacement"
-        elif len(editSeqs) == 1 and len(editSeqs[0][1]) > 1:
-            kiType = "insertion"
-        elif len(editSeqs) == 1 and len(editSeqs[0][1]) == 1:
+        elif len(editSeqs) == 1 and len(editSeqs[0][1]) == 1 and len(startSeq) > len(noEditEndSeq):
             kiType = "substitution"
+        elif len(editSeqs) == 1 and len(startSeq) == len(noEditEndSeq):
+            kiType = "insertion"
         else:
             return None, None, None, None, None
         insertIdx, insertSeq = editSeqs[0]
