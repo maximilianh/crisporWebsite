@@ -1,0 +1,59 @@
+Metadata-Version: 2.4
+Name: forecast_be
+Version: 0.2
+Summary: Tools to predict base editor efficacy
+Author: Ananth Pallaseni
+Author-email: ap32@sanger.ac.uk
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scikit-learn==0.23
+Requires-Dist: biopython>=1.73
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# FORECasT-BE
+
+A tool for predicting guide efficacy for base editors. 
+
+Input is a 20 nucletoide guide sequence (positions 1-20 where the PAM starts at position 21).
+
+Output is a set of predictions for on-target base editing efficacy at positions 3-10 in the guide.
+
+# Installation
+First download the package:
+
+```git clone https://github.com/ananth-pallaseni/FORECasT-BE.git```
+
+Then run the following command inside the forecast-be directory:
+
+```pip install -e .```
+
+# Usage
+```python
+import forecast_be
+
+target_seq = 'TCTGCTCAGCTCATGCCGAT' # 20nt spacer sequence 
+editor_type = 'CBE' # or 'ABE'
+
+# Predict the total fraction of edited reads for the target sequence
+# If the `mean` and `std` arguments are None, then returns a z-score
+# Input a mean and std to scale this into reael efficiency (good defaults are mean=0.5 & std=0.1)
+guide_efficiency = forecast_be.predict_total(target_seq, editor=editor_type, mean=None, std=None)
+
+# Predict the fraction of edited reads with the on-target substitituion at each position 
+# Returns a list of predictions
+positional_efficiency = forecast_be.predict_total(target_seq, editor=editor_type, mean=None, std=None)
+```
