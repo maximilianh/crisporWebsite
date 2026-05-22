@@ -1934,7 +1934,6 @@ FORECasT-BE :
 - lecture http://dx.doi.org/10.1038/nbt.3437 (rs2 & CFD scores)
     - AltPams : NAG (26%), NCG (11%) and NGA (7%) -> éviter de former ces PAMs lors du recodage du donneur si possible
         - alternative : faire comme protoSpaceJam : calculer CFD pour chaque design puis sélectionner le meilleur
-    - L'activité des guides sur sites off-target est bimodale -> donc classer guides en spécifiques / non spécifiques pour le global score ?
     - modifier texte CFD score : prise en compte de l'identité des mismatches (en plus de la position)
 
 ## global
@@ -1951,5 +1950,33 @@ FORECasT-BE :
 
 ## à faire
 
-- ajouter librairie Jacquere(https://doi.org/10.1016/j.xgen.2026.101190)
+- ajouter librairie Jacquere (https://doi.org/10.1016/j.xgen.2026.101190)
 - ajouter édition des sites d'épissage dans en mode KO / base editing
+
+# 22/05/26
+
+- comparaison des scores d'efficacité entre installation local / test / public -> identiques (pas d'impact des versions =/= des packages)
+- comparaison des modèles de prédiction de sites d'épissage : https://doi.org/10.1371/journal.pone.0348885
+    - modèle Baclesse  https://doi.org/10.1002/humu.24491 // https://github.com/LBGC-CFB/SPiP (human only)
+
+## global 
+
+- calcul aggregate CFD score dans annotateOffTargets() (somme des CFD pour off-targets jusqu'à n=1 mismatches) - à finir
+- correction d'un bug dans iterOffTargetRows() : prise en compte des nouvelles valeurs de guideRow
+
+## knock-in mode
+
+- ajout de l'affichage de la structure secondaire de l'ADN donneur dans showDonor() (pour ssODN)
+- correction d'un bug dans writeDonorSeq() : flag "pas de modèle de gènes" activé si recodage non coché
+
+## base editing
+
+- affichage des edits en lowercase
+- tentative de correction de la fenêtre d'édition pour DeepBE (décalage de 4bp en 5' ??)
+
+## à faire
+
+- score HDR : proposer changements en fonction du score : position gRNA + longueur bras d'homologie
+- mode KI : proposer toutes les possibilités pour réaliser l'edit voulu
+    - afficher base editing / prime editing / HDR dans des tableaux (voire des séquences) séparés
+    - spCas9 en priorité

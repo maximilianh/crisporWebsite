@@ -303,7 +303,7 @@ multiPamDict = {
 DEFAULTPAM = "NGG"
 
 # the default base editor modification window
-DEFAULTBEWIN = "1-7"
+DEFAULTBEWIN = "4-8"
 
 # for some PAMs, there are alternative main PAMs. These are also shown on the main sequence panel
 multiPams = {
@@ -1395,13 +1395,12 @@ def getFreeEnergy(seq, temperature=37):
         return float(deltaG.strip().replace(")", "").replace("(", ""))
 
 
-def showSecondaryStructure(params):
+def showSecondaryStructure(params, donorSeq=None):
     "Using ViennaRNA, displays MFE structure as a plot"
 
     guideSeq = params["guideSeq"]
     batchId = params["batchId"]
     pamId = params["pamId"]
-    temperature = params.get("temperature", "37")
     addSeq = params.get("addSeq")
 
     if addSeq and len(addSeq) < 100:
@@ -1416,40 +1415,47 @@ def showSecondaryStructure(params):
     else:
         strSeq = guideSeq
 
+    if donorSeq:
+        strSeq = donorSeq
+
+    temperature = params.get("temperature", "37")
     freeEnergy = getFreeEnergy(strSeq, temperature)
 
     progDir = binDir
     tmpdir = tempfile.mkdtemp(dir=batchDir)
 
-    printBackLink()
+    if not donorSeq:
 
-    print("""<div style="margin-left:35%; margin-right:25%; margin-bottom:10%;"> """)
-    print("""<div class="title">Spacer sequence of the guide : %s</div>""" % guideSeq)
-    if addSeq and strSeq != guideSeq:
-        print("<p>3' sequence : %s</p>" % addSeq)
-    print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is used to calculate the EVA activity score. Structures with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracrRNA sequence in 3' to check the predicted structure of the guide and potential issues with guide RNA folding.</p>
-    """)
-    print("""<p>Free energy of this structure : <b>%s kcal/mol</b></p>""" % freeEnergy)
+        printBackLink()
 
-    print("<form>")
+        print("""<div style="margin-left:35%; margin-right:25%; margin-bottom:10%;"> """)
+        print("""<div class="title">Spacer sequence of the guide : %s</div>""" % guideSeq)
+        if addSeq and strSeq != guideSeq:
+            print("<p>3' sequence : %s</p>" % addSeq)
+        print("""<p>Here is shown the predicted structure of the spacer sequence of the guide. This information is used to calculate the EVA activity score. Structures with a minimum free energy lower than -3.6 kcal/mol are considered detrimental to the activity of the guide.<br> You can also add a tracrRNA sequence in 3' to check the predicted structure of the guide and potential issues with guide RNA folding.</p>
+        """)
+        print("""<p>Free energy of this structure : <b>%s kcal/mol</b></p>""" % freeEnergy)
 
-    print("""
-    <input type="hidden" name="batchId" value="%(batchId)s"/>
-    <input type="hidden" name="guideSeq" value="%(guideSeq)s"/>
-    <input type="hidden" name="pamId" value="%(pamId)s"/>
-    """ % locals())
+        print("<form>")
 
-    print(
-        """
-        <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 45px;">
-            <input type="range" id="temperature" name="temperature" value="%(temperature)s" min="5" max="75" style="vertical-align:middle; width:15%%;" oninput="this.nextElementSibling.value = this.value"/>
-            at<output>%(temperature)s</output> &#8451
-            <textarea cols=50 rows=2 style="margin-left: 12px;" name="addSeq" placeholder="Add a tracrRNA sequence here to check the predicted structure of the guide."></textarea>
-            <button style="width: 60px; height: 24px; justify-self: center; margin-left: 12px;" type="submit" name="submit" value="SUBMIT"><small>update</small></button>
-        </div>
-        """ % locals()
-    )
+        print("""
+        <input type="hidden" name="batchId" value="%(batchId)s"/>
+        <input type="hidden" name="guideSeq" value="%(guideSeq)s"/>
+        <input type="hidden" name="pamId" value="%(pamId)s"/>
+        """ % locals())
 
+        print(
+            """
+            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 45px;">
+                <input type="range" id="temperature" name="temperature" value="%(temperature)s" min="5" max="75" style="vertical-align:middle; width:15%%;" oninput="this.nextElementSibling.value = this.value"/>
+                at<output>%(temperature)s</output> &#8451
+                <textarea cols=50 rows=2 style="margin-left: 12px;" name="addSeq" placeholder="Add a tracrRNA sequence here to check the predicted structure of the guide."></textarea>
+                <button style="width: 60px; height: 24px; justify-self: center; margin-left: 12px;" type="submit" name="submit" value="SUBMIT"><small>update</small></button>
+            </div>
+            """ % locals()
+        )
+    else:
+        print("""<p style="font-weight: 600;">Free enegry : %d kcal/mol (at %s &#8451)</p>""" % (freeEnergy, temperature))
     try:
 
         RNAfoldCmd = os.path.join(progDir, "RNAfold")
@@ -2144,7 +2150,6 @@ def calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, stra
     """
 
     # Work in progress
-    # will add ForeCast-BE and CRISPRonBE
     # change the model according to the base editor
     # need to display efficiency prediction and outcome differently
 
@@ -2160,13 +2165,30 @@ def calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, stra
     if len(extGuideSeq) != 30:
         return 0, []
 
+    # DeepBE : should move this to a dedicated function
     for modelType, modelName, module, modelHandle in models:
-        score = module.predict(modelHandle, [extGuideSeq])[0]
+        # TEST : the edit window is not correct (seems to be shifted by 4bp in 5')
+        # this is strange because the README states that the input is 4bp + guide + PAM + 3bp
+        # temporarily remove the 4bp 5' extension
+        # should compate the results with the original program!!
+        # new, the widow seems to be shifted by 1bp in 3'
+        newExtGuideSeq = extGuideSeq[4:]
+        modelOut = module.predict(modelHandle, [newExtGuideSeq])[0]
 
         if modelType == "eff":
-            effs.append(("DeepBE", score))
+            effs.append(("DeepBE", modelOut))
         elif modelType == "prop":
-            outcomes.append(("DeepBE", score))
+            # make non edited bases in lowercase
+            outcome = []
+            for seq, freq in modelOut:
+                newSeqList = []
+                for pos, base in enumerate(seq):
+                    newBase = base.lower() if base == newExtGuideSeq[pos] else base.upper()
+                    newSeqList.append(newBase)
+                newSeq = extGuideSeq[0:4].lower() + ''.join(newSeqList)
+                outcome.append((newSeq, freq))
+
+            outcomes.append(("DeepBE", outcome))
         else:
             raise ValueError("Wrong model type")
 
@@ -2212,7 +2234,7 @@ def calcForeCastBE(extGuideSeq, editor):
             continue
         idx = pos - 1
         # will need to adjust for ABE and reverse strand using fromNucl / toNucl
-        outcomeSeq = extGuideSeq[0:4] + guideSeq[0:idx] + "T" + guideSeq[pos:] + extGuideSeq[24:]
+        outcomeSeq = extGuideSeq[0:4].lower() + guideSeq[0:idx].lower() + "T" + guideSeq[pos:].lower() + extGuideSeq[24:].lower()
         outcomes.append((outcomeSeq, freq))
 
         # print(outcomes, freq, "<br>")
@@ -3572,6 +3594,11 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
     repCount = 0  # if repCount for a guide is !=0, then the guide should not be used. repCount is then the number
     # of matches for the guide in the genome (not looking at the PAM)
 
+    # to calculate the aggregate CFD score, the CFD of offtargets with up to n mimatches are summed
+    # from https://doi.org/10.1016/j.xgen.2026.101190
+    aggrThreshold = 1
+    aggrCfdScores = []
+
     # for each edit distance, get the off targets and iterate over them
     foundOneOntarget = False
     isSaCas9 = pamIsSaCas9(pam)
@@ -3580,7 +3607,6 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
     for editDist in range(0, maxMMs + 1):
         # print countDict,"<p>"
         matches = countDict.get(editDist, [])
-
         # print otCounts,"<p>"
         last12MmOtCount = 0
 
@@ -3664,6 +3690,9 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
             if cfdScore != -1:
                 cfdScores.append(cfdScore)
 
+            if editDist <= aggrThreshold:
+                aggrCfdScores.append(cfdScore)
+
             posStr = "%s:%d-%s:%s" % (chrom, start + 1, end, strand)
             if chrom == inChrom:
                 dist = abs(start - inStart)
@@ -3712,6 +3741,8 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
             else:
                 guideCfdScore = calcMitGuideScore(sum(cfdScores))
 
+            # aggrCfdScore = round(sum(aggrCfdScores), 2)
+
     # obtain the off-target info: coordinates, descriptions and off-target counts
     if repCount > 0:
         posList = []
@@ -3734,6 +3765,7 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
         otDescStr,
         guideScore,
         guideCfdScore,
+        # aggrCfdScore,
         last12DescStr,
         ontargetDesc,
         repCount,
@@ -4448,6 +4480,7 @@ def mergeGuideInfo(
                 otDesc,
                 guideScore,
                 guideCfdScore,
+                # aggrCfdScore,
                 last12Desc,
                 ontargetDesc,
                 repCount,
@@ -4455,6 +4488,8 @@ def mergeGuideInfo(
             if repCount != 0:
                 guideScore = 0
                 guideCfdScore = 0
+
+            # print(guideCfdScore, aggrCfdScore, "<br>")
 
         # no off-targets found?
         else:
@@ -5141,7 +5176,7 @@ You can adapt the global score to your delivery method (select below), which cha
             % (colWidths["cfdSpec"], batchId)
         )
         htmlHelp(
-            "The CFD specificity score, inspired by guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score tken into account the identity of mismatches and correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
+            "The CFD specificity score, inspired by guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score takes into account the identity of mismatches, and correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
         )
         print("</th>")
 
@@ -8250,7 +8285,7 @@ def printForm(params):
     print(
         """<br>See <a target=_blank href="manual/manual.html#enzymes">notes on enzymes</a> in the manual.<br>
     <details id="customPAM" style = "margin-top:12px;">
-        <input name = "customPAM" placeholder="PAM (> 1 non N, 3-8 nt)" style="height:22px; width:180px;" onkeydown="handleEnter(event)"></input>
+        <input name = "customPAM" placeholder="PAM (at least 1 non-N, 3-8 nt)" style="height:22px; width:180px;" onkeydown="handleEnter(event)"></input>
         <select name = "customType" class="js-example-basic-single" style="width:25%%">
             <option value="">Select enzyme type</option>
             <option value="Cas9">Cas9</option>
@@ -10027,7 +10062,7 @@ def KiResultsPage(params, batchId, download=False):
         )
 
         # Base editing can be used for these substitutions
-        if kiType == "substitution" and (seq[insertIdx].upper() == "C" and insertSeq == "T") or (seq[insertIdx].upper() == "G" and insertSeq == "A"):
+        if kiType == "substitution" and ((seq[insertIdx].upper() == "C" and insertSeq == "T") or (seq[insertIdx].upper() == "G" and insertSeq == "A")):
             # global baseEditor
             # baseEditor = True
             seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
@@ -10614,6 +10649,7 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
     else:
         insertText = "insert sequence"
 
+
     print(
         """
     <script>
@@ -10887,6 +10923,12 @@ def showDonor(HA5, HA3, newInsertSeq, recodedArmSeq, mutEvents, noModel, recodeA
 
         print("""<button style="align-self: center; width: 125px;" type="submit" value="update">update</button>""")
         print("</form>")
+
+    if donorType == "ss":
+        print("<details>")
+        print("<summary>Show the free energy and secondary structure of the ssODN</summary>")
+        showSecondaryStructure(params, donorSeq=donorSeq)
+        print("</details>")
 
     print("</div>")
     print("</div>")
@@ -12218,7 +12260,7 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
             guideScore,
             guideCfdScore,
             effScores,
-            startPos,
+            pamStart,
             guideStart,
             strand,
             pamId,
@@ -12230,6 +12272,11 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
             mutEnzymes,
             ontargetDesc,
             repCount,
+            gcFrac,
+            freeEnergy,
+            doRecoding,
+            cutUpstream,
+            mainScore
         ) = guideRow
 
         if otData != None:
@@ -16260,11 +16307,12 @@ def writeDonorSeq(params):
                                                        recodeGap, guideInfo, recodeArm, pamPat, codonFreq)
     else:
         # if no recoding could happen because no annotation file is available, signal it
-        if (recodePam or recodeSeed or recodeGap) and (selGeneModel is None) or \
-                manualExStart is None or manualExEnd is None or manualExFrame is None:
+        if (recodePam or recodeSeed or recodeGap) and ((selGeneModel is None) or
+                                                       manualExStart is None or manualExEnd is None or manualExFrame is None):
             noModel = True
         else:
             noModel = False
+
         mutEvents = None
         recodedArmSeq = None
         recodeArm = None
