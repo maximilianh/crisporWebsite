@@ -1980,3 +1980,51 @@ FORECasT-BE :
 - mode KI : proposer toutes les possibilités pour réaliser l'edit voulu
     - afficher base editing / prime editing / HDR dans des tableaux (voire des séquences) séparés
     - spCas9 en priorité
+
+- faire un serveur séparé pour chaque modèle -> requête (localhost bind)
+- sites d'épissage précalculés pour l'humain
+
+# 26/05/25
+
+## base editing
+
+- utilisation de sous-serveur pour le calcul des scores de base editing
+    - chaque serveur s'exécute dans un environnement virtuel séparé
+    - ajout de startSubServer.py : lancement d'un serveur http sur un port non utilisé (mapping des ports -> modèle dans subserverConf.py)
+    - ajout de startSubServers.sh : lancement des subservers pour chaque port listé sans subserverConf.py
+    - pour chaque modèle -> script python (ex. runDeepBe.py) : retourne résultats au format json
+    - dans crispor.py : ajout de callSubServer() : envoi d'un requêtre http sur le port correspondant au modèle, avec données au format json
+
+- test communication crispor.py / subservers OK (envoi / réception)
+
+- ajout de la dernière version de deepBE (git@github.com:NahyeKim/DeepBE.git) 60+ modèles spécifiques à chaque enzyme (python 3.6)
+
+## à faire
+
+- chargement des modèles lors de l'exécution de startSubServer.py
+- ajout des scripts pour chaque modèle
+- exécuter startSubServers.sh dans startWorkers.sh (ou merge)
+
+## 27/05/26
+
+# base editing
+
+- lancement / arrêt des subservers dans start/stopWorkers.sh
+
+## notes JP / Max
+
+- annotation KO -> ucsc custom track (activer pistes)
+- charger tous les modèles au début
+- afficher histograme vide -> le remplir on hover
+- ou ouvrir une boite de dialogue
+- réfléchir aux offtargets -> outils spécifiques
+- refaire le tableau ? (pas global score)
+    - eff -> nuclease eff
+- changer terme knock-in (+ généraliste)
+- mode KI -> onglet pour chaque type d'édition + table of contents choix$
+- en mode pamless : filtrer (efficacité) -> n'afficher que top guides
+- calculer scores base editing / hdr séparément
+- mode high precision (+ comparer à CasOffFinder)
+- prime editing : commencer par KO / STOP  
+    - réfléchir au tri des possibilités
+    - laisser l'utilisateur sélectionner ?

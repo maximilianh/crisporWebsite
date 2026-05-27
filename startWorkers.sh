@@ -7,6 +7,9 @@ if [[ `pwd` == *"crisporBeta"* ]] ; then
 fi
 echo $workCount
 mkdir -p log
+
+./startSubServers.sh
+
 for i in `seq $workCount`; do
     log=log/worker$i.log
     echo "---- NEW LOG ----" >> $log

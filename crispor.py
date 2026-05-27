@@ -108,6 +108,7 @@ if len(needModules) != 0:
 
 # our own eff scoring library
 import crisporEffScores
+from subserversConf import SUBSERVERS
 
 # don't report print as an error
 # pylint: disable=E1601
@@ -2203,6 +2204,19 @@ def calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, stra
     # print(outcomes, "<br>")
 
     return effs, outcomes
+
+
+def calcBeScoresServer(models, seq, guideSeq, pamSeq, extGuideStart, extGuideEnd):
+    """
+    sends the data to sub-servers running each Base edting models
+    """
+
+    extGuideSeq = seq[extGuideStart:extGuideEnd]
+
+    deepResult = callSubServer("runDeepBe", extGuideSeq)
+    forecastResult = callSubServer("runForecastBe", extGuideSeq)
+
+    return list(deepResult, forecastResult)
 
 
 def calcForeCastBE(extGuideSeq, editor):
@@ -11177,6 +11191,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
         print("</div>")
 
+        print("<h1>", callSubServer("runDeepBe", "DATA_OUT"), "</h1>")
+        print("<h1>", callSubServer("runForecastBe", "AACTGAAGGCTGAACAGCAGGGGTGGGAGA"), "</h1>")
+
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
         if geneModels:
             for (model, modelStr) in geneModels:
@@ -19906,6 +19923,25 @@ def printAssistant(params):
                         <circle cx="12" cy="12" r="5" class="tabIconFill" stroke="none"/>
                     </svg>
     """
+
+
+def callSubServer(name, data, timeout=60):
+    """sends the data to the sub-server registered under <name> in SUBSERVERS
+    and returns the JSON result"""
+
+    port = SUBSERVERS[name]["port"]
+    url = f"http://localhost:{port}/{name}"
+    jsonData = json.dumps(data).encode("utf-8")
+    request = urllib.request.Request(url, data=jsonData, method="POST")
+    request.add_header("Content-Type", "application/json")
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            result = response.read().decode("utf-8")
+            return json.loads(result)
+
+    except urllib.error.URLError as error:
+        return {"error": str(error)}
 
 
 def mainCgi():
