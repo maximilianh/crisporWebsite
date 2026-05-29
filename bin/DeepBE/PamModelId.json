@@ -1,0 +1,11 @@
+{
+    0: 'PAM_variant_SpCas9_model.h5',
+    1: 'PAM_variant_VRQR_model.h5',
+    2: 'PAM_variant_NG_model.h5',
+    3: 'PAM_variant_NRRH_model.h5',
+    4: 'PAM_variant_NRTH_model.h5',
+    5: 'PAM_variant_NRCH_model.h5',
+    6: 'PAM_variant_SpG_model.h5',
+    7: 'PAM_variant_SpRY_model.h5',
+    8: 'PAM_variant_Sc++_model.h5'
+}

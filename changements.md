@@ -2010,6 +2010,8 @@ FORECasT-BE :
 # base editing
 
 - lancement / arrêt des subservers dans start/stopWorkers.sh
+- mise en place du venv FORECasT-BE 
+- ajout et test de runForecastBe.py -> OK
 
 ## notes JP / Max
 
@@ -2018,7 +2020,7 @@ FORECasT-BE :
 - afficher histograme vide -> le remplir on hover
 - ou ouvrir une boite de dialogue
 - réfléchir aux offtargets -> outils spécifiques
-- refaire le tableau ? (pas global score)
+- refaire le tableau ? (pas de global score)
     - eff -> nuclease eff
 - changer terme knock-in (+ généraliste)
 - mode KI -> onglet pour chaque type d'édition + table of contents choix$
@@ -2028,3 +2030,50 @@ FORECasT-BE :
 - prime editing : commencer par KO / STOP  
     - réfléchir au tri des possibilités
     - laisser l'utilisateur sélectionner ?
+    - ou calculer scores pegs et filtrer (cf https://deepcrispr.info : sélection du n percentile)
+
+## 28/05/26
+
+## Base editing
+
+- DeepBE (nouvelle version) :  https://doi.org/10.1038/s41587-023-01792-x - https://github.com/NahyeKim/DeepBE
+
+- mise en place de l'environnement DeepBE
+- ajout des modèles depuis https://github.com/NahyeKim/DeepBE/releases/tag/version1 (~10Gb!)
+- ajout d'un script pour symlink les modèles des PAM variants vers DeepBE
+
+- test DeepNG-BE -> OK
+- test DeepCas9-variants (PAM) -> OK
+- test DeepBE -> OK ??
+
+# bilio design pegRNA
+
+- https://doi.org/10.1016/j.cell.2023.03.034 - https://deepcrispr.info
+- https://doi.org/10.1093/bib/bbaf293
+
+# à faire
+
+- modifier les scripts DeepBE pour : 
+    - importer la fonction de prédiction
+    - charger les modèles une seule fois
+    - ou alors, exécuter commande puis parser les résultats (lent car chargment du modèle à chaque fois)
+
+# 29/05/26
+
+## global
+
+- correction d'un bug dans PrimerDetailsPage() : prise en compte des nouvelles variables de guideRow
+## base editing 
+
+- réorganisation du répertoire bin/DeepBE 
+    - stockage des modèles dans un répertoire séparé (trop gros pour être inclus dans le repo)
+    - ajout de downloadDeepBeModels.sh : téléchargement et extraction des modèles DeepBE (à exécuter si nouvelle installation)
+    - ajout de linkDeepBeModels.sh : création de symlinks de DeepBE vers le répertoire contenant les modèles
+
+- ajout de loadDeepBeModels.py : importation de tous les modules dans bin/DeepBE
+
+## à faire
+
+- pour tous les modules dans bin/DeepBE, wrapper tf.load_model dans la fonction loadModels() et le reste du script dans predict() (ou créer une classe)
+    - call de la loadModels() dans loadDeepBeModels.py -> call de loadDeepBeModels.py dans startSubServer.py
+    - call de predict() dans runDeepBE.py

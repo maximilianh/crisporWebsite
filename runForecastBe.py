@@ -1,5 +1,8 @@
 import sys
 
+sys.path.append("bin/FORECasT-BE")
+import forecast_be as forecast
+
 
 def run(data):
 
@@ -8,8 +11,6 @@ def run(data):
     see https://github.com/ananth-pallaseni/FORECasT-BE
     """
 
-    sys.path.append("bin/FORECasT-BE_org")
-    import forecast_be as forecast
 
     # forecast.load_models()
 
@@ -27,12 +28,6 @@ def run(data):
 
     totalEff = forecast.predict_total(guideSeq, editor=editor, mean=mean, std=std)
 
-    return {"status": "processed",
-            "effs": totalEff
-            }
-
-    """
-
     # Predict the fraction of edited reads with the on-target substitituion at each position
     # Returns a list of predictions
     outcomes = []
@@ -49,6 +44,5 @@ def run(data):
 
     return {"status": "processed",
             "model": "FORECast-BE",
-            "effs": totalEff,
+            "eff": totalEff,
             "outcome": outcomes}
-    """

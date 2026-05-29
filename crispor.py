@@ -2105,155 +2105,24 @@ def printSeqForCopy(seq):
     print("</input>")
 
 
-def loadBeScoreModels(beType):
-    """
-    Load the deep learning models to calculate Base editing outcomes
-    The list of models is adjusted depending on the base editor
-    return a dict of list of tuples {"eff": [module, handle], "prop": [module, handle]}
-    If a new model is added, will need to add a "load model" function similar to DeepBe
-    """
-
-    # placeholder, will need to add to the parameters
-    # here, get the model list from BE type
-    # will need to store beType -> model to  dict
-    if beType == "NGG-BE1":
-        editor = "CBE"
-
-    models = []
-
-    # DeepBaseEditor, see https://github.com/NahyeKim/DeepBE
-    # The source code was modified with Claude to use tensorflow 2.12.0 and to be imported as a module
-    sys.path.append("bin/DeepBaseEditor/%s_Efficiency" % editor)
-    sys.path.append("bin/DeepBaseEditor/%s_Proportion" % editor)
-
-    import TEST_CBE_Efficiency as modelEff
-    deepEffHandle = modelEff.load_model()
-    models.append(("eff", "DeepCBE", modelEff, deepEffHandle))
-
-    import TEST_CBE_Proportion as modelProp
-    deepPropHandle = modelProp.load_model()
-    models.append(("prop", "DeepCBE", modelProp, deepPropHandle))
-
-    return models
-
-
-def closeBeModels(models):
-    " closes the handles for base editor scoring models"
-
-    for modelType, modelName, module, modelHandle in models:
-        module.close_model(modelHandle)
-
-
-def calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models):
-    """
-    calculates base editing score given the guide sequence and the position
-    Returns a list of predicted efficiencies and a list of lists of frequencies of all possible edits
-    """
-
-    # Work in progress
-    # change the model according to the base editor
-    # need to display efficiency prediction and outcome differently
-
-    effs = []
-    outcomes = []
-
-    extGuideSeq = seq[extGuideStart:extGuideEnd].upper()
-    if strand == "-":
-        extGuideSeq = revComp(extGuideSeq)
-
-    # print(len(extGuideSeq))
-    # could not extend the sequence
-    if len(extGuideSeq) != 30:
-        return 0, []
-
-    # DeepBE : should move this to a dedicated function
-    for modelType, modelName, module, modelHandle in models:
-        # TEST : the edit window is not correct (seems to be shifted by 4bp in 5')
-        # this is strange because the README states that the input is 4bp + guide + PAM + 3bp
-        # temporarily remove the 4bp 5' extension
-        # should compate the results with the original program!!
-        # new, the widow seems to be shifted by 1bp in 3'
-        newExtGuideSeq = extGuideSeq[4:]
-        modelOut = module.predict(modelHandle, [newExtGuideSeq])[0]
-
-        if modelType == "eff":
-            effs.append(("DeepBE", modelOut))
-        elif modelType == "prop":
-            # make non edited bases in lowercase
-            outcome = []
-            for seq, freq in modelOut:
-                newSeqList = []
-                for pos, base in enumerate(seq):
-                    newBase = base.lower() if base == newExtGuideSeq[pos] else base.upper()
-                    newSeqList.append(newBase)
-                newSeq = extGuideSeq[0:4].lower() + ''.join(newSeqList)
-                outcome.append((newSeq, freq))
-
-            outcomes.append(("DeepBE", outcome))
-        else:
-            raise ValueError("Wrong model type")
-
-        # print(effs, "<br>")
-        # print(outcomes, "<br>")
-
-    forecastEff, forecastOutcomes = calcForeCastBE(extGuideSeq, "CBE")
-    effs.append(forecastEff)
-    outcomes.append(forecastOutcomes)
-
-    # print(effs, "<br>")
-    # print(outcomes, "<br>")
-
-    return effs, outcomes
-
-
 def calcBeScoresServer(models, seq, guideSeq, pamSeq, extGuideStart, extGuideEnd):
     """
     sends the data to sub-servers running each Base edting models
     """
 
+    effs = []
+    outcomes = []
+
     extGuideSeq = seq[extGuideStart:extGuideEnd]
 
-    deepResult = callSubServer("runDeepBe", extGuideSeq)
-    forecastResult = callSubServer("runForecastBe", extGuideSeq)
+    # lists of (modelName, modelOutput)
+    for model in models:
+        modelOut = callSubServer("run%s" % model, extGuideSeq)
+        if modelOut["status"] == "processed":
+            effs.append((model, modelOut["eff"]))
+            outcomes.append((model, modelOut["outcome"]))
 
-    return list(deepResult, forecastResult)
-
-
-def calcForeCastBE(extGuideSeq, editor):
-
-    """
-    calcultes the predicted efficiency and outcomes with FORECast-BE
-    see https://github.com/ananth-pallaseni/FORECasT-BE
-    """
-
-    sys.path.append("bin/FORECasT-BE")
-    import forecast_be as forecast
-
-    # to match the output of deepBE / CRISPRonBE, the 30bp extended guide sequence is returned
-    guideSeq = extGuideSeq[4:24]
-
-    # Predict the total fraction of edited reads for the target sequence
-    # If the `mean` and `std` arguments are None, then returns a z-score
-    # Input a mean and std to scale this into reael efficiency (good defaults are mean=0.5 & std=0.1)
-    mean, std = 0.5, 0.1
-
-    totalEff = forecast.predict_total(guideSeq, editor=editor, mean=mean, std=std)
-
-    # Predict the fraction of edited reads with the on-target substitituion at each position
-    # Returns a list of predictions
-    outcomes = []
-    posEff = forecast.predict(guideSeq, editor=editor, mean=mean, std=std)
-    for pos, freq in posEff:
-        if freq is None:
-            continue
-        idx = pos - 1
-        # will need to adjust for ABE and reverse strand using fromNucl / toNucl
-        outcomeSeq = extGuideSeq[0:4].lower() + guideSeq[0:idx].lower() + "T" + guideSeq[pos:].lower() + extGuideSeq[24:].lower()
-        outcomes.append((outcomeSeq, freq))
-
-        # print(outcomes, freq, "<br>")
-
-    return ("FORECasT-BE", totalEff), ("FORECasT-BE", outcomes)
+    return effs, outcomes
 
 
 def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGuides=None, substInfo=None, batchId=None):
@@ -2278,8 +2147,9 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
             # beType = "CBE" if insertSeq in ["C", "T"] else "ABE"
         else:
             batchInfo = readBatchAsDict(batchId)
-            beType = batchInfo["pam"]
-        models = loadBeScoreModels(beType)
+            # beType = batchInfo["pam"]
+        # old version
+        # models = loadBeScoreModels(beType)
 
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
 
@@ -2326,15 +2196,18 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
 
                 # in KO mode, calculate the scores only in the second call
                 if doScore or stopGuides is not None:
-                    effs, outcomes = calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models)
+                    models = ["ForecastBe"]
+                    # effs, outcomes = calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models)
+                    effs, outcomes = calcBeScoresServer(models, seq, guideSeq, pamSeq, extGuideStart, extGuideEnd)
+
                 else:
                     effs, outcomes = 0, []
                 editInfos[pos][toNucl].append(
                     (pamId, guideSeq, pamSeq, mutPos, effs, outcomes, specScore)
                 )
 
-    if stopGuides is not None or substInfo is not None:
-        closeBeModels(models)
+    # if stopGuides is not None or substInfo is not None:
+    #     closeBeModels(models)
 
     # print(editInfos)
     altNucls = ["A", "T"]
@@ -2391,6 +2264,7 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
         # don't display a line with no edits
         if len([char for char in lineChars if char != ' ']) > 0:
             ret.append((label, None, "".join(lineChars)))
+
     return ret, jsonData
 
 
@@ -2625,6 +2499,7 @@ def showExonAndPams(
         editLines, jsonData = makeEditLines(
             seq, pamSeqs, beWinStart, beWinEnd, guideScores, exonId
         )
+
         labelLen = max(labelLen, getMaxLen(editLines))
     else:
         jsonData = None
@@ -2653,7 +2528,6 @@ def showExonAndPams(
 
         if jsonData:
             allJsonData.update(jsonData)
-
     # if the last exon on the first third of the coding sequence was extended 14bp inside a coding sequence,
     # avoid flagging this region as an intron
     if selGeneModel and selTransId:
@@ -11191,9 +11065,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
         print("</div>")
 
-        print("<h1>", callSubServer("runDeepBe", "DATA_OUT"), "</h1>")
-        print("<h1>", callSubServer("runForecastBe", "AACTGAAGGCTGAACAGCAGGGGTGGGAGA"), "</h1>")
-
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
         if geneModels:
             for (model, modelStr) in geneModels:
@@ -18540,7 +18411,7 @@ def primerDetailsPage(params):
                 guideScore,
                 guideCfdScore,
                 effScores,
-                startPos,
+                pamStart,
                 guideStart,
                 strand,
                 rowPamId,
@@ -18552,6 +18423,12 @@ def primerDetailsPage(params):
                 mutEnzymes,
                 ontargetDesc,
                 repCount,
+                gcFrac,
+                freeEnergy,
+                doRecoding,
+                cutUpstream,
+                mainScore,
+
             ) = guideRow
             if rowPamId != pamId:
                 continue

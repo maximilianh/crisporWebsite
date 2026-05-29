@@ -3,7 +3,7 @@ and crispor.py. Each entry maps a module name (file <name>.py exposing run(data)
 to its port and the venv directory whose python3 binary should host it."""
 
 SUBSERVERS = {
-    "runDeepBe":     {"port": 8001, "venv": "venv"},
+    "runDeepBe":     {"port": 8001, "venv": "venvDeepBE"},
     "runForecastBe": {"port": 8002, "venv": "venvForecastBe"},
-    "runCrisprOnBe": {"port": 8003, "venv": "venvCrisprOnBe"}
+    # "runCrisprOnBe": {"port": 8003, "venv": "venvCrisprOnBe"}
 }
