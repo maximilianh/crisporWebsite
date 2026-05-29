@@ -1,2 +1,0 @@
-reference seqeucne
-1	AGGGCTGAACTAAAGCCTCCAGGGG
