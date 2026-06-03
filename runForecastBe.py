@@ -11,12 +11,9 @@ def run(data):
     see https://github.com/ananth-pallaseni/FORECasT-BE
     """
 
-
     # forecast.load_models()
 
-    extGuideSeq = data
-    editor = "CBE"
-    # do editor = data[1]
+    editor, extGuideSeq = data
 
     # to match the output of deepBE / CRISPRonBE, the 30bp extended guide sequence is returned
     guideSeq = extGuideSeq[4:24]

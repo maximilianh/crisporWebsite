@@ -1,12 +1,14 @@
+import os
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 import itertools
 
-header=['target + PAM','feature']
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-dataset_ = pd.read_csv('DeepNG-BE_input_example.csv',header=None,names=header)
-final_model =  tf.keras.models.load_model('DeepNG-BE_YE1_model',compile=False)
+def loadModel():
+    final_model = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'DeepNG-BE_YE1_model'), compile=False)
+    return final_model
 
 start=7
 length=5
@@ -69,56 +71,59 @@ def preprocess_seq_pam(data):
     return DATA_X
 
 
-dataset_seq_masked = preprocess_seq(dataset_['target + PAM'])
-dataset_seq_masked = pd.Series(list(dataset_seq_masked),name='seq')
+def predict(final_model, sequences, feature):
+    dataset_ = pd.DataFrame({'target + PAM': list(sequences), 'feature': feature})
 
-dataset_seq_masked_pam = preprocess_seq_pam(dataset_['target + PAM'])
-dataset_seq_masked_pam = pd.Series(list(dataset_seq_masked_pam ),name='seq_pam')
+    dataset_seq_masked = preprocess_seq(dataset_['target + PAM'])
+    dataset_seq_masked = pd.Series(list(dataset_seq_masked),name='seq')
 
-dataset_all = pd.concat([dataset_,dataset_seq_masked,dataset_seq_masked_pam],axis=1)
+    dataset_seq_masked_pam = preprocess_seq_pam(dataset_['target + PAM'])
+    dataset_seq_masked_pam = pd.Series(list(dataset_seq_masked_pam ),name='seq_pam')
 
-X_test_seq = np.stack(dataset_all['seq'])
-X_test_seq_pam = np.stack(dataset_all['seq_pam'])
-hyperparameter_prediction = final_model.predict([X_test_seq_pam,X_test_seq_pam], batch_size=128)
-hyperparameter_prediction = pd.DataFrame(hyperparameter_prediction)
+    dataset_all = pd.concat([dataset_,dataset_seq_masked,dataset_seq_masked_pam],axis=1)
 
-alist = []
-for x in range(length):
-    b = []
-    for i in range(1,2**x+1):
-        for k in range(1,2**(4-x)+1):
-            b.append(2**(5-x)*i-k-1)
-    alist.append(b)
+    X_test_seq = np.stack(dataset_all['seq'])
+    X_test_seq_pam = np.stack(dataset_all['seq_pam'])
+    hyperparameter_prediction = final_model.predict([X_test_seq_pam,X_test_seq_pam], batch_size=128)
+    hyperparameter_prediction = pd.DataFrame(hyperparameter_prediction)
 
-for i in range(len(hyperparameter_prediction)):
-    eff = hyperparameter_prediction.iloc[i].sum()
-    motif = dataset_all.iloc[0,i][start:start+length]
-    non = []
-    for k in range(len(motif)):
-        if motif[k] in 'Cc':
-            non.append(2**(4-k))
-    on = []
-    for j in range(len(non)):
-        iter = list(itertools.combinations(non,j+1))
-        for k in iter:
-            on.append(sum(k))
-    on = [x - 1 for x in on]
-    off = list(set(list(range(31)))-set(on))
-    for m in off:
-        hyperparameter_prediction[hyperparameter_prediction==hyperparameter_prediction.iloc[i,m]] = 0
-    patt = hyperparameter_prediction.iloc[i].sum()
+    alist = []
+    for x in range(length):
+        b = []
+        for i in range(1,2**x+1):
+            for k in range(1,2**(4-x)+1):
+                b.append(2**(5-x)*i-k-1)
+        alist.append(b)
 
-    hyperparameter_prediction.iloc[i] = (hyperparameter_prediction.iloc[i]/patt)*eff
+    for i in range(len(hyperparameter_prediction)):
+        eff = hyperparameter_prediction.iloc[i].sum()
+        motif = dataset_all.iloc[0,i][start:start+length]
+        non = []
+        for k in range(len(motif)):
+            if motif[k] in 'Cc':
+                non.append(2**(4-k))
+        on = []
+        for j in range(len(non)):
+            iter = list(itertools.combinations(non,j+1))
+            for k in iter:
+                on.append(sum(k))
+        on = [x - 1 for x in on]
+        off = list(set(list(range(31)))-set(on))
+        for m in off:
+            hyperparameter_prediction[hyperparameter_prediction==hyperparameter_prediction.iloc[i,m]] = 0
+        patt = hyperparameter_prediction.iloc[i].sum()
 
-    prediction = hyperparameter_prediction.stack().reset_index().iloc[:,2]
-seq = pd.DataFrame(np.repeat(dataset_all['target + PAM'].reset_index(drop=True).values,31,axis=0))
-pam = pd.DataFrame(np.repeat(dataset_all['feature'].reset_index(drop=True).values,31,axis=0))
-hyperparameter_prediction=pd.concat([seq,seq,pam,prediction], axis=1)
-hyperparameter_prediction.columns=['target + PAM','edited output','PAM_variant','Prediction score']
+        hyperparameter_prediction.iloc[i] = (hyperparameter_prediction.iloc[i]/patt)*eff
 
-for i in range(int(len(hyperparameter_prediction)/31)):
-    for k in range(len(alist)):
-        for j in alist[k]:
-            hyperparameter_prediction.iloc[i+j,1] = hyperparameter_prediction.iloc[i+j,1][:k+7] + "t" + hyperparameter_prediction.iloc[i+j,1][k+1+7:]
-hyperparameter_prediction = hyperparameter_prediction[hyperparameter_prediction['Prediction score'] != 0]
-hyperparameter_prediction.to_excel('prediction_result.xlsx' ,engine='openpyxl')
+        prediction = hyperparameter_prediction.stack().reset_index().iloc[:,2]
+    seq = pd.DataFrame(np.repeat(dataset_all['target + PAM'].reset_index(drop=True).values,31,axis=0))
+    pam = pd.DataFrame(np.repeat(dataset_all['feature'].reset_index(drop=True).values,31,axis=0))
+    hyperparameter_prediction=pd.concat([seq,seq,pam,prediction], axis=1)
+    hyperparameter_prediction.columns=['target + PAM','edited output','PAM_variant','Prediction score']
+
+    for i in range(int(len(hyperparameter_prediction)/31)):
+        for k in range(len(alist)):
+            for j in alist[k]:
+                hyperparameter_prediction.iloc[i+j,1] = hyperparameter_prediction.iloc[i+j,1][:k+7] + "t" + hyperparameter_prediction.iloc[i+j,1][k+1+7:]
+    hyperparameter_prediction = hyperparameter_prediction[hyperparameter_prediction['Prediction score'] != 0]
+    return hyperparameter_prediction

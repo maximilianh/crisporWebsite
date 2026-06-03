@@ -210,7 +210,8 @@ DEFAULTORG = "hg19"
 DEFAULTSEQ = "cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccggaagtggccagggcgggggcgacctcggctcacagcgcgcccggctattctcgcagctcaccatgGATGATGATATCGCCGCGCTCGTCGTCGACAACGGCTCCGGCATGTGCAAGGCCGGCTTCGCGGGCGACGATGCCCCCCGGGCCGTCTTCCCCTCCATCGTGGGGCGCC"
 
 DEFAULTKISEQ = "cctgcgaactagtcggtggctcgggcgccggcggggagctgctcggcggcggacagtgtaATGTTGGGTGGGAGTGCGGGACGCCTCAAAATGTCTTCCAGTGGCACCCTCAGCAACTA"
-DEFAULTINSERT = DEFAULTKISEQ[0:63].lower() + "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTA" + DEFAULTKISEQ[63:].lower()
+DEFAULTINSERTSEQ = "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTA"
+DEFAULTINSERT = DEFAULTKISEQ[0:63].lower() + DEFAULTINSERTSEQ + DEFAULTKISEQ[63:].lower()
 DEFAULTDEL = DEFAULTKISEQ[0:45].lower() + DEFAULTKISEQ[60:].lower()
 DEFAULTSUBST = DEFAULTKISEQ[0:62].lower() + "A" + DEFAULTKISEQ[63:].lower()
 DEFAULTREPL = DEFAULTKISEQ[0:60].lower() + "TAG" + DEFAULTKISEQ[63:].lower()
@@ -2113,11 +2114,13 @@ def calcBeScoresServer(models, seq, guideSeq, pamSeq, extGuideStart, extGuideEnd
     effs = []
     outcomes = []
 
+    enzyme = "CBE"
     extGuideSeq = seq[extGuideStart:extGuideEnd]
+    inData = (enzyme, extGuideSeq)
 
     # lists of (modelName, modelOutput)
     for model in models:
-        modelOut = callSubServer("run%s" % model, extGuideSeq)
+        modelOut = callSubServer("run%s" % model, inData)
         if modelOut["status"] == "processed":
             effs.append((model, modelOut["eff"]))
             outcomes.append((model, modelOut["outcome"]))
@@ -2127,6 +2130,7 @@ def calcBeScoresServer(models, seq, guideSeq, pamSeq, extGuideStart, extGuideEnd
 
 def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGuides=None, substInfo=None, batchId=None):
     "create the lines that show the possible baseEditor edits"
+
     editInfos = []
     for i in range(0, len(seq)):
         editInfos.append(defaultdict(list))
@@ -2137,19 +2141,6 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
         substPamIds = []
 
     upSeq = seq.upper()
-
-    # will probably need to calculate the scores in a separate function, by modifying JsonData
-    # load the scoring models
-    if (stopGuides is not None and batchId is not None) or substInfo is not None:
-
-        if substInfo is not None:
-            beType = "NGG-BE1"
-            # beType = "CBE" if insertSeq in ["C", "T"] else "ABE"
-        else:
-            batchInfo = readBatchAsDict(batchId)
-            # beType = batchInfo["pam"]
-        # old version
-        # models = loadBeScoreModels(beType)
 
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
 
@@ -2197,7 +2188,6 @@ def makeEditLines(seq, pamSeqs, winStart, winEnd, guideScores, exonId=0, stopGui
                 # in KO mode, calculate the scores only in the second call
                 if doScore or stopGuides is not None:
                     models = ["ForecastBe"]
-                    # effs, outcomes = calcBeScores(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, mutPos, strand, models)
                     effs, outcomes = calcBeScoresServer(models, seq, guideSeq, pamSeq, extGuideStart, extGuideEnd)
 
                 else:
@@ -2772,7 +2762,6 @@ def showSeqAndPams(
                 break
 
     geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
-
     if baseEditor:
         beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
         editLines, jsonData = makeEditLines(
@@ -2961,8 +2950,14 @@ def showSeqAndPams(
             exonLines = makeExonLines(exonInfo, seq, selTransId)
 
         print(
-            """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">"""
+            """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update"><br>"""
         )
+        if selTransId:
+            if "ENST" in selTransId:
+                print("""Link to ENSEMBL : <a target="blank" href="https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1">%s</a><br>""" % (selTransId.split("_")[0], selTransId))
+            elif "NM" in selTransId or "NR" in selTransId:
+                print("""Link to NCBI : <a target="blank"  href="https://www.ncbi.nlm.nih.gov/nuccore/%s/">%s</a><br>""" % (selTransId, selTransId))
+
         print("""</div><br>""")
 
     elif multiPamInfo:
@@ -5332,6 +5327,7 @@ def showGuideTable(
     "shows table of all PAM motif matches"
     if pamFullName:
         batchInfo = readBatchAsDict(batchId)
+        multipam = batchInfo["multipam"]
         annotParams = annotParams or {}
 
     if koMethod is not None:
@@ -5378,7 +5374,10 @@ def showGuideTable(
         else:
             scoreNames = koCas9ScoreNames
     elif pamFullName:
-        scoreNames = ["rs3", "EVA", "crisprScan", "seqDeepCpf1", "najm"]
+        if multipam == "20bp-NGG":
+            scoreNames = ["rs3", "EVA", "crisprScan"]
+        else:
+            scoreNames = ["rs3", "EVA", "crisprScan", "seqDeepCpf1", "najm"]
     elif cgiParams.get("showAllScores", "0") == "1":
         scoreNames = allScoreNames
     showColumns = set()
@@ -5450,10 +5449,10 @@ def showGuideTable(
             inExon = None
         pamStart = guideRow[3]
 
-        if len(highlightedGuidesIds) >= 3:
+        if len(highlightedGuidesIds) >= 3 or koMethod is None:
             highlight = False
         else:
-            # define Cas9 occupancy region:
+            # In KO mode, define Cas9 occupancy region to highlight the best 3 non-overlapping guides
             overlapStart = guideStart - 3 if strand == "+" else pamStart - 10
             overlapEnd = (
                 pamStart + pamlen + 10 if strand == "+" else guideStart + guidelen + 3
@@ -11143,7 +11142,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 if baseEditor:
                     print("""<details id="results4" open autocomplete="off">""")
                     print("""<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Base editing information</summary>""")
-                    print("<i>Note : this feature is currently in early development</i>")
+                    print("<i>Note : this feature is still in early development</i>")
                     print("<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>")
                     if koMethod == "stop":
                         print("""
@@ -14924,8 +14923,15 @@ def printKiForm(params):
         function toggleTargetRegion() {
             const targetRegions = document.getElementsByName('targetRegions')
             const geneTarget = document.getElementById('geneTarget')
+
             const seqTarget = document.getElementById('seqTarget')
+            const seqTargetText = document.getElementById('seqTargetText')
+            const seqWtText = document.getElementById('seqWtText')
+
             const endSeqDisplay = document.getElementById('endSeqDisplay')
+            const seqEditText = document.getElementById('seqEditText')
+            const seqMutText = document.getElementById('seqMutText')
+
             const tagInsertDisplay = document.getElementById('tagInsertDisplay')
             const geneSelection = document.getElementById('geneSelection')
 
@@ -14938,14 +14944,31 @@ def printKiForm(params):
             if (selectedValue === 'seq') {
                 seqTarget.style.display = 'block';
                 endSeqDisplay.style.display = 'block';
+                seqTargetText.style.display = 'block';
+                seqEditText.style.display = 'block';
             } else {
-                seqTarget.style.display = 'none';
-                endSeqDisplay.style.display = 'none';
+                seqTargetText.style.display = 'none';
+                seqEditText.style.display = 'none';
             }
+
+            if (selectedValue === 'rescue') {
+                seqTarget.style.display = 'block';
+                endSeqDisplay.style.display = 'block';
+                seqWtText.style.display = 'block';
+                seqMutText.style.display = 'block';
+            } else {
+                seqWtText.style.display = 'none';
+                seqMutText.style.display = 'none';
+            }
+
             if (selectedValue === 'gene') {
                 geneTarget.style.display = 'block';
                 tagInsertDisplay.style.display = 'block';
+                seqTarget.style.display = 'none';
+                endSeqDisplay.style.display = 'none';
             } else {
+                seqTarget.style.display = 'block';
+                endSeqDisplay.style.display = 'block';
                 geneTarget.style.display = 'none';
                 tagInsertDisplay.style.display = 'none';
                 $('#geneSelection').val(null).trigger('change');
@@ -15183,15 +15206,22 @@ function clearEndSeq() {
                 </div>
                 <div style="border:dashed 0.5px grey; border-radius:6px; padding:8px;">
                     <input type="radio" checked name="targetRegions" value="seq" onchange="toggleTargetRegion()" autocomplete="off"/>Enter a sequence with the desired modifications<br>
-                    <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag a protein in Nter or Cter</div>
+                    <input type="radio" name="targetRegions" value="gene" onchange="toggleTargetRegion()" autocomplete="off"/>Select a transcript to tag a protein in Nter or Cter<br>
+                    <input type="radio" name="targetRegions" value="rescue" onchange="toggleTargetRegion()" autocomplete="off"/>Rescue a mutated sequence to Wild-Type.</div>
+
             </div>
             <div id="seqTarget" style="margin-top:20px; display: flex; flex-direction: column;">
-                Enter the target sequence manually here<br>
+                <div id="seqTargetText">
+                    Enter the target sequence manually here<br>
+                </div>
+                <div id="seqWtText">
+                    Enter the wild-type sequence here
+                </div>
                 <div style="display:flex; flex-direction: row; margin-top: 6px; gap: 4px;">
                     <small><a href="javascript:clearStartSeq()">Clear Box</a> - </small>
                     <small><a href="javascript:resetToExample()">Set a default example</a></small>
                 </div>
-                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp). The sequence should be identical to the selected genome." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
@@ -15226,9 +15256,12 @@ function clearEndSeq() {
                 </div>
                 <div id="endSeqDisplay" style="display: block; margin-bottom:12px; margin-top:12px;">
                     <div style="display: flex; flex-direction: row;">
-                        <div style="margin-right:20px;">
+                        <div id="seqEditText" style="margin-right:20px;">
                             Enter the edited sequence (target sequence with edits)<br>
                             <small>Modified bases in UPPERCASE, with the rest in lowercase</small>
+                        </div>
+                        <div id="seqMutText" style="margin-right:20px;">
+                            Enter the mutated sequence here
                         </div>
                         <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%%;">
                             <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
@@ -15239,13 +15272,13 @@ function clearEndSeq() {
                         <div style="display: flex; flex-direction: row; gap: 4px;">
                             <small><a href="javascript:clearEndSeq()">Clear Box</a> -</small>
                             <small>Set an example for :</small>
-                            <small><a href="javascript:insertExample()"> Insertion</a></small>
+                            <small class="tooltipsterInteract" title="In this example, the CDS of the mCherry fluorescent protein (%d bp) is inserted after the START codon of the human homeobox D9 (HOXD9) gene."><a href="javascript:insertExample()"> Insertion</a></small>
                             <small>/</small>
-                            <small><a href="javascript:delExample()"> Deletion</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a 3bp deletion is introduced to delete the START codon of the human homeobox D9 (HOXD9) gene."><a href="javascript:delExample()"> Deletion</a></small>
                             <small>/</small>
-                            <small><a href="javascript:substExample()"> Substitution</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a G to A substitution is introduced in the third base of the START codon of the human homeobox D9 (HOXD9) gene, changing it into a isoleucine codon."><a href="javascript:substExample()"> Substitution</a></small>
                             <small>/</small>
-                            <small><a href="javascript:replExample()"> Replacement</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a 3bp replacement is introduced to change the START codon of the human homeobox D9 (HOXD9) gene into a STOP codon."><a href="javascript:replExample()"> Replacement</a></small>
                         </div>
                         <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Types of modification supported are insertion, deletion, single substitution and replacements (up to 10 bp, including e.g. with two substitions 10 bp apart)."></textarea>
                     </div>
@@ -15260,7 +15293,7 @@ function clearEndSeq() {
                     <textarea spellcheck="false" autocorrect="false" id="insertSeq" name="insertSeq" style="display: none;" rows="6" cols="100" placeholder="Paste the sequence you want to insert here (case insensitive). Please keep the sequence in frame."></textarea>
 
                 <div style="width:95%%; display: block; margin-top: 24px; margin-bottom: 24px;" id="taglist">
-          """ % HTMLPREFIX
+          """ % (len(DEFAULTINSERTSEQ), HTMLPREFIX)
     )
 
     printTagsAndLinkers()
@@ -15396,13 +15429,13 @@ def printBody(params):
             targetRegion = params["targetRegions"]
 
             # Knock-in : "manual editing" mode
-            if targetRegion == "seq":
+            if targetRegion in ["seq", "rescue"]:
                 startSeq = params.get("startSeq")
                 startSeq = re.sub('[\t\n\s]', '', startSeq)
                 endSeq = params.get("endSeq")
                 endSeq = re.sub('[\t\n\s]', '', endSeq)
                 if startSeq and endSeq:
-                    kiType, insertIdx, startSeq, insertSeq, clippedSeq = processCustomInsertSeq(startSeq, endSeq)
+                    kiType, insertIdx, startSeq, insertSeq, clippedSeq = processCustomInsertSeq(startSeq, endSeq, targetRegion)
                     if kiType is None:
                         msg = "Insertion type currently not supported"
                         wrongInputRedirect(msg)
@@ -15575,7 +15608,7 @@ def printBody(params):
         printReleaseNote()
 
 
-def processCustomInsertSeq(startSeq, endSeq):
+def processCustomInsertSeq(startSeq, endSeq, targetRegion):
     """ from the starting sequence and the edited sequence, returns the knock-in
     type (insertion, replacement or substitution), the insert site position index
     and the insert sequence """
@@ -15614,7 +15647,10 @@ def processCustomInsertSeq(startSeq, endSeq):
             # insertSeq = ''.join(deletions)
 
             # will never happen now
-            if len(insertSeq) > 500:
+
+            if targetRegion == "rescue":
+                kiType == "insertion"
+            if len(insertSeq) > 500 and targetRegion != "rescue":
                 return "longDel", None, None, None, None
             else:
                 return kiType, insertIdx, startSeq, insertSeq, clippedSeq
@@ -15661,6 +15697,8 @@ def processCustomInsertSeq(startSeq, endSeq):
             kiType = "substitution"
         elif len(editSeqs) == 1 and len(startSeq) == len(noEditEndSeq):
             kiType = "insertion"
+            if targetRegion == "rescue":
+                kiType = "deletion"
         else:
             return None, None, None, None, None
         insertIdx, insertSeq = editSeqs[0]
@@ -15684,34 +15722,6 @@ def processCustomInsertSeq(startSeq, endSeq):
     newStartSeq = startSeq[seqStart:seqEnd]
 
     return kiType, newInsertIdx, newStartSeq, insertSeq, clippedSeq
-
-    # Old version : alignement of the two sequences instead of edits in uppercase bases
-    """
-    startSeq = startSeq.upper()
-    endSeq = endSeq.upper()
-    if len(endSeq) - len(startSeq) > 1:
-        for startIdx, base in enumerate(startSeq):
-            # does not work if there are homopolymers at the insertion site and the insert sequence starts / end with the same base
-            # for the same position relative the the 5' or 3' end the the seq, check if the bases match
-            if (endSeq[startIdx] != base and len(startSeq[:startIdx]) == len(endSeq[:startIdx])) or len(startSeq[:startIdx]) != len(endSeq[:startIdx]):
-                break
-        for endIdx, endBase in enumerate(reversed(startSeq)):
-            # print(endSeq[::-1][:endIdx])
-            if (endSeq[::-1][endIdx] != endBase and len(startSeq[::-1][:endIdx]) == len(endSeq[::-1][:endIdx])) or len(startSeq[::-1][:endIdx]) != len(endSeq[::-1][:endIdx]):
-                break
-
-        print(startIdx, endIdx)
-        if startIdx > 1 and endIdx > 1:
-            kiType = "insertion"
-
-            # startMatch = endSeq[0:startIdx]
-            # endMatch = endSeq[-endIdx:]
-            insertSeq = endSeq[startIdx:-endIdx:]
-        else:
-            raise ValueError("knock-in method not supported")
-
-    return kiType, startIdx, insertSeq
-    """
 
 
 def getInsertSeq(linkerSeq, tagSeq, markerSeq, expressionSeq, qTag, insertPos):

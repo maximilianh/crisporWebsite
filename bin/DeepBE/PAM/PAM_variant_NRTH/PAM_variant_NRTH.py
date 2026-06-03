@@ -1,11 +1,13 @@
+import os
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 
-header=['target + PAM','feature']
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-dataset_ = pd.read_csv('PAM_variant_input_example.csv',header=None,names=header)
-final_model =  tf.keras.models.load_model('PAM_variant_NRTH_model.h5',compile=False)
+def loadModel():
+    final_model = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'PAM_variant_NRTH_model.h5'), compile=False)
+    return final_model
 
 def preprocess_seq(data,length):
     print("Start preprocessing the sequence done 2d")
@@ -33,16 +35,18 @@ def preprocess_seq(data,length):
     print("Preprocessing the sequence done")
     return DATA_X
 
-dataset_seq_masked = preprocess_seq(dataset_['target + PAM'],30)
 
-dataset_seq_masked = pd.Series(list(dataset_seq_masked),name='seq')
+def predict(final_model, dataset_):
+    dataset_seq_masked = preprocess_seq(dataset_['target + PAM'],30)
 
-dataset_all = pd.concat([dataset_,dataset_seq_masked],axis=1)
+    dataset_seq_masked = pd.Series(list(dataset_seq_masked),name='seq')
 
-X_test_seq = np.stack(dataset_all['seq'])
-hyperparameter_prediction = final_model.predict(X_test_seq, batch_size=128)
-hyperparameter_prediction = pd.DataFrame(hyperparameter_prediction)
+    dataset_all = pd.concat([dataset_,dataset_seq_masked],axis=1)
 
-hyperparameter_prediction=pd.concat([dataset_all['target + PAM'].reset_index(drop=True),dataset_all['feature'].reset_index(drop=True),hyperparameter_prediction.reset_index(drop=True)],axis=1,ignore_index=True)
-hyperparameter_prediction.columns=['target + PAM','PAM_variant','Prediction score']
-hyperparameter_prediction.to_excel('prediction_result.xlsx' ,engine='openpyxl')
+    X_test_seq = np.stack(dataset_all['seq'])
+    hyperparameter_prediction = final_model.predict(X_test_seq, batch_size=128)
+    hyperparameter_prediction = pd.DataFrame(hyperparameter_prediction)
+
+    hyperparameter_prediction=pd.concat([dataset_all['target + PAM'].reset_index(drop=True),dataset_all['feature'].reset_index(drop=True),hyperparameter_prediction.reset_index(drop=True)],axis=1,ignore_index=True)
+    hyperparameter_prediction.columns=['target + PAM','PAM_variant','Prediction score']
+    return hyperparameter_prediction

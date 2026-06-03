@@ -2063,6 +2063,7 @@ FORECasT-BE :
 ## global
 
 - correction d'un bug dans PrimerDetailsPage() : prise en compte des nouvelles variables de guideRow
+
 ## base editing 
 
 - réorganisation du répertoire bin/DeepBE 
@@ -2072,8 +2073,70 @@ FORECasT-BE :
 
 - ajout de loadDeepBeModels.py : importation de tous les modules dans bin/DeepBE
 
+- modification des scripts de DeepBE avec Claude : 
+    - wrapping du chargement des modèles dans loadModel()
+    - wrapping de la prédiction dans predict()
+    - (si besoin, créer une classe + tard)
+
+- re-test output -> OK
+
 ## à faire
 
-- pour tous les modules dans bin/DeepBE, wrapper tf.load_model dans la fonction loadModels() et le reste du script dans predict() (ou créer une classe)
-    - call de la loadModels() dans loadDeepBeModels.py -> call de loadDeepBeModels.py dans startSubServer.py
-    - call de predict() dans runDeepBE.py
+- call de la loadModels() dans loadDeepBeModels.py -> call de loadDeepBeModels.py dans startSubServer.py
+- call de predict() dans runDeepBE.py
+- finir runDeepBE.py
+
+# 01/06/26
+
+- mise à jour des gene models pur hg19 sur crisporTest
+
+## global
+
+- Suggesstion de Valérie Risson : affichage d'un lien vers ENSEMBL / NCBI lorsqu'un transcrit est sélectionné comme gene model
+
+## base editing
+
+- correction d'un bug (?) dans DeepNG-BE/SpCas9-NG-APOBEC-nCas9-Ung/DeepNG-BE_Bi.py
+    - link de "DeepNG-BE_mini_model" au lieu de "DeepNG-BE_Bi_model") (présent dans le repo original)
+
+## à faire
+
+- Suggestion de Valérie Risson : ajouter mode "rescue" en mode KI
+    - input = séquence WT / mutation 
+    - chercher position avec séquence WT
+    - design de l'ADN donneur à partir de la séquence contenant la mutation
+
+- Suggestion de Valérie Risson : ajouter/déléter des sites enzymatiques par mutations silencieurs lors du design de l'ADN donneur (pour analyse RFLP)
+
+- Suggestion de Max : input KI avec une seule séquence
+    - délétion : nnnnn_N_nnnnnn
+    - insertion : nnnnn_/N_nnnnnn
+    - remplacement : nnnnn_N/N_nnnnnn
+
+# 02/06/26
+
+## base editing
+
+- finalisation de loadDeepBeModels.py :
+    - ajout de loadAllModels()
+    - module importé dans runDeepBe.py (hors fonction run() ) -> chargement des modèles lors de l'exécution de startSubServer.py
+
+- édition des scripts DeepBE avec Claude : input = liste de séquences + PAM variant
+
+## à faire 
+
+- suggestions JP / Tony :
+    - retirer surlignage des guides en jaune en mode classic
+    - explication des exemples de séquences en mode KI avec mousover
+    - si sélection NGG en mode KI, n'afficher que les scores SpCas9
+
+# 03/06/26
+
+## global
+
+ - retrait du surlignage des guides en mode classic
+- retrait de l'affichage des scores Cpf1 / SaCas9 en mode KI avec NGG
+    - à faire : corriger "show all scores", où retirer complètement les scores additionnels de la liste ?
+- ajout de mouseover expliquant les exemples de séquences en mode KI.
+- ajout du mode "rescue" au formulaire KI + inversion des types de KI dans processCustomInsertSeq
+    - à terminer :  sauvegarde flag rescue dans params
