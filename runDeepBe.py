@@ -14,36 +14,35 @@ def run(data):
     and a list of (outcomeSeq, frequency). Placeholder for now."""
 
     # Work in progess
-    editor, extGuideSeq = data
-
-    if editor == "CBE":
-        # select the model
-        selModel = "DeepBE_CGBE1"
+    editor, selModel, extGuideSeq = data
 
     mod = importlib.import_module(selModel)
-    # no effs ?
-    totalEff = 0
 
     if selModel[0:5] == "DeepNG":
         pamVariant = 2
         mainModel = MODELS[selModel]
-        outcomes = mod.predict(mainModel, list(extGuideSeq), pamVariant)   # reuse in-memory model
+        outcomes = mod.predict(mainModel, [extGuideSeq], pamVariant)   # reuse in-memory model
 
     else:
         # DeepBE needs models for PAM variants too
         # need to select the PAM variant (info stored in DeepBE/PamModelId.json
         # temporary placeholder
         pamVariant = 2
-        mainModel, pamModels = MODELS[selModel]
-        print(mainModel)
-        outcomes = mod.predict(mainModel, pamModels, list(extGuideSeq), pamVariant)   # reuse in-memory model
-        print(outcomes)
+        mainModel = MODELS[selModel]
+        outcomes = mod.predict(mainModel, [extGuideSeq], pamVariant)  # reuse in-memory model
 
-        pass
+    # get efficiency as the sum of outcome frequencies (total editing)
+    totalEff = 0
 
-    outcomes = ["AAA"]
+    # transform the pandas data frame into a list
+    outcomeList = []
+    for _, row in outcomes.iterrows():
+        # make edited bases uppercase and the rest in lowercase
+        freq = float(row["Prediction score"])
+        outcomeList.append((row["edited output"], freq))
+        totalEff += freq
 
     return {"status": "processed",
             "model": selModel,
             "eff": totalEff,
-            "outcome": outcomes}
+            "outcome": outcomeList}

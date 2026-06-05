@@ -13,7 +13,7 @@ def run(data):
 
     # forecast.load_models()
 
-    editor, extGuideSeq = data
+    editor, selModel, extGuideSeq = data
 
     # to match the output of deepBE / CRISPRonBE, the 30bp extended guide sequence is returned
     guideSeq = extGuideSeq[4:24]
@@ -23,12 +23,12 @@ def run(data):
     # Input a mean and std to scale this into reael efficiency (good defaults are mean=0.5 & std=0.1)
     mean, std = 0.5, 0.1
 
-    totalEff = forecast.predict_total(guideSeq, editor=editor, mean=mean, std=std)
+    totalEff = forecast.predict_total(guideSeq, editor=selModel, mean=mean, std=std)
 
     # Predict the fraction of edited reads with the on-target substitituion at each position
     # Returns a list of predictions
     outcomes = []
-    posEff = forecast.predict(guideSeq, editor=editor, mean=mean, std=std)
+    posEff = forecast.predict(guideSeq, editor=selModel, mean=mean, std=std)
     for pos, freq in posEff:
         if freq is None:
             continue
@@ -40,6 +40,6 @@ def run(data):
         # print(outcomes, freq, "<br>")
 
     return {"status": "processed",
-            "model": "FORECast-BE",
+            "model": selModel,
             "eff": totalEff,
             "outcome": outcomes}

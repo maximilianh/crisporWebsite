@@ -2126,17 +2126,85 @@ FORECasT-BE :
 ## à faire 
 
 - suggestions JP / Tony :
-    - retirer surlignage des guides en jaune en mode classic
-    - explication des exemples de séquences en mode KI avec mousover
-    - si sélection NGG en mode KI, n'afficher que les scores SpCas9
+    - retirer surlignage des guides en jaune en mode classic DONE
+    - explication des exemples de séquences en mode KI avec mousover DONE
+    - si sélection NGG en mode KI, n'afficher que les scores SpCas9 DONE
 
 # 03/06/26
 
 ## global
 
  - retrait du surlignage des guides en mode classic
+
+## base editing
+
+- debug de runDeepBe :
+    - transformation de l'output de DeepBE (dataframe pandas) en liste (peut être sérialisée en JSON)
+- gestion des erreurs dans callSubServer() -> affichage des erreurs dans le subserver
+- test de DeepBE -> OK (output similaire à FORECasT-BE)
+
+## knock-in mode
+
 - retrait de l'affichage des scores Cpf1 / SaCas9 en mode KI avec NGG
     - à faire : corriger "show all scores", où retirer complètement les scores additionnels de la liste ?
 - ajout de mouseover expliquant les exemples de séquences en mode KI.
-- ajout du mode "rescue" au formulaire KI + inversion des types de KI dans processCustomInsertSeq
-    - à terminer :  sauvegarde flag rescue dans params
+- ajout du mode "rescue" :
+    - option dans formulaire KI + adaptation des textes
+    - inversion des types de KI dans processCustomInsertSeq
+    - dans runQueueWorker() / getPosAndSeq() : obtention des coordonnées avec seq WT, recherche PAMs avec seq mutée
+
+
+## à faire
+
+- choix du modèle DeepBE
+- décider quels PAM variants utiliser en mode KI (tous ?)
+- adapter mousover exemple KI en mode rescue (the sequence was edited ... -> revert to WT) + exemples spécifiques
+
+- afficher modèle SpCas9 + 3 meilleurs PAM variants
+- que faire dans le cas d'un input =/= du génome (tolérer mismatch ?)
+- ajouter RPE1, K562, HAP1, HEK293T, lignées cancer..
+
+# 04/06/26
+
+## global
+
+- correction d'un bug : variable globale baseEditor non réinitialisée -> pas d'affichage des scores oof / lindel (Suzy Markossian)
+    - + réinitialisation de saCas9Mode et isSpg
+
+## Base editing
+
+- en mode KO, caulcul des outcomes avec tous les modèles DeepBE correspondant à l'edit
+    - modification de calcBeScoresServer()
+- prise en compte des edits sur le brin opposé dans calcBeScoresServer()
+- Affichage du score "total editing" pour DeepBE -> somme de la fréquence des outcomes
+- les outcomes ayant une fréquence < 1% ne sont pas affichés
+- Surlignage du guide + PAM pour edits sur le brin opposé + mise au propre du Javascript
+- en mode KO : ajout de CGBE pour créer codons STOP
+
+## à faire
+
+- key error si recodage entre site de coupure / d'insersion + out of range
+- si plusieurs type d'enzymes en mode KO / base editing, l'edit n'est pas surligné en rouge DONE
+
+# 05/06/26
+
+## Knock-out mode
+
+- affichage de la séquence de tous les exons correspondant au geneId sélectionné en mode "common exons"
+- ajout du KO par édition d'un site d'épissage (dans introduction codons STOP)
+## Base editing 
+
+- correction du surlignage de l'edit si plusieurs types d'enzymes 
+- les exons n'ayant aucun guide "STOP" ne sont pas affichés + affichage du nombre de guides STOP
+- calcul des scores ABE dans runForecastBe.py
+
+## Knock-in mode
+
+- correction du base editing en mode knock-in 
+- ajouts des edits ABE / CGBE pour substitutions
+
+## à faire
+
+- vérifier si base edtiting d'un site d'épissage fonctionne (mais très rare de trouver un guide)
+- en mode KI / base editing : proposer substitutions possibles avec un guide sur le brin inverse
+- ForecastBE se comporte comme CBE même avec ABE sélectionné ?!
