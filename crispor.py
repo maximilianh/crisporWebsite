@@ -304,6 +304,13 @@ multiPamDict = {
 }
 
 
+# dict of mutations possible with base editos
+# tuples are (fromNucl, toNucl)
+# [(on + strand), (on - strand)]: enzyme
+possibleEdits = {"CBE": [("C", "T"), ("G", "A")],
+                 "ABE": [("A", "G"), ("T", "C")],
+                 "CGBE": [("C", "G"), ("G", "C")]}
+
 DEFAULTPAM = "NGG"
 
 # the default base editor modification window
@@ -2275,12 +2282,13 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, pamStr
 
     # if the sequence can't be extended use extSeq to extend it
     # if extSeq is not available, add Ts to get a 30bp sequence as a last resort (can't add N)
+    # or don't calculate the scores ?
     ext3, ext5 = ("", "")
     if extGuideStart < 0:
         if extSeq:
             ext5 = extSeq[100 + extGuideStart: 100]
         else:
-            ext5 = ''.join(["C" for i in range(abs(extGuideStart))])
+            ext5 = ''.join(["T" for i in range(abs(extGuideStart))])
         extGuideStart = 0
 
     if extGuideEnd > len(seq):
@@ -2403,22 +2411,13 @@ def makeEditLines(
             fromPos = guideStart + winStart
             toPos = guideStart + winEnd
             # dict of possible edits {enzyme: (fromNucl, toNucl)}
-            # unused for now
-            editsTo = {
-                    "CBE": ("C", "T"),
-                    "ABE": ("A", "G"),
-                    "CGBE": ("C", "G")
-                    }
+            editsTo = {ez: ezList[0] for ez, ezList in possibleEdits.items()}
+
         else:
             guideEnd = guideStart + GUIDELEN
             fromPos = guideEnd - winEnd
             toPos = guideEnd - winStart
-
-            editsTo = {
-                    "CBE": ("G", "A"),
-                    "ABE": ("T", "C"),
-                    "CGBE": ("G", "C")
-                    }
+            editsTo = {ez: ezList[1] for ez, ezList in possibleEdits.items()}
 
         fromNucl, toNucl = editsTo[enzyme]
 
@@ -3015,10 +3014,16 @@ def showSeqAndPams(
         # used in makeEditLines
         if kiType == "substitution" and useBaseEditor:
             editTpl = (seq[insertIdx].upper(), insertSeq.upper())
-            ezDict = {("C", "T"): "CBE", ("A", "G"): "ABE", ("C", "G"): "CGBE"}
+
             substInfo = (insertIdx, insertSeq)
-            enzyme = ezDict.get(editTpl)
+            enzyme = None
+
+            for ez, editList in possibleEdits.items():
+                fw, rev = editList
+                if editTpl == fw or editTpl == rev:
+                    enzyme = ez
         else:
+
             substInfo = None
             enzyme = None
 
@@ -10669,12 +10674,14 @@ def KiResultsPage(params, batchId, download=False):
 
             seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
 
-            if (
-                    (seq[insertIdx].upper() == "C" and insertSeq in ["T", "G"])
-                    or (seq[insertIdx].upper() == "A" and insertSeq == "G")
-                    ):
-                # baseEditor in reinitialized in setupPamInfo
-                useBaseEditor = True
+            fromToNucl = (seq[insertIdx].upper(), insertSeq)
+
+            for editList in possibleEdits.values():
+                if fromToNucl in editList:
+                    print(fromToNucl, editList)
+                    # baseEditor in reinitialized in setupPamInfo
+                    useBaseEditor = True
+            print(useBaseEditor)
 
         if kiType == "deletion":
             seqMsg = "%dbp deletion" % (len(batchInfo["insertSeq"]))
@@ -11950,6 +11957,11 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
     pam = setupPamInfo(pam)
 
     koMethod = batchInfo["koMethod"]
+    if koMethod == "stop":
+        # reset the global here in case the PAM isn't correctly assigned
+        global baseEditor
+        baseEditor = True
+
     geneModel = batchInfo["geneModel"]
     koGeneId = batchInfo["koGeneId"]
     if "SYM" in koGeneId:
@@ -12050,6 +12062,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                         else:
                             selTransId = transId
                         break
+
         if baseEditor:
             beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
             # list to merge edit information into a single one
@@ -16577,12 +16590,14 @@ def printBody(params):
                     targetLen = int(params.get("flankLen"))
                 elif koMethod == "promoter":
                     targetLen = int(params.get("promoterLen"))
-                # if the form was accessed by "return back", the PAM dropdown may not reset to base editors
-                # select a base editor anyway to prevent any bugs
-                elif koMethod == "stop" and "BE" not in pam:
-                    pam = "NGG-BE1"
                 else:
                     targetLen = None
+
+                # if the form was accessed by "return back", the PAM dropdown may not reset to base editors
+                # select a base editor anyway to prevent bugs
+                if koMethod == "stop" and "BE" not in pam:
+                    pam = "NGG-BE1"
+
                 exonSelect = params.get("exonSelect")
                 multiseq, geneModel = getExonsFromID(
                     koGeneId, org, pam, koMethod, targetLen, exonSelect

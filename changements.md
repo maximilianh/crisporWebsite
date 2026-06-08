@@ -2192,6 +2192,7 @@ FORECasT-BE :
 
 - affichage de la séquence de tous les exons correspondant au geneId sélectionné en mode "common exons"
 - ajout du KO par édition d'un site d'épissage (dans introduction codons STOP)
+
 ## Base editing 
 
 - correction du surlignage de l'edit si plusieurs types d'enzymes 
@@ -2206,5 +2207,22 @@ FORECasT-BE :
 ## à faire
 
 - vérifier si base edtiting d'un site d'épissage fonctionne (mais très rare de trouver un guide)
-- en mode KI / base editing : proposer substitutions possibles avec un guide sur le brin inverse
-- ForecastBE se comporte comme CBE même avec ABE sélectionné ?!
+- en mode KI / base editing : proposer substitutions possibles avec un guide sur le brin inverse DONE
+- ForecastBE se comporte comme CBE même avec ABE sélectionné ?! DONE
+
+# 08/06/26
+
+## global 
+
+- correction d'un bug dans printBody : targetLen undefined en mode base editing
+
+## Base editing
+
+- prise en compte des edits ABE dans calcForecastBe.py
+- prise en compte des subtitutions possible avec PAM sur brin inverse en mode KI
+- ajout d'une variable globale listant les edits possibles
+
+## à faire
+
+- définir la fenêtre d'édition en fonction de l'enzyme, puis filtrer les scores à calculer en fonction de la fenêtre d'édition
+- retirer UTR des common exons

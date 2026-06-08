@@ -33,8 +33,13 @@ def run(data):
         if freq is None:
             continue
         idx = pos - 1
-        # will need to adjust for ABE and reverse strand using fromNucl / toNucl
-        outcomeSeq = extGuideSeq[0:4].lower() + guideSeq[0:idx].lower() + "T" + guideSeq[pos:].lower() + extGuideSeq[24:].lower()
+
+        if editor == "CBE":
+            toNucl = "T"
+        else:
+            toNucl = "G"
+
+        outcomeSeq = extGuideSeq[0:4].lower() + guideSeq[0:idx].lower() + toNucl + guideSeq[pos:].lower() + extGuideSeq[24:].lower()
         outcomes.append((outcomeSeq, freq))
 
         # print(outcomes, freq, "<br>")
