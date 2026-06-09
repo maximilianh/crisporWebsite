@@ -13,7 +13,7 @@ def run(data):
 
     # forecast.load_models()
 
-    editor, selModel, extGuideSeq = data
+    editor, selModel, _, extGuideSeq = data
 
     # to match the output of deepBE / CRISPRonBE, the 30bp extended guide sequence is returned
     guideSeq = extGuideSeq[4:24]

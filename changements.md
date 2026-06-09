@@ -2206,15 +2206,17 @@ FORECasT-BE :
 
 ## à faire
 
-- vérifier si base edtiting d'un site d'épissage fonctionne (mais très rare de trouver un guide)
+- vérifier si base editing d'un site d'épissage fonctionne (mais très rare de trouver un guide)
 - en mode KI / base editing : proposer substitutions possibles avec un guide sur le brin inverse DONE
 - ForecastBE se comporte comme CBE même avec ABE sélectionné ?! DONE
 
 # 08/06/26
 
+
 ## global 
 
 - correction d'un bug dans printBody : targetLen undefined en mode base editing
+- correction de l'affichage du Titre de la page de résultats en mode substitution
 
 ## Base editing
 
@@ -2224,5 +2226,7 @@ FORECasT-BE :
 
 ## à faire
 
-- définir la fenêtre d'édition en fonction de l'enzyme, puis filtrer les scores à calculer en fonction de la fenêtre d'édition
+- définir la fenêtre d'édition en fonction de l'enzyme, puis filtrer les scores à calculer en fonction de la fenêtre d'édition (et donc supprimer input beWin ?)
 - retirer UTR des common exons
+- adapter les scores en mode KO / base editing
+- en mode KI, calculer guides pour tous les PAMs

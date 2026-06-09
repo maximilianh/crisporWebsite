@@ -311,6 +311,18 @@ possibleEdits = {"CBE": [("C", "T"), ("G", "A")],
                  "ABE": [("A", "G"), ("T", "C")],
                  "CGBE": [("C", "G"), ("G", "C")]}
 
+pamVariantModels = {
+        0: 'PAM_variant_SpCas9_model.h5',
+        1: 'PAM_variant_VRQR_model.h5',
+        2: 'PAM_variant_NG_model.h5',
+        3: 'PAM_variant_NRRH_model.h5',
+        4: 'PAM_variant_NRTH_model.h5',
+        5: 'PAM_variant_NRCH_model.h5',
+        6: ('PAM_variant_SpG_model.h5', "NGN"),
+        7: ('PAM_variant_SpRY_model.h5', "NRN"),
+        8: 'PAM_variant_Sc++_model.h5'
+        }
+
 DEFAULTPAM = "NGG"
 
 # the default base editor modification window
@@ -2271,9 +2283,11 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, pamStr
             "CBE": ["CBE"]
             }
 
+    # will need to adjust this based on the current PAM
+    pamVariant = 2
+
     selDeepBeModels = deepBeSubmodels[enzyme]
     selForecastModels = forecastSubmodels.get(enzyme)
-
     models = {"ForecastBe": selForecastModels, "DeepBe": selDeepBeModels}
 
     # no CGBE model in FORECasT
@@ -2306,7 +2320,7 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, pamStr
         extGuideSeq = revComp(extGuideSeq)
 
     # [enzyme, submodel (DeepBE only), input sequence]
-    inData = [enzyme, None, extGuideSeq.upper()]
+    inData = [enzyme, None, pamVariant, extGuideSeq.upper()]
 
     for model, submodels in models.items():
         if submodels is None:
@@ -2476,7 +2490,7 @@ def makeEditLines(
     #     closeBeModels(models)
 
     # print(editInfos)
-    altNucls = ["A", "T", "G"]
+    altNucls = ["A", "T", "G", "C"]
 
     editLabels = []
     for an in altNucls:
@@ -5238,10 +5252,10 @@ def printTableHead(
             origNucl = "G";
 
         var htmls=[];
-        htmls.push("The following guides can mutate "+origNucl+" to "+nucl+" at position "+pos+":<br><small>Note : outcome sequences with a frequency < 1% are not shown</small>");
+        htmls.push("The following guides can mutate "+origNucl+" to "+nucl+" at position "+pos+":<br><small>Note : outcome sequences with a frequency < 1% are masked if 5 outcomes are already shown.</small>");
 
         var guides = editData[exonId][pos][nucl];
-        guides.sort( function (a, b) { a[6] - b[6] } ); // sort by the first eddiciency score
+        guides.sort( function (a, b) { a[6] - b[6] } ); // sort by the first efficiency score
         for (var i=0; i<guides.length; i++) {
             guide = guides[i];
             pamId = guide[0];
@@ -5308,7 +5322,12 @@ def printTableHead(
                     }
 
                 modelVals.sort((a, b) => b[1] - a[1] ); // sort by frequency
+
+                let outCount = 0
+
                 for (edit of modelVals) {
+
+                    outCount += 1
                     let seq = edit[0];
                     let freq = edit[1]*100;
 
@@ -5339,8 +5358,8 @@ def printTableHead(
                         finalSeq = "";
                     }
 
-                    // mask outcomes with frequencies < 1%
-                    if (freq < 1) {
+                    // mask outcomes with frequencies < 1% if there are more that 5 outcomes to show
+                    if (freq < 1 && outCount > 5) {
                         continue;
                     }
                     htmls.push("<tr><td>"+finalSeq+"</td><td>"+freq.toFixed(2)+" %</td></td></tr>");
@@ -8120,6 +8139,29 @@ def processMultiSeqSubmission(
         batchInfo["extSeqList"] = []
         batchInfo["exonPosStr"] = []
 
+        koGeneId = batchInfo["koGeneId"]
+
+        # in stop mode, discard the guides that can't introduce a STOP codon / splice site mutation before calculating the scores
+        # first, get the codons
+        # need the position first
+        """
+        if koMethod == "stop":
+            geneModels, selGeneModel, selTransId = getSelGeneModel(genome, noGenes=False)
+            if geneModels:
+                for model, modelStr in geneModels:
+                    exonInfo, maxTransIdLen = getExonInfo(
+                        genome, model, exonPosStr[0], extendPos=True
+                    )
+                    for transId, sym in list(exonInfo.keys()):
+                        if transId in koGeneId or koGeneId in transId or sym == koGeneId:
+                            selGeneModel = model
+                            if commonExons:
+                                selTransId = "allTrans"
+                            else:
+                                selTransId = transId
+                            break
+        """
+
         guideFh = open(effScoresFnameTmp, "w")
         # write temp eff scores per sequence
         for seqNumber, (exonId, exonPosStr) in enumerate(multiseq):
@@ -10672,18 +10714,16 @@ def KiResultsPage(params, batchId, download=False):
         useBaseEditor = False
         if kiType == "substitution":
 
-            seqMsg = "%s -> %s substitution" % (seq[insertIdx], insertSeq)
+            seqMsg = "%s -> %s substitution" % (seq[insertIdx].upper(), insertSeq.upper())
 
             fromToNucl = (seq[insertIdx].upper(), insertSeq)
 
             for editList in possibleEdits.values():
                 if fromToNucl in editList:
-                    print(fromToNucl, editList)
                     # baseEditor in reinitialized in setupPamInfo
                     useBaseEditor = True
-            print(useBaseEditor)
 
-        if kiType == "deletion":
+        elif kiType == "deletion":
             seqMsg = "%dbp deletion" % (len(batchInfo["insertSeq"]))
         elif kiType == "replacement":
             seqMsg = "replacement of a %s bp sequence" % len(batchInfo["insertSeq"])
@@ -12398,7 +12438,8 @@ def printGeneModel(
                 length = feature[2]
                 thirdLen += length
         if koMethod == "stop":
-            thirdLen = 2 * math.ceil(thirdLen / 3)
+            # thirdLen = 2 * math.ceil(thirdLen / 3)
+            pass
         else:
             thirdLen = math.ceil(thirdLen / 3)
 
@@ -16561,8 +16602,8 @@ def printBody(params):
     # need a different way to handle errors returned by crisprSearch()
 
     errMsg = (
-        "<p>Something unexpected occured. This is probably a bug, please contact us at %s and send us the information below: <br> %s <br></p>"
-        % (contactEmail, params)
+        "<p>Something unexpected occured. This is probably a bug, please contact us at %s and send us the url of this page.</p>"
+        % (contactEmail)
     )
 
     printTeforBodyStart()
@@ -17019,7 +17060,11 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
 
     # set pam-dependent variables
     pam = setupPamInfo(pam)
-    if pam in verySlowPams:
+
+    # few guides are found using this method : allow up to 10kb
+    if method == "stop":
+        maxLen = 1e4
+    elif pam in verySlowPams:
         maxLen = MAXSEQLEN3
     elif isSlowPam(pam):
         maxLen = MAXSEQLEN2
@@ -17221,7 +17266,7 @@ def getGenePos(geneID, org, method, targetLen):
 
 
 def getFirstThird(exons, strand, pamlen, maxLen, method, minLen=100):
-    """from a list of exon positions get the first third of the sequence (whithin the boundaries of minLen / maxLen)
+    """from a list of exon positions get the first third of the sequence (within the boundaries of minLen / maxLen)
     input is a list of tuples [(start, end)]. Returns the same format as the input list.
     """
 
@@ -17232,7 +17277,9 @@ def getFirstThird(exons, strand, pamlen, maxLen, method, minLen=100):
 
     # few guides can introduce a STOP codon : search in the first two thrids of the coding sequence
     if method == "stop":
-        thirdLen = 2 * math.ceil(totalLen / 3)
+        # use the maximum possible length in this mode
+        # thirdLen = 2 * math.ceil(totalLen / 3)
+        thirdLen = totalLen
     else:
         thirdLen = math.ceil(totalLen / 3)
     if thirdLen > maxLen:

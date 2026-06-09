@@ -14,7 +14,7 @@ def run(data):
     and a list of (outcomeSeq, frequency). Placeholder for now."""
 
     # Work in progess
-    editor, selModel, extGuideSeq = data
+    editor, selModel, pamVariant, extGuideSeq = data
 
     mod = importlib.import_module(selModel)
 
