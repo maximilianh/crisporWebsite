@@ -57,6 +57,8 @@ ENSGRELEASE = "42"
 
 smallCutoff = 500000
 
+skipInvalidChroms = False
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] ens|ucsc|fasta|ncbi <taxId1> <taxId2> ... - add genome to crispr site
 
@@ -94,6 +96,7 @@ parser.add_option("", "--gff", dest="gffFname", action="store", help="read gene 
 parser.add_option("-u", "--altGff", dest="altGff", action="store_true", help="use UCSC gff3 converter instead of tophat's")
 parser.add_option("", "--baseDir", dest="baseDir", action="store", help="baseDir for genomes, default is %default", default=crisprGenomeDir)
 parser.add_option("-f", "--force", dest="force", action="store_true", help="do not check for existing files")
+parser.add_option("", "--skipInvalidChroms", dest="skipInvalidChroms", action="store_true", help="remove invalid chroms from the GFF file")
 #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
 #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
 (options, args) = parser.parse_args()
@@ -420,7 +423,11 @@ def geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp):
     " convert genes to segments "
     printMsg("Downloading gene models to segments")
     # the awk command translates spaces to underscores. genePredToBed cannot deal with these.
-    cmd = f"""cat {geneTmp} | cut -f2- | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | {scriptDir}/lstOp replace stdin {accToSymTmp} | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {sizesTmp} | {binDir}/bedSort stdin {segTmp}"""
+    skipOpt = ""
+    if skipInvalidChroms:
+        skipOpts = "--skipInvalidChroms"
+
+    cmd = f"""cat {geneTmp} | cut -f2- | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | {scriptDir}/lstOp replace stdin {accToSymTmp} | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {sizesTmp} {skipOpts}| {binDir}/bedSort stdin {segTmp}"""
     runCmd(cmd)
     assert(getsize(segTmp)!=0) # no segments - email Max!
 
@@ -749,8 +756,7 @@ def getEnsGenomes(genomeRows, onlyGenes):
             cmd     = """cat %(tmpGffName)s | grep -v 'exon_number "-1"' | grep -v 'AIG90451' | grep -v AGP50801 | gtfToGenePred -allErrors stdin stdout > %(gpTmp)s""" % locals()
             runCmd(cmd)
 
-            # might use this for assembly hub one day
-            bgPred = join(dbTmpDir, "%s.bgp" % db)
+            # might use this for assembly hub one day bgPred = join(dbTmpDir, "%s.bgp" % db)
             cmd = "genePredToBigGenePred %(gpTmp)s stdout | sort -k1,1 -k2,2n > %(bgPred)s" % locals()
             runCmd(cmd)
 
@@ -878,7 +884,7 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
             useAltGffConv = False
             if options.altGff:
                 useAltGffConv = True
-            convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv)
+            convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv, skipNonChromGenes=skipInvalidChroms)
             outFnames.extend([gpTmp, segTmp])
 
         moveToDest(outFnames, finalDbDir)
@@ -1165,6 +1171,8 @@ if options.debug:
     debugMode = True
 if options.force:
     FORCE = True
+if options.skipInvalidChroms:
+    skipInvalidChroms = True
 
 crisprGenomeDir = options.baseDir
 
