@@ -15,7 +15,6 @@
 - extend KO with base editing to splice sites (DONE ?)
 - allow scanning for potential STOP codons with PAM variants :
     - add multipam mode in KO ?
-    - filter PAMs in findAllPams
 
 ## KI
 

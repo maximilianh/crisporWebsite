@@ -2230,3 +2230,112 @@ FORECasT-BE :
 - retirer UTR des common exons
 - adapter les scores en mode KO / base editing
 - en mode KI, calculer guides pour tous les PAMs
+
+# 11/06/26
+
+## base editing 
+
+- adaptation du tableau au base editing
+    - ajout de buildEditData() : reformattage des données d'edits en un dictionnaire {pamId: data}
+    - ajout de la colonne "outcome sequences" : affichage des outcomes pour tous les modèles
+        - dans le header, ajout de checkboxes pour masquer / afficher les résultats de chaque modèle
+
+## knock-out mode
+
+- en mode stop, déplacement du filtres des guides n'introduisant pas de codons STOP dans processMultiSeqSubmission (dans le worker)
+    - adaptation de mergeGuideInfo, getExonInfo, makeEditLines
+- seuls les guides introduisant un codon STOP sont maintenant pris en compte
+
+## à faire
+
+- retirer UTR du mode common exons
+
+# 12/26/26
+
+## base editing
+
+- finalisation des checkbox pour filtrer l'affichage des modèles
+- classemement des checkboxes selon le type d'enzyme (ABE / CBE / GCBE)
+- masquage des rangées n'ayant pas de résultats avec les modèles sélectionnés
+- affichage de trois outcomes maximum dans le mouseover (tous les outcomes sont dans le tableau)
+
+- transfert du calcul des scores de base editing dans le worker
+    - dans processMultiSeqSubmission() -> écriture des données dans batchId.editData.json
+    - dans KoResultsPage -> chargement du json
+
+- ajout de la colonne "predicted editing efficiency" dans le tableau
+- colonne effScores renomée en "predicted nuclease efficiency" si base editing activé
+
+## à faire
+
+- vérifier si makeExonLines ne crash pas en mode base editing si exonStrand == "-" (cas rare)
+- écriture editData dans processMultiPamSubmission
+- écrire spécificité dans editData ?
+- ajouter des sous-colonnes pour chaque modèle dans "predicted editing efficiency" -> comme effScores
+- ajouter tooltips pour colones effs et outcomes
+
+# 15/06/26
+
+## base editing 
+
+- modification du surlignage des outcomes dans le tableau (prise en compte de plusieurs edits dans un même outcome)
+
+## knock-in mode
+
+- transfert du calcul des scores base editing dans le worker -> écriture JSON
+    - chargement du JSON dans KiResultsPage()
+
+- si possibilité de base editing -> affichage d'un second tableau avec guides correspondants
+- ajout de boutons pour sélectionner l'affichage des tableaux
+- ajout d'un sous-tableau dans la colonne "predicted editing efficiency" : score de chaque modèle
+- tri des outcomes par score d'efficacité (même ordre des modèles dans editing efficiency / editing outcomes)
+
+## bugs 
+
+- le chargement des modèles de base editing augmentent la mémoire utilisée
+    - si modèles chargés + recherche sur hg19 sur une machine à 8Gb ram -> processus bwa killed (donc exit status de 1)
+    - afficher message "out of memory" dans ce cas ?
+
+## à faire 
+
+- en mode KO / paire de guides, adapter le style des boutons
+- filtrer scores avec checkbox sélection modèles ?
+
+# 14/06/26
+
+## global
+
+- modification des textes pour la sélection du mode de production de gRNA + ajout mouseover
+
+## base editing
+
+- Dans le tableau, ajout de boutons "show all / less" si > 5 outcomes pour un modèle
+- ajout de mouseovers dans les en-têtes "Predicted editing efficiency" et "Predicted outcome sequences".
+- modification de la prise en compte de la fenêtre d'édition :
+    - suppression de l'input beWin dans la page de résultats
+    - ajout d'un dict global stockant la fenêtre d'édition de toutes les enzymes
+    - calcul des guides potentiels pour la fenêtre d'édition la plus large
+    - Pour chaque enzyme, filtre des edits impossibles
+
+## knock-in mode
+
+- le mode "base editing" n'est affiché que si des guides sont disponibles
+
+## à faire
+
+- en mode KO, dans la colonne outcomes, si forecastBE décoché et DeepBe + "show more" (ou dernier / premiers outcomes de l'exon ?), les outcomes DeepBE n'apparaissent pas.
+- afficher le tableau base editing lors d'un click sur l'edit dans le sequence viewer
+- vérifier les fenêtres d'édition de chaque enzyme
+
+# 17/06/26
+
+## knock out mode
+
+- ajustement des styles des boutons d' affichage des résultats en mode KO / paire de guide
+
+## base editing
+
+- test des différentes fenêtres d'édition 
+    - DeepNG-BE_Ss a une fenêtre plus réduite que prédite ?
+
+- adaptation des fenêtres d'édition en fonction du code source DeepBE
