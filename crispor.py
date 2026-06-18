@@ -320,12 +320,11 @@ allBeModels = {
       {"tool": "ForecastBe", "model": "ABE",           "win": (4, 9)}
     ],
     "CBE":  [
-      # data from Kim et al show a window of 2-13 for SsAPOBEC3B, but the model seems to predict for positions 2-9 only ?
+      # results from Kim et al show a window of 2-13 for SsAPOBEC3B, but the model seems to predict for positions 2-9 only ?
       # window is hardcoded to be seq[6:13] for Ss and seq[7:11] for YE1
-      # windows in their source code seems to be one-based
       {"tool": "DeepBe",     "model": "DeepNG-BE_Ss",  "win": (2, 9)},
       {"tool": "DeepBe",     "model": "DeepNG-BE_YE1", "win": (3, 8)},
-      {"tool": "ForecastBe", "model": "CBE",           "win": (3, 9)}
+      {"tool": "ForecastBe", "model": "CBE",           "win": (2, 12)}  # 3-9
       ],
     "CGBE": [
       {"tool": "DeepBe",     "model": "DeepNG-BE_mini",  "win": (3, 8)},
@@ -334,6 +333,7 @@ allBeModels = {
       ]
     }
 
+# unused for now
 pamVariantModels = {
         0: 'PAM_variant_SpCas9_model.h5',
         1: 'PAM_variant_VRQR_model.h5',
@@ -344,6 +344,28 @@ pamVariantModels = {
         6: ('PAM_variant_SpG_model.h5', "NGN"),
         7: ('PAM_variant_SpRY_model.h5', "NRN"),
         8: 'PAM_variant_Sc++_model.h5'
+        }
+
+# mapping of Base editing model to their respective enzyme
+modelToEnzyme = {
+        "ABE":
+        ("SpCas9-ABE", "Generalist Adenine Base Editor model trained on data from. See <a href='https://doi.org/10.1093/nar/gkac161' target='blank'>Pallaseni et al. 2022</a>"),
+        "DeepNG-BE_8e":
+        ("SpCas9-ABE8e(V106W)", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
+        "DeepNG-BE_17m":
+        ("SpCas9-ABE8.17-m+V106W", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
+        "CBE":
+        ("SpCas9-CBE", "Generalist Cytosine Base Editor model trained on data from. See <a href='https://doi.org/10.1093/nar/gkac161' target='blank'>Pallaseni et al. 2022</a>"),
+        "DeepNG-BE_Ss":
+        ("SpCas9-SsAPOBEC3B", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
+        "DeepNG-BE_YE1":
+        ("SpCas9-YE1-BE4max", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
+        "DeepNG-BE_mini":
+        ("SpCas9-miniCGBE1", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
+        "DeepNG-BE_CGBE1":
+        ("SpCas9-CGBE1", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
+        "DeepNG-BE_Bi":
+        ("SpCas9-APOBEC-nCas9-Ung", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>")
         }
 
 DEFAULTPAM = "NGG"
@@ -1966,7 +1988,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadS
         # need to add ABE / CBE instead of pam (which is just the pam motif)
         pam, editData = editInfo
 
-        # {codon, (position, editor)}
+        # {codon, (position in codon, editor)}
         possibleStops = {"TGG": (1, "CBE"),
                          "CAG": (0, "CBE"),
                          "CGA": (0, "CBE"),
@@ -1976,11 +1998,13 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadS
                          "TCA": (1, "CGBE"),
                          "TGC": (2, "CGBE")
                          }
-        # use tuples (from, to) instead
-        possibleEdits = {"C": ("T", "CBE"),
-                         "A": ("G", "ABE"),
-                         "C": ("G", "CGBE")
-                         }
+
+        # CGBE can be used for C / T, but CBE is more efficient
+        possibleSpliceEdits = {"C": "CBE",
+                               "G": "CBE",
+                               "A": "ABE",
+                               "T": "ABE"
+                               }
     else:
         editData = None
 
@@ -2020,13 +2044,14 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadS
                     line[labStart + len(exonLabel)] = " "
             else:
                 # codingExNum += 1
-                if koMethod == "stop" and editData is not None and loadStopGuides is not None:
+                if koMethod == "stop" and editData is not None:
 
                     # add splice sites to the positions to edit
                     spliceBases = getSpliceSites(seq, exStart, exEnd)
-
+                    # print(spliceBases)
                     for spliceBase, pos in spliceBases:
-                        isStop, newStopGuides = checkStopCodons(spliceBase, pos, editData, possibleEdits, stopGuides, splice=True)
+                        isStop, newStopGuides = checkStopCodons(spliceBase, pos, editData, possibleSpliceEdits, stopGuides, splice=True)
+                        # print(stopGuides)
                         if len(newStopGuides) > 0:
                             stopGuides.update(newStopGuides)
 
@@ -2202,8 +2227,8 @@ def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, sp
             # editBase = str(list(editData.keys())[0])
             # print(feature, featurePos, editPos, possibleEdits.keys(), "<br>")
             if splice and editPos == featurePos and feature in possibleEdits.keys():
-                print("SPLICE!")
-                enzyme = possibleEdits[feature][0]
+                # print("SPLICE!")
+                enzyme = possibleEdits[feature]
                 newStopGuides = {
                     tpl[0]: (editPos, enzyme)
                     for tpl in list(editData.values())[0]
@@ -2423,11 +2448,9 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, extGuideStart, extGuideEnd, pamStr
                     effs.append((modelStr, modelOut["eff"]))
 
         # debug message
-        '''
         if modelOut.get("error") is not None:
             print("""<p>%s crashed with the following error : %s. <br>
             Here is the traceback : %s<br>""" % (model, modelOut.get("error"), modelOut.get("trace")))
-        '''
 
     return effs, outcomes
 
@@ -2631,9 +2654,16 @@ def makeEditLines(
             # print(guideData, pos, "<br>")
             # print(pos, stopGuides, "<br>")
             if stopGuides:
-                stopGuidePos = [tpl[0] for tpl in stopGuides.values()]
+                # positions that can introduce a knock-out for in the current exon
+                stopGuidePos = []
+                for pamId, editTpl in stopGuides.items():
+                    if exonId != int(pamId.split('.')[0]):
+                        continue
+                    stopGuidePos.append(editTpl[0])
             else:
                 stopGuidePos = []
+
+            # print(stopGuidePos, exonId, "<br>")
 
             if stopGuides is not None and pos in stopGuidePos:
                 style = "color: rgb(255, 51, 0); font-weight: bold;"
@@ -2837,6 +2867,11 @@ def showExonAndPams(
             if not exonSelect.isnumeric():
                 originalExon = exonId // 2
 
+    if koMethod == "stop":
+        extendPos = GUIDELEN + 6
+    else:
+        extendPos = GUIDELEN - 6
+
     # control the display of splicing donor / acceptor sites relative to their exons (0-based id)
     if koMethod == "splicing":
         htmlExonId = originalExon
@@ -2939,9 +2974,8 @@ def showExonAndPams(
         labelLen = max(labelLen, getMaxLen(editLines))
 
     if selGeneModel is not None:
-
         exonInfo, maxTransIdLen = getExonInfo(
-            org, selGeneModel, position, extendPos=True
+            org, selGeneModel, position, extendPos=extendPos
         )
 
         labelLen = max(labelLen, maxTransIdLen)
@@ -2957,7 +2991,7 @@ def showExonAndPams(
             if transId != selTransId:
                 continue
             for exFrame, exStart, exEnd, exFrame, _, _, _ in exonCoords:
-                if exFrame >= 0 and (len(seq) - exEnd) < 14:
+                if exFrame >= 0 and (len(seq) - exEnd) < extendPos:
                     seq = seq[:exStart] + seq[exStart:exEnd].upper() + seq[exEnd:]
                     break
 
@@ -2987,8 +3021,8 @@ def showExonAndPams(
         exonNumberText = exonId + 1
 
         print(
-            "The target coding exon %d (%s) which is %d bp long, and 14 bp flanking intron or UTR sequences are shown. They contain %d possible guide sequences.<br>"
-            % (exonNumberText, browserlink, exonLen, guidesCount)
+            "The target coding exon %d (%s) which is %d bp long, and %d bp flanking intron or UTR sequences are shown. They contain %d possible guide sequences.<br>"
+            % (exonNumberText, browserlink, exonLen, extendPos, guidesCount)
         )
     elif koMethod == "excision":
         if exonId == 0:
@@ -4912,7 +4946,8 @@ def mergeGuideInfo(
     insertSeq=None,
     getSuppInfo=False,
     rescue=None,
-    stopGuides=None
+    stopGuides=None,
+    allEditData=None
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -4934,6 +4969,27 @@ def mergeGuideInfo(
     pamSeqs = list(
         flankSeqIter(seq.upper(), startDict, len(pamPat), True, exonId, pamFullName)
     )
+
+    # transform into a PAM-based dict
+    if allEditData:
+        editData = buildEditData(allEditData)
+
+        # get a list of all models in base editor mode to sort by model
+        # Base editors have different windows, so models may differ for a given guide
+        usedBeModelSet = set()
+        for editTpl in editData.values():
+            for edits in editTpl:
+                for edit in edits:
+                    _, _, effs, _ = edits
+                    for model, _ in effs:
+                        usedBeModelSet.add(model)
+        # reassign usedBeModel to a list using the order in modelToEnzyme
+        usedBeModels = []
+        for model in modelToEnzyme.keys():
+            for usedModel in usedBeModelSet:
+                if model in usedModel:
+                    usedBeModels.append(usedModel)
+
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
         # matches in genome
         # one desc in last column per OT seq
@@ -4986,6 +5042,28 @@ def mergeGuideInfo(
         gcFrac = gcContent(guideSeq)
 
         effScoring = effScores.get(pamId, {})
+
+        beScoring = {}
+        beOutcomes = {}
+
+        # in Ki mode, HDR and BE tables share the same guideData
+        if editData and pamId in editData:
+            edits = editData[pamId]
+            # sorting by outcome is not needed : just add the models for the current guide
+            for _, _, _, outcomes in edits:
+                for beModel, outcome in outcomes:
+                    outcome.sort(key=lambda x: x[1], reverse=True)
+                    beOutcomes[beModel] = outcome
+
+            for model in usedBeModels:
+                # assign 0 if the model isn't available for the current guide to sort by model
+                beScore = -1
+                for pos, base, effs, outcomes in edits:
+                    for beModel, beEff in effs:
+                        if beModel == model:
+                            beScore = float(beEff)
+                beScoring[model] = beScore
+            # print(beScoring, beOutcomes, "<br>")
 
         # make old jobs compatible
         freeEnergy = effScoring.get("freeEnergy", 0)
@@ -5058,6 +5136,8 @@ def mergeGuideInfo(
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ]
         guideData.append(guideRow)
         guideScores[pamId] = guideScore
@@ -5079,7 +5159,7 @@ def sortGuideData(guideData, sortBy, returnGuideData=False, exonSort=False):
     "sorts the guide data according to the value of sortBy"
 
     if sortBy == "main":
-        sortFunc = lambda row: row[-1]
+        sortFunc = lambda row: row[19]
         reverse = True
     elif sortBy == "pos":
         sortFunc = lambda row: row[3]
@@ -5092,6 +5172,9 @@ def sortGuideData(guideData, sortBy, returnGuideData=False, exonSort=False):
         reverse = True
     elif sortBy == "spec" or sortBy is None:
         sortFunc = lambda row: row[0]
+        reverse = True
+    elif sortBy.startswith("beScore."):
+        sortFunc = lambda row: row[20].get(sortBy.lstrip("beScore."), 0)
         reverse = True
     elif sortBy is not None and not sortBy.endswith("pec"):
         sortFunc = lambda row: row[2].get(sortBy, 0)
@@ -5160,7 +5243,7 @@ def hasGeneModels(org):
     return isfile(geneFname)
 
 
-def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames):
+def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeModels=None):
     """Return a dict of px widths shared by printTableHead() and showGuideTable().
     This is the single source of truth for column widths so the two (intentionally
     separate) tables stay column-aligned across every PAM/score/mode combination."""
@@ -5181,6 +5264,14 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames):
     nEff = max(len(scoreNames), 1)
     nOutcome = max(len(mutScoreNames), 1)
 
+    beEffColWidth = 50
+    if usedBeModels:
+        nBeModels = max(len(usedBeModels), 1)
+        beEffTotal = max(beEffColWidth * nBeModels, 150)
+    else:
+        beEffTotal = 0
+        nBeModels = 1
+
     return {
         "pos": 80,
         "guide": 235 if pamFullName else 245,
@@ -5192,14 +5283,15 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames):
         "effCol": effTotal // nEff,
         "outcomeTotal": outcomeTotal,
         "outcomeCol": outcomeTotal // nOutcome,
-        "beEffs": 200,
+        "beEffTotal": beEffTotal,
+        "beEffCol": beEffTotal // nBeModels,
         "beOutcome": 350,
         "offTargets": 117,
         "browser": 500,
     }
 
 
-def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths):
+def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths):
     """Yield (dataColId, widthPx) for every visual column, in body-row order.
     Used both for emitting the shared <colgroup> and for computing total width."""
     yield ("pos", colWidths["pos"])
@@ -5211,44 +5303,46 @@ def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, edi
         yield ("mit", colWidths["mitSpec"])
     if "cfdGuideScore" in showColumns:
         yield ("cfd", colWidths["cfdSpec"])
-    for scoreName in scoreNames:
-        if scoreName in ("oof", "proxGc"):
-            continue
-        yield ("eff-" + scoreName, colWidths["effCol"])
+    if editData is None:
+        for scoreName in scoreNames:
+            if scoreName in ("oof", "proxGc"):
+                continue
+            yield ("eff-" + scoreName, colWidths["effCol"])
     if "proxGc" in scoreNames:
         yield ("proxGc", colWidths["effCol"])
     if not baseEditor:
         for mutScoreName in mutScoreNames:
             yield ("outcome-" + mutScoreName, colWidths["outcomeCol"])
-    if editData is not None:
-        yield ("beEffs", colWidths["beEffs"])
+    if editData is not None and usedBeModels is not None:
+        for model in usedBeModels:
+            yield ("beEff-" + model, colWidths["beEffCol"])
         yield ("beOutcome", colWidths["beOutcome"])
     yield ("offtargets", colWidths["offTargets"])
     yield ("browser", colWidths["browser"])
 
 
 def printOtColgroup(
-    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths
+    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=None
 ):
     """Emit the <colgroup> that both the header and body tables share.
     Under table-layout:fixed, <col> widths are authoritative, so an identical
     colgroup in both tables pins their columns to the same pixel widths."""
     print("<colgroup>")
     for colId, width in _visualColumns(
-        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths
+        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths
     ):
         print('<col data-col-id="%s" style="width:%dpx;">' % (colId, width))
     print("</colgroup>")
 
 
 def getOtTableTotalWidth(
-    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths
+    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=None
 ):
     "sum of all per-column widths — used to set table width + container min-width consistently"
     return sum(
         w
         for _, w in _visualColumns(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths
         )
     )
 
@@ -5263,7 +5357,8 @@ def printTableHead(
     geneId,
     pamFullName=None,
     nonClassicMode=None,
-    editData=None
+    editData=None,
+    usedBeModels=None
 ):
     "print guide score table description and columns"
     # one row per guide sequence
@@ -5375,7 +5470,7 @@ def printTableHead(
             origNucl = "G";
 
         var htmls=[];
-        htmls.push("The following guides can mutate "+origNucl+" to "+nucl+" at position "+pos+":<br><small>Note : only the top 3 outcomes are shown. Go to the table below to see all predicted outcomes.</small>");
+        htmls.push("The following guides can mutate "+origNucl+" to "+nucl+" at position "+pos+":<br><small>Note : only the most frequent outcome is shown.<br>Click on the edit to go to the table below and see all predicted outcomes.</small>");
 
         var guides = editData[exonId][pos][nucl];
         guides.sort( function (a, b) { a[6] - b[6] } ); // sort by the first efficiency score
@@ -5396,69 +5491,41 @@ def printTableHead(
             // specScore = guide[6];
 
             htmls.push("<p style='font-weight: bold;'>Guide ID : "+pamId+"</p>")
-            htmls.push("<table class='editTable' style='margin-bottom: 8px;'>");
-
-            // Efficiencies
-
-            htmls.push("<p style='font-weight: bold;'>Predicted Efficiencies</p>")
-            // Header row
-            htmls.push("<tr>")
-            for (eff of effs) {
-                let scoreName = eff[0];
-                htmls.push("<th>"+scoreName+"</th>");
-            }
-
-            // htmls.push("<th>Spec. Score</th></tr>");
-
-            htmls.push("<tr>");
-
-            /*
-            htmls.push("<td>"+pamId+"</td>");
-            htmls.push("<td><tt>"+colorChar(guideSeq, mutPos)+" "+pam+"</tt></td>");
-            */
-
-            for (eff of effs) {
-                let scoreVal = eff[1]*100;
-                htmls.push("<td>"+scoreVal.toFixed(2)+" %</td>");
-            }
-
-            // htmls.push("<td>"+specScore+"</td>");
-            htmls.push("</tr>");
-            htmls.push("</table>");
 
             // subtable to display the proportion of each edit
-            // A graph (similar to ForeCastBE) may be more readable
+            // A graph (similar to ForeCastBE web) may be more readable
 
-            htmls.push("<p style='font-weight: bold;'>Predicted outcome sequences</p>");
             htmls.push("<table class='editTable'>");
 
-            previousModel = ""
 
+            htmls.push("<th>Model</th><th>Predicted efficiency</th><th>Most frequent outcome</th><th>Predicted Frequency</th>");
+            let count = 0;
             for (outcome of outcomes) {
 
                 let modelName = outcome[0];
-                let modelVals = outcome[1];
+                htmls.push("<tr><td>" + modelName + "</td>");
+                let eff = effs[count][1] * 100;
+                htmls.push("<td>" + eff.toFixed(2) + "</td>");
 
-                if (modelName != previousModel) {
-                    htmls.push("<th>"+modelName+"</th><th>Predicted Frequency</th>");
-                    let previousModel = modelName;
-                    }
+                count += 1;
+
+                let modelVals = outcome[1];
 
                 modelVals.sort((a, b) => b[1] - a[1] ); // sort by frequency
 
-                let outCount = 0
+                let outCount = 0;
 
                 for (edit of modelVals) {
 
-                    outCount += 1
+                    outCount += 1;
                     let seq = edit[0];
                     let freq = edit[1]*100;
 
                     // position of the guide + edit + PAM
 
-                    let guideSpan = "<span style='background-color: rgba(0, 0, 255, 0.5)'>";
-                    let editSpan = "<span style='background-color: rgba(255, 255, 0, 0.5)'>";
-                    let pamSpan = "<span style='background-color: rgba(0, 255, 255, 0.5)'>";
+                    let guideSpan = "<span style='background-color: rgba(0, 0, 255, 0.35)'>";
+                    let editSpan = "<span style='background-color: rgba(255, 255, 0, 0.35)'>";
+                    let pamSpan = "<span style='background-color: rgba(0, 255, 255, 0.35)'>";
                     let spanEnd = "</span>";
 
                     if (pamStrand === "+") {
@@ -5481,11 +5548,11 @@ def printTableHead(
                         finalSeq = "";
                     }
 
-                    // only show the top 3 outcomes
-                    if (outCount > 3) {
+                    // only show the most frequent outcome
+                    if (outCount > 1) {
                         continue;
                     }
-                    htmls.push("<tr><td>"+finalSeq+"</td><td>"+freq.toFixed(2)+" %</td></td></tr>");
+                    htmls.push("<td>"+finalSeq+"</td><td>"+freq.toFixed(2)+" %</td></td></tr>");
                 }
             }
             htmls.push("</table>");
@@ -5621,11 +5688,11 @@ def printTableHead(
 
     print('<div id="guideTableScroll" style="overflow-x:auto; max-width:100vw;">')
 
-    colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames)
+    colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeModels=usedBeModels)
     tableWidth = max(
         1650,
         getOtTableTotalWidth(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels
         ),
     )
 
@@ -5637,7 +5704,7 @@ def printTableHead(
         '<table id="otTableHeader" style="background:white; table-layout:fixed; width: %dpx; border-collapse: collapse;">'
         % tableWidth
     )
-    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels)
 
     print("""<thead style="position:sticky;">""")
     print(
@@ -5779,50 +5846,50 @@ You can adapt the global score to your delivery method (select below), which cha
             "The CFD specificity score, inspired by guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score takes into account the identity of mismatches, and correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
         )
         print("</th>")
+    if editData is None:
+        if (
+            len(scoreNames) == 2
+            or pamIsCpf1(pam)
+            or pamIsSaCas9(pam)
+            and pamFullName is None
+        ):
+            print(
+                '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
+                % (colWidths["effTotal"], len(scoreNames))
+            )
+        else:
+            if editData is None:
+                effColName = "Predicted Efficiency"
+            else:
+                effColName = "Predicted Nuclease Efficiency"
 
-    if (
-        len(scoreNames) == 2
-        or pamIsCpf1(pam)
-        or pamIsSaCas9(pam)
-        and pamFullName is None
-    ):
-        print(
-            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; height:100px; border-bottom:none" colspan="%d">Predicted Efficiency'
-            % (colWidths["effTotal"], len(scoreNames))
+            print(
+                '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none" colspan="%d">%s'
+                % (colWidths["effTotal"], len(scoreNames), effColName)
+            )  # -1 because proxGc is in scoreNames but has no column
+
+        htmlHelp(
+            "The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>"
         )
-    else:
-        if editData is None:
-            effColName = "Predicted Efficiency"
-        else:
-            effColName = "Predicted Nuclease Efficiency"
 
-        print(
-            '<th style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none" colspan="%d">%s'
-            % (colWidths["effTotal"], len(scoreNames), effColName)
-        )  # -1 because proxGc is in scoreNames but has no column
-
-    htmlHelp(
-        "The higher the efficiency score, the more likely is cleavage at this position. For details on the scores, mouseover their titles below.<br>Note that these predictions are not very accurate, they merely enrich for more efficient guides by a factor of 2-3 so you have to test a few guides to see the effect. <a target=_blank href='manual/#onEff'>Read the CRISPOR manual</a>"
-    )
-
-    if not pamIsCpf1(pam) and not pamIsSaCas9(pam) and not geneId:
-        if cgiParams.get("showAllScores", "0") == "0":
-            print(
-                (
-                    """<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>"""
-                    % cgiGetSelfUrl({"showAllScores": "1"}, anchor="otTable")
+        if not pamIsCpf1(pam) and not pamIsSaCas9(pam) and not geneId:
+            if cgiParams.get("showAllScores", "0") == "0":
+                print(
+                    (
+                        """<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="By default, only the two most relevant scores are shown, based on our study <a href='http://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1012-2'>Haeussler et al. 2016</a>. Click this link to show all efficiency scores.">Show all scores</a>"""
+                        % cgiGetSelfUrl({"showAllScores": "1"}, anchor="otTable")
+                    )
                 )
-            )
-            scoreDescs["crisprScan"][0] = "Mor.-Mateos"
-        else:
-            print(
-                (
-                    """<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Show main scores</a>"""
-                    % cgiGetSelfUrl({"showAllScores": None}, anchor="otTable")
+                scoreDescs["crisprScan"][0] = "Mor.-Mateos"
+            else:
+                print(
+                    (
+                        """<br><a style="font-size:12px" href="%s" class="tooltipsterInteract" title="Show only the two main scores">Show main scores</a>"""
+                        % cgiGetSelfUrl({"showAllScores": None}, anchor="otTable")
+                    )
                 )
-            )
 
-    print("</th>")
+        print("</th>")
 
     mhColName = "Outcome"
     if not baseEditor:
@@ -5838,15 +5905,8 @@ You can adapt the global score to your delivery method (select below), which cha
         # print "<small>%s</small>" % oofDesc
         print("</th>")
 
-    if editData and baseEditor:
-        beModels = set()
-        for editList in editData.values():
-            for editTpl in editList:
-                effs = editTpl[3]
-                for model, eff in effs:
-                    beModels.add(model)
-
-        print('<th data-col-id="beEffs" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">' % colWidths["beEffs"])
+    if editData and usedBeModels:
+        print('<th data-col-id="beEffs" colspan="%d" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; height: 275px; border-bottom:none">' % (len(usedBeModels), colWidths["beEffTotal"]))
         print('Predicted editing efficiency')
         htmlHelp("""This column shows the predicted base editing efficiencies for several deep-learning models.<br>
                  The scores represents the expected percentage of edited reads after sequencing the target locus. The models name are formatted as main model - sub model. Note that scores from different main model aren't directly comparable.""")
@@ -5879,9 +5939,12 @@ You can adapt the global score to your delivery method (select below), which cha
         for ezType, modelList in allBeModels.items():
             for i, model in enumerate(modelList):
                 if model in beModels:
+                    # replace the model name with the corresponding enzyme
+                    ezName = modelToEnzyme[model.split(" - ")[1]][0]
+                    modelStr = model.split(" - ")[0] + " - " + ezName
                     if i == 0:
                         print("""<p style="font-weight: bold;">%s</p>""" % ezType)
-                    print("""<input type="checkbox" checked onchange="showBeModelResults(this, '%s')"/>%s<br>""" % (re.sub(r"\s+", "", model), model))
+                    print("""<input type="checkbox" checked autocomplete="off" onchange="showBeModelResults(this, '%s')"/>%s<br>""" % (re.sub(r"\s+", "", model), modelStr))
 
         print("</small>")
         print('</th>')
@@ -5965,15 +6028,15 @@ You can adapt the global score to your delivery method (select below), which cha
         print(
             '<th style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>'
         )
-
-    for scoreName in scoreNames:
-        if scoreName in ["oof", "proxGc"] or "oof" in scoreName:
-            continue
-        scoreLabel, scoreDesc = scoreDescs[scoreName]
-        print(
-            '<th data-col-id="eff-%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
-            % (scoreName, scoreDesc, batchId, scoreName, scoreLabel)
-        )
+    if editData is None:
+        for scoreName in scoreNames:
+            if scoreName in ["oof", "proxGc"] or "oof" in scoreName:
+                continue
+            scoreLabel, scoreDesc = scoreDescs[scoreName]
+            print(
+                '<th data-col-id="eff-%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: 10px; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
+                % (scoreName, scoreDesc, batchId, scoreName, scoreLabel)
+            )
 
     if "proxGc" in scoreNames:
         # the ProxGC score comes next
@@ -5995,10 +6058,17 @@ You can adapt the global score to your delivery method (select below), which cha
                 % (scoreName, scoreDesc, batchId, scoreName, scoreLabel)
             )
 
-    if editData:
-        print(
-            '<th style="position: sticky; top: 125px; box-shadow: inset -1px 0 black; z-index:25; border-top:none"></th>'
-        )
+    if editData and usedBeModels:
+        for model in usedBeModels:
+            ezName, modelDesc = modelToEnzyme[model.split(" - ")[1]]
+            modelStr = model.split(" - ")[0] + " - " + ezName
+            print(
+                '<th data-col-id="beEff-%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: %dpx; border: none; border-top:none; border-right: none" class="rotate"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?batchId=%s&sortBy=%s">%s</a></span></div></th>'
+                % (model, colWidths["beEffCol"], modelDesc, batchId, "beScore." + model, modelStr)
+            )
+
+    if editData and usedBeModels:
+        # offset for beOutcome
         print(
             '<th style="position: sticky; top: 125px; box-shadow: inset -1px 0 black; z-index:25; border-top:none"></th>'
         )
@@ -6171,6 +6241,26 @@ def showGuideTable(
     else:
         nonClassicMode = False
 
+    usedBeModels = None
+    if editData:
+        # dict to display the name of the enzyme instead of the model
+
+        # get a list of all models in base editor mode to get the number of columns to display
+        # Base editors have different windows, so models may differ for a given guide
+        usedBeModelSet = set()
+        for editTpl in editData.values():
+            for edits in editTpl:
+                for edit in edits:
+                    _, _, effs, _ = edits
+                    for model, _ in effs:
+                        usedBeModelSet.add(model)
+        # reassign usedBeModel to a list using the order in modelToEnzyme
+        usedBeModels = []
+        for model in modelToEnzyme.keys():
+            for usedModel in usedBeModelSet:
+                if model in usedModel:
+                    usedBeModels.append(usedModel)
+
     global scoreNames
     if geneId and not pamFullName:
         if pamIsCpf1(pam):
@@ -6203,7 +6293,8 @@ def showGuideTable(
         geneId,
         pamFullName=pamFullName,
         nonClassicMode=nonClassicMode,
-        editData=editData
+        editData=editData,
+        usedBeModels=usedBeModels
     )
 
     count = 0
@@ -6211,14 +6302,16 @@ def showGuideTable(
     showProxGcCol = "proxGc" in scoreNames
 
     # single source of truth shared with printTableHead so the two tables stay aligned
-    colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames)
+    colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeModels=usedBeModels)
     effTotalWidth = colWidths["effTotal"]
     effColWidth = colWidths["effCol"]
+    beEffTotalWidth = colWidths["beEffTotal"]
+    beEffColWidth = colWidths["beEffCol"]
     outcomeColWidth = colWidths["outcomeCol"]
     tableWidth = max(
         1650,
         getOtTableTotalWidth(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels
         ),
     )
 
@@ -6237,7 +6330,7 @@ def showGuideTable(
         '<table id="otTable" style="table-layout: fixed; width: %dpx; border-collapse: collapse;">'
         % tableWidth
     )
-    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels)
     print("<tbody>")
 
     for guideIdx, guideRow in enumerate(guideData):
@@ -6262,6 +6355,8 @@ def showGuideTable(
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
 
         guidelen = len(guideSeq)
@@ -6583,7 +6678,7 @@ def showGuideTable(
             htmlHelp(
                 "The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>"
             )
-        else:
+        elif editData is None:
             for scoreName in scoreNames:
                 # out-of-frame and prox. gc need special treatment
                 if scoreName in ["oof", "proxGc"]:
@@ -6667,26 +6762,30 @@ def showGuideTable(
                 print("</td>")
 
         # outcome sequences (for base editing)
+        # print sub-columns for each Base editor model (of there is no model for the current guide, shows "-")
 
+        # old method : load BE scores directly from editData
+        """
         if editData and pamId in editData:
-
-            print("""<td style="width:%dpx; background-color: %s;">""" % (colWidths["beEffs"], backgroundColor))
-            print("<div>")
-            print("<table>")
-            print("<th>Model</th><th>Score</th>")
-            for edits in editData[pamId]:
-                for edit in edits:
-                    _, _, effs, _ = edits
-                    effs.sort(key=lambda x: x[1], reverse=True)
-                    for model, eff in effs:
-                        print("<tr><td>", model, "</td>")
-                        print("<td>", round(eff * 100, 2), "</td></tr>")
-                    break
-                break
-            print("</table>")
-            print("</div>")
-
-            print("</td>")
+            for model in usedBeModels:
+                beEff = "-"
+                for edits in editData[pamId]:
+                    for edit in edits:
+                        _, _, effs, _ = edits
+                        effs.sort(key=lambda x: x[1], reverse=True)
+                        for localModel, eff in effs:
+                            if localModel == model:
+                                beEff = str(round(eff * 100, 2))
+        """
+        # new method : BE scores are stored in guideData
+        if editData:
+            for beEff in beScoring.values():
+                if beEff == -1:
+                    beEff = '-'
+                else:
+                    beEff = str(round(beEff * 100, 2))
+                print("""<td style="width:10px; background-color: %s;">%s</td>""" % (backgroundColor, beEff))
+                print("</td>")
 
             print("""<td style="width:%dpx; background-color: %s;">""" % (colWidths["beOutcome"], backgroundColor))
             # or display a barplot ?
@@ -6697,71 +6796,62 @@ def showGuideTable(
             pamSpan = "<span style='background-color: rgba(0, 255, 255, 0.35)'>"
             spanEnd = "</span>"
 
-            for edits in editData[pamId]:
-                for edit in edits:
-                    pos, base, effs, models = edits
+            for model, outcomes in beOutcomes.items():
 
-                    # sort the models by eff score
-                    effs.sort(key=lambda x: x[1])
-                    effOrder = {row[0]: i for i, row in enumerate(effs)}
-                    models.sort(key=lambda row: effOrder[row[0]], reverse=True)
+                mainModel, subModel = model.split(" - ")
+                ezStr = mainModel + " - " + modelToEnzyme[subModel][0]
 
-                    for modelTpl in models:
-                        model, outcomes = modelTpl
-                        # remove spaces in model names to use it as an id
-                        modelHtml = re.sub(r"\s+", "", model)
-                        outcomes.sort(key=lambda x: x[1], reverse=True)
-                        print("""<div class="beModel" name="%s" style="margin-top: 8px;">""" % modelHtml)
-                        print(model, "<br>")
-                        for i, outcome in enumerate(outcomes):
+                # remove spaces in model names to use it as an id
+                modelHtml = re.sub(r"\s+", "", model)
+                outcomes.sort(key=lambda x: x[1], reverse=True)
+                print("""<div class="beModel" name="%s" style="margin-top: 8px;">""" % modelHtml)
+                print(ezStr, "<br>")
+                for i, outcome in enumerate(outcomes):
 
-                            # show the top 5 outcomes by default
-                            if i == 3 and len(outcomes) > 3:
-                                cssPamId = (pamId.replace("-", "minus").replace("+", "plus").replace(".", "_"))
-                                print("""<div id="%s-%s" class="otMore" style="display: none;">""" % (cssPamId, modelHtml))
+                    # show the top 5 outcomes by default
+                    if i == 3 and len(outcomes) > 3:
+                        cssPamId = (pamId.replace("-", "minus").replace("+", "plus").replace(".", "_"))
+                        print("""<div id="%s-%s" class="otMore" style="display: none;">""" % (cssPamId, modelHtml))
 
-                            outSeq, prop = outcome
-                            propStr = str(round(100 * prop, 2)) + " %"
+                    outSeq, prop = outcome
+                    propStr = str(round(100 * prop, 2)) + " %"
 
-                            if strand == "+":
-                                pamRange = range(24, 27)
-                                guideRange = range(4, 24)
-                            else:
-                                pamRange = range(3, 6)
-                                guideRange = range(6, 26)
+                    if strand == "+":
+                        pamRange = range(24, 27)
+                        guideRange = range(4, 24)
+                    else:
+                        pamRange = range(3, 6)
+                        guideRange = range(6, 26)
 
-                            spanList = []
-                            # or only show the target codon and the edits at this position
-                            for j, base in enumerate(outSeq):
-                                if base.isupper():
-                                    spanList.append(editSpan + base + spanEnd)
-                                elif j in pamRange:
-                                    spanList.append(pamSpan + base + spanEnd)
-                                elif j in guideRange:
-                                    spanList.append(guideSpan + base + spanEnd)
-                                else:
-                                    spanList.append(base)
-                            outcomeHtml = ''.join(spanList)
-                            print("%s - %s<br>" % (outcomeHtml, propStr))
+                    spanList = []
+                    # or only show the target codon and the edits at this position
+                    for j, base in enumerate(outSeq):
+                        if base.isupper():
+                            spanList.append(editSpan + base + spanEnd)
+                        elif j in pamRange:
+                            spanList.append(pamSpan + base + spanEnd)
+                        elif j in guideRange:
+                            spanList.append(guideSpan + base + spanEnd)
                         else:
-                            if i > 3:
-                                print("</div>")
-                                print(
-                                    """<a id="%s-%sMoreLink" class="otMoreLink" onclick="showAllOts('%s-%s')">"""
-                                    % (cssPamId, modelHtml, cssPamId, modelHtml)
-                                )
-                                print("show all outcomes...</a>")
-                                print(
-                                    """<a id="%s-%sLessLink" class="otLessLink" style="display:none" onclick="showLessOts('%s-%s')">"""
-                                    % (cssPamId, modelHtml, cssPamId, modelHtml)
-                                )
-                                print("show less outcomes...</a>")
+                            spanList.append(base)
+                    outcomeHtml = ''.join(spanList)
+                    print("%s - %s<br>" % (outcomeHtml, propStr))
+                else:
+                    if i > 3:
                         print("</div>")
+                        print(
+                            """<a id="%s-%sMoreLink" class="otMoreLink" onclick="showAllOts('%s-%s')">"""
+                            % (cssPamId, modelHtml, cssPamId, modelHtml)
+                        )
+                        print("show all outcomes...</a>")
+                        print(
+                            """<a id="%s-%sLessLink" class="otLessLink" style="display:none" onclick="showLessOts('%s-%s')">"""
+                            % (cssPamId, modelHtml, cssPamId, modelHtml)
+                        )
+                        print("show less outcomes...</a>")
+                print("</div>")
 
-                    break
-                break
-
-            print("</td>")
+        print("</td>")
 
         # mismatch description
         print(
@@ -6902,7 +6992,8 @@ def showGuideTable(
 
     printDownloadTableLinks(batchId, addTsv=True, nonClassicMode=nonClassicMode)
 
-    printNoEffScoreFoundWarn(effScoresCount, pam)
+    if editData is None:
+        printNoEffScoreFoundWarn(effScoresCount, pam)
 
 
 def linkLocalFiles(listFname):
@@ -8478,7 +8569,11 @@ def processMultiSeqSubmission(
 
             # extend the exon sequence to find PAMs that result in a cut max 6bp of a splice site
             if not pamIsFirst:
-                flank = GUIDELEN - 6
+                # in stop mode, extend further to include PAMs that con edit a splice site from the - strand
+                if koMethod == "stop":
+                    flank = GUIDELEN + 6
+                else:
+                    flank = GUIDELEN - 6
                 extStart = start - flank
                 extEnd = end + flank
                 extPosStr = "%s:%s-%s:%s" % (chrom, extStart, extEnd, strand)
@@ -8501,14 +8596,15 @@ def processMultiSeqSubmission(
 
             # in stop mode, discard the guides that can't introduce a STOP codon / splice site mutation before calculating the scores
             if koMethod == "stop":
+                extendPos = GUIDELEN + 6
                 geneModels = getGeneModels(genome)
                 if geneModels:
                     for model, modelStr in geneModels:
                         exonInfo, maxTransIdLen = getExonInfo(
-                            genome, model, exonPosStr, extendPos=True
+                            genome, model, exonPosStr, extendPos=extendPos
                         )
                         for transId, sym in list(exonInfo.keys()):
-                            if transId in koGeneId or koGeneId in transId or sym == koGeneId:
+                            if transId in koGeneId or koGeneId in transId or sym == koGeneId.rstrip("~SYM"):
                                 # get the first transcript in common exons mode
                                 selTransId = transId
                                 break
@@ -10290,6 +10386,8 @@ def makeCustomTrack(
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
 
         rgb = hexToRgb(scoreToColor(guideScore)[0])
@@ -10439,7 +10537,7 @@ def trimExonAndFlip(exStart, exEnd, exStrand, seqLen, seqStrand, exFrame=None):
     return exStart, exEnd, exFrame, oldExFrame, exStrand
 
 
-def getExonInfo(org, geneName, position, extendPos=False):
+def getExonInfo(org, geneName, position, extendPos=None):
     """retrieve exon info between position, return format transId -> (exNumber, start, end, exFrame, nextExonFrame, strand)
     - start and end are relative to position!
     - exNumber starts at 0
@@ -10470,10 +10568,10 @@ def getExonInfo(org, geneName, position, extendPos=False):
     ret = defaultdict(list)
     seqChrom, seqStart, seqEnd, seqStrand = parsePos(position)
 
-    # in KO mode, position is extended by GUIDELEN - 6
-    if extendPos is True and not pamIsFirst:
-        seqStart -= GUIDELEN - 6
-        seqEnd += GUIDELEN - 6
+    # in KO mode, position is extended by extendPos bases 
+    if extendPos is not None and not pamIsFirst:
+        seqStart -= extendPos
+        seqEnd += extendPos
 
     seqLen = seqEnd - seqStart
     fname = join(genomesDir, org, geneName + ".bb")
@@ -11267,6 +11365,7 @@ def KiResultsPage(params, batchId, download=False):
                 insertSeq=insertSeq,
                 getSuppInfo=True,
                 rescue=rescue,
+                allEditData=editData
             )
         )
 
@@ -12557,7 +12656,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         allEditData = json.load(open(editFname))
 
     stopGuides = batchInfo.get("stopGuides")
-
     geneModel = batchInfo["geneModel"]
     koGeneId = batchInfo["koGeneId"]
     if "SYM" in koGeneId:
@@ -12588,7 +12686,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         if koMethod == "frameshift":
             titleText = "introducing a frameshift mutation"
         elif koMethod == "stop":
-            titleText = "introducing premature STOP codons"
+            titleText = "introducing premature STOP codons or disrupting a splice site with base editing"
         elif koMethod == "excision":
             titleText = "excision of the gene locus"
         elif koMethod == "promoter":
@@ -12598,7 +12696,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         else:
             titleText = ""
 
-        print('<span style="text-decoration:underline">')
         if "ENST" in koGeneId:
             transcriptUrl = (
                 "https://www.ensembl.org/Multi/Search/Results?q=%s;site=ensembl;page=1"
@@ -12611,8 +12708,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             commonExonStr = " (common exons)"
         else:
             commonExonStr = ""
+        print('<span style="text-decoration:underline">')
         print(
-            """Knock-out of <a href="%s" target="_blank">%s</a>%s by %s"""
+            """Knock-out of <a href="%s" target="_blank">%s</a>%s </span> by %s"""
             % (transcriptUrl, koGeneId, commonExonStr, titleText)
         )
         print("""</div>""")
@@ -12645,9 +12743,13 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, noGenes=False)
         if geneModels:
+            if koMethod == "stop":
+                extendPos = GUIDELEN + 6
+            else:
+                extendPos = GUIDELEN - 6
             for model, modelStr in geneModels:
                 exonInfo, maxTransIdLen = getExonInfo(
-                    org, model, exonPosStr[0], extendPos=True
+                    org, model, exonPosStr[0], extendPos=extendPos
                 )
                 for transId, sym in list(exonInfo.keys()):
                     # for common exons, koGeneId is a gene symbol : select the first transcript by default
@@ -12843,7 +12945,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             org=org,
             exonId=exonId,
             globEffScore=globEffScore,
-            stopGuides=stopGuides
+            stopGuides=stopGuides,
+            allEditData=allEditData
         )
         if koMethod in ["excision", "promoter"]:
             sortGuideData(guideData, sortBy)
@@ -12903,6 +13006,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         if baseEditor:
             printJson("editData", allEditData)
             editData = buildEditData(allEditData, stopGuides=stopGuides)
+        else:
+            editData = None
 
     # for experiements using a pair of guides, sort the table by each target sequence
     # if koMethod in ["excision", "promoter"]:
@@ -12997,6 +13102,7 @@ def printGeneModel(
             pass
         else:
             thirdLen = math.ceil(thirdLen / 3)
+            thirdLen = max(thirdLen, 250)
 
         lastseq = str(exonSeqs[-1][1])
 
@@ -13262,7 +13368,7 @@ function toggleExonSeq(selectedValue) {
             exonMouseOver = 'class="tooltipsterInteract" title="%s"' % fullExonTitle
 
             if exonSeqs:
-                if koMethod in ["frameshift", "stop"]:
+                if koMethod in ["frameshift"]:
                     isSplittedExon = featureId + 1 == len(exonSeqs) and lastLen < length
                     isTargetExon = currentLen <= thirdLen and length >= GUIDELEN
                 else:
@@ -13746,6 +13852,8 @@ def iterGuideRows(
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
         if minSpec and guideScore < minSpec:
             continue
@@ -13836,6 +13944,8 @@ def iterOfftargetRows(guideData, addHeaders=False, skipRepetitive=True, seqId=No
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
 
         if otData != None:
@@ -14168,6 +14278,8 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
 
         guideUrl = batchUrl + "&pamId=" + urllib.parse.quote(pamId) + "&pam=" + pam
@@ -14622,6 +14734,8 @@ def writeTargetSeqs(guideData, ofh, minSpec=None, minFusi=None):
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
         if minSpec and guideScore < minSpec:
             continue
@@ -14665,6 +14779,8 @@ def writeTargetLocs(position, guideData, ofh, fileFormat, minSpec=None, minFusi=
             doRecoding,
             cutUpstream,
             mainScore,
+            beScoring,
+            beOutcomes
         ) = guideRow
         if minSpec and guideScore < minSpec:
             continue
@@ -14739,9 +14855,7 @@ def downloadFile(params):
         exonSeqs, org, pam, exonPosStr, guideData = KoResultsPage(
             params, batchId, koGeneId, download=True
         )
-        if koMethod == "frameshift":
-            seq = ", ".join(["exon %s: %s" % (int(s[0]) + 1, s[1]) for s in exonSeqs])
-        elif koMethod in ["excision", "promoter"]:
+        if koMethod in ["excision", "promoter"]:
             label = {0: "upstream", 1: "downstream"}
             seq = ", ".join(["%s: %s" % (label[int(s[0])], s[1]) for s in exonSeqs])
         elif koMethod == "splicing":
@@ -14760,6 +14874,8 @@ def downloadFile(params):
                         "exon %s (splicing acceptor site): %s" % (originalExon, exonSeq)
                     )
             seq = ", ".join(seqList)
+        else:
+            seq = ", ".join(["exon %s: %s" % (int(s[0]) + 1, s[1]) for s in exonSeqs])
 
         position = koGeneId if koGeneId else ""
     elif multipam:
@@ -16986,7 +17102,7 @@ function clearEndSeq() {
                 <div id="seqTargetText">
                     Enter the target sequence manually here<br>
                 </div>
-                <div id="seqWtText">
+                <div id="seqWtText" style="display: none;">
                     Enter the wild-type sequence here
                 </div>
                 <div style="display:flex; flex-direction: row; margin-top: 6px; gap: 4px;">
@@ -17032,7 +17148,7 @@ function clearEndSeq() {
                             Enter the edited sequence (target sequence with edits)<br>
                             <small>Modified bases in UPPERCASE, with the rest in lowercase</small>
                         </div>
-                        <div id="seqMutText" style="margin-right:20px;">
+                        <div id="seqMutText" style="margin-right:20px; display: none;">
                             Enter the mutated sequence here
                         </div>
                         <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%%;">
@@ -17822,7 +17938,7 @@ def getGenePos(geneID, org, method, targetLen):
     return chrom, strand, featureList
 
 
-def getFirstThird(exons, strand, pamlen, maxLen, method, minLen=100):
+def getFirstThird(exons, strand, pamlen, maxLen, method, minLen=250):
     """from a list of exon positions get the first third of the sequence (within the boundaries of minLen / maxLen)
     input is a list of tuples [(start, end)]. Returns the same format as the input list.
     """
@@ -20567,6 +20683,8 @@ def primerDetailsPage(params):
                 doRecoding,
                 cutUpstream,
                 mainScore,
+                beScoring,
+                beOutcomes
             ) = guideRow
             if rowPamId != pamId:
                 continue

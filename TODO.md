@@ -21,3 +21,4 @@
 - finish rescue mode
 - ajouter édition par prime editing
 - renommer mode KI ("flexible editing ?")
+- add double nicking strategy for KI with ssODN (Schubert et al. 2021)

@@ -10,7 +10,7 @@ def loadModel():
     return final_model
 
 def preprocess_seq(data,length):
-    print("Start preprocessing the sequence done 2d")
+    print("Efficiency : Start preprocessing the sequence done 2d")
 
     DATA_X = np.zeros((len(data),length,4), dtype=int)
     print(np.shape(data), len(data), length)
@@ -36,7 +36,10 @@ def preprocess_seq(data,length):
     return DATA_X
 
 
-def predict(final_model, dataset_):
+def predict(final_model, sequences, feature):
+
+    dataset_ = pd.DataFrame({'target + PAM': list(sequences), "feature": feature})
+
     dataset_seq_masked = preprocess_seq(dataset_['target + PAM'],30)
 
     dataset_seq_masked = pd.Series(list(dataset_seq_masked),name='seq')

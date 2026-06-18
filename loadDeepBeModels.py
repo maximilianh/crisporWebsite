@@ -41,14 +41,19 @@ def loadAllModels():
     pamVariantModels = join(baseDir, "DeepBE")
     getModelDirs(pamVariantModels)
 
+    effModels = join(baseDir, "PAM")
+    getModelDirs(effModels)
+
     if not isfile(jsonPath) or os.path.getsize(jsonPath) < 100:
         with open(jsonPath, "w", encoding="utf-8") as f:
             json.dump(jsonData, f)
 
     for _, name in json.load(open(jsonPath)):
-        # load only two models for testing
+        # load only some models for testing
+        """
         if "NG" not in name:
             continue
+        """
         mod = importlib.import_module(name)
         models[name] = mod.loadModel()   # captured + kept
 

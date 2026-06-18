@@ -2332,6 +2332,7 @@ FORECasT-BE :
 ## knock out mode
 
 - ajustement des styles des boutons d' affichage des résultats en mode KO / paire de guide
+- correction d'un bug en mode STOP + common exons : retrait de "~SYM" dans geneId
 
 ## base editing
 
@@ -2339,3 +2340,54 @@ FORECasT-BE :
     - DeepNG-BE_Ss a une fenêtre plus réduite que prédite ?
 
 - adaptation des fenêtres d'édition en fonction du code source DeepBE
+- dans le tableau, afffichage des noms de enzymes (Cas-Deaminase) au lieu du modèle
+- ajout de la prédiction de l'efficacité nuclease dans runDeepBE.py (non utilisé pour l'instant)
+- dans le tableau, ajout de sous-colonnes par score d'efficacité base editing
+- retrait de l'affichage des scores d'efficacité "nuclease" dans le tableau
+
+## à faire
+
+- ajouter DeepBE-efficiency DONE
+- en mode KO / common exons, selTransId referenced before assignment dans processMultiSeqSubmission ? DONE
+- simplifier le mouseover edit pout afficher plusieurs guides simultanément (uniquement eff / outcome le plus fréquent ?)
+- pour checkboxes de sélection du modèle BE, masquer la colonne du score d'efficacité correspondante
+- trier le tableau par score d'efficacité : 
+    - soit ajouter editData[pamId] à guideRow (probablement + propre)
+    - soit trier le tableau avec fonction javascript
+- écrire rescue dans batch params (confusion batchId rescue / edit mode)
+
+- adapter workflow overview en mode KI (ajouter branches ? Select Method -> (design donor DNA) / (choose a base editor) / sous forme de graphique ?
+
+- proposer double nicking pour ssODN (voir Schubert et al. 2021)
+- ajouter menu déroulant sur séquence pour afficher edits
+- modèle Cas12
+
+# 08/06/26
+
+## Knock-out mode
+
+- correction de bugs : 
+    - editData referenced before assignment si != stop
+    - seq non défini par défaut dans downloadFile
+- en mode stop:
+    - correction de l'editing des sites d'épissage : ajout de tous les edits possibles
+    - extension des exons de (guideLen + 6) pour trouver des guides permettant d'éditer les sites d'épissages depuis le brin opposé
+    - ajustement du titre
+
+## base editing
+
+- remplacement des noms des modèles par l'enzyme correspondante dans l'en-tête
+- ajout des données d'efficacité / outcomes dans mergeGuideInfo() -> récupération des données dans showGuideTable()
+- tri des scores d'efficacité BE dans sortGuideData
+- simplification du mouseover dans le sequence viewer : un tableau par guide, affichage de l'outcome le plus fréquent uniquement.
+
+## notes design double nicking
+
+- https://doi.org/10.1038/s41598-021-98965-y
+    - PAM-out configuration
+    - distance nicks : 40-68nt (D10A, min. 35nt), 51-68nt (D840A)
+
+## à faire
+
+- en mode KO / stop : étendre exons pour identifier guides permettant d'éditer un site d'épissage depuis le brin inverse
+- éditer tous les scripts dans bin/DeepBE/PAM/ : transformer input de predict() en dataframe pandas
