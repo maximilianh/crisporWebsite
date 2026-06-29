@@ -8,7 +8,8 @@
 - staggered cut for eSpOT-ON (pam NGG-22) 
 - in crisporAddGenome, replacement of gene models for NCBI / ENSEMBL genomes
 - handle request when the query sequence is different from the genome
-- error 500 if an exon shorted than 23bp is entered in classic mode ?
+- error 500 if an exon shorter than 23bp is entered in classic mode ?
+- add custom PAM mode in all modes
 
 ## KO
 
@@ -20,5 +21,8 @@
 
 - finish rescue mode
 - ajouter édition par prime editing
-- renommer mode KI ("flexible editing ?")
-- add double nicking strategy for KI with ssODN (Schubert et al. 2021)
+- rename KI mode ("flexible editing ?")
+- add double nicking strategy for KI with ssODN (Schubert et al. 2021) ~ In Progress
+- adapt donor design rules for Cas12a (Schubert et al. 2021)
+- si chargement de la page de résultats trop longue :
+    - tableaux vides -> si clic affichage : requête -> AJAX -> remplissage du tableau

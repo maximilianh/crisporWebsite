@@ -2349,20 +2349,19 @@ FORECasT-BE :
 
 - ajouter DeepBE-efficiency DONE
 - en mode KO / common exons, selTransId referenced before assignment dans processMultiSeqSubmission ? DONE
-- simplifier le mouseover edit pout afficher plusieurs guides simultanément (uniquement eff / outcome le plus fréquent ?)
-- pour checkboxes de sélection du modèle BE, masquer la colonne du score d'efficacité correspondante
-- trier le tableau par score d'efficacité : 
-    - soit ajouter editData[pamId] à guideRow (probablement + propre)
-    - soit trier le tableau avec fonction javascript
+- simplifier le mouseover edit pout afficher plusieurs guides simultanément (uniquement eff / outcome le plus fréquent ?) DONE
+- pour checkboxes de sélection du modèle BE, masquer la colonne du score d'efficacité correspondante DONE
+- trier le tableau par score d'efficacité : DONE
+    - soit ajouter editData[pamId] à guideRow (probablement + propre) DONE
 - écrire rescue dans batch params (confusion batchId rescue / edit mode)
 
-- adapter workflow overview en mode KI (ajouter branches ? Select Method -> (design donor DNA) / (choose a base editor) / sous forme de graphique ?
+- adapter workflow overview en mode KI (ajouter branches ? Select Method -> (design donor DNA) / (choose a base editor) / sous forme de graphique ? DONE
 
 - proposer double nicking pour ssODN (voir Schubert et al. 2021)
 - ajouter menu déroulant sur séquence pour afficher edits
 - modèle Cas12
 
-# 08/06/26
+# 18/06/26
 
 ## Knock-out mode
 
@@ -2389,5 +2388,118 @@ FORECasT-BE :
 
 ## à faire
 
-- en mode KO / stop : étendre exons pour identifier guides permettant d'éditer un site d'épissage depuis le brin inverse
-- éditer tous les scripts dans bin/DeepBE/PAM/ : transformer input de predict() en dataframe pandas
+- en mode KO / stop : étendre exons pour identifier guides permettant d'éditer un site d'épissage depuis le brin inverse DONE
+- éditer tous les scripts dans bin/DeepBE/PAM/ : transformer input de predict() en dataframe pandas DONE
+
+# 19/06/26
+
+## base editing
+
+- masquage des scores d'efficacité base editing si checkbox du modèle correspondant non cochée
+- refactorisation de la logique des sous en-têtes du tableau avec Claude
+- conservation de l'état des checkboxes lors du rechargement de la page
+
+## knock-in mode
+
+- sauvegarde du tableau affiché (HDR / base editing) lors du rechargement de la page
+- cliquer sur l'edit dans le sequence viewer affiche le tableau base editing
+- modification du schéma "workflow overview" : ajout de la branche "base editing" + mouseovers à printKiSteps()
+
+## à faire :
+
+- en mode KI, donner des ids différents aux tableaux HDR / base editing pour rediriger vers l'un ou l'autre ?
+- propager useBaseEditor aux formulaire du design d'ADN donneur pour affiche printKiSteps ?
+- rediriger vers le tableau en cliquant sur "Choose a base editor" ? DONE
+
+## 23/06/26
+
+## global
+
+- ajout des PAMs NRRH, NRTH, NRCH (Sp Cas9 engineered, cf. https://doi.org/10.1038/s41587-020-0412-8)
+    - + ajout des bases H / D
+
+## knock-in mode
+
+- scroll vers le tableau base editing si clic sur edit dans le sequence viewer
+- affichage du tableau si clic sur "Choose a base editor" dans printKiSteps()
+
+- ajout d'un menu déroulant sur le sequence viewer : 
+    - affichage de la séquence du guide (pour tous les outcomes) + fréquence
+
+- recherche de guide pout base editing avec plussieurs PAM variants (indépendemment de la liste de PAMs sélectionnée)
+
+# 24/06/26
+
+## knock-out mode
+
+- correction d'un bug en mode "excision of the gene locus" / "promoter" : fix de boutons d'affichage des guides downstream / upstream
+
+## base editing 
+
+- surlignage des edits dans le menu d'affichage des outcomes sur le sequence viewer
+
+# 25/06/26
+
+## global
+
+- correction d'un bug en mode classic avec Claude : erreur 500 lorsque lastseq récupéré depuis les cookies (pas de lastseq si recherche depuis un geneID)
+
+## knock-in mode
+
+- ajout du double nicking pour HDR (uniquement pour edits < 10bp)
+
+    - ajout de la fonction doubleNickPairs : 
+        - retourne des paires de pamIds produisant un nick en config. PAM-out entre 40 et 68bp
+
+    - ajout de showPairedGuidesTable:
+        - dans un onglet séparé, affichage de la séquence des guides
+        - mousover sur paires surligne les guides correspondant dans le sequence viewer
+        - cliquer sur les paires redirige vers le sequence viewer
+        - lien vers design de l'ADN donneur
+
+
+- retrait de l'affichage des colonnes oof/lindel scores du tableau base editing
+
+## base editing
+
+- retrait des mouseovers pour bystander edits
+
+# 16/06/26
+
+## knock-in mode
+
+- pour double nicking, sélection du brin de la séquence comme modèle par défaut (pas de préférence cf. Schubert et al. 2021) + adaptation du texte 
+- passage des paramètres de chaque guide dans dononrDesignPage()
+- mise en forme du tableau pour paires de guides:
+    - pour chaque guide : sous en-tête avec CFD / global score / rs3 / EVA
+- affichage des off-targets potentiels en mode double nicking:
+    - ajout de findDoubleOts : pour chaque paire de guides, recherche de offtargets à moins de 100bp de distance (peu importe l'orientation / brin)
+
+- modification du mode "rescue" :
+    - dans formulaire KI, ajout d'une checkbox "Use as target sequence"
+    - recherche position avec séquence WT dans getPosAndSeq, puis utilisation de la séquence éditéee pour rechercher les PAMs
+    - design du donneur à partir de la séquence WT
+- test du mode rescue pour insertions / délétions / remplacement / substitutions -> OK
+
+## à faire
+
+- dans cgiGetParams() : plus d'exclusion de params, autoriser les caractères spéciaux utilisés de manière sélective
+(évite attaque print XSS)
+- écrire un algorithme pour détecter si deux offtargets d'une paire de guide sont à proximité :
+    - filtrer par chr, créer deux listes triées, puis itérer sur les deux listes en passant de l'une à l'autre
+- ajouter fonctions de tri dans tableau double nicking
+
+# 29/06/26
+
+## knock-in mode
+
+- tri du tableau double nicking pour chaque colonne:
+    - ajout de pairSortBy + lien dans chaque en-tête
+
+## à faire
+
+- adapter affichage distance guides en fonction de la stratégie sélecionnée (+ passer filtrage PAMs en JS ?)
+- ajouter mouseovers tableau double nicking + description
+- ajouter tri tableau double nicking
+- ajouter lien depuis tableau double nicking vers tableau pricipal pour obtenir + de détails sur un guide
+ 

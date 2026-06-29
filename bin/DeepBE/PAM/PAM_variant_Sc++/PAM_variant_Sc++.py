@@ -36,7 +36,10 @@ def preprocess_seq(data,length):
     return DATA_X
 
 
-def predict(final_model, dataset_):
+def predict(final_model, sequences, feature):
+
+    dataset_ = pd.DataFrame({'target + PAM': list(sequences), "feature": feature})
+
     dataset_seq_masked = preprocess_seq(dataset_['target + PAM'],30)
 
     dataset_seq_masked = pd.Series(list(dataset_seq_masked),name='seq')
