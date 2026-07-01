@@ -2491,6 +2491,15 @@ FORECasT-BE :
 
 # 29/06/26
 
+## global
+
+- changement du titres des modes KO / KI (JP)
+    - Knock-out (NHEJ / BE / PE)
+    - Precision editing (HDR / BE / PE)
+
+- retrait du mode batch du menu principal
+- déplacement du lien vers le mode batch depuis le mode classic vers le mode KO
+
 ## knock-in mode
 
 - tri du tableau double nicking pour chaque colonne:
@@ -2500,6 +2509,58 @@ FORECasT-BE :
 
 - adapter affichage distance guides en fonction de la stratégie sélecionnée (+ passer filtrage PAMs en JS ?)
 - ajouter mouseovers tableau double nicking + description
-- ajouter tri tableau double nicking
+- ajouter tri tableau double nicking DONE
 - ajouter lien depuis tableau double nicking vers tableau pricipal pour obtenir + de détails sur un guide
- 
+
+- adapter style assistantButton en flexbox (column) DONE
+- déplacer BATCH -> KO DONE
+- site double nicking
+- recoder guide avec eff + (dans région codante)
+
+# 30/06/26
+
+## global
+
+- adaptation du style et des mouseovers des boutons de sélection des modes dans le menu principal
+
+## base editing
+
+- ajout recherche avec plusieurs PAMs en mode KI
+- dans le tableau double nicking, ajout d'un lien "show on main table" pour chaque guide : redirige vers le tableau HDR et encadre le guide correspondant
+- ajout de tooltips et de descriptions dans l'en-tête du tableau base editing
+- si affichage du tableau double nicking / base editing, tous les pams de la séquence sont affichés (réglage de pamWindow à 60bp)
+
+## à faire
+
+- tester scores BE
+- remplacer checkbox "use as target sequence" : déplacer dans container "target sequence", renommer en "sequence not identical to genome"
+    - adapter findPerfectMatch DONE
+
+# 01/07/26
+
+## knock-out mode
+
+- dans formulaire KO, ajout d'une fonction JS pour réinitialiser le dropdown des PAMs si méthode "STOP" sélectionnée (PAM spécifiques BE)
+- ajout des variants SpCas9 dans la liste des PAMs BE
+    - sélection du moodèle DeepBE en fonction du PAM
+- correction d'un bug dans makeEditLines : si deux edits à une position, seul l'edit introduisant le STOP est surligné en rouge
+- Si aucun guide STOP n'est trouvé avec SpCas9 -> recherche avec SpRY dans processMultiSeqSubmission :
+    - déplacement du processing / scoring des guides STOP dans une fonction dédiée (getStopEditData)
+    - si pas de guides STOP avec NGG -> ré-écriture de editData et des scores d'efficacité + changement de pam
+
+## knock-in mode
+
+- retrait de l'option "use as target sequence" dans le formulaire
+- remplacement par input "sequence not in genome" -> paramètre noPerfectMatch :
+    - dans findPerfectMatch, autorisation des codes CIGAR de non-alignement
+    - autorisation de mismatches dans extendAndGetSeq
+    - sélection de l'annotation manuelle uniquement dans showSeqAndPams
+
+## à faire
+
+- permettre au tableau d'avoir width: 100% ? mais risque de désaligner l'en-tête du contenu
+- ajouter recherche à plusieurs PAMs en mode KO / STOP ? mais risque de surcharger le serveur.. (test NRN + ttn -> out of memory)
+    - recherche NGG par défault
+    - si pas de guides STOP -> recherche SpRY
+    - autres variants en option (ajouter optgroups)
+- séparer guides sur le sequence viewer en mode KI (dans detail elements)

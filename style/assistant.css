@@ -38,6 +38,7 @@ button.assistantButton {
 all: unset;
 box-sizing: border-box;
 display: inline-flex;
+flex-direction: column;
 align-items: center;
 justify-content: left;  /* centre the icon+label inside the now-wider button */
 flex: 1;                  /* every tab takes an equal share of .tabs width */

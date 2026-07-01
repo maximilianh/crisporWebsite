@@ -20,8 +20,7 @@
 ## KI
 
 - finish rescue mode
-- ajouter édition par prime editing
-- rename KI mode ("flexible editing ?")
+- add prime editing
 - add double nicking strategy for KI with ssODN (Schubert et al. 2021) ~ In Progress
 - adapt donor design rules for Cas12a (Schubert et al. 2021)
 - si chargement de la page de résultats trop longue :
