@@ -2507,7 +2507,7 @@ FORECasT-BE :
 
 ## à faire
 
-- adapter affichage distance guides en fonction de la stratégie sélecionnée (+ passer filtrage PAMs en JS ?)
+- adapter affichage distance guides en fonction de la stratégie sélecionnée (+ passer filtrage PAMs en JS ?) DONE
 - ajouter mouseovers tableau double nicking + description
 - ajouter tri tableau double nicking DONE
 - ajouter lien depuis tableau double nicking vers tableau pricipal pour obtenir + de détails sur un guide
@@ -2544,9 +2544,10 @@ FORECasT-BE :
 - ajout des variants SpCas9 dans la liste des PAMs BE
     - sélection du moodèle DeepBE en fonction du PAM
 - correction d'un bug dans makeEditLines : si deux edits à une position, seul l'edit introduisant le STOP est surligné en rouge
+
 - Si aucun guide STOP n'est trouvé avec SpCas9 -> recherche avec SpRY dans processMultiSeqSubmission :
     - déplacement du processing / scoring des guides STOP dans une fonction dédiée (getStopEditData)
-    - si pas de guides STOP avec NGG -> ré-écriture de editData et des scores d'efficacité + changement de pam
+    - si pas de guides STOP avec NGG -> ré-écriture de editData et des scores d'efficacité + changement du pam
 
 ## knock-in mode
 
@@ -2561,6 +2562,46 @@ FORECasT-BE :
 - permettre au tableau d'avoir width: 100% ? mais risque de désaligner l'en-tête du contenu
 - ajouter recherche à plusieurs PAMs en mode KO / STOP ? mais risque de surcharger le serveur.. (test NRN + ttn -> out of memory)
     - recherche NGG par défault
-    - si pas de guides STOP -> recherche SpRY
+    - si pas de guides STOP -> recherche SpRY DONE
     - autres variants en option (ajouter optgroups)
-- séparer guides sur le sequence viewer en mode KI (dans detail elements)
+- séparer guides sur le sequence viewer en mode KI (dans detail elements) (cf. passage de pairedGuides dans showSeqAndPams()) DONE
+- corriger bug off-target pour pam variants ("not found") DONE
+
+# 13/07/26
+
+## global
+
+- affichage d'un gene model par défaut en mode classic / KI
+- correction d'un bug : pas de offtargets si H dans PAM:
+    - ajout de H dans findPat
+    - mise à jour des nouveaux nucl dans filterFaToBed
+
+## knock-in mode
+
+- augmentation de la taille de le séquence minimum de 60 à 100bp de part et d'autre de l'edit (pour double nicking)
+
+- séparation des PAMs HDR / Base editing dans le sequence viewer :
+    - passage de la liste étendue de PAMs (HDR + BE) dans showSeqAndPams()
+    - création des pamLines pour HDR depuis la liste de PAMs sélectionnée par l'utilisatuer
+    - créaton de pamLines pour BE depuis liste étendue de PAMs
+        - + filtre des PAMs ne pouvant pas introduire la substitution
+    - cliquer sur un PAM affiche le tableau / guide correspondant
+
+- Si d'autres PAMs ont été ajoutés pour le base editing, calcul des effscores / offtargets uniquement pour les guides introduisant la substitution
+    - ajout du paramètre beFilter à calcMultiSaveEffScores(), writePamFlank() et mergeGuideInfo() (chargement bcp + rapide)
+
+- correction d'un bug : les tableaux double nicking / BE n'étaient pas masqués lors du rechargement de la page si tableau HDR affiché
+
+## à faire
+
+- si clic sur un PAM BE / HDR, afficher le tableau correspondant DONE
+
+# 15/07/26
+
+## knock-in mode
+
+- si plusieurs substitutions / insertions sont espacées de < 10bp : merge des edits -> remplacement
+
+## à faire
+
+- si plusieurs substitutions : base editing en multiplex ?

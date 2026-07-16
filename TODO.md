@@ -7,7 +7,7 @@
 - adding the Jacquere library (https://doi.org/10.1016/j.xgen.2026.101190)
 - staggered cut for eSpOT-ON (pam NGG-22) 
 - in crisporAddGenome, replacement of gene models for NCBI / ENSEMBL genomes
-- handle request when the query sequence is different from the genome
+- handle request when the query sequence is different from the genome DONE
 - error 500 if an exon shorter than 23bp is entered in classic mode ?
 - add custom PAM mode in all modes
 

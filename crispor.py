@@ -336,15 +336,15 @@ allBeModels = {
     }
 
 pamVariantModels = {
-        "NGG": 1, # PAM_variant_SpCas9_model.h5
-        # 1: "VRQR", # PAM_variant_VRQR_model.h5
-        # "NGN": 2, # PAM_variant_NG_model.h5
-        "NRRH": 3, # PAM_variant_NRRH_model.h5
-        "NRTH": 4, # PAM_variant_NRTH_model.h5
-        "NRCH": 5, # PAM_variant_NRCH_model.h5
-        "NGN": 6, # PAM_variant_SpG_model.h5
-        "NRN": 7, # PAM_variant_SpRY_model.h5
-        "NNGT": 8, # PAM_variant_Sc++_model.h5
+        "NGG": 1,  # PAM_variant_SpCas9_model.h5
+        # 1: "VRQR",  # PAM_variant_VRQR_model.h5
+        # "NGN": 2,  # PAM_variant_NG_model.h5
+        "NRRH": 3,  # PAM_variant_NRRH_model.h5
+        "NRTH": 4,  # PAM_variant_NRTH_model.h5
+        "NRCH": 5,  # PAM_variant_NRCH_model.h5
+        "NGN": 6,  # PAM_variant_SpG_model.h5
+        "NRN": 7,  # PAM_variant_SpRY_model.h5
+        "NNGT": 8,  # PAM_variant_Sc++_model.h5
         }
 
 # mapping of Base editing model to their respective enzyme
@@ -2296,7 +2296,7 @@ def getSelGeneModel(org, noGenes=True, manual=False, noAllTrans=False):
 
     if geneModels:
         if noGenes:
-            selGeneModel = cgiParams.get("geneModelSelection", "noGenes")
+            selGeneModel = cgiParams.get("geneModelSelection", geneModels[0][0])
             geneModels.insert(0, ("noGenes", "Do not show"))
         else:
             selGeneModel = cgiParams.get("geneModelSelection", geneModels[0][0])
@@ -2382,6 +2382,8 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, pamId, extGuideStart, extGuideEnd,
     selDeepBeModels = deepBeSubmodels[enzyme]
     selForecastModels = forecastSubmodels.get(enzyme)
     models = {"ForecastBe": selForecastModels, "DeepBe": selDeepBeModels}
+    
+    logging.info("MODELS : %s" % models)
 
     # no CGBE model in FORECasT
     if enzyme == "CGBE":
@@ -2777,11 +2779,25 @@ def makePamLines(
     pamWindow=None,
     otherPam=None,
     insertIdx=None,
+    bePamIds=None
 ):
+
+    if bePamIds:
+        # the function is printed in printKiSteps()
+        tableLinkFunc = """onclick="showBeTable('beTable')" """
+    elif pamWindow is not None and otherPam is None:
+        # KI / HDR PAMs
+        tableLinkFunc = """onclick="showBeTable('hdrTable')" """
+    else:
+        tableLinkFunc = ""
+
     for y in range(0, maxY + 1):
         texts = []
         lastEnd = 0
         for start, end, name, strand, pamId in lines[y]:
+
+            if bePamIds and pamId not in bePamIds:
+                continue
 
             if otherPam is None:
                 guideSeq = pamIdToSeq.get(pamId)
@@ -2836,8 +2852,8 @@ def makePamLines(
 
             if linkToTable and otherPam is None:
                 texts.append(
-                    """<a class='%s' %s style="text-shadow: 1px 1px 1px #bbb%s; color: %s " id="list%s" href="#%s">"""
-                    % (classStr, mouseOver, recodeStr, color, pamId, pamId)
+                    """<a class='%s' %s style="text-shadow: 1px 1px 1px #bbb%s; color: %s " id="list%s" href="#%s" %s>"""
+                    % (classStr, mouseOver, recodeStr, color, pamId, pamId, tableLinkFunc)
                 )
             else:
                 texts.append(
@@ -3206,7 +3222,7 @@ def showSeqAndPams(
     extSeq=None,
     editData=None,
     batchId=None,
-    noPerfectMatch=None
+    noPerfectMatch=None,
 ):
     "show the sequence and the PAM sites underneath in a sequence viewer"
 
@@ -3223,10 +3239,12 @@ def showSeqAndPams(
         #    enzyme = "CBE"
 
     else:
-        pamList = multiPamInfo[0]
-        insertIdx = multiPamInfo[1]
-        kiType = multiPamInfo[2]
-        insertSeq = multiPamInfo[3]
+        multipam = multiPamInfo[0]
+        # pamList is the list of all PAMs to be used (HDR + BE)
+        pamList = multiPamInfo[1]
+        insertIdx = multiPamInfo[2]
+        kiType = multiPamInfo[3]
+        insertSeq = multiPamInfo[4]
         pamSeqs = []
         allPamLines = []
 
@@ -3246,15 +3264,17 @@ def showSeqAndPams(
             substInfo = None
             enzyme = None
 
-        for pamFullName in pamList:
+        # HDR PAMs : use the list of PAMs selected from the menu
+        for pamFullName in multiPamDict[multipam][0]:
+
             pam = setupPamInfo(pamFullName)
             startDict, endSet = findAllPams(seq.upper(), pam)
-
             singlePamSeqs = list(
                 flankSeqIter(
                     seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName
                 )
             )
+
             pamSeqs.extend(singlePamSeqs)
 
             # get lines for the current pam
@@ -3262,10 +3282,6 @@ def showSeqAndPams(
                 seq.upper(), startDict, len(pam), pam, pamFullName=pamFullName
             )
             allPamLines.extend(currentPamLines)
-
-        if useBaseEditor:
-            # set the global here
-            baseEditor = True
 
         # layout all lines
         lines, maxY = layoutPamLines(allPamLines, len(seq))
@@ -3281,6 +3297,53 @@ def showSeqAndPams(
                 otherPam=None,
             )
         )
+
+        # in KI mode, show BE guides separately
+        if editData:
+
+            bePamIds = set(buildEditData(editData).keys())
+            bePamSeqs = []
+            allBePamLines = []
+
+            for pamFullName in pamList:
+
+                pam = setupPamInfo(pamFullName)
+                startDict, endSet = findAllPams(seq.upper(), pam)
+                beSinglePamSeqs = list(
+                    flankSeqIter(
+                        seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName
+                    )
+                )
+
+                bePamSeqs.extend(beSinglePamSeqs)
+
+                # get lines for the current pam
+                beCurrentPamLines = getPamLines(
+                    seq.upper(), startDict, len(pam), pam, pamFullName=pamFullName
+                )
+                allBePamLines.extend(beCurrentPamLines)
+
+            if useBaseEditor:
+                # set the global here
+                baseEditor = True
+
+            # layout all lines
+            beLines, maxY = layoutPamLines(allBePamLines, len(seq))
+            bePamLines = list(
+                makePamLines(
+                    beLines,
+                    maxY,
+                    pamIdToSeq,
+                    guideScores,
+                    linkToTable,
+                    pamIdToSuppInfo=pamIdToSuppInfo,
+                    pamWindow=pamWindow,
+                    otherPam=None,
+                    bePamIds=bePamIds
+                )
+            )
+            # discard empty pam lines
+            bePamLines = [pamTpl for pamTpl in bePamLines if len(pamTpl[2]) > 0]
 
         # in KI mode, display other PAMs on the sequence if the option was selected
         if otherPam:
@@ -3373,7 +3436,10 @@ def showSeqAndPams(
         editLines, jsonData = makeEditLines(
             seq, pamSeqs, beWinStart, beWinEnd, guideScores, substInfo=substInfo, enzyme=enzyme, extSeq=extSeq, batchId=batchId, loadJson=True
         )
-        editGuideLines = makeEditGuideLines(editData)
+
+        # to show base editing outcomes on the sequence viewer (unused for now)
+        # editGuideLines = makeEditGuideLines(editData)
+
         printJson("editData", jsonData)
 
     labelLen = max(
@@ -3412,8 +3478,8 @@ def showSeqAndPams(
 
         if clippedSeq is True:
             print(
-                """<p>The input sequence was trimmed to 60bp on each side of the edit site to save computation time.<br>
-                  Guides outsite this range are too distant to result in a successful knock-in experiment.</p>"""
+                """<p>The input sequence was trimmed to 100bp on each side of the edit site to save computation time.<br>
+                  Guides outside this range are too distant to result in a successful knock-in experiment.</p>"""
             )
 
         if len(pamList) == 1:
@@ -3745,11 +3811,19 @@ def showSeqAndPams(
 
     if baseEditor:
         printLines(editLines, labelLen)
-        print("<details><summary>%s</summary>" % editDetailsLabel)
-        printLines(editGuideLines, labelLen)
-        print("</details>")
+        # print("<details><summary>%s</summary>" % editDetailsLabel)
+        # printLines(editGuideLines, labelLen)
+        # print("</details>")
+
+        print("<details open><summary>Show/hide HDR PAMs</summary>")
 
     printLines(pamLines, labelLen)
+
+    if baseEditor:
+        print("</details>")
+        print("<details open><summary>Show/hide BE PAMs</summary>")
+        printLines(bePamLines, labelLen)
+        print("</details>")
 
     if otherPam:
         print(("{:" + str(labelLen) + "s} ").format(otherPamLabel), end=" ")
@@ -4725,9 +4799,9 @@ def patMatch(seq, pat, notDegPos=None):
         nuc = seq[x]
 
         assert patChar in "MKYRACTGNWSDVBH"
-        assert nuc in "MKYRACTGNWSDX"
+        assert nuc in "MKYRACTGNWSDXVBH"
 
-        if notDegPos != None and x == notDegPos and patChar != nuc:
+        if notDegPos is not None and x == notDegPos and patChar != nuc:
             return False
 
         if nuc == "X":
@@ -5014,7 +5088,8 @@ def mergeGuideInfo(
     insertSeq=None,
     getSuppInfo=False,
     stopGuides=None,
-    allEditData=None
+    allEditData=None,
+    beFilter=None
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -5059,11 +5134,20 @@ def mergeGuideInfo(
     else:
         editData = None
 
+    if beFilter:
+        orgPamList, bePamIds = beFilter
+
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
         # matches in genome
         # one desc in last column per OT seq
 
+        # in KO / STOP mode, filter guides that don't introduce a STOP codon
         if stopGuides and pamId not in stopGuides.keys():
+            continue
+
+        # in KI mode, discard BE guides that can't introduce the substitution,
+        # while keeping all HDR guides for the selected PAM list
+        if beFilter and pamPat not in orgPamList and pamId not in bePamIds:
             continue
 
         if pamId in otMatches:
@@ -7628,7 +7712,7 @@ def layoutPamLines(pamLines, seqLen, stopGuides=None):
             continue
 
         y = firstFreeLine(lineMasks, 0, startFt, endFt)
-        if y == None:
+        if y is None:
             # errAbort("not enough space to plot features")
             continue
 
@@ -7731,11 +7815,14 @@ def getPamLines(seq, startDict, featLen, pam, exonId=None, pamFullName=None):
     return pamLines
 
 
-def writePamFlank(seq, startDict, pam, faFname, pamFullName=None):
+def writePamFlank(seq, startDict, pam, faFname, pamFullName=None, beFilter=None):
     "write pam flanking sequences to fasta file, optionally with versions where each nucl is removed"
     # print "writing pams to %s<br>" % faFname
 
     logging.info("writing guides for a single sequence")
+
+    if beFilter:
+        orgPamList, bePamIds = beFilter
 
     faFh = open(faFname, "w")
     for (
@@ -7749,6 +7836,11 @@ def writePamFlank(seq, startDict, pam, faFname, pamFullName=None):
     ) in flankSeqIter(
         seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName
     ):
+        if beFilter and pam not in orgPamList and pamId not in bePamIds:
+            continue
+
+        logging.info("wrote PAM %s to fasta" % pamId)
+
         faFh.write(">%s\n%s\n" % (pamId, flankSeq))
     faFh.close()
 
@@ -7772,7 +7864,7 @@ def appendMultiPamFlank(seq, startDict, pam, faFh, exonId):
 
 
 def writeMultiFasta(multiseq, faFname, pam):
-    """writes all guides corresponding to multiple sequences in a fasta file
+    """in KO mode, writes all guides corresponding to multiple sequences in a fasta file
     the fasta header is >PAM.seqId.exonId.
     """
     faFh = open(faFname, "w")
@@ -8123,7 +8215,7 @@ def calcSaveEffScores(
     return rows
 
 
-def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterIdx):
+def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterIdx, beFilter=None):
     """given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores.
     Return a
@@ -8138,6 +8230,10 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
     # need to create the same rows for all PAMs (if the score isn't calculated for this pam, assign the value 0 / NA)
     # move the score calculation to a shared function, and row creation to a specialized one ?
 
+    if beFilter:
+        orgPamList, bePamIds = beFilter
+
+    # logging.info("ORGPAMLIST : %s ; BEPAMIDS : %s" % (orgPamList, bePamIds))
     seq = seq.upper()
     if extSeq:
         extSeq = extSeq.upper()
@@ -8150,6 +8246,13 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
     longSeqs = []
 
     for pamId, startPos, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamInfo:
+
+        # in KI mode, the list of PAMs was extended for base editing guides
+        # filter out the guides that can't introduce the substitution,
+        # but only for PAMs that are only used for base editing
+        if beFilter and pam not in orgPamList and pamId not in bePamIds:
+            continue
+
         logging.info("PAM ID: %s - guideSeq %s" % (pamId, guideSeq))
         gStart, gEnd = pamStartToGuideRange(startPos, strand, len(pam))
 
@@ -8318,7 +8421,7 @@ def createBatchEffScoreTable(
 
 
 def createMultiBatchEffScoreTable(
-    batchId, Fname, queue, pam, pamFullName, extSeq, iterIdx
+    batchId, Fname, queue, pam, pamFullName, extSeq, iterIdx, beFilter=None
 ):
 
     pam = setupPamInfo(pamFullName)
@@ -8331,7 +8434,7 @@ def createMultiBatchEffScoreTable(
     logging.info("writing eff scores for PAM %s" % pam)
     seq = seq.upper() if seq is not None else seq
     guideRows = calcMultiSaveEffScores(
-        batchId, seq, extSeq, pam, queue, pamFullName, iterIdx
+        batchId, seq, extSeq, pam, queue, pamFullName, iterIdx, beFilter=beFilter
     )
 
     for row in guideRows:
@@ -8903,14 +9006,14 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
                 beWinEnd,
                 None,
                 exonId,
-                stopGuides=stopGuides,
+                stopGuides=newStopGuides,
                 batchId=batchId,
                 pam=pam
             )
         else:
             newEditData = {}
 
-        return newStopGuides, newEditData
+        return newEditData, newStopGuides
 
 
 def processMultiSeqSubmission(
@@ -9000,6 +9103,7 @@ def processMultiSeqSubmission(
                                                              exonId, exonPosStr, stopGuides)
                 if len(newStopGuides) > 0:
                     allEditData.update(newEditData)
+                    stopGuides.update(newStopGuides)
 
             batchInfo["exonSeqs"].append((exonId, seq))
             logging.info("Exon %s is %s bp long" % (exonId, len(seq)))
@@ -9028,10 +9132,11 @@ def processMultiSeqSubmission(
         guideFh.close()
 
         # if no STOP codons can be introduced with SpCas9, switch to SpRY
-        if koMethod == "stop" and pam == "NGG" and len(stopGuides) == 0:
+        if koMethod == "stop" and pam != "NRN" and len(stopGuides) == 0:
+            logging.info("no guides found for PAM %s: search with SpRY (pam NRN)" % pam)
             pam = "NRN"
             pam = setupPamInfo(pam)
-            batchInfo[pam] = pam
+            batchInfo["pam"] = pam
 
             # rewrite eff scores and editData
             stopGuides, allEditData = {}, {}
@@ -9046,6 +9151,7 @@ def processMultiSeqSubmission(
                                                              exonId, exonPosStr, stopGuides)
                 if len(newStopGuides) > 0:
                     allEditData.update(newEditData)
+                    stopGuides.update(newStopGuides)
 
                 queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
                 createBatchEffScoreTable(
@@ -9107,7 +9213,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     if seq is None and posStr is None:
         return None, None
 
-    pamList = multiPamDict[multipam][0]
+    pamList = set(multiPamDict[multipam][0])
 
     logging.info("PAMs are : %s" % ", ".join(pamList))
 
@@ -9161,17 +9267,15 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     if useBaseEditor is True:
         # search for alternative PAMs to design guides for base editing
         for pamVariant in pamVariantModels.keys():
-            pamList.append(pamVariant)
+            pamList.add(pamVariant)
 
     writeBatchAsDict(batchInfo, batchId)
     # do eff scoring and off target search for each pam
     pamSeqs = []
 
+    # first, check PAMs that can be used with BE
     for i, pamFullName in enumerate(pamList):
 
-        logging.info("searching for off-targets with PAM %s" % pamFullName)
-
-        # set globals for this PAM
         pam = setupPamInfo(pamFullName)
 
         if useBaseEditor:
@@ -9191,6 +9295,32 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
             )
             pamSeqs.extend(singlePamSeqs)
 
+    if useBaseEditor:
+        # beWinStart, beWinEnd = getBeWin(DEFAULTBEWIN)
+        # get the largest editing window for this enzyme type (results will be filtered later)
+        enzList = allBeModels[enzyme]
+        beWinStart = min([enzDict["win"][0] for enzDict in enzList])
+        beWinEnd = max([enzDict["win"][1] for enzDict in enzList])
+
+        _, editData = makeEditLines(
+            seq, pamSeqs, beWinStart, beWinEnd, None, substInfo=substInfo, enzyme=enzyme, extSeq=extSeq
+        )
+        writeBatchAsDict({}, batchId, editData=editData)
+
+        bePamIds = buildEditData(editData).keys()
+    else:
+        bePamIds = None
+
+    # PAM list selected from the menu (not extended to include BE pams)
+    # score and search off-targets for all of these PAMs
+    # for PAMs to be used with BE, only score guides that can be used to introduce the substitution
+    orgPamList = multiPamDict[multipam][0]
+
+    for i, pamFullName in enumerate(pamList):
+
+        # set globals for this PAM
+        pam = setupPamInfo(pamFullName)
+
         iterBatchBase = "%s.%d" % (batchBase, i)
         faFname = iterBatchBase + ".fa"
         tempBedFname = iterBatchBase + ".bed"
@@ -9200,7 +9330,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         if doEffScoring:
             queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
             createMultiBatchEffScoreTable(
-                batchId, tempEffScoresFname, queue, pam, pamFullName, extSeq, i
+                batchId, tempEffScoresFname, queue, pam, pamFullName, extSeq, i, beFilter=(orgPamList, bePamIds)
             )  # simplify the scores table
 
         if isfile(tempEffScoresFname):
@@ -9210,8 +9340,9 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
             if not DEBUG:
                 os.remove(tempEffScoresFname)
 
+        logging.info("searching for off-targets with PAM %s" % pamFullName)
         startDict, endSet = findAllPams(uppSeq, pam)
-        writePamFlank(seq, startDict, pam, faFname, pamFullName)
+        writePamFlank(seq, startDict, pam, faFname, pamFullName, beFilter=(orgPamList, bePamIds))
 
         # find offtargets and append them to the main file
         # if useBowtie:
@@ -9240,17 +9371,6 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
             if isfile(faFname):
                 os.remove(faFname)
 
-    if useBaseEditor:
-        # beWinStart, beWinEnd = getBeWin(DEFAULTBEWIN)
-        # get the largest editing window for this enzyme type (results will be filtered later)
-        enzList = allBeModels[enzyme]
-        beWinStart = min([enzDict["win"][0] for enzDict in enzList])
-        beWinEnd = max([enzDict["win"][1] for enzDict in enzList])
-
-        _, editData = makeEditLines(
-            seq, pamSeqs, beWinStart, beWinEnd, None, substInfo=substInfo, enzyme=enzyme, extSeq=extSeq
-        )
-        writeBatchAsDict({}, batchId, editData=editData)
 
     # create the final file to end the job
     shutil.move(bedFnameTmp, bedFname)
@@ -11540,8 +11660,9 @@ def KiResultsPage(params, batchId, download=False):
     globEffScore = params.get("globEffScore", "rs3")
 
     # increase the default window for substitutions to display PAMs for base editing
+    maxPamWindow = max(len(seq[0:insertIdx]), len(seq[insertIdx: len(seq)]))
     if params.get("pairSortBy") is not None:
-        defaultWindow = 60
+        defaultWindow = maxPamWindow
     elif kiType == "substitution":
         defaultWindow = 20
     else:
@@ -11550,7 +11671,7 @@ def KiResultsPage(params, batchId, download=False):
     pamWindow = int(params.get("pamWindow", defaultWindow))
     otherPam = params.get("otherPam")
 
-    pamList = multiPamDict[multipam][0]
+    pamList = set(multiPamDict[multipam][0])
 
     chrom, start, end, strand = parsePos(posStr)
 
@@ -11631,8 +11752,8 @@ def KiResultsPage(params, batchId, download=False):
                     let distButton = document.getElementById("distButton");
                     let distRange = document.getElementById("distRange");
 
-                    if (distRange.value < 60) {
-                        distRange.value = 60;
+                    if (distRange.value < %d) {
+                        distRange.value = %d;
                         distButton.click();
                     }
                 }
@@ -11655,7 +11776,7 @@ def KiResultsPage(params, batchId, download=False):
                     }}
                 }
         </script>
-        """)
+        """ % (maxPamWindow, maxPamWindow))
 
         genomePosStr = ":".join(posStr.split(":")[:2])
         chrom, start, end, strand = parsePos(posStr)
@@ -11709,6 +11830,7 @@ def KiResultsPage(params, batchId, download=False):
         # Base editing can be used for these substitutions
         useBaseEditor = False
         editData = None
+        beFilter = None
         if kiType == "substitution":
 
             seqMsg = "%s -> %s substitution" % (seq[insertIdx].upper(), insertSeq.upper())
@@ -11721,15 +11843,21 @@ def KiResultsPage(params, batchId, download=False):
                     editFname = batchBase + ".editData.json"
                     if isfile(editFname):
                         editData = json.load(open(editFname))
+                        bePamIds = buildEditData(editData).keys()
                     else:
                         # avoid error message if no editData was written (subserver crash)
                         editData = {}
                     if len(editData) > 0:
                         # baseEditor in reinitialized in setupPamInfo
                         useBaseEditor = True
+                        orgPamList = multiPamDict[multipam][0]
+
+                        # data to filter out BE guides that can't introduce the substitution,
+                        # while keeping all HDR guides for the selected PAM list
+                        beFilter = (orgPamList, bePamIds)
 
                         for pamVariant in pamVariantModels.keys():
-                            pamList.append(pamVariant)
+                            pamList.add(pamVariant)
 
         elif kiType == "deletion":
             seqMsg = "%dbp deletion" % (len(batchInfo["insertSeq"]))
@@ -11811,7 +11939,8 @@ def KiResultsPage(params, batchId, download=False):
                 kiType=kiType,
                 insertSeq=insertSeq,
                 getSuppInfo=True,
-                allEditData=editData
+                allEditData=editData,
+                beFilter=beFilter
             )
         )
 
@@ -11826,6 +11955,12 @@ def KiResultsPage(params, batchId, download=False):
         return seq, org, pam, posStr, allGuideData
     else:
 
+        pairedGuides = None
+        if len(insertSeq) < 10:
+            # select paired guides in PAM-out orientation for double nicking strategy width D10A
+            # only documented for small edits
+            pairedGuides = getNickPairs(seq, pamList, insertIdx, allGuideData)
+
         showSeqAndPams(
             org,
             seq,
@@ -11839,7 +11974,7 @@ def KiResultsPage(params, batchId, download=False):
             posStr,
             allPamIdToSeq,
             browserLinkHtml=browserLinkHtml,
-            multiPamInfo=(pamList, insertIdx, kiType, insertSeq),
+            multiPamInfo=(multipam, pamList, insertIdx, kiType, insertSeq),
             pamIdToSuppInfo=allPamIdToSuppInfo,
             pamWindow=pamWindow,
             otherPam=otherPam,
@@ -11850,7 +11985,7 @@ def KiResultsPage(params, batchId, download=False):
             extSeq=extSeq,
             editData=editData,
             batchId=batchId,
-            noPerfectMatch=noPerfectMatch
+            noPerfectMatch=noPerfectMatch,
         )
 
         showSeqDownloadMenu(batchId)
@@ -11892,7 +12027,7 @@ def KiResultsPage(params, batchId, download=False):
         """
             % (
                 pamWindow,
-                max(len(seq[0:insertIdx]), len(seq[insertIdx: len(seq)])),
+                maxPamWindow,
                 pamWindow,
             )
         )
@@ -11996,16 +12131,10 @@ def KiResultsPage(params, batchId, download=False):
             <button class="assistantButton active tooltipsterInteract" style="font-size: 24px;" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">guides for HDR-based editing </button>
         """)
 
-        pairedGuides = None
-        if len(insertSeq) < 10:
-            # select paired guides in PAM-out orientation for double nicking strategy width D10A
-            # only documented for small edits
-            pairedGuides = getNickPairs(seq, pamList, insertIdx, allGuideData)
-
-            if len(pairedGuides) > 0:
-                print("""
-                <button class="assistantButton tooltipsterInteract" style="font-size: 24px;" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">pairs of guides for HDR-based editing using a double-nicking strategy</button>
-                """)
+        if pairedGuides and len(pairedGuides) > 0:
+            print("""
+            <button class="assistantButton tooltipsterInteract" style="font-size: 24px;" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">pairs of guides for HDR-based editing using a double-nicking strategy</button>
+            """)
 
         if useBaseEditor:
             print("""
@@ -12031,7 +12160,7 @@ def KiResultsPage(params, batchId, download=False):
         )
         print("</div>")
 
-        if pairedGuides is not None:
+        if pairedGuides:
 
             showPairedGuidesTable(pairedGuides, annotParams, params, batchId)
 
@@ -12083,19 +12212,21 @@ def KiResultsPage(params, batchId, download=False):
         $(document).ready(function() {
             var $buttons = $('button[name="tableSelectButton"]');
 
-            var savedId = localStorage.getItem('kiActiveTable');
-            var savedButton = savedId ? document.getElementById(savedId) : null;
+            const savedId = localStorage.getItem('kiActiveTable');
+            const savedButton = savedId ? document.getElementById(savedId) : null;
             if (savedButton && savedButton.getAttribute('name') === 'tableSelectButton') {
                 let buttonId = savedButton.getAttribute('id');
                 if (buttonId === "pairSelect") {
                    showTable('pairTable', savedButton, setDist=0);
                 } else if (buttonId === "beSelect") {
                     showTable('beTable', savedButton, setDist=0)
+                } else {
+                    showTable('hdrTable', savedButton, setDist=0)
                 }
-                // ad PE table here
+                // will add PE table here
             } else {
                 // default view: show the HDR table, hide the rest
-                var hdrButton = document.getElementById('hdrSelect');
+                const hdrButton = document.getElementById('hdrSelect');
                 if (hdrButton && typeof showTable === 'function') {
                     showTable('hdrTable', hdrButton, setDist=0);
                 }
@@ -18266,8 +18397,26 @@ def processCustomInsertSeq(startSeq, endSeq, targetRegion):
         ):  # multiple insertions need to be close enough to use a single donor DNA
             return None, None, None, None, None
         if len(editSeqs) > 1:
-            kiType = "multiInsert"
-            return kiType, None, None, None, None
+            editDists = [e[0] for e in editSeqs]
+            minDist, maxDist = min(editDists), max(editDists)
+
+            # get the last edit
+            for pos, edit in editSeqs:
+                if pos != maxDist:
+                    continue
+                lastEdit = edit
+
+            # if multiple edits are < 10bp apart, merge them and treat it as a replacement
+            if maxDist - minDist < 10:
+                kiType = "replacement"
+                insertIdx = editDists[0]
+                insertSeq = endSeq[minDist: maxDist + len(lastEdit)].upper()
+
+                if len(insertSeq) > 10:
+                    return "multiInsert", None, None, None, None
+            else:
+                return "multiInsert", None, None, None, None
+
         elif len(editSeqs) == 1 and replace:
             if len(editSeqs[0][1]) > 10:
                 kiType = "longReplacement"
@@ -18287,17 +18436,17 @@ def processCustomInsertSeq(startSeq, endSeq, targetRegion):
 
     # clip the sequence 60bp in 5' and 3' of the editing site
     clippedSeq = False
-    if insertIdx > 61:
+    if insertIdx > 101:
         clippedSeq = True
-        newInsertIdx = 60
+        newInsertIdx = 100
         seqStart = insertIdx - newInsertIdx
     else:
         seqStart = 0
         newInsertIdx = insertIdx
 
-    if len(startSeq) - insertIdx > 61:
+    if len(startSeq) - insertIdx > 101:
         clippedSeq = True
-        seqEnd = insertIdx + 60
+        seqEnd = insertIdx + 100
     else:
         seqEnd = len(startSeq)
 
@@ -22689,24 +22838,28 @@ def printAssistant(params):
 
                 <button type="submit" name="expType" value="ko"
                         class="%s"
-                        style="min-width: 200px;"
+                        style="min-width: 400px;"
                         title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Edtiting (BE), or edits with Prime Editing (PE).">
-                    <span style="text-align: left;">
-                        Knock-out<br>
-                        <small style="font-size: 0.5em; margin-left: 12px;">(NHEJ / BE / PE)</small>
+                    <span style="display: flex; flex-direction: row; gap: 10px;">
+                        <span style="text-align: left;">
+                            Knock-out<br>
+                            <small style="font-size: 0.5em; margin-left: 12px;">(NHEJ / BE / PE)</small>
+                        </span>
+                        <span class="tabBadge assistant" style="height: 12px; align-self: center;">New</span>
                     </span>
-                    <span class="tabBadge assistant">New</span>
                 </button>
 
                 <button type="submit" name="expType" value="ki"
                         class="%s"
                         style="min-width: 275px;"
                         title="Assistant to edit a sequence in multiple ways, including insertion, deletion, substitution, replacement, or protein tagging. Depending on the intended edit, multiple editing strategies are suggested, including Homology-Directed Repair (HDR) based editing with donor DNA design, Base Editing (BE) or Prime Editing (PE).">
-                    <span>
-                        Precision Editing<br>
-                       <small style="font-size: 0.5em; margin-left: 48px;">(HDR / BE / PE)</small>
+                    <span style="display: flex; flex-direction: row; gap: 10px;">
+                        <span>
+                            Precision Editing<br>
+                           <small style="font-size: 0.5em; margin-left: 48px;">(HDR / BE / PE)</small>
+                        </span>
+                        <span class="tabBadge assistant" style="height: 12px; align-self: center;">New</span>
                     </span>
-                    <span class="tabBadge assistant">New</span>
                 </button>
                 <div style="display: flex; flex-direction: row;">
                     <a style='width:150px; align-self: center;' href='crispor.py'>

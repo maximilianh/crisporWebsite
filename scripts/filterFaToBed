@@ -101,18 +101,29 @@ def patMatch(seq, pat):
         nuc = seq[x]
         if patChar=="N":
             continue
-        if patChar=="M" and nuc in ["A", "C"]:
+
+        if patChar == "H" and nuc in "ACT":
             continue
-        if patChar=="K" and nuc in ["T", "G"]:
+        if patChar == "D" and nuc in "AGT":
             continue
-        if patChar=="R" and nuc in ["A", "G"]:
+        if patChar == "B" and nuc in "CGT":
             continue
-        if patChar=="Y" and nuc in ["C", "T"]:
+        if patChar == "V" and nuc in "ACG":
             continue
-        if patChar=="W" and nuc in ["A", "T"]:
+
+        if patChar == "W" and nuc in "AT":
             continue
-        if patChar=="V" and nuc in "ACG":
+        if patChar == "S" and nuc in "GC":
             continue
+        if patChar == "M" and nuc in "AC":
+            continue
+        if patChar == "K" and nuc in "TG":
+            continue
+        if patChar == "R" and nuc in "AG":
+            continue
+        if patChar == "Y" and nuc in "CT":
+            continue
+
         if patChar!=nuc:
             return False
     return True
