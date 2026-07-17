@@ -2605,3 +2605,52 @@ FORECasT-BE :
 ## à faire
 
 - si plusieurs substitutions : base editing en multiplex ?
+
+# 16/07/26
+
+## global
+
+- ajout de la fonction deserialize() : déserialise liste / tuple en une liste, pour paramètres sauvegardés par hidden input html
+
+## knock-in mode
+
+- dans le formulaire knock-in, changement de l'example de substitution par défault afin d'inclure le base editing
+
+- correction d'un bug d'affichage dans texte sous l'onglet "double nicking"
+- en mode double nicking, sélection du guide à recoder:
+    - si un des deux guide est bloqué -> pas de recodage par défaut
+    - recodage du guide ayant le CFD le plus élevé
+- correction d'un bug dans page design ADN donneur : le brin de la séquence target n'était pas coché par défaut en mode double nicking
+- calcul du CFD score entre guide / ADN donneur (+ affichage d'un texte si guide en dehors des coordonnées)
+    - test calcul CFD pour toutes combinaisons de bin target / brin modèle +/- : OK
+
+- correction d'un bug dans printKiSteps : utilisation de urlencode pour passage des params
+- en mode double nicking, passage des paramètres des guides fw et rev dans les pages de design et d'affichage de l'ADN donneur
+    - + ajout des paramètres de le lien de retour à la page de design dans printKiSteps
+    - ajout des deux guides dans lien téléchargement fasta
+
+## à faire
+
+- calculer CFD du guide sur l'ADN donneur + design itératif jusqu'à une valeur seuil de CFD comme dans protoSpaceJam ?
+- surligner les deux guides sur le donneur en mode double nicking (+ déplacer calcul des coordonnées dans une fonction dédiée ?)
+- mettre surlignage du spacer en option
+- filtrer guide redondants si recherche avec plusieurs PAMs ?
+
+# 17/07/26
+
+## global
+
+- dans readBatchAsDict, vérification que l'archive des jobs existe (évite message d'erreur si job supprimé dans version test)
+
+## knock-out mode
+
+- chargement des données base editing uniquement si le fichier existe
+
+## à faire
+
+- réparer downloadFile en mode KI
+- adapter downloadFile au base editing
+- ajouter lien téléchargement tableau double nicking
+- fix common coding exons
+- en mode KI, remplacer "with PAM" dans tableau par "with enzyme"
+

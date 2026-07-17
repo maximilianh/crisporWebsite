@@ -13,7 +13,7 @@
 - see https://github.com/NahyeKim/DeepBE
    
 ``` 
-    python3.9 venv venvDeepBE
+    python3.9 -m venv venvDeepBE
     pip install pandas==1.3.0 tensorflow==2.6.2 protobuf==3.20.3 tensorRT
 ```
 

@@ -215,7 +215,7 @@ DEFAULTINSERT = (
     DEFAULTKISEQ[0:63].lower() + DEFAULTINSERTSEQ + DEFAULTKISEQ[63:].lower()
 )
 DEFAULTDEL = DEFAULTKISEQ[0:45].lower() + DEFAULTKISEQ[60:].lower()
-DEFAULTSUBST = DEFAULTKISEQ[0:62].lower() + "A" + DEFAULTKISEQ[63:].lower()
+DEFAULTSUBST = DEFAULTKISEQ[0:60].lower() + "G" + DEFAULTKISEQ[61:].lower()
 DEFAULTREPL = DEFAULTKISEQ[0:60].lower() + "TAG" + DEFAULTKISEQ[63:].lower()
 
 
@@ -1457,8 +1457,8 @@ def debug(msg):
     if commandLineMode:
         logging.debug(msg)
     elif DEBUG:
-        print(msg)
-        print("<br>")
+        sys.stderr.write(str(msg) + "\n")
+        sys.stderr.write("<br>\n")
 
 
 def gcContent(seq):
@@ -5025,7 +5025,7 @@ def calcInsertDistance(
                 pamPat = revComp(pamPat)
             editPos = abs(pamWindowStart - insertIdx)
             pamBase = pamPat[editPos:]
-            if insertSeq[0 : len(pamBase)] == pamBase:
+            if insertSeq[0: len(pamBase)] == pamBase:
                 doRecoding = True
             else:
                 doRecoding = False
@@ -5034,7 +5034,7 @@ def calcInsertDistance(
     else:
         doRecoding = True
 
-    # insertDistance should be 0 if the cut site is whithin the deletion
+    # insertDistance should be 0 if the cut site is within the deletion
     # cutUpstream is to determine the template strand for ssODN design
     # onPosupstream/downstream is to display insertDistance even
     # if there is no need for strand selection
@@ -6497,12 +6497,13 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
         </script>
     """)
 
+    print("""<div name="guideTablePanel" id="pairTable">""")
+
     print("""
-    <p>The double nicking strategy relies on using a Cas9 nickase with a pair of guides that flank the edit site, to generate a double strand break. This way, you can use guides that are more distant to the edit site. The guides are in a PAM-out orientation (the guide upstream of the edit is modeled after the non-target strand, and vice-versa).<br>
-    This method is useful if no guides are found close to the edit site, as editing efficiency quickly decrease by this distance.<br>Note that the position of each guide relative to the edit doesn't affect efficiency, as long as the distance between both nicks is wihtin 40-68bp. For more information, see <a href='https://doi.org/10.1038/s41598-021-98965-y' target='blank'>Schubert et al. 2021</a>.
+    <p>The double nicking strategy relies on using a Cas9 nickase with a pair of guides that flank the edit site, to generate a double strand break. This way, you can use guides that are more distant to position of the edit compared to the single guide, DSB-based method. The guides are in a PAM-out orientation (the guide upstream of the edit is design from the non-target strand, and vice-versa).<br>
+    This method is useful if no guides are found close to the edit site, as editing efficiency quickly decrease by this distance.<br>Note that the position of the edit between the two guides doesn't affect efficiency, as long as the distance between nicks is within 40-68bp. For more information, see <a href='https://doi.org/10.1038/s41598-021-98965-y' target='blank'>Schubert et al. 2021</a>.</p>
     """)
 
-    print("""<div name="guideTablePanel" id="pairTable">""")
     print("<table>")
     print("""
     <thead>
@@ -6517,7 +6518,7 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
 <small style="margin-top: 24px; width: 20px;">Click to highlight the corresponding PAMs on the sequence viewer</small>
 </th>
 
-        <th rowspan=2 %(headerCss)s>Off-targets double nicking sites <img src="%(htmlPrefix)simage/info-small.png" title="This column shows pairs of off-target sites that are within 118bp of each other, regardless of the orientation. While using a nickase mitagates the risk of off-target effects, such off-target sites may induce double strand breaks." class="tooltipster">
+        <th rowspan=2 %(headerCss)s>Off-targets double nicking sites <img src="%(htmlPrefix)simage/info-small.png" title="This column shows pairs of off-target sites that are within 118bp of each other, regardless of the orientation. While using a nickase mitagates the risk of off-target effects, such off-target sites may be subject to double strand breaks." class="tooltipster">
 </th>
 
         <th rowspan=2 %(headerCss)s>Design link</th>
@@ -6541,8 +6542,8 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
     for i, (guideInfo1, guideInfo2, nickDist, meanScore) in enumerate(pairedGuides):
 
         # pamId, MIT, CFD, globalScore, effScores, offTargets, guideSeq, pamSeq, cutUpstream, doRecoding
-        pamId1, mit1, cfd1, glob1, effScores1, otData1, guideSeq1, pamSeq1, cutUpstream1, doRecoding1 = guideInfo1
-        pamId2, mit2, cfd2, glob2, effScores2, otData2, guideSeq2, pamSeq2, cutUpstream2, doRecoding2 = guideInfo2
+        pamId1, mit1, cfd1, glob1, effScores1, otData1, guideSeq1, pamSeq1, doRecoding1, cutUpstream1 = guideInfo1
+        pamId2, mit2, cfd2, glob2, effScores2, otData2, guideSeq2, pamSeq2, doRecoding2, cutUpstream2 = guideInfo2
 
         otCoords1 = [otTpl[4] for otTpl in otData1]
         otCoords2 = [otTpl[4] for otTpl in otData2]
@@ -6562,8 +6563,12 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
             "cutUpstream": cutUpstream1,
             "doubleNicking": True,
             "insertDistance": effScores1.get("insertDistance"),
-            "revGuideInfo": [pamId1, guideSeq1, pamSeq1, doRecoding1],
-            "fwGuideInfo": [pamId2, guideSeq2, pamSeq2, doRecoding2]
+            "revPamId": pamId1,
+            "revDoRecoding": doRecoding1,
+            "revCfd": cfd1,
+            "fwPamId": pamId2,
+            "fwDoRecoding": doRecoding2,
+            "fwCfd": cfd2
         }
 
         if selGeneModel and selGeneModel not in ("None", "noGenes"):
@@ -10010,6 +10015,9 @@ def readBatchAsDict(batchId):
     if isfile(jsonFname):
         params = json.load(open(jsonFname))
     else:
+        # fix for the test version were the job archive is empty
+        if not isfile(batchArchive) or os.path.getsize(batchArchive) == 0:
+            return None
         db = sqlite3.connect(batchArchive)
         c = db.cursor()
         c.execute("select data from jobArchive where id=?", (batchId,))
@@ -10612,8 +10620,10 @@ def printStatus(batchId, msg):
         errorState = True
     else:
         print('<meta http-equiv="refresh" content="10" >')
+        """
         if len(msg) != 0:
             print((msg + "<p>"))
+        """
         print("CRISPOR job has been submitted.<p>")
 
     if status == None:
@@ -10847,6 +10857,7 @@ def makeCustomTrack(
     if not isdir(ctDir):
         os.makedirs(ctDir)
 
+    baseUrl = join(ctDir, batchId)
     ctFname = join(ctDir, batchId + ".bed")  # temporary bed file
     bbFname = join(ctDir, batchId + ".bb")  # bigBed file
     ctFname = join(ctDir, batchId + ".txt")  # custom track settings
@@ -10948,18 +10959,17 @@ def makeCustomTrack(
     )
     ofh.close()
 
-    # hubFname = join(ctDir, batchId+".txt")
-    # ofh = open(hubFname, "w")
-    # ofh.write("hub CRISPOR\n")
-    # ofh.write("shortLabel CRISPOR %s\n")
-    # ofh.write("longLabel CRISPOR batch %s %s\n")
-    # ofh.write("genomesFile %s\n" % hubFname)
-    # ofh.write("email crispor@tefor.net\n")
-    # ofh.write("descriptionUrl http://crispor.org\n")
-    # ofh.write("genome %s\n" % org)
-    # ofh.write("trackDb %s\n" % hubFname)
-    # ofh.write("\n" % hubFname)
-    # ofh.write("track crispor%s\n" % batchId)
+    hubFname = join(ctDir, batchId+".txt")
+    ofh = open(hubFname, "w")
+    ofh.write("hub CRISPOR\n")
+    ofh.write("shortLabel CRISPOR %s\n" % org)
+    ofh.write("longLabel CRISPOR batch %s %s\n" % (org, batchId))
+    ofh.write("genomesFile %s\n" % hubFname)
+    ofh.write("email crispor@tefor.net\n")
+    ofh.write("descriptionUrl http://crispor.org\n")
+    ofh.write("genome %s\n" % org)
+    ofh.write("trackDb %s\n" % hubFname)
+    ofh.write("track crispor%s\n" % batchId)
     # ofh.write("shortLabel M-CAP
     # longLabel M-CAP
     # group genes
@@ -10969,7 +10979,7 @@ def makeCustomTrack(
 
     # return bbFname
     ctUrl = baseUrl + "/%s.txt" % batchId
-    return ctUrl
+    return ctUrl, bbUrl
 
 
 def iterBbLines(bbPath, chrom, start, end, strand):
@@ -11598,7 +11608,8 @@ def classicResultsPage(
         '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
     )
 
-    # makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
+    makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
+
     print(
         """
     <script>
@@ -12243,7 +12254,7 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
-def printKiSteps(batchId: str, step=1, annotationParams=None, align="center", useBaseEditor=False, insertSeq=None):
+def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseEditor=False, insertSeq=None):
     """
     prints an interactive recap of the workflow for KI experiments
     """
@@ -12319,8 +12330,8 @@ def printKiSteps(batchId: str, step=1, annotationParams=None, align="center", us
 
     if useBaseEditor and insertSeq:
         editorText = """
-        One or more guide sequences can be used with a base editor to introduce the substitution. Hover or click on the 'Edits to %s' field on the sequence viewer to get a summary of the available guides.<br>
-        For each type of editor, a prediciton of its efficiency and outcome sequences is shown, allowing you to select the most appropriate.<br>
+        One or more guide sequences can be used with a base editor to introduce this substitution. Hover or click on the 'Edits to %s' field on the sequence viewer to get a summary of the available guides.<br>
+        For each type of editor, a prediciton of its efficiency and outcome sequences is shown, allowing you to select the most appropriate deaminase domain.<br>
         For a more detailed explanation of base editor selection rules, read <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et al. 2023</a>. Depending on the aim of your experiment, you may consider bystander editing (i.e base conversions that occur outside of the intended substitution) in addition to the predicted editing efficiency.
         """ % insertSeq
         editorHtml = """<a class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em; margin-left: 12px;" onclick=showBeTable('beTable')> Choose a base editor</a>""" % (editorText, stepStyles[1])
@@ -12342,9 +12353,8 @@ def printKiSteps(batchId: str, step=1, annotationParams=None, align="center", us
         donorBackUrl = printBackLink(toDonorPage=True, returnUrl=True)
 
         # if present, include manual annotation params in the url
-        if annotationParams:
-            for name, val in annotationParams.items():
-                donorBackUrl += "&%s=%s" % (name, val)
+        if backParams:
+            donorBackUrl = donorBackUrl + "&" + urllib.parse.urlencode(backParams)
 
         donorDesignHtml = (
             """<a href="%s" class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</a> """
@@ -12414,6 +12424,20 @@ def printKiSteps(batchId: str, step=1, annotationParams=None, align="center", us
         )
 
 
+def deserialize(inStr, inType="list"):
+    """
+    deserializes the repr of a tuple or a list into a list
+    JSON should be used, but params saved as hidden html inputs can't be loaded as json
+    """
+
+    if inType == "tuple":
+        lbrd, rbrd = "(", ")"
+    else:
+        lbrd, rbrd = "[", "]"
+
+    return inStr.strip(lbrd).strip(rbrd).replace("'", "").replace(" ", "").split(",")
+
+
 def showDonor(
     HA5,
     HA3,
@@ -12438,7 +12462,32 @@ def showDonor(
     pamId = params["pamId"]
     guideSeq = params["guideSeq"]
     guideInfo = params["guideInfo"]
+
     doubleNicking = params.get("doubleNicking")
+
+    if doubleNicking:
+
+        revPamId = params["revPamId"]
+        revGuideSeq, revPamSeq, revGuideStrand, revGuideStart = deserialize(params["revGuideInfo"], inType="tuple")
+        revDoRecoding = params["revDoRecoding"]
+        revCfd = params["revCfd"]
+
+        fwPamId = params["fwPamId"]
+        fwGuideSeq, fwPamSeq, fwGuideStrand, fwGuideStart = deserialize(params["fwGuideInfo"], inType="tuple")
+        fwDoRecoding = params["fwDoRecoding"]
+        fwCfd = params["fwCfd"]
+
+        revGuideSeq, fwGuideSeq = revGuideSeq.upper(), fwGuideSeq.upper()
+
+        doubleNickingParams = {
+            "doubleNicking": doubleNicking,
+            "revPamId": revPamId,
+            "revDoRecoding": revDoRecoding,
+            "revCfd": revCfd,
+            "fwPamId": fwPamId,
+            "fwDoRecoding": fwDoRecoding,
+            "fwCfd": fwCfd
+            }
 
     geneId = batchInfo.get("koGeneId")
     kiType = batchInfo.get("kiType")
@@ -12454,14 +12503,15 @@ def showDonor(
     insertPos = batchInfo["insertpos"]
     seq = batchInfo["seq"]
 
-    # save manual annotation params to include it in the return link in printKiSteps()
-    annotationParams = {}
+    # save params to include it in the return link in printKiSteps()
+    backParams = {}
     for param in ["manualExStart", "manualExEnd", "manualExFrame"]:
         val = params.get(param)
         if val:
-            annotationParams[param] = val
-    if len(annotationParams) != 3:
-        annotationParams = None
+            backParams[param] = val
+
+    if doubleNicking:
+        backParams.update(doubleNickingParams)
 
     if ("tagseq" in params and "linkerseq") in params or (
         "markerseq" in params and "expressionSeq" in params and "qTag" in params
@@ -12485,9 +12535,9 @@ def showDonor(
     dbInfo = readDbInfo(org)
     chrom, seqStart, seqEnd, strand = parsePos(posStr)
 
-    pamSeq, guideStart, pamStrand = (
-        guideInfo.strip("(").strip(")").replace("'", "").replace(" ", "").split(",")
-    )
+    # this is not good
+    # but can't save guideInfo as json as it comes from a hidden html input
+    pamSeq, guideStart, pamStrand = deserialize(guideInfo, inType="tuple")
     pamStart = int(pamId.split(".")[1].strip("[s+-]"))
 
     if donorType == "ss":
@@ -12667,6 +12717,34 @@ def showDonor(
                 guideEndCoord -= len(insertSeq)
 
     guideCoordList = [(guideStartCoord, guideEndCoord)]
+
+    # calculate the CFD score of the guide + PAM region in the donor DNA
+    guideOutsideDonor = False
+    if (pamStrand == "+" and templateStrand == strand) or (pamStrand == "-" and templateStrand != strand):
+
+        if guideStartCoord < 0 or pamEndCoord > len(donorSeq):
+            guideOutsideDonor = True
+        else:
+            guideTarget = guideSeq + pamSeq
+            guideDonor = donorSeq[guideStartCoord:pamEndCoord]
+    else:
+        if pamStartCoord < 0 or guideEndCoord > len(donorSeq):
+            guideOutsideDonor = True
+        else:
+            if templateStrand != strand:
+                guideTarget = guideSeq + pamSeq
+            else:
+                guideTarget = guideSeq + pamSeq
+
+            guideDonor = donorSeq[pamStartCoord:guideEndCoord]
+            guideDonor = revComp(guideDonor)
+
+    if not guideOutsideDonor:
+        donorCfd = calcCfdScore(guideTarget.upper(), guideDonor.upper())
+        # donorCfd = 1
+    else:
+        donorCfd = -1
+
     if homopolymers and donorType != "ss":
         for start, end in homopolymers:
             highlights.append(
@@ -12807,7 +12885,7 @@ def showDonor(
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
 
-    printKiSteps(batchId, step=3, annotationParams=annotationParams)
+    printKiSteps(batchId, step=3, backParams=backParams)
 
     print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
 
@@ -12825,34 +12903,37 @@ def showDonor(
     )
 
     print("<form>")
+
+    baseParams = {
+            "batchId": batchId,
+            "donorSeq": donorSeq,
+            "pamId": pamId,
+            "guideSeq": guideSeq,
+            "donorName": donorName
+            }
+
+    if doubleNicking:
+        baseParams.update({
+            "doubleNicking": doubleNicking,
+            "revPamId": revPamId,
+            "revGuideSeq": revGuideSeq,
+            "fwPamId": fwPamId,
+            "fwGuideSeq": fwGuideSeq
+            })
     if recodedArmSeq:
-        printHiddenFields(
-            params,
-            {
-                "batchId": batchId,
-                "recodedDonorSeq": donorSeq,
-                "donorSeq": orgDonor,
-                "pamId": pamId,
-                "guideSeq": guideSeq,
-                "donorName": donorName,
-            },
-        )
+        baseParams.update({"recodedDonorSeq": donorSeq})
+
+    printHiddenFields(params, baseParams)
+
+    if doubleNicking:
+        pairStr = " pair"
     else:
-        printHiddenFields(
-            params,
-            {
-                "batchId": batchId,
-                "donorSeq": donorSeq,
-                "pamId": pamId,
-                "guideSeq": guideSeq,
-                "donorName": donorName,
-            },
-        )
+        pairStr = ""
     print(
         """
-              <button name="downloadDonor" value="download" style="align-self: flex-end; margin: 0; margin-left: 12px;"><small>Download fasta (guide + donor DNA)</small></button>
+              <button name="downloadDonor" value="download" style="align-self: flex-end; margin: 0; margin-left: 12px;"><small>Download fasta (guide%s + donor DNA)</small></button>
           </form>
-          </div> """
+          </div> """ % pairStr
     )
 
     # barcode step, to add later
@@ -12963,6 +13044,11 @@ def showDonor(
     print("""</div>""")
 
     print("""<div style="margin-right: 15%;">""")
+
+    if donorCfd != -1:
+        print("<h4>CFD score of the guide against donor DNA : %s</h4>" % round(donorCfd, 2))
+    else:
+        print("<p>The guide sequence is outside the coordinates of the donor DNA and will unlikely re-cleave it after insertion.</p>")
 
     if noModel is True:
         print(
@@ -13398,7 +13484,10 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         # beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
         batchBase = join(batchDir, batchId)
         editFname = batchBase + ".editData.json"
-        allEditData = json.load(open(editFname))
+        if isfile(editFname):
+            allEditData = json.load(open(editFname))
+        else:
+            allEditData = {}
     else:
         allEditData = None
 
@@ -15222,6 +15311,7 @@ def genbankWrite(batchId, fileFormat, desc, seq, org, position, pam, guideData, 
 def writeHttpAttachmentHeader(fname, doDownload=True):
     "write the http header for attachments"
     if doDownload:
+        print("Content-Type: application/octet-stream")
         print('Content-Disposition: attachment; filename="%s"' % (fname))
     else:
         print("Content-type: text/html")
@@ -15573,8 +15663,20 @@ def downloadDonor(params):
     pamId = params["pamId"]
     donorName = params["donorName"]
 
+    doubleNicking = params.get("doubleNicking")
+    if doubleNicking:
+        revPamId = params["revPamId"]
+        revGuideSeq = params["revGuideSeq"]
+        fwPamId = params["fwPamId"]
+        fwGuideSeq = params["fwGuideSeq"]
+
     writeHttpAttachmentHeader(donorName + ".fa")
-    fastaWrite(pamId, guideSeq.upper(), sys.stdout)
+    if doubleNicking:
+        fastaWrite(revPamId, revGuideSeq, sys.stdout)
+        print(" ")
+        fastaWrite(fwPamId, fwGuideSeq, sys.stdout)
+    else:
+        fastaWrite(pamId, guideSeq.upper(), sys.stdout)
     print(" ")
     if recodedDonorSeq:
         fastaWrite(donorName + "_Original", donorSeq, sys.stdout)
@@ -16121,7 +16223,7 @@ def otPrimerPage(params):
 
     if onlyExons and onlyChrom:
         print(
-            "<p>Only primers to amplify off-targets in exons whithin the chromosome of the target sequence are displayed</p>"
+            "<p>Only primers to amplify off-targets in exons within the chromosome of the target sequence are displayed</p>"
         )
     elif onlyExons:
         print("<p>Only primers to amplify off-targets in exons are displayed</p>")
@@ -17923,13 +18025,13 @@ function clearEndSeq() {
                         <div style="display: flex; flex-direction: row; gap: 4px; align-items: center;">
                             <small><a href="javascript:clearEndSeq()">Clear Box</a> -</small>
                             <small>Set an example for :</small>
-                            <small class="tooltipsterInteract" title="In this example, the CDS of the mCherry fluorescent protein (%d bp) is inserted after the START codon of the human homeobox D9 (HOXD9) gene."><a href="javascript:insertExample()"> Insertion</a></small>
+                            <small class="tooltipsterInteract" title="In this example, the CDS of the mCherry fluorescent protein (%d bp) is inserted after the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:insertExample()"> Insertion</a></small>
                             <small>/</small>
-                            <small class="tooltipsterInteract" title="In this example, a 3bp deletion is introduced to delete the START codon of the human homeobox D9 (HOXD9) gene."><a href="javascript:delExample()"> Deletion</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a 3bp deletion is introduced to delete the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:delExample()"> Deletion</a></small>
                             <small>/</small>
-                            <small class="tooltipsterInteract" title="In this example, a G to A substitution is introduced in the third base of the START codon of the human homeobox D9 (HOXD9) gene, changing it into a isoleucine codon."><a href="javascript:substExample()"> Substitution</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a A to G substitution is introduced in the first base of the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:substExample()"> Substitution</a></small>
                             <small>/</small>
-                            <small class="tooltipsterInteract" title="In this example, a 3bp replacement is introduced to change the START codon of the human homeobox D9 (HOXD9) gene into a STOP codon."><a href="javascript:replExample()"> Replacement</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a 3bp replacement is introduced to change the START codon in the human homeobox D9 (HOXD9) gene into a STOP codon."><a href="javascript:replExample()"> Replacement</a></small>
                         </div>
                         <textarea name="endSeq" id="endSeq" rows="8" cols="108" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the edited sequence here. Edits should be in uppercase (except for deletions), with the rest of the sequence in lowercase. Types of modification supported are insertion, deletion, single substitution and replacements (up to 10 bp, including e.g. with two substitions 10 bp apart)."></textarea>
                     </div>
@@ -18493,7 +18595,7 @@ def getInsertSeq(linkerSeq, tagSeq, markerSeq, expressionSeq, qTag, insertPos):
 
 def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
     """from a geneId, returns a list of tuples [(exonId, exonPosStr)]
-    and the gene model (only whithin the cds)"""
+    and the gene model (only within the cds)"""
 
     if targetLen is None and (method == "excision" or method == "promoter"):
         raise ValueError("targetLen needs to be set for this method")
@@ -18856,9 +18958,7 @@ def writeDonorSeq(params):
     insertSeq = batchInfo.get("insertSeq")
     chrom, start, end, strand = parsePos(posStr)
     # convert to string representation of the original tuple to a tuple again (not optimal at all)
-    guideInfo = (
-        guideInfo.strip("(").strip(")").replace("'", "").replace(" ", "").split(",")
-    )
+    guideInfo = deserialize(guideInfo, inType="tuple")
     pamPat = pamId.split(".")[0]
 
     pamPat = setupPamInfo(pamPat)
@@ -21509,12 +21609,6 @@ def donorDesignPage(params):
     insertDistance = params["insertDistance"]
     manualExStart = params.get("manualExStart")
 
-    # double nicking params
-    doubleNicking = params.get("doubleNicking")
-    revGuideInfo = params.get("revGuideInfo")
-    fwGuideInfo = params.get("fwGuideInfo")
-    # print(revGuideInfo, fwGuideInfo)
-
     # must fix this
     if manualExStart == "None":
         manualExStart = None
@@ -21550,6 +21644,49 @@ def donorDesignPage(params):
     chrom, start, end, strand = parsePos(posStr)
     htmlprefix = HTMLPREFIX
 
+    # double nicking params
+    doubleNicking = params.get("doubleNicking")
+    if doubleNicking:
+        revPamId = params["revPamId"]
+        revDoRecoding = params["revDoRecoding"]
+        revCfd = params["revCfd"]
+
+        (revGuideSeq,
+         revPamSeq, _, _,
+         revGuideStrand, _,
+         revGuideStart, _) = findGuideSeq(inSeq, "NGG", revPamId, pamFullName="NGG")
+
+        fwPamId = params["fwPamId"]
+        fwDoRecoding = params["fwDoRecoding"]
+        fwCfd = params["fwCfd"]
+        (fwGuideSeq,
+         fwPamSeq, _, _,
+         fwGuideStrand, _,
+         fwGuideStart, _) = findGuideSeq(inSeq, "NGG", fwPamId, pamFullName="NGG")
+
+        doubleNickingParams = {
+            "doubleNicking": doubleNicking,
+            "revPamId": revPamId,
+            "revGuideInfo": (revGuideSeq, revPamSeq, revGuideStrand, revGuideStart),
+            "revDoRecoding": revDoRecoding,
+            "revCfd": revCfd,
+            "fwPamId": fwPamId,
+            "fwGuideInfo": (fwGuideSeq, fwPamSeq, fwGuideStrand, fwGuideStart),
+            "fwDoRecoding": fwDoRecoding,
+            "fwCfd": fwCfd
+            }
+
+        if any((revDoRecoding, fwDoRecoding)) is False:
+            doRecoding = False
+        else:
+            doRecoding = True
+
+        # recode the guide with the highest CFD score
+        if revCfd >= fwCfd:
+            pamId = revPamId
+        else:
+            pamId = fwPamId
+
     # check if an ssODN can be used
     maxssLen = 200 - len(insertSeq)
     if maxssLen < 40 and kiType != "deletion":
@@ -21567,7 +21704,7 @@ def donorDesignPage(params):
     # use the reverse complement if the cut site is upstream of the insertion site
     # if the cut site is within 10bp of the insertion site, use the target strand as a template
 
-    if cutUpstream == "upstream" or (("onPos" in cutUpstream or doubleNicking) and strand == "-"):
+    if (cutUpstream == "upstream" and not doubleNicking) or (("onPos" in cutUpstream or doubleNicking) and strand == "-"):
         antisenseChecked = "checked"
         senseChecked = ""
     else:
@@ -21847,10 +21984,18 @@ def donorDesignPage(params):
 
     updateChanges = commonChanges.copy()
     updateChanges.update({"geneModelSelection": None, "selTransId": selTransId})
+
+    if doubleNicking:
+        updateChanges.update(doubleNickingParams)
+
     printHiddenFields(params, updateChanges, form="updateModel")
     mainChanges = commonChanges.copy()
 
     mainChanges.update({"geneModelSelection": selGeneModel})
+
+    if doubleNicking:
+        mainChanges.update(doubleNickingParams)
+
     if geneId is None:
         mainChanges["selTransId"] = None
     else:
@@ -22839,7 +22984,7 @@ def printAssistant(params):
                 <button type="submit" name="expType" value="ko"
                         class="%s"
                         style="min-width: 400px;"
-                        title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Edtiting (BE), or edits with Prime Editing (PE).">
+                        title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Edtiting (BE), or edits with Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span style="text-align: left;">
                             Knock-out<br>
@@ -22852,7 +22997,7 @@ def printAssistant(params):
                 <button type="submit" name="expType" value="ki"
                         class="%s"
                         style="min-width: 275px;"
-                        title="Assistant to edit a sequence in multiple ways, including insertion, deletion, substitution, replacement, or protein tagging. Depending on the intended edit, multiple editing strategies are suggested, including Homology-Directed Repair (HDR) based editing with donor DNA design, Base Editing (BE) or Prime Editing (PE).">
+                        title="Assistant to edit a sequence in multiple ways, including insertion, deletion, substitution, replacement, or protein tagging. Depending on the intended edit, multiple editing strategies are suggested, including Homology-Directed Repair (HDR) based editing with donor DNA design, Base Editing (BE) or Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span>
                             Precision Editing<br>

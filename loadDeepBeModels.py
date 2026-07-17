@@ -50,8 +50,8 @@ def loadAllModels():
 
     for _, name in json.load(open(jsonPath)):
         # load only some models for testing
-        if "NG" not in name:
-            continue
+        # if "NG" not in name:
+        #    continue
 
         mod = importlib.import_module(name)
         models[name] = mod.loadModel()   # captured + kept
