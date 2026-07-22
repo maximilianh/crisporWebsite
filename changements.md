@@ -2638,6 +2638,8 @@ FORECasT-BE :
 
 # 17/07/26
 
+- mise à jour de crisporTest
+
 ## global
 
 - dans readBatchAsDict, vérification que l'archive des jobs existe (évite message d'erreur si job supprimé dans version test)
@@ -2651,6 +2653,28 @@ FORECasT-BE :
 - réparer downloadFile en mode KI
 - adapter downloadFile au base editing
 - ajouter lien téléchargement tableau double nicking
-- fix common coding exons
+- fix common coding exons DONE
 - en mode KI, remplacer "with PAM" dans tableau par "with enzyme"
+- ajouter recodage manuel de l'ADN donneur -> codon / codon
+- ajouter un message induquant que la séquence non recodée est téléchargeable si recodage
+- en mode KO / STOP, si recherche avec SpRy, sélectionner les 20 guides à l'efficacité la plus élevée -> skip recherche offtarget pour les autres
 
+# 21/07/26
+
+## knock-out mode
+
+- en mode STOP, la séquence des exons ne contenant pas de guides stop n'est plus affichée (idem sur gene model)
+- en mode common exons, retrait des UTR lors de l'intersection
+
+## knock-in mode
+
+- remplacement de "with PAM" par "Enzyme" dans le tableau des guides
+- ajout de pamToEnzyme : dict contenant le com des nucléases (à faire : ajouter liens synthego / addGene)
+- affichage le l'enzyme uniquement si recherche avec plusieurs PAMs
+
+## à faire
+
+- ajouter tous les PAM variants à modelToEnzyme
+- afficher deaminase domain à la place du modèle BE
+- ajouter colonne nuclease + deaminase ?
+- ajouter accubase

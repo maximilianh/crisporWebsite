@@ -283,6 +283,55 @@ pamDesc = [
     # ('TRTV','T(A/G)T(A/C)-23bp - enCas12a K548R - Kleinstiver et al Nat Biot 2019'),
 ]
 
+# to display the enzyme in precision editing mode
+# may add links to furnishers / addGene (currently : links to CasPEDIA)
+pamToEnzyme = {
+        "NGG": ("SpCas9", "http://caspedia.org/wiki/SpyCas9a.html"),
+        "NNG": ("ScCas9", ""),
+        "NGN": ("SpG", ""),
+        "NNGT": ("ScCas9", ""),
+        "NAA": ("iSpyMacCas9", ""),
+        "TTN": ("hfCas12Max", "https://www.synthego.com/products/nuclease/hfcas12max-hifi/"),
+        "TNN": ("hfCas12Max", "https://www.synthego.com/products/nuclease/hfcas12max-hifi/"),
+        "NGG-22": ("eSpOT-ON (ePsCas9)", "http://caspedia.org/wiki/SauCas9.html"),
+        "NNGRRT": ("SaCas9", "http://caspedia.org/wiki/SauCas9.html"),
+        "NNGRRT-20": ("SaCas9-20bp", "http://caspedia.org/wiki/SauCas9.html"),
+        "NGK": ("xCas9", ""),
+        "NRTH": ("SpCas9 NRTH variant", ""),
+        "NRRH": ("SpCas9 NRRH variant", ""),
+        "NRCH": ("SpCas9 NRCH variant", ""),
+        "NNNRRT": ("KKH SaCas9", ""),
+        "NNNRRT-20": ("KKH SaCas9-20bp", ""),
+        "NGA": ("SpCas9 VQR variant", ""),
+        "NNNNCC": ("Nme2Cas9", ""),
+        "NGCG": ("SpCas9 VRER variant", ""),
+        "NNAGAA": ("NNAGAA StCas9", ""),
+        "NGGNG": ("NGGNG StCas9", ""),
+        "NNNNGMTT": ("NmCas9", ""),
+        "NNNNACA": ("CjCas9", ""),
+        "NNNNRYAC": ("CjCas9", ""),
+        "NNNVRYAC": ("CjCas9", ""),
+        "TTCN": ("CasX", ""),
+        "TTTV": ("Cas12a", ""),
+        "TTTV-21": ("Cas12a", ""),
+        "TTTN": ("Cas12a", ""),
+        "ATTN": ("BhCas12b", ""),
+        "NGTN": ("ShCAST/AcCAST", ""),
+        "TYCV": ("As-Cpf1 K607R", ""),
+        "TATV": ("As-Cpf1 K548V", ""),
+        "TTTA": ("LbCpf1", ""),
+        "TCTA": ("LbCpf1", ""),
+        "TCCA": ("LbCpf1", ""),
+        "CCCA": ("LbCpf1", ""),
+        "GGTT": ("LbCpf1", ""),
+        "YTTV": ("MAD7 Nuclease", ""),
+        "TTYN": ("enCas12a", ""),
+        "NNNNCNAA": ("Thermo Cas9", ""),
+        "NNN": ("SpRY", ""),
+        "NRN": ("SpRY", ""),
+        "NYN": ("SpRY" "")
+        }
+
 # list of base editors
 beDesc = [("NGG-BE1", "20bp-NGG - BaseEditor1, modifies C->T")]
 
@@ -3404,8 +3453,6 @@ def showSeqAndPams(
     editLines = []
     exonLines = []
 
-    # selGeneModel = None
-    # geneModels = None
     # pre-select the geneId
     if geneId and cgiParams.get("geneModelSelection") is None:
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
@@ -5433,6 +5480,11 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
     else:
         outcomeTotal = 67
 
+    if pamFullName:
+        pos = 125
+    else:
+        pos = 80
+
     nEff = max(len(scoreNames), 1)
     nOutcome = max(len(mutScoreNames), 1)
 
@@ -5445,7 +5497,7 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
         nBeModels = 1
 
     return {
-        "pos": 80,
+        "pos": pos,
         "guide": 235 if pamFullName else 245,
         "distance": 110,
         "globalScore": 150,
@@ -6908,15 +6960,19 @@ def showGuideTable(
                         print("exon %d<br>splicing donor site" % (originalExonText + 1))
                 else:
                     print("in exon %d" % (exonId + 1))
-            else:
+            elif pamFullName and multipam != "20bp-NGG" or editData is not None:
                 for desc in pamDesc:
                     if desc[0] == pamPrefix:
                         pamText = desc[1]
                         break
+                ezInfo = pamToEnzyme[pamPrefix]
+                if len(ezInfo[1]) > 0:
+                    ezHtml = """<a href="%s" target="blank">%s</a>""" % (ezInfo[1], ezInfo[0])
+                else:
+                    ezHtml = ezInfo[0]
                 print("</a>")
                 print(
-                    """<div class="tooltipster" title="%s">with PAM %s</div>"""
-                    % (pamText, pamPrefix)
+                        """<div>Enzyme :<br> %s <img src="%simage/info-small.png" title="%s" class="tooltipster"></div>""" % (ezHtml, HTMLPREFIX, pamText)
                 )
         else:
             pamPrefix = None
@@ -13556,7 +13612,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         if koMethod in ["frameshift", "stop"] or (
             koMethod == "splicing" and len(exonPosStr) > 2
         ):
-            printGeneModel(geneModel, exonSeqs, koMethod, commonExons=commonExons)
+            # list to filter out exons with no stop guides in STOP mode
+            showExons = list(allEditData.keys()) if allEditData else None
+            printGeneModel(geneModel, exonSeqs, koMethod, commonExons=commonExons, showExons=showExons)
         print(
             """<p>Below are the target and PAM sequences. Lowercase bases corresponds to an extension of the target exon sequence (to identify guides that bind exon boundaries and induce a DSB in the exon).<p>"""
         )
@@ -13644,13 +13702,15 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 </div>
                   """
             )
-
     for exonSeqInfo, posStr in zip(exonSeqs, exonPosStr):
 
         exonId, seq = exonSeqInfo
         uppSeq = seq.upper()
         startDict, endSet = findAllPams(uppSeq, pam, exonId)
         chrom, start, end, strand = parsePos(posStr)
+
+        if koMethod == "stop" and str(exonId) not in allEditData.keys():
+            continue
 
         if not download:
             start = str(int(start) + 1)
@@ -13841,9 +13901,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         showSeqDownloadMenu(batchId)
         if baseEditor:
             printJson("editData", allEditData)
-            editData = buildEditData(allEditData, stopGuides=stopGuides)
+            pamEditData = buildEditData(allEditData, stopGuides=stopGuides)
         else:
-            editData = None
+            pamEditData = None
 
     # for experiements using a pair of guides, sort the table by each target sequence
     # if koMethod in ["excision", "promoter"]:
@@ -13866,7 +13926,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             koGeneId,
             koMethod=koMethod,
             exonSelect=exonSelect,
-            editData=editData
+            editData=pamEditData
         )
 
     if download is False:
@@ -13922,6 +13982,7 @@ def printGeneModel(
     kiType=None,
     tagNames=None,
     commonExons=False,
+    showExons=None
 ):
     """
     Displays the gene model, from CDS start to CDS end
@@ -14216,7 +14277,7 @@ function toggleExonSeq(selectedValue) {
                 isSplittedExon = None
                 isTargetExon = None
 
-            if (isSplittedExon or isTargetExon) and featureId in exonSeqs:
+            if (isSplittedExon or isTargetExon) and ((showExons is None and featureId in exonSeqs.keys()) or str(featureId) in showExons):
 
                 # don't make a button for exons in which no guide sequences were found
                 if isSplittedExon:
@@ -18708,10 +18769,13 @@ def getGenePos(geneID, org, method, targetLen):
         if not allExons:
             raise ValueError("")
 
-        def intersect(aStarts, aEnds, bStarts, bEnds):
+        def intersect(aStarts, aEnds, bStarts, bEnds, cdsStart, cdsEnd):
             resStarts, resEnds = [], []
             for aStart, aEnd in zip(aStarts, aEnds):
+                # clip coords within the CDS
+                aStart, aEnd = max(aStart, cdsStart), min(aEnd, cdsEnd)
                 for bStart, bEnd in zip(bStarts, bEnds):
+                    bStart, bEnd = max(bStart, cdsStart), min(bEnd, cdsEnd)
                     commonStart = max(aStart, bStart)
                     commonEnd = min(aEnd, bEnd)
                     if commonStart < commonEnd:
@@ -18728,7 +18792,7 @@ def getGenePos(geneID, org, method, targetLen):
         for i in range(1, len(allExons)):
             currentInfo = allExons[i]
             nextStarts, nextEnds = intersect(
-                resStarts, resEnds, currentInfo["exonStarts"], currentInfo["exonEnds"]
+                resStarts, resEnds, currentInfo["exonStarts"], currentInfo["exonEnds"], cdsStart, cdsEnd
             )
 
             # Only update intersection and bounds if there are still common exons
