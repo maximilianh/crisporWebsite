@@ -2676,5 +2676,33 @@ FORECasT-BE :
 
 - ajouter tous les PAM variants à modelToEnzyme
 - afficher deaminase domain à la place du modèle BE
-- ajouter colonne nuclease + deaminase ?
+- ajouter colonne nuclease + deaminase ? DONE
 - ajouter accubase
+ 
+# 22/07/26
+
+## knock-in mode
+
+- ajout de la colonne "enzyme" si recherche avec plusieurs PAMs
+
+## à faire
+
+- ajouter liens addGene dans colonne enzyme
+
+## 23/06/26
+
+## knock-in mode
+
+- correction d'un bug dans le calcul des coordonnées du guide pour l'affichage du donneur
+- réduction de la taille max des bras d'homologie à 1.5kb (évite url trop long)
+
+- recodage manuel de l'ADN donneur : ajout de la fonction manualRecodingMenu:
+
+    - affichage des codons situés entre le PAM et le site d'édition
+    - pour chaque codon, ajout d'un input pour sélectionner un codon synonyme (affichage de la fréquence + WT ou non)
+    - surlignage des coordonnées du PAM / seed / spacer
+
+## à faire
+
+- mettre à jour mutEvents si recodage manuel
+- fix altCodons dans params

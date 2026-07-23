@@ -5480,11 +5480,6 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
     else:
         outcomeTotal = 67
 
-    if pamFullName:
-        pos = 125
-    else:
-        pos = 80
-
     nEff = max(len(scoreNames), 1)
     nOutcome = max(len(mutScoreNames), 1)
 
@@ -5497,7 +5492,8 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
         nBeModels = 1
 
     return {
-        "pos": pos,
+        "pos": 80,
+        "ez": 100,
         "guide": 235 if pamFullName else 245,
         "distance": 110,
         "globalScore": 150,
@@ -5515,10 +5511,13 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
     }
 
 
-def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths):
+def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam):
     """Yield (dataColId, widthPx) for every visual column, in body-row order.
     Used both for emitting the shared <colgroup> and for computing total width."""
     yield ("pos", colWidths["pos"])
+
+    if pamFullName and ((multipam and multipam != "20bp-NGG") or editData):
+        yield ("ez", colWidths["ez"])
     yield ("guide", colWidths["guide"])
     if pamFullName and editData is None:
         yield ("distance", colWidths["distance"])
@@ -5546,27 +5545,27 @@ def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, edi
 
 
 def printOtColgroup(
-    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=None
+    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None
 ):
     """Emit the <colgroup> that both the header and body tables share.
     Under table-layout:fixed, <col> widths are authoritative, so an identical
     colgroup in both tables pins their columns to the same pixel widths."""
     print("<colgroup>")
     for colId, width in _visualColumns(
-        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths
+        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
     ):
         print('<col data-col-id="%s" style="width:%dpx;">' % (colId, width))
     print("</colgroup>")
 
 
 def getOtTableTotalWidth(
-    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=None
+    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None
 ):
     "sum of all per-column widths — used to set table width + container min-width consistently"
     return sum(
         w
         for _, w in _visualColumns(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
         )
     )
 
@@ -5580,6 +5579,7 @@ def printTableHead(
     showColumns,
     geneId,
     pamFullName=None,
+    multipam=None,
     nonClassicMode=None,
     editData=None,
     usedBeModels=None
@@ -5971,7 +5971,7 @@ def printTableHead(
     tableWidth = max(
         1650,
         getOtTableTotalWidth(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels
         ),
     )
 
@@ -5983,7 +5983,7 @@ def printTableHead(
         '<table id="otTableHeader" style="background:white; table-layout:fixed; width: %dpx; border-collapse: collapse;">'
         % tableWidth
     )
-    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels)
 
     print("""<thead style="position:sticky;">""")
     print(
@@ -5998,6 +5998,9 @@ def printTableHead(
         "You can click on the links in this column to highlight the <br>PAM site in the sequence viewer at the top of the page."
     )
     print("</th>")
+
+    if pamFullName and ((multipam and multipam != "20bp-NGG") or editData):
+        print('<th data-col-id="ez" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Enzyme </th>' % colWidths["ez"])
 
     print(
         '<th data-col-id="guide" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
@@ -6299,7 +6302,7 @@ You can adapt the global score to your delivery method (select below), which cha
     emptyTh = '<th data-col-id="%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>'
 
     for colId, colWidth in _visualColumns(
-        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths
+        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
     ):
         if colId.startswith("eff-") and colId[len("eff-"):] in scoreDescs:
             scoreName = colId[len("eff-"):]
@@ -6668,6 +6671,7 @@ def showGuideTable(
     varHtmls,
     geneId=None,
     pamFullName=None,
+    multipam=None,
     koMethod=None,
     pamWindow=None,
     exonSelect=None,
@@ -6774,6 +6778,7 @@ def showGuideTable(
         showColumns,
         geneId,
         pamFullName=pamFullName,
+        multipam=multipam,
         nonClassicMode=nonClassicMode,
         editData=editData,
         usedBeModels=usedBeModels
@@ -6793,7 +6798,7 @@ def showGuideTable(
     tableWidth = max(
         1650,
         getOtTableTotalWidth(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels
         ),
     )
 
@@ -6812,7 +6817,7 @@ def showGuideTable(
         '<table id="otTable" style="table-layout: fixed; width: %dpx; border-collapse: collapse;">'
         % tableWidth
     )
-    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, usedBeModels=usedBeModels)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels)
     print("<tbody>")
 
     for guideIdx, guideRow in enumerate(guideData):
@@ -6960,27 +6965,31 @@ def showGuideTable(
                         print("exon %d<br>splicing donor site" % (originalExonText + 1))
                 else:
                     print("in exon %d" % (exonId + 1))
-            elif pamFullName and multipam != "20bp-NGG" or editData is not None:
-                for desc in pamDesc:
-                    if desc[0] == pamPrefix:
-                        pamText = desc[1]
-                        break
-                ezInfo = pamToEnzyme[pamPrefix]
-                if len(ezInfo[1]) > 0:
-                    ezHtml = """<a href="%s" target="blank">%s</a>""" % (ezInfo[1], ezInfo[0])
-                else:
-                    ezHtml = ezInfo[0]
-                print("</a>")
-                print(
-                        """<div>Enzyme :<br> %s <img src="%simage/info-small.png" title="%s" class="tooltipster"></div>""" % (ezHtml, HTMLPREFIX, pamText)
-                )
-        else:
-            pamPrefix = None
-
-        if pamPrefix is None or pamPrefix.isdigit():
-            print("</a>")
-
         print("</td>")
+
+        if pamFullName and multipam != "20bp-NGG" or editData is not None:
+            print(
+                """<td style="width:%dpx; background-color:%s;">"""
+                % (colWidths["ez"], backgroundColor)
+            )
+
+            for desc in pamDesc:
+                if desc[0] == pamPrefix:
+                    pamText = desc[1]
+                    break
+            ezInfo = pamToEnzyme[pamPrefix]
+            if len(ezInfo[1]) > 0:
+                ezHtml = """<a href="%s" target="blank">%s</a>""" % (ezInfo[1], ezInfo[0])
+            else:
+                ezHtml = ezInfo[0]
+            print("</a>")
+            print(
+                    """<div>%s <img src="%simage/info-small.png" title="%s" class="tooltipster"></div>""" % (ezHtml, HTMLPREFIX, pamText)
+            )
+
+            if pamPrefix is None or pamPrefix.isdigit():
+                print("</a>")
+            print("</td>")
 
         # sequence with variants and PCR primer link
 
@@ -12210,7 +12219,7 @@ def KiResultsPage(params, batchId, download=False):
 
         print("</div>")
 
-        print("""<div name="guideTablePanel" id="hdrTable" >""")
+        print("""<div name="guideTablePanel" id="hdrTable">""")
         showGuideTable(
             allGuideData,
             pam,
@@ -12222,6 +12231,7 @@ def KiResultsPage(params, batchId, download=False):
             None,
             geneId=None,
             pamFullName="multipam",
+            multipam=multipam,
             pamWindow=pamWindow,
             annotParams=annotParams,
         )
@@ -12494,6 +12504,108 @@ def deserialize(inStr, inType="list"):
     return inStr.strip(lbrd).strip(rbrd).replace("'", "").replace(" ", "").split(",")
 
 
+def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords):
+    """
+    Prints a menu to manually recode each codon.
+    Recodes only in coding regions within the homology arm where the guide is present.
+    The coordinates are relative to the homology arm (not the whole donor DNA).
+    """
+
+    if recodeArm == "HA5":
+        HA = HA5
+    else:
+        HA = HA3
+
+    newArm = []
+    (
+            codonPos, UTR3coords, UTR5coords,
+            kozakCoords, spliceCoords, oofCoords
+    ) = annotationCoords
+
+    codonFreqFname = "%s_codonFrequency.json" % org
+    codonFreqFile = join(genomesDir, org, codonFreqFname)
+    codonTable = buildCodonTable()
+    revCodonTable = buildCodonTable(key="aa")
+
+    if isfile(codonFreqFile):
+        with open(codonFreqFile) as jsonData:
+            codonFreq = json.load(jsonData)
+    else:
+        codonFreq = None
+
+    print("<p>Below is the region between the PAM and the edit site.</p>")
+    print('<input type="hidden" name="manualRecoding" value=1/>')
+    print("""<div style="display: flex; flex-direction: row; margin-top: 24px;">""")
+
+    # coordinates of the PAM / guide / gap between guide and edit
+    minRecodeCoord, maxRecodeCoord = len(recodedArmSeq), 0
+    pamCoords, seedCoords, gapCoords = recodeCoords
+    pamStart, pamEnd = pamCoords
+    seedStart, seedEnd = seedCoords
+
+    for tpl in recodeCoords:
+        start, end = tpl
+        minRecodeCoord = min(start, minRecodeCoord)
+        maxRecodeCoord = max(end, maxRecodeCoord)
+
+    for codonStart in codonPos:
+
+        # only recode the region between the PAM and the edit site
+        if codonStart + 3 <= minRecodeCoord or codonStart >= maxRecodeCoord:
+            continue
+
+        codon = HA[codonStart: codonStart + 3].upper()
+        mutCodon = recodedArmSeq[codonStart: codonStart + 3].upper()
+
+        if codonStart + 3 > len(recodedArmSeq):
+            if codonStart < len(recodedArmSeq):
+                print("""<div style="display: flex; flex-direction: column; font-family: Source Code Pro;">""")
+                print(recodedArmSeq[codonStart: len(recodedArmSeq)].upper())
+                print("</div>")
+            continue
+
+        aa = codonTable[codon]
+        altCodons = [(c, round(codonFreq[c][2] * 100, 2)) for c in revCodonTable[aa]]
+        altCodons.sort(key=lambda d: d[1], reverse=True)
+
+        print("""<div style="display: flex; flex-direction: column; font-family: Source Code Pro;">""")
+
+        print("""<div style="display: flex; flex-direction: row; margin-right: 12px;">""")
+        # highlight the coordinates of the PAM and guide
+        for i, base in enumerate(mutCodon):
+            baseCoord = codonStart + i
+            if baseCoord in range(pamStart, pamEnd):
+                span = """<span style="background-color: rgba(0, 255, 255, 0.5); flex: 0;">"""
+            elif baseCoord in range(seedStart, seedEnd):
+                span = """<span style="text-decoration: underline; text-decoration-thickness: 3px; background-color: rgba(0, 0, 255, 0.5); flex: 0;">"""
+            elif baseCoord in range(seedEnd, seedEnd + (GUIDELEN - 15)):
+                span = """<span style="background-color: rgba(0, 0, 255, 0.5); flex: 0;">"""
+            else:
+                span = """<span style=" flex: 0;">"""
+            print(span, base, "</span>")
+        print("</div><br>")
+
+        print("&nbsp%s" % aa)
+        print('<select style="width: 54px;" name="altCodon%s">' % codonStart)
+
+        for altCodon, freq in altCodons:
+            select, wt = "", ""
+            if altCodon == codon:
+                wt = " - WT"
+
+            # select either the WT codon or the recoded one
+            if (altCodon == codon and mutCodon == codon) or (altCodon == mutCodon and mutCodon != codon):
+                newArm.append(altCodon)
+                select = "selected"
+            print('<option %s value="%s">%s (%s %%%s)</option>' % (select, altCodon, altCodon, freq, wt))
+
+        print("</select>")
+        print("</div>")
+
+    print("</div>")
+    print('<input name="submit" type="submit" value="update"/>')
+
+
 def showDonor(
     HA5,
     HA3,
@@ -12504,6 +12616,8 @@ def showDonor(
     recodeArm,
     HA5repeats,
     HA3repeats,
+    annotationCoords,
+    recodeCoords,
     params,
 ):
     """
@@ -12520,7 +12634,6 @@ def showDonor(
     guideInfo = params["guideInfo"]
 
     doubleNicking = params.get("doubleNicking")
-
     if doubleNicking:
 
         revPamId = params["revPamId"]
@@ -12710,7 +12823,6 @@ def showDonor(
     if guideFirst:
         guideStartCoord = pamStartCoord - len(guideSeq)
         guideEndCoord = pamStartCoord
-
         # insert sequence inside the guide
         if kiType == "insertion" and guideStartCoord < editEnd < guideEndCoord:
             guideStartCoord = guideStartCoord - len(newInsertSeq)
@@ -12718,6 +12830,7 @@ def showDonor(
         # OK
         if kiType == "deletion":
 
+            editEnd = editStart + 1
             # the guide start inside the deletion : clip its length to the deletion end
             # --xxxxxxxx------
             # ----gggggggPAM---
@@ -13076,7 +13189,7 @@ def showDonor(
     )
 
     print(
-        """<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">"""
+            """<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:24px;">"""
     )
     fastaWidth = 80
     if len(donorSeq) > fastaWidth:
@@ -13099,6 +13212,7 @@ def showDonor(
 
     print("""</div>""")
 
+
     print("""<div style="margin-right: 15%;">""")
 
     if donorCfd != -1:
@@ -13115,10 +13229,46 @@ def showDonor(
         )
     if mutEvents:
         print("<h3>Silent mutations introduced to prevent re-cut</h3>")
+
+        # menu to manually recode the donor DNA
+        if recodeArm and recodedArmSeq and annotationCoords:
+
+            # get the new recoded sequence
+            if "manualRecoding" in params:
+                newHA = []
+                for codonStart in annotationCoords[0]:
+                    altCodonParam = "altCodon%s" % codonStart
+                    newCodon = params.get(altCodonParam)
+                    if newCodon is None:
+                        newCodon = recodedArmSeq[codonStart: len(recodedArmSeq)]
+                    newHA.append(newCodon)
+
+            print("<form>")
+            printHiddenFields(
+                params,
+                {
+                    "batchId": batchId,
+                    "recodedDonorSeq": donorSeq,
+                    "donorSeq": orgDonor,
+                    "pamId": pamId,
+                    "guideSeq": guideSeq,
+                    "donorName": donorName,
+                    "donorType": donorType,
+                    "replaceInsertSeq": None,
+                    "newInsertSeq": None,
+                    "tagseq": None,
+                    "markerseq": None,
+                    "expressionSeq": None,
+                    "qTag": None,
+                },
+            )
+            manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords)
+            print("</form>")
+
         print("<h4>Notes on recoding</h4>")
         print(
             """<p>
-        Codons in the regions to recode are replaced by the synonymous codon with the highest frequency (codon frequency is calculated based on the longest transcript for each protein-coding gene). The recoded bases are show in uppercase.
+        Codons in the regions to recode are replaced by the synonymous codon with the highest frequency (codon frequency is calculated based on the longest transcript for each protein-coding gene). The recoded bases are shown in uppercase.
         </p>
         """
         )
@@ -18396,6 +18546,8 @@ def printBody(params):
                 recodeArm,
                 HA5repeats,
                 HA3repeats,
+                annotationCoords,
+                recodeCoords
             ) = writeDonorSeq(params)
             showDonor(
                 HA5,
@@ -18407,6 +18559,8 @@ def printBody(params):
                 recodeArm,
                 HA5repeats,
                 HA3repeats,
+                annotationCoords,
+                recodeCoords,
                 params,
             )
         elif "doRecoding" in params:
@@ -19125,6 +19279,8 @@ def writeDonorSeq(params):
 
     # get the position of the PAM + guide
     # recoding
+    annotationCoords = None
+    recodeCoords = None
     if (recodePam or recodeGap) and (
         (selGeneModel is not None)
         or (
@@ -19230,6 +19386,8 @@ def writeDonorSeq(params):
         recodeArm,
         HA5repeats,
         HA3repeats,
+        annotationCoords,
+        recodeCoords
     )
 
 
@@ -19438,11 +19596,9 @@ def getArmCoords(
                     continue
                 exonStartPos = exonStart - insertIdx
                 exonEndPos = exonEnd - insertIdx
-                print(exonStartPos)
                 # correct codon positions for replacements and deletions
                 if kiType in ["deletion", "substitution", "replacement"]:
                     exonStartPos = exonStartPos - len(insertSeq)
-                    print(exonStartPos)
 
                 if isUTR5:
                     UTR5coords.append((exonStartPos, exonEndPos - 6))
@@ -19795,7 +19951,7 @@ def recodeDonor(
 
         # show a special message for the START codon
         if {codonStart, codonStart + 1, codonStart + 2} == startPos and HA[
-            codonStart : codonStart + 3
+            codonStart: codonStart + 3
         ].upper() == "ATG":
             mutEvents[(codon, "1", codonStart)] = ("No (START codon)", None, motif)
             continue
@@ -21755,7 +21911,7 @@ def donorDesignPage(params):
     maxssLen = 200 - len(insertSeq)
     if maxssLen < 40 and kiType != "deletion":
         donorTypeDisplay = "none"
-        donorTypeMsg = "the insert sequence is too long to use a single stranded oligonucleotide as the HDR template"
+        donorTypeMsg = "The insert sequence is too long to use a single stranded oligonucleotide as the HDR template."
         ssChecked = ""
         dsChecked = "checked"
     else:
@@ -21798,7 +21954,7 @@ def donorDesignPage(params):
         let numVal = parseInt(val);
         const donorType = document.querySelector('input[name="donorType"]:checked').value;
         let minVal = 50;
-        let maxVal = 2000;
+        let maxVal = 1500;
         let maxTotal = 100000;
 
         if (donorType === 'ss') {
@@ -22098,14 +22254,14 @@ def donorDesignPage(params):
     <div style="display:flex; margin-bottom:12px; flex-direction: column;">
         5' homology arm length
         <div style="margin-top:12px; display:flex; gap:12px;">
-            <input type="range" form="main" id="arm5Len" name="arm5Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%%;">
-            <input type="number" form="main" id="arm5LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm5Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+            <input type="range" form="main" id="arm5Len" name="arm5Len" value="800" min="50" max="1500" oninput="updateValues('range', this.value, this.id, 'arm5LenText')" style="width:80%%;">
+            <input type="number" form="main" id="arm5LenText" value="800" min="50" max="1500" oninput="updateValues('number', this.value, this.id, 'arm5Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
         <br>
         3' homology arm length
        <div style="margin-top:12px; display:flex; gap:12px;">
-            <input type="range" form="main" id="arm3Len" name="arm3Len" value="800" min="50" max="2000" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%%;">
-            <input type="number" form="main" id="arm3LenText" value="800" min="50" max="2000" oninput="updateValues('number', this.value, this.id, 'arm3Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
+            <input type="range" form="main" id="arm3Len" name="arm3Len" value="800" min="50" max="1500" oninput="updateValues('range', this.value, this.id, 'arm3LenText')" style="width:80%%;">
+            <input type="number" form="main" id="arm3LenText" value="800" min="50" max="1500" oninput="updateValues('number', this.value, this.id, 'arm3Len')" onblur="clampValue(this)" onkeydown="handleEnter(event)"> bp<br>
         </div>
     </div>
           """
@@ -22190,7 +22346,7 @@ def donorDesignPage(params):
     """
     print(
         """
-        <p>Choose below which regions of the donor DNA to recode </p>
+        <p>Select below which regions of the donor DNA will be recoded. If you choose to recode the donor DNA, an unedited version will also be produced.</p>
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
                 <strong>Recode the donor to avoid re-cleavage</strong>
