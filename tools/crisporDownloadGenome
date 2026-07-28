@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 db=$1
-outdir=$2
+outDir=$2
 
 if [ "$db" == "" ] && [ "$outDir" == "" ]; then
     echo usage: downloadGenome genomeCode outputFolder
@@ -12,12 +12,12 @@ if [ "$db" == "" ] && [ "$outDir" == "" ]; then
 else
    if [ "$outDir" == "" ]; then
        outDir=/data/genomes
-       mkdir -p $outDir/$db
    fi
 
+mkdir -p $outDir/$db
 curl -s https://crispor.gi.ucsc.edu/genomes/$db/ | grep -oP 'href="\K[^"]+' | grep -v '^\?' | grep -v '/$' | while read f; do
 echo Downloading $f
 curl --progress-bar --output-dir $outDir/$db -O "https://crispor.gi.ucsc.edu/genomes/$db/$f"
 done
 fi
-/data/www/crispor/makeGenomeInfo
+/data/www/crispor/makeGenomeInfo $outDir
