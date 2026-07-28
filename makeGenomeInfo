@@ -2,6 +2,7 @@
 from collections import namedtuple
 import os, logging, string
 from os.path import join, isfile, dirname
+import sys
 
 # when many genomes are installed, the list of genome info is better kept in a single
 # file, so it is faster to read.
@@ -12,7 +13,10 @@ from os.path import join, isfile, dirname
 # do not forget to recreate the file each time you add a genome
 
 # subdirectory with genome info
-genomesDir = join(dirname(__file__), "genomes")
+if len(sys.argv)>1:
+    genomesDir = sys.argv[1]
+else:
+    genomesDir = join(dirname(__file__), "genomes")
 
 def readVarDbs(db):
     """ find all possible variant VCFs and return as list of (shortLabel, fname, label, hasAF) 
