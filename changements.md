@@ -2654,9 +2654,9 @@ FORECasT-BE :
 - adapter downloadFile au base editing
 - ajouter lien téléchargement tableau double nicking
 - fix common coding exons DONE
-- en mode KI, remplacer "with PAM" dans tableau par "with enzyme"
-- ajouter recodage manuel de l'ADN donneur -> codon / codon
-- ajouter un message induquant que la séquence non recodée est téléchargeable si recodage
+- en mode KI, remplacer "with PAM" dans tableau par "with enzyme" DONE
+- ajouter recodage manuel de l'ADN donneur -> codon / codon DONE
+- ajouter un message indiquant que la séquence non recodée est téléchargeable si recodage DONE
 - en mode KO / STOP, si recherche avec SpRy, sélectionner les 20 guides à l'efficacité la plus élevée -> skip recherche offtarget pour les autres
 
 # 21/07/26
@@ -2689,7 +2689,7 @@ FORECasT-BE :
 
 - ajouter liens addGene dans colonne enzyme
 
-## 23/06/26
+# 23/06/26
 
 ## knock-in mode
 
@@ -2702,7 +2702,57 @@ FORECasT-BE :
     - pour chaque codon, ajout d'un input pour sélectionner un codon synonyme (affichage de la fréquence + WT ou non)
     - surlignage des coordonnées du PAM / seed / spacer
 
+- mise à jour de la séquence du donneur dans showDonor()
+
 ## à faire
 
-- mettre à jour mutEvents si recodage manuel
-- fix altCodons dans params
+- mettre à jour mutEvents si recodage manuel DONE
+- fix altCodons dans params DONE
+- la première base d'une région codante (ATG) -> A considéré comme non codant lors du recodage OK ??
+- CSS page d'acceuil -> bandeau trop large ?
+- installer CRISPRonBE
+- si HDR + double nicking uniquement -> showBeTable not defined DONE ?
+
+# 27/07/26
+
+## Knock-in mode
+
+- ajout d'un texte descriptif dans menu pour recodage manuel
+- si recodage manuel, sauvegarde des fréquences / positions des codons
+    - mise à jour du tableau des évènements de recodage
+- correction d'un bug : si retour au codon WT avec recodage manuel, la séquence est mise à jour
+- si pas d'alternative au recodage (codons M / W uniquement), pas d'affichage du menu recodage manuel
+
+## à faire
+
+- dans tableau BE -> ajouter position intended edit DONE
+- dans tableau BE -> edit frequency at position instead of total editing efficiency
+- ajouter recodage manual dans régions non codantes (uniquement si PAM + spacer dans région non codante) ?
+
+# 28/07/26
+
+## knock-in mode
+
+- dans le tableau base editing : surlignage de la position de l'edit sur les outcomes
+- adaptation de la séquence des outcomes aux nouveaux PAMs (< 3 bases)
+
+## à faire
+
+- corriger position edit en si PAM < 3 bases DONE
+- fixer input global score dans tableau HDR
+
+# 29/07/26
+
+## knock-out mode
+
+- dans tableau base editing, surlignage de la base target (-> STOP) sur outcomes
+- en mode STOP, recherche des offtargets uniquement pour guides STOP (arg stopGuides and appendMultiPamFlank())
+    - faire même chose en mode KI
+
+## knock-in mode
+
+- modification du texte de la liste de PAMs en haute de la page de réultats : affichage de la liste de cas par méthode utilisée
+- quelques correction de texte dans "annotation of the coding sequence"
+
+- dans tableau BE : correction du calcul des coordonnées de l'edit sur la séquence des outcomes
+- correction d'un bug : off-targets undefined dans tableau double nicking si pas de posStr (mauvais génome sélectionné)

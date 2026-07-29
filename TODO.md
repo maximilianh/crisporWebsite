@@ -24,3 +24,4 @@
 - adapt donor design rules for Cas12a (Schubert et al. 2021)
 - si chargement de la page de résultats trop longue :
     - tableaux vides -> si clic affichage : requête -> AJAX -> remplissage du tableau
+- simplify the display in showDonor () ?

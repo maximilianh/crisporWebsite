@@ -2575,7 +2575,6 @@ def makeEditLines(
 
     upSeq = seq.upper()
 
-    # placeholder
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
 
         if loadJson:
@@ -3536,13 +3535,32 @@ def showSeqAndPams(
                 % "".join(pamList)
             )
         else:
-            print(
-                """Shown below are ther PAM sites and the expected cleavage position, for the following PAMs : %s.<br>
-                """
-                % ", ".join(pamList)
-            )
+            # show the list of Cas nucleases used
+            casList = [pamToEnzyme[pamStr][0] for pamStr in multiPamDict[multipam][0]]
+            if multiPamInfo and useBaseEditor:
+                beCasList = [pamToEnzyme[pamStr][0] for pamStr in pamVariantModels.keys()]
+                print(
+                    """Shown below are ther PAM sites and the expected cleavage position for the following nucleases :
+                    <ul>
+                        <li>HDR-based editing : %s</li>
+                        <li>Base editing : %s</li>
+                    </ul>
+                    """
+                    % (", ".join(casList), ", ".join(beCasList))
+                )
+
+            else:
+                print(
+                    """Shown below are ther PAM sites and the expected cleavage position for the following PAMs : %s.<br>
+                    """
+                    % ", ".join(casList)
+                )
+        if multiPamInfo and useBaseEditor:
+            HDRstr = ", for HDR-based editing"
+        else:
+            HDRstr = ""
         print(
-            "PAMs highlighted in blue corresponds to guides that overlap the position of the edit.<br>"
+            "PAMs highlighted in blue corresponds to guides that overlap the position of the edit%s.<br>" % HDRstr
         )
         print(
             """Colors <span style="color:#32cd32; text-shadow: 1px 1px 1px #bbb">green</span>, <span style="color:#ffff00; text-shadow: 1px 1px 1px #888">yellow</span> and <span style="text-shadow: 1px 1px 1px #f01; color:#aa0014">red</span> indicate high, medium and low specificity of the PAM's guide sequence in the genome.<p>"""
@@ -3606,12 +3624,12 @@ def showSeqAndPams(
             """<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Annotation of the coding sequence</summary>"""
         )
         print(
-            """<div>Select a gene model and a transcript below to display the translated coding sequences.<br>
-              If there is no available annotation or if it is incomplete, you can manually annotate the coding sequence by selecting "manual annotation".<br>"""
+            """<div>Select a gene model and a transcript below to display the their amino acid sequences.<br>
+              If no annotation is available or if it is incomplete, you can manually set the coordinates of the coding sequence by selecting "manual annotation".<br>"""
         )
         if multiPamInfo:
             print(
-                "Once you selected a transcript, it will be used as a model to recode the donor DNA, if needed.<br>"
+                "Once you selected an annotation, it will be used as a model to recode the donor DNA, if needed.<br>"
             )
         print("Gene Models:")
         printDropDown(
@@ -6198,7 +6216,7 @@ You can adapt the global score to your delivery method (select below), which cha
         print('<th data-col-id="beOutcome" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">' % colWidths["beOutcome"])
         print('Predicted outcome sequences')
         htmlHelp("""This column shows the predicted frequency of each possible edit for this guide sequence.<br>
-        The guide and PAM sequences are highlighted in blue and cyan, respectively. Edited bases are highlighted in yellow.<br>
+        The guide and PAM sequences are highlighted in blue and cyan, respectively. The target edit is highlighted in yellow.<br>
                  Note that outcome sequence prediction vary according to the model, as explained below.<br>
                  <ul>
                      <li>FORECasT-BE shows the frequency of each possible edit, taken individually. The percentage represents the proportion of reads containing this edit, <b>relative to the number of edited reads</b>.</li>
@@ -6600,10 +6618,13 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
         pamId1, mit1, cfd1, glob1, effScores1, otData1, guideSeq1, pamSeq1, doRecoding1, cutUpstream1 = guideInfo1
         pamId2, mit2, cfd2, glob2, effScores2, otData2, guideSeq2, pamSeq2, doRecoding2, cutUpstream2 = guideInfo2
 
-        otCoords1 = [otTpl[4] for otTpl in otData1]
-        otCoords2 = [otTpl[4] for otTpl in otData2]
+        if otData1 and otData2:
+            otCoords1 = [otTpl[4] for otTpl in otData1]
+            otCoords2 = [otTpl[4] for otTpl in otData2]
 
-        doubleOts = findDoubleOts(otCoords1, otCoords2)
+            doubleOts = findDoubleOts(otCoords1, otCoords2)
+        else:
+            doubleOts = []
 
         if len(doubleOts) == 0:
             otText = "no double off-targets"
@@ -6676,12 +6697,14 @@ def showGuideTable(
     pamWindow=None,
     exonSelect=None,
     annotParams=None,
-    editData=None
+    editData=None,
+    stopGuides=None
 ):
     "shows table of all PAM motif matches"
     if pamFullName:
         batchInfo = readBatchAsDict(batchId)
         multipam = batchInfo["multipam"]
+        insertIdx = batchInfo["insertIdx"]
         annotParams = annotParams or {}
 
     if koMethod is not None:
@@ -6967,7 +6990,7 @@ def showGuideTable(
                     print("in exon %d" % (exonId + 1))
         print("</td>")
 
-        if pamFullName and multipam != "20bp-NGG" or editData is not None:
+        if pamFullName and multipam != "20bp-NGG" or (pamFullName is not None and editData is not None):
             print(
                 """<td style="width:%dpx; background-color:%s;">"""
                 % (colWidths["ez"], backgroundColor)
@@ -7299,7 +7322,7 @@ def showGuideTable(
                 print(ezStr, "<br>")
                 for i, outcome in enumerate(outcomes):
 
-                    # show the top 5 outcomes by default
+                    # show the top 3 outcomes by default
                     if i == 3 and len(outcomes) > 3:
                         cssPamId = (pamId.replace("-", "minus").replace("+", "plus").replace(".", "_"))
                         print("""<div id="%s-%s" class="otMore" style="display: none;">""" % (cssPamId, modelHtml))
@@ -7308,16 +7331,35 @@ def showGuideTable(
                     propStr = str(round(100 * prop, 2)) + " %"
 
                     if strand == "+":
-                        pamRange = range(24, 27)
-                        guideRange = range(4, 24)
+                        # OK
+                        guideRange = range(4, 4 + GUIDELEN)
+                        pamRange = range(24, 24 + len(pam))
                     else:
-                        pamRange = range(3, 6)
-                        guideRange = range(6, 26)
+                        print(pamPrefix)
+                        pamRange = range(3, 3 + len(pamPrefix))
+                        guideRange = range(pamRange[-1], pamRange[-1] + 1 + GUIDELEN)
+
+                    # in KI mode, show the position of the intended edit
+                    if pamFullName:
+                        if strand == "+":
+                            # OK
+                            editPosInOutcome = insertIdx - (guideStart - 4)
+                        else:
+                            editPosInOutcome = insertIdx - (guideStart - 3 - len(pamPrefix))
+
+                    # in KO / STOP mode, show the position of the substitution resulting in *
+                    if koMethod and stopGuides is not None:
+                        stopPos = stopGuides[pamId][0]
+
+                        if strand == "+":
+                            editPosInOutcome = stopPos - (guideStart - 4)
+                        else:
+                            editPosInOutcome = stopPos - (guideStart - 3 - len(pam))
 
                     spanList = []
                     # or only show the target codon and the edits at this position
                     for j, base in enumerate(outSeq):
-                        if base.isupper():
+                        if j == editPosInOutcome:
                             spanList.append(editSpan + base + spanEnd)
                         elif j in pamRange:
                             spanList.append(pamSpan + base + spanEnd)
@@ -7915,7 +7957,7 @@ def writePamFlank(seq, startDict, pam, faFname, pamFullName=None, beFilter=None)
     faFh.close()
 
 
-def appendMultiPamFlank(seq, startDict, pam, faFh, exonId):
+def appendMultiPamFlank(seq, startDict, pam, faFh, exonId, stopGuides=None):
     """appends pam flanking sequences to fasta file, to be used in a loop processing multiple sequences
     adds a unique id and the exonId (= exon number) to the fasta header"""
 
@@ -7930,10 +7972,12 @@ def appendMultiPamFlank(seq, startDict, pam, faFh, exonId):
         pamSeq,
         pamPlusSeq,
     ) in flankSeqIter(seq, startDict, len(pam), True, exonId):
+        if stopGuides and pamId not in stopGuides:
+            continue
         faFh.write(">%s\n%s\n" % (pamId, flankSeq))
 
 
-def writeMultiFasta(multiseq, faFname, pam):
+def writeMultiFasta(multiseq, faFname, pam, stopGuides=None):
     """in KO mode, writes all guides corresponding to multiple sequences in a fasta file
     the fasta header is >PAM.seqId.exonId.
     """
@@ -7941,7 +7985,7 @@ def writeMultiFasta(multiseq, faFname, pam):
     for exonId, seq in multiseq:
         uppSeq = seq.upper()
         startDict, endSet = findAllPams(uppSeq, pam, exonId)
-        appendMultiPamFlank(seq, startDict, pam, faFh, exonId)
+        appendMultiPamFlank(seq, startDict, pam, faFh, exonId, stopGuides=stopGuides)
     faFh.close()
 
 
@@ -9219,6 +9263,9 @@ def processMultiSeqSubmission(
 
                 newEditData, newStopGuides = getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId,
                                                              exonId, exonPosStr, stopGuides)
+
+                # filter the top 20 guides with the highest BE efficiency, to avoid searching for too many off-targets
+
                 if len(newStopGuides) > 0:
                     allEditData.update(newEditData)
                     stopGuides.update(newStopGuides)
@@ -9238,7 +9285,7 @@ def processMultiSeqSubmission(
             editData = None
 
         writeBatchAsDict(batchInfo, batchId, editData=editData)
-        writeMultiFasta(batchInfo["exonSeqs"], faFname, pam)
+        writeMultiFasta(batchInfo["exonSeqs"], faFname, pam, stopGuides=stopGuides)
 
         # find offtargets and append them to the main file
         if useBowtie:
@@ -12504,36 +12551,27 @@ def deserialize(inStr, inType="list"):
     return inStr.strip(lbrd).strip(rbrd).replace("'", "").replace(" ", "").split(",")
 
 
-def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords):
+def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords, codonFreq):
     """
     Prints a menu to manually recode each codon.
     Recodes only in coding regions within the homology arm where the guide is present.
     The coordinates are relative to the homology arm (not the whole donor DNA).
     """
 
+    codonTable = buildCodonTable()
+    revCodonTable = buildCodonTable(key="aa")
+
     if recodeArm == "HA5":
         HA = HA5
     else:
         HA = HA3
 
-    newArm = []
-    (
-            codonPos, UTR3coords, UTR5coords,
-            kozakCoords, spliceCoords, oofCoords
-    ) = annotationCoords
+    codonPos = annotationCoords[0]
 
-    codonFreqFname = "%s_codonFrequency.json" % org
-    codonFreqFile = join(genomesDir, org, codonFreqFname)
-    codonTable = buildCodonTable()
-    revCodonTable = buildCodonTable(key="aa")
-
-    if isfile(codonFreqFile):
-        with open(codonFreqFile) as jsonData:
-            codonFreq = json.load(jsonData)
-    else:
-        codonFreq = None
-
-    print("<p>Below is the region between the PAM and the edit site.</p>")
+    print("""
+    <p>Below is the region between the PAM and the edit site.<br>
+    You can select alternative synonymous codons to overwrite the automatic recoding of the donor DNA, and see its effect of the CFD score above. Blocking mutations in the PAM (in teal) and in the seed region (blue and underlined) are the most efficient. For more informations, see <a href='https://doi.org/10.1038/s41598-021-98965-y' target='blank'>Schubert et al. 2021</a>.</p>
+          """)
     print('<input type="hidden" name="manualRecoding" value=1/>')
     print("""<div style="display: flex; flex-direction: row; margin-top: 24px;">""")
 
@@ -12542,6 +12580,14 @@ def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords
     pamCoords, seedCoords, gapCoords = recodeCoords
     pamStart, pamEnd = pamCoords
     seedStart, seedEnd = seedCoords
+    # PAM in 3'
+    if seedStart < pamStart:
+        guideStart = seedStart - (GUIDELEN - 15)
+        guideEnd = seedStart
+    # PAM in 5'
+    else:
+        guideStart = seedEnd
+        guideEnd = guideStart + (GUIDELEN - 15)
 
     for tpl in recodeCoords:
         start, end = tpl
@@ -12555,10 +12601,18 @@ def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords
             continue
 
         codon = HA[codonStart: codonStart + 3].upper()
+
+        # don't print the menu if there is no recoding alternative
+        if len(codonPos) == 1 and (codon == "ATG" or codon == "TGG"):
+            print("</div>")
+            return
         mutCodon = recodedArmSeq[codonStart: codonStart + 3].upper()
 
+        if codonStart < 0:
+            continue
+
         if codonStart + 3 > len(recodedArmSeq):
-            if codonStart < len(recodedArmSeq):
+            if codonStart < len(recodedArmSeq) and pamStart < seedStart:
                 print("""<div style="display: flex; flex-direction: column; font-family: Source Code Pro;">""")
                 print(recodedArmSeq[codonStart: len(recodedArmSeq)].upper())
                 print("</div>")
@@ -12574,14 +12628,18 @@ def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords
         # highlight the coordinates of the PAM and guide
         for i, base in enumerate(mutCodon):
             baseCoord = codonStart + i
+            # PAM
             if baseCoord in range(pamStart, pamEnd):
-                span = """<span style="background-color: rgba(0, 255, 255, 0.5); flex: 0;">"""
+                span = """<span style="background-color: rgba(0, 255, 255, 0.5);">"""
+            # seed region
             elif baseCoord in range(seedStart, seedEnd):
-                span = """<span style="text-decoration: underline; text-decoration-thickness: 3px; background-color: rgba(0, 0, 255, 0.5); flex: 0;">"""
-            elif baseCoord in range(seedEnd, seedEnd + (GUIDELEN - 15)):
-                span = """<span style="background-color: rgba(0, 0, 255, 0.5); flex: 0;">"""
+                span = """<span style="text-decoration: underline; text-decoration-thickness: 3px; background-color: rgba(0, 0, 255, 0.5);">"""
+            # rest of the guide
+            elif baseCoord in range(guideStart, guideEnd):
+                span = """<span style="background-color: rgba(0, 0, 255, 0.5);">"""
+            # gap between guide and edit
             else:
-                span = """<span style=" flex: 0;">"""
+                span = """<span>"""
             print(span, base, "</span>")
         print("</div><br>")
 
@@ -12592,12 +12650,21 @@ def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords
             select, wt = "", ""
             if altCodon == codon:
                 wt = " - WT"
+                altCodon = altCodon.lower()
+            else:
+                # make non-WT base uppercase
+                casedAltCodon = []
+                for wtBase, altBase in zip(codon, altCodon):
+                    if wtBase == altBase:
+                        casedAltCodon.append(altBase.lower())
+                    else:
+                        casedAltCodon.append(altBase.upper())
+                altCodon = ''.join(casedAltCodon)
 
             # select either the WT codon or the recoded one
-            if (altCodon == codon and mutCodon == codon) or (altCodon == mutCodon and mutCodon != codon):
-                newArm.append(altCodon)
+            if (altCodon.upper() == codon and mutCodon == codon) or (altCodon.upper() == mutCodon and mutCodon != codon):
                 select = "selected"
-            print('<option %s value="%s">%s (%s %%%s)</option>' % (select, altCodon, altCodon, freq, wt))
+            print('<option %s value="%s">%s (%s %%%s)</option>' % (select, altCodon, altCodon.upper(), freq, wt))
 
         print("</select>")
         print("</div>")
@@ -12720,12 +12787,71 @@ def showDonor(
     else:
         templateStrand = strand
 
-    if recodedArmSeq:
-        orgDonor = HA5 + newInsertSeq + HA3
+    # get the newly recoded sequence
+    orgDonor = HA5 + newInsertSeq + HA3
+
+    codonFreqFname = "%s_codonFrequency.json" % org
+    codonFreqFile = join(genomesDir, org, codonFreqFname)
+
+    if isfile(codonFreqFile):
+        with open(codonFreqFile) as jsonData:
+            codonFreq = json.load(jsonData)
+    else:
+        codonFreq = None
+
+    if "manualRecoding" in params:
+        newMutEvents = {}
+        newHA = list(recodedArmSeq)
+        if recodeArm == "HA5":
+            orgHA = HA5
+        else:
+            orgHA = HA3
+
+        for codonStart in annotationCoords[0]:
+            if codonStart < 0 or codonStart > len(recodedArmSeq):
+                continue
+            altCodonParam = "altCodon%s" % codonStart
+            newCodon = params.get(altCodonParam)
+            orgCodon = orgHA[codonStart: codonStart + 3].upper()
+            if newCodon is None:
+                continue
+
+            # get information for the recoding summary table
+            # orgiginal codon + position
+            pamCoords, seedCoords, gapCoords = recodeCoords
+            if codonFreq:
+                orgCodonFreq = round(codonFreq[orgCodon][2], 2)
+                newCodonFreq = round(codonFreq[newCodon.upper()][2], 2)
+            else:
+                orgCodonFreq = -1
+                newCodonFreq = -1
+            if codonStart in range(pamCoords[0], pamCoords[1]):
+                annotPos = "pam"
+            elif codonStart in range(seedCoords[0], seedCoords[1]):
+                annotPos = "seed"
+            else:
+                annotPos = "gap"
+
+            if newCodon.upper() != orgCodon.upper():
+                newMutEvents[(orgCodon, orgCodonFreq, codonStart)] = (newCodon, newCodonFreq, annotPos)
+
+            for i, pos in enumerate(range(codonStart, codonStart + 3)):
+                codonBase = newCodon[i]
+                newHA[pos] = codonBase
+
+        mutEvents = newMutEvents
+        recodedArmSeq = ''.join(newHA)
         if recodeArm == "HA3":
             donorSeq = HA5 + newInsertSeq + recodedArmSeq
         else:
             donorSeq = recodedArmSeq + newInsertSeq + HA3
+
+    elif recodedArmSeq:
+        if recodeArm == "HA3":
+            donorSeq = HA5 + newInsertSeq + recodedArmSeq
+        else:
+            donorSeq = recodedArmSeq + newInsertSeq + HA3
+
     else:
         donorSeq = HA5 + newInsertSeq + HA3
         orgDonor = donorSeq
@@ -13025,7 +13151,7 @@ def showDonor(
     )
 
     if kiType == "substitution":
-        seqMsg = "%s -> %s substitution" % (seq[insertIdx], newInsertSeq)
+        seqMsg = "%s -> %s substitution" % (seq[insertIdx].upper(), newInsertSeq.upper())
     elif kiType == "deletion":
         seqMsg = "%dbp deletion" % len(insertSeq)
     elif kiType == "replacement":
@@ -13212,7 +13338,6 @@ def showDonor(
 
     print("""</div>""")
 
-
     print("""<div style="margin-right: 15%;">""")
 
     if donorCfd != -1:
@@ -13227,22 +13352,11 @@ def showDonor(
             """
             % contactEmail
         )
-    if mutEvents:
+    if mutEvents or "manualRecoding" in params:
         print("<h3>Silent mutations introduced to prevent re-cut</h3>")
 
         # menu to manually recode the donor DNA
         if recodeArm and recodedArmSeq and annotationCoords:
-
-            # get the new recoded sequence
-            if "manualRecoding" in params:
-                newHA = []
-                for codonStart in annotationCoords[0]:
-                    altCodonParam = "altCodon%s" % codonStart
-                    newCodon = params.get(altCodonParam)
-                    if newCodon is None:
-                        newCodon = recodedArmSeq[codonStart: len(recodedArmSeq)]
-                    newHA.append(newCodon)
-
             print("<form>")
             printHiddenFields(
                 params,
@@ -13261,8 +13375,9 @@ def showDonor(
                     "expressionSeq": None,
                     "qTag": None,
                 },
+                skip="altCodon"
             )
-            manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords)
+            manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords, codonFreq)
             print("</form>")
 
         print("<h4>Notes on recoding</h4>")
@@ -13292,11 +13407,11 @@ def showDonor(
             """<p>
             However, we cannot guarantee that recoding will not affect gene expression, as some
             transcription factor binding sites or RNA methylation motifs may be modified.<br>
-            If you want to manually recode the donor, you can find its unmodified sequence in the fasta file (click on the button at the top of the page to download it).
             </p>"""
         )
 
-        printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev)
+        if len(mutEvents) > 0:
+            printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev)
 
     # form to change the insert sequence
     if kiType != "deletion":
@@ -13655,9 +13770,12 @@ def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev):
             fullPos = pos
 
         mut, mutFreq, motif = mutEvents[(wt, freq, pos)]
+
+        if len(mut) == 3:
+            mut = mut.upper()
         print("<tr>")
         print(""" <td>%s</td> """ % aaStr)
-        print(""" <td>%s</td> """ % wt)
+        print(""" <td>%s</td> """ % wt.upper())
         if coding:
             print(""" <td>%s</td> """ % freq)
         print(""" <td>%s</td> """ % mut)
@@ -14031,7 +14149,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                 stopGuides=stopGuides,
             )
 
-            # for methods that require a pair of guides, two tables are shown
+            # for methods requiring a pair of guides, two tables are shown
             if koMethod in ["excision", "promoter"]:
                 showGuideTable(
                     guideData,
@@ -14043,7 +14161,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                     chrom,
                     None,
                     koGeneId,
-                    koMethod=koMethod,
+                    koMethod=koMethod
                 )
                 print("</div>")
 
@@ -14076,7 +14194,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
             koGeneId,
             koMethod=koMethod,
             exonSelect=exonSelect,
-            editData=pamEditData
+            editData=pamEditData,
+            stopGuides=stopGuides
         )
 
     if download is False:
@@ -20864,7 +20983,7 @@ def mergeParamDicts(params, changeParams):
     return newParams
 
 
-def printHiddenFields(params, changeParams, form=None, excludeParams=None):
+def printHiddenFields(params, changeParams, form=None, excludeParams=None, skip=None):
     " "
 
     formStr = ""
@@ -20877,6 +20996,8 @@ def printHiddenFields(params, changeParams, form=None, excludeParams=None):
 
     newParams = mergeParamDicts(params, changeParams)
     for key, val in newParams.items():
+        if skip and skip in key:
+            continue
         print(('<input type="hidden" name="%s" value="%s" %s>' % (key, val, formStr)))
 
 
