@@ -30,18 +30,17 @@ def run(data):
 
     outcomeModule = importlib.import_module(selModel)
 
+    mainModel = MODELS[selModel]
     if selModel[0:5] == "DeepNG":
-        pamVariant = 2
-        mainModel = MODELS[selModel]
+        # pamVariant = 2
         outcomes = outcomeModule.predict(mainModel, [extGuideSeq], pamVariant)
 
     else:
         # DeepBE needs models for PAM variants too
         # need to select the PAM variant (info stored in DeepBE/PamModelId.json
         # temporary placeholder
-        pamVariant = 2
-        mainModel = MODELS[selModel]
-        outcomes = outcomeModule.predict(mainModel, [extGuideSeq], pamVariant)
+        finalModel, modelList = mainModel
+        outcomes = outcomeModule.predict(finalModel, modelList, [extGuideSeq], pamVariant)
 
     # import Cas9 efficiency model
     """

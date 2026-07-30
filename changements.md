@@ -2753,6 +2753,62 @@ FORECasT-BE :
 
 - modification du texte de la liste de PAMs en haute de la page de réultats : affichage de la liste de cas par méthode utilisée
 - quelques correction de texte dans "annotation of the coding sequence"
+- reformulation du texte de description du double nicking
 
 - dans tableau BE : correction du calcul des coordonnées de l'edit sur la séquence des outcomes
 - correction d'un bug : off-targets undefined dans tableau double nicking si pas de posStr (mauvais génome sélectionné)
+- dans recodage manuel, flag "recodage du pam" si au moins une base du codon chevauche le PAM
+
+- affichage des PAMs HDR / BE en fonction du tableau sélectionné
+- correction d'un bug dans manualRecodingMenu : vérification que les coordonnées du PAM / spacer soient valides avant de les utiliser
+
+- simplification de l'affichage de la page showDonor()
+    - boutons download / copy -> a elements
+    - retrait de la séquence du guide
+    - retrait des options de surlignage pour ssDON
+    - retrait de mutEventsTable
+    - recodage manuel dans detail element
+
+- ajout de calcFreqAtEdit dans mergeGuideInfo() :
+    - calcul de l'efficacité du base editing à la position voulue
+    - en mode KI : prise en compte des outcomes san bystanders
+    - en mode KO (à faire) : prise en compte de tous les outcomes ayant l'edit à la position voulue
+
+## à faire
+
+- adapter longueur bras d'homologie -> à partir de la dernière base recodée
+- afficher "manual annotation" en dessous du menu "transcrits" -> radio
+- prédiction de l'efficacité -> freq outcome avec edit
+- flag bystander / bystander silencieux
+- ajouter warning dans onglet base editing "additional, possibly unwanted edits might be introduced" DONE
+- trier tableau BE / KI par enzyme
+- biblio double nicking / recodage
+- déplacer "Sequence viewer display and filtering" DONE
+- déplacer / renommer lien manuel "need additional information ?" DONE
+- ne pas afficher par défaut les variants en mode KI / ou définir valeur seuil DONE -> seuil de 1%
+- majuscule à substitution dans seq DONE
+- masquer BE PAMs par défaut + afficher HDR / BE pams en fonction du tableau DONE
+- modifier couleurs surlignage donor DNA DONE
+- ne pas afficher surlignage additionnel pour oligos DONE
+- homogénéiser termes
+- alléger style de la page showDonor : textes de taille identiques, prioriser informations.. DONE
+- afficher CFD guide / donneur dans le tableau HDR / donor design page
+
+# 30/07/26
+
+## knock-in mode
+
+- correction d'un bug dans page de résultats : batchId non sauvegardé dans formulaires annotation / variants
+
+## knock-out mode
+
+- correction d'un bug dans le calcul des coordonnées du PAM sur outcomes BE (pamLen != KO / KI)
+- ajout de la fonction filterEditData() : filtre les 20 guides ayant la plus grange fréquence d'edit à la position STOP (moyenne de tous les modèles)
+    - fitre guides SpRY
+- dans callSubServer(), écriture d'un log si crash du subserver
+- correction d'un bug dans runDeepBE.py : mauvais nombre d'arguments pour modèles de variants de PAM
+
+## à faire
+
+- vérifier scores DeepBE / pam variants
+- finir filterEditData (reconvertir en dict original après filtrage = buildEditData inversé)
