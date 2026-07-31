@@ -34,15 +34,22 @@ def loadAllModels():
 
     # load all models
     # models for SpCas9 fused with 7 deaminase domains
-    SpCas9Models = join(baseDir, "DeepNG-BE")
-    getModelDirs(SpCas9Models)
+    # SpCas9Models = join(baseDir, "DeepNG-BE")
+    # getModelDirs(SpCas9Models)
 
     # models for all combinations of 9 PAM variants / 7 deaminase domains
+    # includes SpCas9, DeepNG-BE doesn't need to be loaded
     pamVariantModels = join(baseDir, "DeepBE")
     getModelDirs(pamVariantModels)
 
-    effModels = join(baseDir, "PAM")
-    getModelDirs(effModels)
+    # effModels = join(baseDir, "PAM")
+    # getModelDirs(effModels)
+
+    # load PAM models and share the list for all BE models
+    pamModelPath = join(baseDir, "models/PAM/")
+    sys.path.append(pamModelPath)
+    pamMod = importlib.import_module("loadPamModels")
+    pamModelList = pamMod.loadModel()
 
     if not isfile(jsonPath) or os.path.getsize(jsonPath) < 100:
         with open(jsonPath, "w", encoding="utf-8") as f:
@@ -50,11 +57,11 @@ def loadAllModels():
 
     for _, name in json.load(open(jsonPath)):
         # load only some models for testing
-        # if "NG" not in name:
+        # if name not in ["DeepBE_8e"]:
         #    continue
 
         mod = importlib.import_module(name)
         models[name] = mod.loadModel()   # captured + kept
         print("Imported %s" % name)
 
-    return models
+    return models, pamModelList

@@ -8,6 +8,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def loadModel():
     final_model = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'DeepBE_Ss_model'), compile=False)
+    """
     model0 = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'PAM_variant_SpCas9_model.h5'), compile=False)
     model1 = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'PAM_variant_VRQR_model.h5'), compile=False)
     model2 = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'PAM_variant_NG_model.h5'), compile=False)
@@ -18,7 +19,8 @@ def loadModel():
     model7 = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'PAM_variant_SpRY_model.h5'), compile=False)
     model8 = tf.keras.models.load_model(os.path.join(SCRIPT_DIR, 'PAM_variant_Sc++_model.h5'), compile=False)
     model_list = [model0, model1, model2, model3, model4, model5, model6, model7, model8]
-    return final_model, model_list
+    """
+    return final_model  # , model_list
 
 start=5
 length=9
@@ -131,7 +133,7 @@ def predict(final_model, model_list, sequences, feature):
     X_test_seq_proportion_predict = np.stack(dataset_all['seq_proportion'])
 
     for i in range(len(model_list)):
-        hyperparameter_prediction = model_list[0].predict(X_test_seq_pam_predict, batch_size=128)
+        hyperparameter_prediction = model_list[i].predict(X_test_seq_pam_predict, batch_size=128)
         hyperparameter_prediction = pd.DataFrame(hyperparameter_prediction)
         hyperparameter_prediction.columns = ['Prediction'+str(i)]
         dataset_all = pd.concat([dataset_all.reset_index(drop=True),hyperparameter_prediction.reset_index(drop=True)],axis=1)

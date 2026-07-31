@@ -363,30 +363,6 @@ possibleEdits = {"CBE": [("C", "T"), ("G", "A")],
                  "CGBE": [("C", "G"), ("G", "C")]}
 
 # List of Base editor, with their respective models and editing windows
-# work in progress
-allBeModelsCas9 = {
-    "ABE": [
-      {"tool": "DeepBe",     "model": "DeepNG-BE_8e",  "win": (2, 11)},
-      {"tool": "DeepBe",     "model": "DeepNG-BE_17m", "win": (2, 11)},
-
-      {"tool": "ForecastBe", "model": "ABE",           "win": (4, 9)}
-    ],
-    "CBE":  [
-      # results from Kim et al show a window of 2-13 for SsAPOBEC3B, but the model seems to predict for positions 2-9 only ?
-      # window is hardcoded to be seq[6:13] for Ss and seq[7:11] for YE1
-      {"tool": "DeepBe",     "model": "DeepNG-BE_Ss",  "win": (2, 9)},
-      {"tool": "DeepBe",     "model": "DeepNG-BE_YE1", "win": (3, 8)},
-
-      {"tool": "ForecastBe", "model": "CBE",           "win": (3, 10)}  # 3-10
-      ],
-    "CGBE": [
-      {"tool": "DeepBe",     "model": "DeepNG-BE_mini",  "win": (3, 8)},
-      {"tool": "DeepBe",     "model": "DeepNG-BE_CGBE1", "win": (3, 8)},
-      {"tool": "DeepBe",     "model": "DeepNG-BE_Bi", "win": (3, 8)},
-
-      ]
-    }
-
 # to use with PAM variants
 allBeModels = {
     "ABE": [
@@ -406,14 +382,13 @@ allBeModels = {
     "CGBE": [
       {"tool": "DeepBe",     "model": "DeepBE_mini",  "win": (3, 8)},
       {"tool": "DeepBe",     "model": "DeepBE_CGBE1", "win": (3, 8)},
-      {"tool": "DeepBe",     "model": "DeepBE_Bi", "win": (3, 8)}
+      {"tool": "DeepBe",     "model": "DeepBE_bi", "win": (3, 8)}
 
       ]
     }
 
-
 pamVariantModels = {
-        "NGG": 1,  # PAM_variant_SpCas9_model.h5
+        "NGG": 0,  # PAM_variant_SpCas9_model.h5
         # "VRQR": 1,  # PAM_variant_VRQR_model.h5
         # "NGN": 2,  # PAM_variant_NG_model.h5
         "NRRH": 3,  # PAM_variant_NRRH_model.h5
@@ -428,10 +403,6 @@ pamVariantModels = {
 modelToEnzyme = {
         "ABE":
         ("SpCas9-ABE", "Generalist Adenine Base Editor model trained on data from. See <a href='https://doi.org/10.1093/nar/gkac161' target='blank'>Pallaseni et al. 2022</a>"),
-        "DeepNG-BE_8e":
-        ("SpCas9-ABE8e(V106W)", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
-        "DeepNG-BE_17m":
-        ("SpCas9-ABE8.17-m+V106W", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
         "DeepBE_8e":
         ("ABE8e(V106W)", "Model trained on data from Cas9 variants fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
         "DeepBE_17m":
@@ -439,26 +410,15 @@ modelToEnzyme = {
 
         "CBE":
         ("SpCas9-CBE", "Generalist Cytosine Base Editor model trained on data from. See <a href='https://doi.org/10.1093/nar/gkac161' target='blank'>Pallaseni et al. 2022</a>"),
-        "DeepNG-BE_Ss":
-        ("SpCas9-SsAPOBEC3B", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
-        "DeepNG-BE_YE1":
-        ("SpCas9-YE1-BE4max", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
         "DeepBE_Ss":
         ("SsAPOBEC3B", "Model trained on data from Cas9 variants fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
         "DeepBE_YE1":
         ("YE1-BE4max", "Model trained on data from Cas9 variants fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
-
-        "DeepNG-BE_mini":
-        ("SpCas9-miniCGBE1", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
-        "DeepNG-BE_CGBE1":
-        ("SpCas9-CGBE1", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
-        "DeepNG-BE_Bi":
-        ("SpCas9-APOBEC-nCas9-Ung", "Model trained on data from SpCas9 fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
         "DeepBE_mini":
         ("miniCGBE1", "Model trained on data from Cas9 variants fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
         "DeepBE_CGBE1":
         ("CGBE1", "Model trained on data from Cas9 variants fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>"),
-        "DeepBE_Bi":
+        "DeepBE_bi":
         ("APOBEC-nCas9-Ung", "Model trained on data from Cas9 variants fused with ABE8e(V106W). See <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et et al. 2023</a>")
 
         }
@@ -2298,7 +2258,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadS
         return lines
 
 
-def enzymeCoversMutPos(enzyme, mutPos, pam):
+def enzymeCoversMutPos(enzyme, mutPos):
     """returns True if at least one model of the given base editor enzyme has an
     editing window that covers mutPos (the edit position relative to the guide).
     Used to reject stop guides whose edit falls outside every model window of the
@@ -2309,7 +2269,7 @@ def enzymeCoversMutPos(enzyme, mutPos, pam):
     return any(m["win"][0] <= mutPos < m["win"][1] for m in allBeModels[enzyme])
 
 
-def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, splice=False):
+def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, splice=False, limit=None):
     """
     returns True if a guide in editData can be used to change the codon into a STOP codon
     also returns the list of guides for which isStop is True
@@ -2453,17 +2413,14 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, pamId, extGuideStart, extGuideEnd,
     outcomes = []
 
     # DeepBE models : for now get scores for all available SpCas9 models
-    deepBeSubmodelsCas9 = {
-            "ABE": ["DeepNG-BE_17m", "DeepNG-BE_8e"],
-            "CBE": ["DeepNG-BE_Ss", "DeepNG-BE_YE1"],
-            "CGBE": ["DeepNG-BE_mini", "DeepNG-BE_CGBE1", "DeepNG-BE_Bi"]
-            }
-
     deepBeSubmodels = {
             "ABE": ["DeepBE_17m", "DeepBE_8e"],
             "CBE": ["DeepBE_Ss", "DeepBE_YE1"],
-            "CGBE": ["DeepBE_mini", "DeepBE_CGBE1", "DeepBE_Bi"]
+            "CGBE": ["DeepBE_mini", "DeepBE_CGBE1", "DeepBE_bi"]
             }
+
+    # DEBUG
+    # deepBeSubmodels = deepBeSubmodelsCas9
 
     forecastSubmodels = {
             "ABE": ["ABE"],
@@ -2479,13 +2436,11 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, pamId, extGuideStart, extGuideEnd,
         # default to NGG
         pamPat = "NGG"
 
-    pamVariant = pamVariantModels.get(pamPat, 1)
+    # DEBUG
+    pamVariant = pamVariantModels.get(pamPat, 0)
+    logging.info("BE scoring with PAM %s (model %s)" % (pamPat, pamVariant))
 
-    if pamPat == "NGG":
-        selDeepBeModels = deepBeSubmodelsCas9[enzyme]
-    else:
-        selDeepBeModels = deepBeSubmodels[enzyme]
-
+    selDeepBeModels = deepBeSubmodels[enzyme]
     selForecastModels = forecastSubmodels.get(enzyme)
     models = {"ForecastBe": selForecastModels, "DeepBe": selDeepBeModels}
 
@@ -2556,6 +2511,7 @@ def calcBeScoresServer(seq, guideSeq, pamSeq, pamId, extGuideStart, extGuideEnd,
             for submodel in submodels:
                 modelStr = "%s - %s" % (model, submodel)
                 inData[1] = submodel
+                logging.info("INDATA : %s" % inData)
                 modelOut = callSubServer("run%s" % model, inData)
 
                 if modelOut.get("status") == "processed":
@@ -2715,24 +2671,18 @@ def makeEditLines(
                     )
 
                     # list of models that can be used to mutate this position
-                    if stopGuides and pam == "NGG":
-                        beModels = allBeModelsCas9
-                    # in KI mode, always load models for alternative PAMs
-                    else:
-                        beModels = allBeModels
-
                     if stopGuides is not None:
                         stopEnzymes = ["CBE", "CGBE"]
                         possibleModels = {
                             "%s - %s" % (m["tool"], m["model"])
-                            for ez in stopEnzymes for m in beModels[ez]
+                            for ez in stopEnzymes for m in allBeModels[ez]
                             if m["win"][0] <= mutPos < m["win"][1]
                         }
 
                     else:
                         possibleModels = {
                             "%s - %s" % (m["tool"], m["model"])
-                            for m in beModels[enzyme]
+                            for m in allBeModels[enzyme]
                             if m["win"][0] <= mutPos < m["win"][1]
                         }
 
@@ -3550,10 +3500,7 @@ def showSeqAndPams(
 
     if baseEditor:
         # beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
-        if multiPamInfo is None and pam == "NGG":
-            enzList = allBeModelsCas9[enzyme]
-        else:
-            enzList = allBeModels[enzyme]
+        enzList = allBeModels[enzyme]
 
         beWinStart = min([enzDict["win"][0] for enzDict in enzList])
         beWinEnd = max([enzDict["win"][1] for enzDict in enzList])
@@ -3833,8 +3780,7 @@ def showSeqAndPams(
         )
         if multiPamInfo is not None:
             print(
-                """<p>Base editing can be used to introduce this substitution.<br>
-                  Using base editing bypasses the need for a double strand break and a donor DNA, which may be useful for therapeutic applications.</p>"""
+                """<p>Base editing can be used to introduce this substitution.</p>"""
             )
         print(
             """<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>"""
@@ -5409,8 +5355,10 @@ def mergeGuideInfo(
                         # for FORECasT-BE, the frequency of outcomes is relative to the
                         # total editing rate (in effs). To compare with DeepBE, outcome frequencies
                         # should be relative to the total number of reads.
+                        """
                         if "ForecastBe" in model:
                             freqAtEdit = freqAtEdit * forecastEff
+                        """
 
                 beScoring[model] = freqAtEdit
             # print(beScoring, beOutcomes, "<br>")
@@ -5856,8 +5804,13 @@ def printTableHead(
         htmls.push("The following guides can mutate "+origNucl+" to "+nucl+" at position "+pos+":<br><small>Note : only the most frequent outcome is shown.<br>Click on the edit to go to the table below and see all predicted outcomes.</small>");
 
         var guides = editData[exonId][pos][nucl];
+        console.log(guides);
         guides.sort( function (a, b) { a[6] - b[6] } ); // sort by the first efficiency score
         for (var i=0; i<guides.length; i++) {
+
+            if (i > 2) {
+            continue;
+            }
             guide = guides[i];
             pamId = guide[0];
             pamStrand = pamId.slice(-1);
@@ -5894,12 +5847,14 @@ def printTableHead(
 
                 let modelVals = outcome[1];
 
+                // sort by editing frequency at mutPos
                 modelVals.sort((a, b) => b[1] - a[1] ); // sort by frequency
 
                 let outCount = 0;
 
                 for (edit of modelVals) {
 
+                    console.log(edit);
                     outCount += 1;
                     let seq = edit[0];
                     let freq = edit[1]*100;
@@ -6349,9 +6304,13 @@ You can adapt the global score to your delivery method (select below), which cha
     if editData and usedBeModels:
         print('<th data-col-id="beEffs" colspan="%d" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; height: 325px; border-bottom:none">' % (len(usedBeModels), colWidths["beEffTotal"]))
         print('Predicted editing efficiency at intended position')
-        htmlHelp("""This column shows the predicted base editing efficiencies for several deep-learning models.<br>
-                 The scores represents the expected percentages of edited reads after sequencing the target locus (total editing).<br>
-                 You can click on each column to sort the table by the corresponding score.""")
+        if pamFullName:
+            beEffText = "substitution (without any bystander edits)"
+        else:
+            beEffText = "edit resulting in a STOP codon"
+        htmlHelp("""This column shows the predicted base editing efficiencies for available models.<br>
+                 The scores predicts the percentage of edited reads containing the %s, after sequencing the target locus.<br>
+                 You can click on each column to sort the table by the corresponding score.""" % beEffText)
         print('</th>')
 
         print('<th data-col-id="beOutcome" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">' % colWidths["beOutcome"])
@@ -6366,10 +6325,10 @@ You can adapt the global score to your delivery method (select below), which cha
         print('<br><small>Show / hide model predictions for :<br>')
         # print buttons to show / hide results for each model
 
-        allBeModels = {
-                "A &#8594 G Base Editors": ["ForecastBe - ABE", "DeepBe - DeepNG-BE_17m", "DeepBe - DeepNG-BE_8e", "DeepBe - DeepBE_17m", "DeepBe - DeepBE_8e"],
-                "C &#8594 T Base Editors": ["ForecastBe - CBE", "DeepBe - DeepNG-BE_Ss", "DeepBe - DeepNG-BE_YE1", "DeepBe - DeepBE_Ss", "DeepBe - DeepBE_YE1"],
-                "C &#8594 G Base Editors": ["DeepBe - DeepNG-BE_mini", "DeepBe - DeepNG-BE_CGBE1", "DeepBe - DeepNG-BE_Bi", "DeepBe - DeepBE_mini", "DeepBe - DeepBE_CGBE1", "DeepBe - DeepBE_Bi"]
+        allBeModelDesc = {
+                "A &#8594 G Base Editors": ["ForecastBe - ABE", "DeepBe - DeepBE_17m", "DeepBe - DeepBE_8e"],
+                "C &#8594 T Base Editors": ["ForecastBe - CBE", "DeepBe - DeepBE_Ss", "DeepBe - DeepBE_YE1"],
+                "C &#8594 G Base Editors": ["DeepBe - DeepBE_mini", "DeepBe - DeepBE_CGBE1", "DeepBe - DeepBE_bi"]
                 }
 
         beModels = set()
@@ -6378,7 +6337,7 @@ You can adapt the global score to your delivery method (select below), which cha
                 effs = editTpl[3]
                 for model, eff in effs:
                     beModels.add(model)
-        for ezType, modelList in allBeModels.items():
+        for ezType, modelList in allBeModelDesc.items():
             for i, model in enumerate(modelList):
                 if model in beModels:
                     # replace the model name with the corresponding enzyme
@@ -6714,7 +6673,8 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
     print("""<div name="guideTablePanel" id="pairTable">""")
 
     print("""
-    <p>The double nicking strategy relies on using a Cas9 nickase with a pair of guides that flank the edit site. The two guides target opposite strands, which generates a double strand break. The position of the edit between the guides doesn't affect HDR efficiency, as long as the distance between the nicks is within 40-68bp. This way, you can use guides that are more distant to the edit position compared to the single guide, DSB-based method. The guides are in a PAM-out orientation (i.e, positioned so that their PAMs flank the target region). For more information, see <a href='https://doi.org/10.1038/s41598-021-98965-y' target='blank'>Schubert et al. 2021</a><br>
+    <p>The double nicking strategy relies on using a Cas9 nickase with a pair of guides that flank the edit site and target opposite strands, to generate a double strand break.<br>
+    The position of the edit between the guides doesn't affect HDR efficiency, as long as the distance between the nicks is within 40-68bp. This way, you can use guides that are more distant to the edit position compared to the single guide, DSB-based method. The guides are in a PAM-out orientation (i.e, positioned so that their PAMs flank the target region). For more information, see <a href='https://doi.org/10.1038/s41598-021-98965-y' target='blank'>Schubert et al. 2021</a>.<br>
     This method is useful if no guides are found close to the edit site, as editing efficiency quickly decrease by this distance.<br>.</p>
     """)
 
@@ -8429,10 +8389,10 @@ def calcSaveEffScores(
             longSeqs, enzyme=enz, scoreNames=scoreNames
         )
 
-        if not baseEditor:
+        if not stopGuides:
 
             # these are slow algorithms, so store the results for later
-            queue.startStep(batchId, "outcome", "Calculating editing outcomes")
+            queue.startStep(batchId, "outcome", "Calculating DSB repair outcomes")
             mutScores = crisporEffScores.calcMutSeqs(
                 pamIds, longSeqs, enz, scoreNames=mutScoreNames
             )
@@ -8574,7 +8534,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
             logging.info("the valid effscores are")
             logging.info(validEffScores)
             # these are slow algorithms, so store the results for later
-            queue.startStep(batchId, "outcome", "Calculating editing outcomes")
+            queue.startStep(batchId, "outcome", "Calculating DSB repair outcomes")
             mutScores = crisporEffScores.calcMutSeqs(
                 validPamIds, validLongSeqs, enz, scoreNames=mutScoreNames
             )
@@ -9224,7 +9184,7 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     return bedFname
 
 
-def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonPosStr, stopGuides):
+def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonPosStr, stopGuides, limit=None):
     """
     To be used in KO / STOP mode, called in a loop for each exon :
     Searches for guides that can introduce STOP codons in the current exon.
@@ -9263,6 +9223,10 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
 
         # get guides that can introduce a STOP codon
         _, newStopGuides = makeExonLines(exonInfo, seq, selTransId, koMethod, editInfo=editInfo)
+
+        # score at most limit guides within the current exon
+        if limit:
+            newStopGuides = {pamId: editInfo for i, (pamId, editInfo) in enumerate(newStopGuides.items()) if i < limit}
 
         if len(newStopGuides) > 0:
             # calculate the scores
@@ -9366,6 +9330,7 @@ def processMultiSeqSubmission(
 
             # in stop mode, discard the guides that can't introduce a STOP codon / splice site mutation before calculating the scores
             if koMethod == "stop":
+                queue.startStep(batchId, "BE", "Predicting base editing efficiencies and outcomes")
                 newEditData, newStopGuides = getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId,
                                                              exonId, exonPosStr, stopGuides)
                 if len(newStopGuides) > 0:
@@ -9399,10 +9364,13 @@ def processMultiSeqSubmission(
         guideFh.close()
 
         # if no STOP codons can be introduced with SpCas9, switch to SpRY
+        # alternatively, move this block to a new function a search with increasingly pamless Cas until ~ 5 guides are found ?
         if koMethod == "stop" and pam != "NRN" and len(stopGuides) == 0:
-            pass
-            '''
-            logging.info("no guides found for PAM %s: search with SpRY (pam NRN)" % pam)
+
+            queue.startStep(batchId, "SpRY", "Could not find any guides with %s : searching guides with SpRY Cas9 (PAM NRN)." % pamToEnzyme[pam])
+
+            # set the maximum number of guides to score before filtering
+            limit = 100
             pam = "NRN"
             pam = setupPamInfo(pam)
             batchInfo["pam"] = pam
@@ -9412,25 +9380,30 @@ def processMultiSeqSubmission(
             os.remove(effScoresFnameTmp)
 
             guideFh = open(effScoresFnameTmp, "w")
+
             for seqNumber, (exonId, exonPosStr) in enumerate(multiseq):
                 extSeq = batchInfo["extSeqList"][exonId]
                 seq = batchInfo["exonSeqs"][exonId][1]
 
+                if len(stopGuides) >= limit:
+                    break
+
                 newEditData, newStopGuides = getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId,
-                                                             exonId, exonPosStr, stopGuides)
+                                                             exonId, exonPosStr, stopGuides, limit=limit)
 
                 if len(newStopGuides) > 0:
                     allEditData.update(newEditData)
                     stopGuides.update(newStopGuides)
 
-                queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
                 createBatchEffScoreTable(
                     batchId, queue, None, guideFh, seq, extSeq, seqNumber, exonId, stopGuides=stopGuides
                 )
 
-            # filter the top 20 guides with the highest BE efficiency at STOP position, to avoid searching for too many off-targets
+            # filter the top 20 guides with the highest BE efficiency at STOP positions, to avoid searching for too many off-targets
+            if len(allEditData) > 0:
+                allEditData, stopGuides = filterEditData(allEditData, stopGuides, pam)
+
             guideFh.close()
-            '''
 
         if stopGuides:
             batchInfo["stopGuides"] = stopGuides
@@ -9571,11 +9544,11 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     if useBaseEditor:
         # beWinStart, beWinEnd = getBeWin(DEFAULTBEWIN)
         # get the largest editing window for this enzyme type (results will be filtered later)
-        # always use allBeModels in KI mode (contains models for all PAM variants)
         enzList = allBeModels[enzyme]
         beWinStart = min([enzDict["win"][0] for enzDict in enzList])
         beWinEnd = max([enzDict["win"][1] for enzDict in enzList])
 
+        queue.startStep(batchId, "BE", "Predicting base editing efficiencies and outcomes")
         _, editData = makeEditLines(
             seq, pamSeqs, beWinStart, beWinEnd, None, substInfo=substInfo, enzyme=enzyme, extSeq=extSeq
         )
@@ -10877,11 +10850,11 @@ def printStatus(batchId, msg):
     q.close()
 
     errorState = False
-    # print(status)  # temporary, for debugging
     if "Traceback" in status:
-        print("<!--")
+        # don't forget to unquote
+        # print("<!--")
         print(status)
-        print("-->")
+        # print("-->")
         status = (
             "An error occured during the processing.<br> Please send an email to %s and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks! <br>If you submit the same sequence/genome/name again, it will not be re-run, Crispor will pickup the old error. We will have to reset it before you can resubmit this particular sequence, so you will have to contact us or change the sequence to get a new job into the system."
             % (contactEmail, batchId)
@@ -11906,7 +11879,8 @@ def KiResultsPage(params, batchId, download=False):
     Parses and prints the results from Knock-in jobs.
     Optionnally returns the data formatted for downloadFile()
 
-    Note : print calls should only occur when download is False
+    Note : print calls should only occur when download is False,
+    otherwise the http headers are broken
     """
 
     batchInfo = readBatchAsDict(batchId)
@@ -13760,7 +13734,7 @@ def filterEditData(editData, stopGuides, pam):
     """
     returns a list of the top 20 guides with the highest editing efficiency in KO / STOP mode.
     Used to limit to number of guides in SpRY queries.
-    Editing efficiency is the sum of the frequencies of outcomes that contain the edit to STOP (mean of all models).
+    Editing efficiency is the mean of outcomes frequencies that contain the edit to STOP (for all models).
     """
 
     scoredPams = []
@@ -13790,7 +13764,34 @@ def filterEditData(editData, stopGuides, pam):
         scoredPams.append((pamId, meanFreq))
 
     scoredPams.sort(key=lambda x: x[1], reverse=True)
-    print(scoredPams)
+    selPamIds = []
+    for i, pamTpl in enumerate(scoredPams):
+        if i > 19:
+            break
+        pamId, freq = pamTpl
+        selPamIds.append(pamId)
+    # filter edit data based the scoredPams
+    filteredEditData = {}
+    for exonId, exonIdDict in editData.items():
+        for pos, posDict in exonIdDict.items():
+            for base, pamIdList in posDict.items():
+                newPamIdList = []
+                for editTpl in pamIdList:
+                    pamId = editTpl[0]
+                    if pamId not in selPamIds:
+                        continue
+                    newPamIdList.append(editTpl)
+                if len(newPamIdList) == 0:
+                    continue
+                if exonId not in filteredEditData:
+                    filteredEditData[exonId] = {}
+                if pos not in filteredEditData[exonId]:
+                    filteredEditData[exonId][pos] = {}
+                filteredEditData[exonId][pos][base] = newPamIdList
+
+    filteredStopGuides = {pamId: editInfo for pamId, editInfo in stopGuides.items() if pamId in selPamIds}
+
+    return filteredEditData, filteredStopGuides
 
 
 def buildEditData(jsonData, stopGuides=None, targetPos=None):
@@ -14011,8 +14012,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
 
     stopGuides = batchInfo.get("stopGuides")
 
-    _ = filterEditData(allEditData, stopGuides, pam)
-
     geneModel = batchInfo["geneModel"]
     koGeneId = batchInfo["koGeneId"]
     if "SYM" in koGeneId:
@@ -14202,7 +14201,6 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                     print(
                         """<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Base editing information</summary>"""
                     )
-                    print("<i>Note : this feature is still in early development</i>")
                     print(
                         "<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>"
                     )
@@ -14557,8 +14555,8 @@ function toggleExonSeq(selectedValue) {
         if not singleExon:
             showAllExonsButton = (
                 """, or
-            <button name="exonSelect" value="all" onclick=toggleExonSeq(this.value)
-            style="width:110spx; height:25px"><small>show all %s exons targeted</small></button>
+            <a name="exonSelect" onclick=toggleExonSeq("all")
+            style="width:110spx; height:25px">show all %s exons targeted</a>.
             """
                 % commonStr
             )
@@ -14566,7 +14564,7 @@ function toggleExonSeq(selectedValue) {
         else:
             showAllExonsButton = "."
         print(
-            """<div style="margin-top:8px; margin-bottom:8px"> eelow is the gene model. Click on an exon to show the corresponding guides%s</div>"""
+            """<div style="margin-top:8px; margin-bottom:8px"> Below is the gene model. Click on an exon to show the corresponding guides%s</div>"""
             % showAllExonsButton
         )
 

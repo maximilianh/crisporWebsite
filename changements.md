@@ -2812,3 +2812,32 @@ FORECasT-BE :
 
 - vérifier scores DeepBE / pam variants
 - finir filterEditData (reconvertir en dict original après filtrage = buildEditData inversé)
+
+# 31/07/26
+
+## knock-out mode
+
+- finalisation de filterEditData
+- ajout d'un message sur la page de chargement si recherche avec SpRY
+- limitation de la recherche avec SpRY aux 150 premiers guides
+- changement style du bouton "show all exons targeted"
+- résumé : 0 guides NGG -> 150 guides SpRY -> top 20 guides SpRY -> off-targets
+
+## knock-in mode
+
+- mise à jour du tooltip "predicted editing efficiency at intended position"
+
+## base editing 
+
+- affichage d'un message sur l'écran de chargement lors de la prédiction des outcomes BE
+- correction d'un bug dans scripts DeepBE : pam variant fixé à SpCas9
+- modification du chargement des modèles de PAM variants
+    - chargement de la liste des modèles dans loadDeepBEModels -> passage de la liste dans les scripts DeepBE
+    - (au lieu de créer des doublons en chargeant tous les modèles pour chaque script DeepBE)
+    - retrait des modèles DeepNG-BE -> inclus dans DeepBE (pam variant 0)
+
+## à faire
+
+- remettre en forme editHover -> déplacer calcFreqAtEdit dans calcBeScoresServer
+- seq not in ref genome -> assignation automatique si posStr?
+- fix dowloadFile en mode KI

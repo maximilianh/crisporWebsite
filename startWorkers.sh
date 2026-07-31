@@ -8,7 +8,7 @@ fi
 echo $workCount
 mkdir -p log
 
-./startSubServers.sh
+# ./startSubServers.sh
 
 for i in `seq $workCount`; do
     log=log/worker$i.log

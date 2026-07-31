@@ -6,7 +6,7 @@ import importlib
 from os.path import join, dirname
 
 baseDir = join(dirname(__file__), "bin/deepBE")
-MODELS = loadDeepBeModels.loadAllModels()   # runs ONCE, at subserver startup
+MODELS, PAMMODELS = loadDeepBeModels.loadAllModels()   # runs ONCE, at subserver startup
 
 pamToModel = {
         0: 'PAM_variant_SpCas9',
@@ -25,22 +25,17 @@ def run(data):
     """Runs the deepBE model. Returns dict with predicted efficiency
     and a list of (outcomeSeq, frequency). Placeholder for now."""
 
-    # Work in progess
     editor, selModel, pamVariant, extGuideSeq = data
 
     outcomeModule = importlib.import_module(selModel)
 
     mainModel = MODELS[selModel]
-    if selModel[0:5] == "DeepNG":
-        # pamVariant = 2
-        outcomes = outcomeModule.predict(mainModel, [extGuideSeq], pamVariant)
 
-    else:
-        # DeepBE needs models for PAM variants too
-        # need to select the PAM variant (info stored in DeepBE/PamModelId.json
-        # temporary placeholder
-        finalModel, modelList = mainModel
-        outcomes = outcomeModule.predict(finalModel, modelList, [extGuideSeq], pamVariant)
+    # DeepNG-BE, unused anymore
+    # if pamVariant == 0:
+    #    outcomes = outcomeModule.predict(mainModel, [extGuideSeq], pamVariant)
+
+    outcomes = outcomeModule.predict(mainModel, PAMMODELS, [extGuideSeq], pamVariant)
 
     # import Cas9 efficiency model
     """
@@ -61,6 +56,9 @@ def run(data):
     # transform the pandas data frame into a list
     outcomeList = []
     for _, outcomeRow in outcomes.iterrows():
+        var = outcomeRow["PAM_variant"]
+        if var != pamVariant:
+            continue
         # make edited bases uppercase and the rest in lowercase
         freq = float(outcomeRow["Prediction score"])
         outcomeList.append((outcomeRow["edited output"], freq))
