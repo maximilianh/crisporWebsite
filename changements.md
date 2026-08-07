@@ -2778,7 +2778,7 @@ FORECasT-BE :
 
 - adapter longueur bras d'homologie -> à partir de la dernière base recodée
 - afficher "manual annotation" en dessous du menu "transcrits" -> radio
-- prédiction de l'efficacité -> freq outcome avec edit
+- prédiction de l'efficacité -> freq outcome avec edit DONE
 - flag bystander / bystander silencieux
 - ajouter warning dans onglet base editing "additional, possibly unwanted edits might be introduced" DONE
 - trier tableau BE / KI par enzyme
@@ -2838,6 +2838,144 @@ FORECasT-BE :
 
 ## à faire
 
-- remettre en forme editHover -> déplacer calcFreqAtEdit dans calcBeScoresServer
+- remettre en forme editHover -> déplacer calcFreqAtEdit dans calcBeScoresServer DONE
 - seq not in ref genome -> assignation automatique si posStr?
 - fix dowloadFile en mode KI
+
+# 03/08/26
+
+## global
+
+- ajout de l'option "brin" à l'annotation manuelle : permet d'afficher la séquence codante du brin inverse
+- retrait des exceptions de paramètres dans checkVal() -> autorisation de [] dans params
+
+## base editing
+
+- déplacement du calcul de freqAtEdit dans calcBeScoreServer
+- modification de la fonction de tri des guides dans onEditHover() -> tri par freqAtEdit
+- prise en compte des PAMs > 3nt dans surlignage editHover
+- dans makeEditLines() : lien vers le guide ayant l'efficacité la plus élevée (moyenne des modèles dispo)
+
+## knock-in mode
+
+- si séquence codante sur brin inverse, recodage avec codons complémentaires (à terminer)
+- conservation de l'annotation manuelle si tri du tableau / score BE
+    - faire pour autres formulaires + seq display & filtering
+- conservation de l'annotation manuelle si changement de pamWindow
+- correction d'un bug dans getRecodeCodons : gapPos non défini
+
+## à faire
+
+- recodage sur le brin inverse
+
+# 04/08/26
+
+## knock-out mode
+
+- adaptation des textes upstream / downstream pour KO / délétion locus ou promoteur
+
+## knock-in mode 
+
+- finalisation du recodage sur le brin inverse
+    - choix du codon / fréquence à partir du brin antisens
+    - retour au brin sens avant affichage / écriture de la séquence
+    - dans recodeDonor(), showDonor(), manualRecodingMenu()
+- ajout de menu de recodage manuel pour réguions non-codantes
+    - input pour chaque base entre PAM et edit
+    - affichage base WT
+
+## à faire
+
+- mise à jour param altBase
+
+# 05/08/26
+
+## global
+
+- dans makeExonLines, prise en compte des codons de part et d'autre d'un site d'épissage (affichage non complet)
+
+## base editing
+
+- dans sortGuideData, ajout du tri par moyenne des efficacité BE
+    - tri tableau BE par cette valeur par défaut
+
+## knock-out mode
+
+- ajout d'un lien vers mode classic dans le formulaire (si pas d'annotation)
+
+## knock-in mode
+
+- ajout du paramètre beSortBy : tri du tableau BE séparément du tableau HDR
+- sur page affichage ADN donneur:
+    - input modification insert / tag dans un details element
+    - + ajout d'une fonction pour sauvegarder l'état des éléments detail sur rechargement de la page
+    - ajout "copy guide sequence to clipboard"
+- sur page design ADN donneur
+    - réduction de la taille de la séquence du guide + transcript ID
+
+- affichage du menu de recodage dans régions codantes et non-codantes simultanément
+    - uniquement si 2 codons ou moins peuvent être recodés
+    - déplacement de l'affichage des inputs pour le choix des bases / codons alternatifs dans des fonctions dédiées
+
+## à faire
+
+- réparer downloadDonor
+- ajouter avertissement off-target nicking (https://doi.org/10.1038%2Fs41467-017-00687-1)
+- adapter ordre inputs recodage dans régions codantes / non-codantes
+
+# 06/08/26
+
+## Classic
+
+- correction d'un bug : batchId non sauvegardé dans formulaire d'annotation
+
+## knock-out mode
+
+- dans processMultiSeqSubmission, filtre du nombre de guides pour PAMs peu spécifiques
+
+## knock-in mode
+
+- affichage des input pour recoding dans régions non-codantes si au moins 5bp à recoder
+- affichage des inputs dans l'ordre d'apparition des régions sur la séquence (codant -> non codant et inversement)
+- correction d'un bug dans showDonor() : duplication des params "altBase"
+- dans getRecodCodons, recodage des régions non codantes seulement si > 3bp non codants
+
+- correction d'un bug dans getNickPairs() : recherche des paires pour PAMs existants uniquement
+- correction d'un bug dans showDonor() : retrait du calcul du CFD pour guides Cas12a
+- correction d'un bug dans surlignage du PAM + guide dans showdonor pour ssODN à polarité inverse + Cas12a + brin -
+- correction d'un bug dans getArmCoords + 3'UTR incorrectement assigné comme 5'UTR
+
+# 07/08/26
+
+## global
+
+- ajout de la fonction highlightPam() : surligne le PAM sur le sequence viewer depuis le tableau
+- formatage de l'afficahage de la séquence en 3' dans showSecondaryStructure() + lien vers CasPEDIA
+
+## knock-out mode
+
+- retrait de textes redondants en mode promoter / excision + retrait du texte extension seq dans introns
+- si pas de séquence codante : affichage de la séquence en uppercase
+
+## knock-in mode 
+
+- en mode tagging / qTag, correction du calcul des coordonnées du guide pour surlignage
+- déplacement du calcul des coordonnées de la région à recoder dans une fonction dédiée
+    - + retrait des coordonnées négatives
+- retour à la ligne si menu de recodage manuel trop long
+- si click sur edit BE -> affichage des guide BE sur le sequence viewer
+- si click sur "Design donor DNA" dans workflow overview, affichage des PAMs / tableau HDR
+- assignation des coordonnées à 0 si pas de coordonnées dispo dans manualRecodingMenu()
+- correction des coordonnées à recoder manuellement pour délétions
+- correction d'un bug : si pas de guides BE, boutons de sélection tableau HDR / double nicking non fonctionnels
+- dans downloadDonor, passage des paramètres essentiels uniquement, dans un dict séparé
+    - + fix bug séquence recodée / non recodée
+- correction d'un bug : dénomination des bras d'homologie inversée si brin - dans formulaire design ADN donneur
+- recherche avec PAM NNN pour SpRY
+
+## à faire
+
+- corriger coordonnées PAM / recodage si délétions + bras asymétriues + out of range
+- sauvegarde des paramètres de modification de l'insert dans le donneur en même temps que recodage custom
+- url error pour PAMs alternatifs en mode KI ?
+- filtrer PAMs redondants en mode KI / BE

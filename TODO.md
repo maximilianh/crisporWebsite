@@ -25,3 +25,5 @@
 - si chargement de la page de résultats trop longue :
     - tableaux vides -> si clic affichage : requête -> AJAX -> remplissage du tableau
 - simplify the display in showDonor () ?
+- add CDS replacement ? https://doi.org/10.1038/s41467-023-42036-5
+- Don't put dononr DNA sequence into the url (induces a size limit)
