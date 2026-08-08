@@ -5682,7 +5682,7 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
         "outcomeCol": outcomeTotal // nOutcome,
         "beEffTotal": beEffTotal,
         "beEffCol": beEffTotal // nBeModels,
-        "beOutcome": 350,
+        "beOutcome": 370,
         "offTargets": 117,
         "browser": 500,
     }
@@ -5725,20 +5725,35 @@ def printOtColgroup(
     pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None
 ):
     """Emit the <colgroup> that both the header and body tables share.
-    Under table-layout:fixed, <col> widths are authoritative, so an identical
-    colgroup in both tables pins their columns to the same pixel widths."""
+    Widths are emitted as *percentages* of the design total, not pixels: both
+    tables are width:100%, so an identical percentage colgroup under
+    table-layout:fixed makes their columns pixel-identical at any window size.
+    The px numbers in getTableColumnWidths() therefore act as ratios only.
+    data-base-pct keeps the design ratio around for resizeOtTables()."""
+    cols = list(
+        _visualColumns(
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
+        )
+    )
+    total = float(getOtTableTotalWidth(
+        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels
+    )) or 1.0
     print("<colgroup>")
-    for colId, width in _visualColumns(
-        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
-    ):
-        print('<col data-col-id="%s" style="width:%dpx;">' % (colId, width))
+    for colId, width in cols:
+        pct = 100.0 * width / total
+        print(
+            '<col data-col-id="%s" data-base-pct="%.4f" style="width:%.4f%%;">'
+            % (colId, pct, pct)
+        )
     print("</colgroup>")
 
 
 def getOtTableTotalWidth(
     pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None
 ):
-    "sum of all per-column widths — used to set table width + container min-width consistently"
+    """sum of all per-column design widths. This is only the denominator that turns
+    the px design widths into percentages in printOtColgroup() — the rendered table
+    width is 100% of the page, not this number."""
     return sum(
         w
         for _, w in _visualColumns(
@@ -6017,36 +6032,52 @@ def printTableHead(
 
     var MIN_BE_GROUP_WIDTH = 150;
 
+    // The two tables are fluid (width:100%) and their columns are sized in
+    // percent, so this works entirely in percent space and never touches
+    // table.style.width. Both tables carry the same data-col-id set and run
+    // through the same deterministic computation, which is what keeps the
+    // header and the body columns aligned -- no measuring, no copying.
     function resizeOtTables() {
+        // the body's scrollbar may appear/disappear when rows are hidden, and the
+        // header has to reserve exactly the same gutter or the columns drift
+        if (typeof window.syncOtTableGutter === 'function') window.syncOtTableGutter();
         ['otTableHeader', 'otTable'].forEach(function (id) {
             var table = document.getElementById(id);
             if (!table) return;
-            var beCols = [];
-            table.querySelectorAll('col[data-col-id]').forEach(function (col) {
+            var cols = Array.prototype.slice.call(table.querySelectorAll('col[data-col-id]'));
+            if (!cols.length) return;
+
+            // MIN_BE_GROUP_WIDTH is a px design constant -> express it as a share of
+            // the table's *current* width so it keeps its meaning at any window size
+            var minBePct = 100 * MIN_BE_GROUP_WIDTH / (table.clientWidth || 1);
+
+            var pct = {}, beCols = [];
+            cols.forEach(function (col) {
                 var colId = col.getAttribute('data-col-id');
+                var base = parseFloat(col.dataset.basePct) || 0;
                 if (colId.indexOf('beEff-') === 0) {
-                    // remember the design width the first time we touch this col
-                    if (col.dataset.baseWidth === undefined)
-                        col.dataset.baseWidth = parseFloat(col.style.width) || 0;
-                    var hidden = hiddenBeModels.has(colId.slice('beEff-'.length));
-                    col.style.width = (hidden ? 0 : parseFloat(col.dataset.baseWidth)) + 'px';
-                    beCols.push(col);
+                    beCols.push(colId);
+                    if (hiddenBeModels.has(colId.slice('beEff-'.length)))
+                        base = 0;
                 }
+                pct[colId] = base;
             });
+
             // keep the beEff group from collapsing to 0 so its spanning
             // "Predicted editing efficiency" header stays visible; pad the first
             // beEff col (its cells are visibility:hidden, so it just reads as empty)
             if (beCols.length) {
-                var beWidth = beCols.reduce(function (s, c) { return s + (parseFloat(c.style.width) || 0); }, 0);
-                if (beWidth < MIN_BE_GROUP_WIDTH)
-                    beCols[0].style.width = ((parseFloat(beCols[0].style.width) || 0) + MIN_BE_GROUP_WIDTH - beWidth) + 'px';
+                var beSum = beCols.reduce(function (s, k) { return s + pct[k]; }, 0);
+                if (beSum < minBePct)
+                    pct[beCols[0]] += minBePct - beSum;
             }
-            // recompute the table width from the (now adjusted) column widths
-            var total = 0;
-            table.querySelectorAll('col[data-col-id]').forEach(function (col) {
-                total += parseFloat(col.style.width) || 0;
+
+            // renormalise so the columns always fill exactly 100% of the fluid
+            // table: the space freed by a hidden beEff column goes to the others
+            var total = cols.reduce(function (s, c) { return s + pct[c.getAttribute('data-col-id')]; }, 0) || 1;
+            cols.forEach(function (col) {
+                col.style.width = (100 * pct[col.getAttribute('data-col-id')] / total).toFixed(4) + '%';
             });
-            table.style.width = total + 'px';
         });
     }
 
@@ -6177,23 +6208,33 @@ def printTableHead(
     """
     )
 
-    print('<div id="guideTableScroll" style="overflow-x:auto; max-width:100vw;">')
+    # the guide table adapts to the page width: no horizontal scrolling, so no
+    # rows can end up hidden off-screen on a small display. table-layout:fixed
+    # ignores the content's minimum width, so cells can end up narrower than
+    # what is in them: make that wrap instead of spilling into the next column.
+    # The rotated headers are exempt, they overflow their 10px column by design.
+    print(
+        """
+    <style>
+        #otTableHeader th:not(.rotate), #otTable td, #otTable th {
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        #otTableHeader, #otTable { max-width: 100%; }
+    </style>
+    """
+    )
+    print('<div id="guideTableScroll" style="width:100%; overflow-x:hidden;">')
 
     colWidths = getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeModels=usedBeModels)
-    tableWidth = max(
-        1650,
-        getOtTableTotalWidth(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels
-        ),
-    )
 
+    # padding-right is filled in by syncScrollbarGutter() with the width of the
+    # body's vertical scrollbar, so the header table stays as wide as the body one
     print(
-        """<div class="otTableWrap" style="width: 100%%; min-width: %dpx; display: table;">"""
-        % tableWidth
+        """<div class="otTableWrap" id="otTableHeaderWrap" style="width: 100%; box-sizing: border-box;">"""
     )
     print(
-        '<table id="otTableHeader" style="background:white; table-layout:fixed; width: %dpx; border-collapse: collapse;">'
-        % tableWidth
+        '<table id="otTableHeader" style="background:white; table-layout:fixed; width: 100%; border-collapse: collapse;">'
     )
     printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels)
 
@@ -6296,21 +6337,22 @@ You can adapt the global score to your delivery method (select below), which cha
     """
         % globScoreAddStr
     )
-    print("""<small style="align-text: bottom;"><br> """)
-    print("""<small>Select a production method</small><br>""")
-    globEffScore = cgiParams.get("globEffScore", "EVA")
-    useScores = [
-            ("rs3", "cell culture U6", "<i>In vivo</i> transcription from a U6 promoter."),
-        ("crisprScan", "T7 transcription", "<i>In vitro</i> transcription from a T7 promoter."),
-        ("EVA", "Chemical synthesis", "Chemically synthetized guide RNA."),
-    ]
-    for scoreVal, scoreLabel, title in useScores:
-        checked = "checked" if scoreVal == globEffScore else ""
-        print(
-            """ <input type=radio name="globEffScore" value="%s" %s onchange="changeGlobEffScore()"/><span class="tooltipsterInteract" title="%s">%s</span><br> """
-            % (scoreVal, checked, title, scoreLabel)
-        )
-    print("</small>")
+    if not (pamFullName and editData):
+        print("""<small style="align-text: bottom;"><br> """)
+        print("""<small>Select a production method</small><br>""")
+        globEffScore = cgiParams.get("globEffScore", "EVA")
+        useScores = [
+                ("rs3", "Cell culture U6", "<i>In vivo</i> transcription from a U6 promoter."),
+            ("crisprScan", "T7 transcription", "<i>In vitro</i> transcription from a T7 promoter."),
+            ("EVA", "Chemical synthesis", "Chemically synthetized guide RNA."),
+        ]
+        for scoreVal, scoreLabel, title in useScores:
+            checked = "checked" if scoreVal == globEffScore else ""
+            print(
+                """ <input type=radio name="globEffScore" value="%s" %s onchange="changeGlobEffScore()"/><span class="tooltipsterInteract" title="%s">%s</span><br> """
+                % (scoreVal, checked, title, scoreLabel)
+            )
+        print("</small>")
     print("</th>")
     if not pamIsCpf1(pam):
         print(
@@ -6552,7 +6594,9 @@ You can adapt the global score to your delivery method (select below), which cha
             if not pamFullName:
                 urlBeParams = "batchId=%s" % batchId
             else:
-                urlBeParams = urllib.parse.urlencode({k: v for k, v in cgiParams.items() if k != "beSortBy"})
+                urlBeParams = {k: v for k, v in cgiParams.items() if k != "beSortBy"}
+                urlBeParams.update({"batchId": batchId})
+                urlBeParams = urllib.parse.urlencode(urlBeParams)
             print(
                 '<th data-col-id="beEff-%s" class="rotate beEffCol-%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; width: %dpx; border: none; border-top:none; border-right: none"><div><span><a title="%s" class="tooltipsterInteract" href="crispor.py?%s&beSortBy=%s">%s</a></span></div></th>'
                 % (modelHtml, modelHtml, colWidths["beEffCol"], modelDesc, urlBeParams, "beScore." + model, modelStr)
@@ -7032,27 +7076,16 @@ def showGuideTable(
     beEffTotalWidth = colWidths["beEffTotal"]
     beEffColWidth = colWidths["beEffCol"]
     outcomeColWidth = colWidths["outcomeCol"]
-    tableWidth = max(
-        1650,
-        getOtTableTotalWidth(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels
-        ),
-    )
 
     highlightedGuidesIds = []
     highlightedGuidesPos = []
 
     print(
-        '<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: hidden; max-height: 75vh; min-width: %dpx;">'
-        % tableWidth
+        '<div id="guideRowsScroll" style="overflow-y:auto; overflow-x: hidden; max-height: 75vh; width: 100%;">'
     )
+    print("""<div class="otTableWrap" style="width: 100%;">""")
     print(
-        """<div class="otTableWrap" style="width: 100%%; min-width: %dpx;">"""
-        % tableWidth
-    )
-    print(
-        '<table id="otTable" style="table-layout: fixed; width: %dpx; border-collapse: collapse;">'
-        % tableWidth
+        '<table id="otTable" style="table-layout: fixed; width: 100%; border-collapse: collapse;">'
     )
     printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels)
     print("<tbody>")
@@ -7703,30 +7736,35 @@ def showGuideTable(
     print("</div>")  # guideRowsScroll
     print("</div>")  # guideTableScroll
 
-    # Column widths drift when the two tables reflow independently (colspans in
-    # the header vs one-cell-per-column in the body). This script copies each
-    # rendered header column width onto the matching body <col> on load/resize.
+    # Both tables are width:100% and share an identical percentage <colgroup>, so
+    # their columns line up by construction -- nothing has to be measured and
+    # copied. Two things still need doing whenever the window size changes:
+    # reserve the width of the body's vertical scrollbar on the header (the body
+    # is the only one of the two that scrolls, so without this the body table is
+    # ~15px narrower than the header one and every column drifts), and re-run
+    # resizeOtTables(), whose minimum base-editing group width is a px constant
+    # that has to be re-expressed as a percentage of the new table width.
     print(
         """
     <script type="text/javascript">
     (function() {
-        function syncOtTableColumns() {
-            var header = document.getElementById('otTableHeader');
-            var body = document.getElementById('otTable');
-            if (!header || !body) return;
-            var bodyCols = body.querySelectorAll('col[data-col-id]');
-            if (!bodyCols.length) return;
-            for (var i = 0; i < bodyCols.length; i++) {
-                var colId = bodyCols[i].getAttribute('data-col-id');
-                var headerCell = header.querySelector('[data-col-id="' + colId + '"]');
-                if (!headerCell) continue;
-                var rect = headerCell.getBoundingClientRect();
-                if (rect.width > 0) {
-                    bodyCols[i].style.width = rect.width + 'px';
-                }
+        function syncScrollbarGutter() {
+            // a page can hold more than one guide table (they share their ids),
+            // so pair up the n-th header wrapper with the n-th scrolling body
+            var wraps = document.querySelectorAll('#otTableHeaderWrap');
+            var bodies = document.querySelectorAll('#guideRowsScroll');
+            for (var i = 0; i < wraps.length && i < bodies.length; i++) {
+                var gutter = Math.max(0, bodies[i].offsetWidth - bodies[i].clientWidth);
+                wraps[i].style.paddingRight = gutter + 'px';
             }
-            // re-collapse any columns the user has hidden (and reset table width)
-            // so a window resize / reflow doesn't re-expand them
+        }
+        // resizeOtTables() calls this itself, so hiding a base editing column
+        // also keeps the gutter in sync
+        window.syncOtTableGutter = syncScrollbarGutter;
+        function syncOtTableColumns() {
+            syncScrollbarGutter();
+            // re-collapse any columns the user has hidden so a window resize /
+            // reflow doesn't re-expand them, and rescale to the new table width
             if (typeof resizeOtTables === 'function') resizeOtTables();
         }
         function schedule() {
@@ -7878,7 +7916,6 @@ select { font-size: 80%; }
 body {
    text-align: left;
    /* float: left; */
-   min-width: 1200px;
 }
 p {
 }
@@ -7904,9 +7941,180 @@ mut {
 tt { font-size: 90% }
 div.contentcentral { text-align: left; float: left}
 
-/* for chosen.js */
-.chosen-container { width: 600px }
+/* for chosen.js (the genome drop-down, see printOrgDropDown).
+
+   The drop-down must follow the width of the panel it is placed in - those
+   panels are sized in printForm / printKoForm / printKiForm - and must never
+   stick out of it, whatever the resolution. The old fixed `width: 600px`
+   overflowed every panel narrower than 600px, so it is now a *maximum* and
+   the real width is a percentage of the parent.
+
+   chosen.js writes an inline width on .chosen-container, so the percentage
+   itself is passed as the `width` option when chosen is initialised; the
+   rules below only cap it and keep the borders inside the box. */
+.chosen-container {
+    max-width: min(600px, 100%);
+    box-sizing: border-box;
+}
+/* the open result list is positioned absolutely and has its own 1px border,
+   so it needs the same treatment or it sticks out by 2px */
+.chosen-container .chosen-drop {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
 .chosen-container .chosen-results li.active-result { float: left}
+
+/* classic form (printForm).
+   DOM order is Step 3 (sequence, right column) then Step 1, Step 2 (left
+   column), so re-order when stacked to read 1, 2, 3 top-to-bottom. */
+@media (max-width: 1024px) {
+    .reflowGridClassic { grid-template-columns: 1fr !important; }
+    .reflowGridClassic > * {
+        grid-column: 1 / -1 !important;
+        grid-row: auto !important;
+        width: 100% !important;
+    }
+    .reflowGridClassic > *:nth-child(1) { order: 3; }   /* Step 3 */
+    .reflowGridClassic > *:nth-child(2) { order: 1; }   /* Step 1 */
+    .reflowGridClassic > *:nth-child(3) { order: 2; }   /* Step 2 */
+}
+/* knock-out form (printKoForm) */
+@media (max-width: 1024px) {
+    .reflowGridKo { grid-template-columns: 1fr !important; }
+    .reflowGridKo > * {
+        grid-column: 1 / -1 !important;
+        grid-row: auto !important;
+        width: 100% !important;
+    }
+}
+/* precision-editing form (printKiForm).
+   This one is a flex row; wrap its two columns and let each take full width. */
+.reflowFlexKi { flex-wrap: wrap; }
+/* The step 3/4 textareas are sized with cols=..., so the right-hand column has
+   a min-content width much larger than its 59% flex-basis. Without the two
+   rules below it therefore wraps onto its own line long before the 1024px
+   breakpoint, while the step 1/2 column keeps its 41% basis, i.e. roughly half
+   the window. Allowing the columns to shrink and capping the textareas at the
+   column width keeps the wrapping under the control of the media query. */
+.reflowFlexKi > * { min-width: 0; }
+.reflowFlexKi textarea { max-width: 100%; box-sizing: border-box; }
+@media (max-width: 1024px) {
+    .reflowFlexKi > * {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+    }
+    /* stacked: steps 1 and 2 are 90% wide inline (to leave a gutter between the
+       two columns), steps 3 and 4 are 100%. There is no gutter any more once
+       everything is on top of each other, so give all four the same width. */
+    .reflowFlexKi .windowstep.subpanel { width: 100% !important; }
+}
+
+/* Assistant tab bar (printAssistant): must ALWAYS stay a single horizontal
+   row, at every resolution, and no label inside it may ever break onto a
+   second line ("Knock-out", "Precision Editing" and their "(NHEJ / BE / PE)"
+   sub-labels stay on one line whatever the window width).
+
+   Instead of stepping the sizes down at a couple of breakpoints (which still
+   left the labels wrapping in between), everything in the row now scales
+   continuously with the viewport via clamp(): the CRISPOR title, the button
+   labels, the sub-labels, the gaps, the paddings and the two logos. Combined
+   with white-space:nowrap and min-width:auto (= never shrink a flex item
+   below its own content), the labels are always shown in full on one line.
+   `!important` is needed because most of these sizes live in inline styles. */
+.assistantMenu, .assistantMenu .tabs { flex-wrap: nowrap !important; }
+
+/* nothing in the bar is ever allowed to wrap */
+.assistantMenu .title,
+.assistantMenu button.assistantButton,
+.assistantMenu button.assistantButton span,
+.assistantMenu button.assistantButton small,
+.assistantMenu .tabBadge {
+    white-space: nowrap;
+}
+
+/* min-width:auto = the flex "automatic minimum size", i.e. the button never
+   shrinks below its (now unwrappable) content, so a label can never be cut.
+   It also overrides the inline min-width:100px/400px/275px, which would
+   otherwise fight with the flex:1 equal sharing on narrow screens. */
+.assistantMenu button.assistantButton {
+    min-width: auto !important;
+    font-size: clamp(9px, 1.6vw, 28px);
+    padding-left: clamp(3px, 0.9vw, 20px);
+    padding-right: clamp(3px, 0.9vw, 20px);
+}
+
+.assistantMenu {
+    padding-left: clamp(6px, 2vw, 32px);
+    padding-right: clamp(6px, 2vw, 32px);
+}
+.assistantMenu .tabs { gap: clamp(4px, 1.5vw, 50px) !important; }
+.assistantMenu .title { font-size: clamp(14px, 2.8vw, 60px) !important; }
+.assistantMenu .tabs a,
+.assistantMenu .tabs img { width: clamp(36px, 7vw, 150px) !important; }
+.assistantMenu .tabs img[alt="Celphedia"] { margin-left: clamp(3px, 1.2vw, 25px) !important; }
+
+/* On really small screens even the scaled-down decoration does not fit any
+   more, so drop the logos first, then the CRISPOR title, and give the whole
+   row to the three buttons - they keep their full, unwrapped labels. */
+@media (max-width: 700px) {
+    .assistantMenu .tabs a { display: none; }
+}
+@media (max-width: 520px) {
+    .assistantMenu .title { display: none; }
+    .assistantMenu { margin-left: 0 !important; }
+}
+
+/* Workflow overview of the precision-editing pages (printKiSteps).
+
+   Same logic as the assistant tab bar above: the label of a step ("Design
+   donor DNA", "Visualize and download guide + donor DNA", ...) must never
+   break onto a second line, whatever the window width. So instead of the
+   fixed `font-size: 1.25em` of the inline styles, the labels scale
+   continuously with clamp(), and white-space:nowrap plus min-width:auto (= a
+   flex item is never shrunk below its own content) guarantee that the text is
+   always shown in full on one line.
+   `!important` is needed because these sizes live in inline styles. */
+.kiSteps .kiStep,
+.kiSteps .kiStep *,
+.kiSteps .kiStepArrow {
+    white-space: nowrap;
+}
+/* The row itself never wraps either: wrapping between two steps would put
+   "Visualize and download guide + donor DNA" on a line of its own, which is
+   exactly the collapsed look we want to avoid. The steps are made to fit by
+   scaling the font instead (see below). */
+.kiSteps { flex-wrap: nowrap !important; }
+
+/* The scaling reference is the *container*, not the viewport: donorDesignPage
+   and showDonor print this row inside a `width: 80%` wrapper, so a vw-based
+   size is ~25% too large there and the last step did not fit (it dropped onto
+   a second line until the window became narrow enough for the font to shrink).
+   `container-type: inline-size` on the outer row turns it into a query
+   container, so 1cqi = 1% of the width really available and the steps fit at
+   every resolution and in every wrapper.
+
+   The container is declared only on the outer row (.kiStepsBox): the nested
+   rows of the base-editor layout are flex items whose width comes from their
+   content, and inline-size containment would resolve that width as if they
+   were empty. They inherit the outer container as their query container. */
+.kiStepsBox { container-type: inline-size; }
+
+.kiSteps .kiStep,
+.kiSteps .kiStepArrow {
+    min-width: auto !important;
+    flex: 0 0 auto;
+    /* vw-based fallback for browsers without container queries */
+    font-size: clamp(9px, 1.6vw, 1.25em) !important;
+    /* The upper bound of the clamp is the original `font-size: 1.25em`, so as
+       long as the row fits the labels keep exactly their previous size; 2.1cqi
+       is the largest size at which the longest of the two layouts still fits
+       its container on one line. */
+    font-size: clamp(9px, 2.1cqi, 1.25em) !important;
+}
+/* Very last resort (a phone, where even 9px would not fit): scroll the row
+   rather than break a label or overflow the page. */
+.kiStepsBox { overflow-x: auto; }
 
 </style>
 """
@@ -9849,8 +10057,11 @@ def readAnnGenomes():
 
 def printOrgDropDown(lastorg, genomes):
     "print the organism drop down box."
+    # width is relative to the panel the drop-down is placed in (the panels are
+    # sized in printForm / printKoForm / printKiForm) and capped at 600px, so it
+    # can never be wider than its parent, at any resolution
     print(
-        '<select id="genomeDropDown" class style="width: 85%; max-width:600px;" name="org" tabindex="2">'
+        '<select id="genomeDropDown" class style="width: 85%; max-width:600px; box-sizing:border-box;" name="org" tabindex="2">'
     )
     print("<option ")
     if lastorg == "noGenome":
@@ -9874,7 +10085,12 @@ def printOrgDropDown(lastorg, genomes):
 
     print(
         """<script>
-    $("#genomeDropDown").chosen();
+    // width has to be given here: without it chosen.js copies the *pixel*
+    // width the <select> happens to have at load time onto its container, so
+    // the drop-down would keep that width when the window is resized and
+    // overflow its panel. A percentage keeps it relative to the parent, the
+    // 600px cap comes from the .chosen-container rule in the page stylesheet.
+    $("#genomeDropDown").chosen({width: "85%"});
     $(".chosen-choices li").css("background","red");
     </script>
     """
@@ -10152,7 +10368,7 @@ def printForm(params):
         """
 <form id="main-form" method="post" action="%s">
 
-<div style="display:grid; clear:both; width: %%; min-width: 1500px; grid-template-columns: 42%% 58%%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+<div class="reflowGridClassic" style="display:grid; clear:both; width: %%; grid-template-columns: 42%% 58%%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
 
 <div class="windowstep subpanel" style="width:100%%; grid-column:2; grid-row:-1/1;">
     <div class="substep">
@@ -12060,10 +12276,38 @@ def KiResultsPage(params, batchId, download=False):
 
     minFreq, varDb = checkOtherArgs(params)
 
-    # these are read at function scope (in the mergeGuideInfo loop below), so they
-    # must be initialized in both modes; the download path skips the block below
+    # base editing detection must run in both modes: it loads the edit data, builds
+    # the BE guide filter and adds the PAM variants to pamList, so the downloaded
+    # tables contain the same guides as the results page
     useBaseEditor = False
     editData = None
+    beFilter = None
+    if kiType == "substitution":
+        fromToNucl = (seq[insertIdx].upper(), insertSeq)
+        for editList in possibleEdits.values():
+            if fromToNucl in editList:
+                # load edit data
+                batchBase = join(batchDir, batchId)
+                editFname = batchBase + ".editData.json"
+                if isfile(editFname):
+                    editData = json.load(open(editFname))
+                    bePamIds = buildEditData(editData).keys()
+                else:
+                    # avoid error message if no editData was written (subserver crash)
+                    editData = {}
+                if len(editData) > 0:
+                    # baseEditor in reinitialized in setupPamInfo
+                    useBaseEditor = True
+                    orgPamList = multiPamDict[multipam][0]
+
+                    # data to filter out BE guides that can't introduce the substitution,
+                    # while keeping all HDR guides for the selected PAM list
+                    beFilter = (orgPamList, bePamIds)
+
+                    for pamVariant in pamVariantModels.keys():
+                        if pamVariant == "NRN":
+                            continue
+                        pamList.add(pamVariant)
 
     if not download:
 
@@ -12221,40 +12465,8 @@ def KiResultsPage(params, batchId, download=False):
             seq, org, varDb, posStr, chrom, int(start), int(end), strand, minFreq
         )
 
-        # Base editing can be used for these substitutions
-        useBaseEditor = False
-        editData = None
-        beFilter = None
         if kiType == "substitution":
-
             seqMsg = "%s -> %s substitution" % (seq[insertIdx].upper(), insertSeq.upper())
-
-            fromToNucl = (seq[insertIdx].upper(), insertSeq)
-            for editList in possibleEdits.values():
-                if fromToNucl in editList:
-                    # load edit data
-                    batchBase = join(batchDir, batchId)
-                    editFname = batchBase + ".editData.json"
-                    if isfile(editFname):
-                        editData = json.load(open(editFname))
-                        bePamIds = buildEditData(editData).keys()
-                    else:
-                        # avoid error message if no editData was written (subserver crash)
-                        editData = {}
-                    if len(editData) > 0:
-                        # baseEditor in reinitialized in setupPamInfo
-                        useBaseEditor = True
-                        orgPamList = multiPamDict[multipam][0]
-
-                        # data to filter out BE guides that can't introduce the substitution,
-                        # while keeping all HDR guides for the selected PAM list
-                        beFilter = (orgPamList, bePamIds)
-
-                        for pamVariant in pamVariantModels.keys():
-                            if pamVariant == "NRN":
-                                continue
-                            pamList.add(pamVariant)
-
         elif kiType == "deletion":
             seqMsg = "%dbp deletion" % (len(batchInfo["insertSeq"]))
         elif kiType == "replacement":
@@ -12641,7 +12853,7 @@ def KiResultsPage(params, batchId, download=False):
         )
 
 
-def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseEditor=False, insertSeq=None):
+def printKiSteps(batchId: str, step=1, backParams=None, align="left", useBaseEditor=False, insertSeq=None):
     """
     Prints an interactive recap of the workflow for precision editing mode
     """
@@ -12703,7 +12915,7 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
         Several CRISPR-based methods can be used to edit this sequence.
         """
         guideHtml = (
-            """ <a href="%s" class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select an editing stategy</a> """
+            """ <a href="%s" class="kiStep tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select an editing stategy</a> """
             % (backUrl, guideSelectText, stepStyles[0])
         )
 
@@ -12721,7 +12933,7 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
         In this case, using nickases with two guides that flank the editing site (double nicking strategy) may yield better results (see Schubert et al. 2021 - fig. 2).<br>
         """
         guideHtml = (
-            """ <a href="%s" class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select guide sequences</a> """
+            """ <a href="%s" class="kiStep tooltipsterInteract" title="%s" style="%s; font-size: 1.25em;">Select guide sequences</a> """
             % (backUrl, guideSelectText, stepStyles[0])
         )
 
@@ -12731,7 +12943,7 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
         For each type of editor, a prediciton of its efficiency and outcome sequences is shown, allowing you to select the most appropriate deaminase domain.<br>
         For a more detailed explanation of base editor selection rules, read <a href='https://doi.org/10.1038/s41587-023-01792-x' target='blank'>Kim et al. 2023</a>. Depending on the aim of your experiment, you may consider bystander editing (i.e base conversions that occur outside of the intended substitution) in addition to the predicted editing efficiency.
         """ % insertSeq
-        editorHtml = """<a class="tooltipsterInteract" title="%s" style="%s; font-size: 1.25em; margin-left: 12px;" onclick=showBeTable('beTable')> Choose a base editor</a>""" % (editorText, stepStyles[1])
+        editorHtml = """<a class="kiStep tooltipsterInteract" title="%s" style="%s; font-size: 1.25em; margin-left: 12px;" onclick=showBeTable('beTable')> Choose a base editor</a>""" % (editorText, stepStyles[1])
 
     donorDesignText = """
     Once you have selected a suitable guide sequence, click on 'design donor DNA' under the 'guide sequence + PAM' column of the table.<br>
@@ -12754,13 +12966,13 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
             donorBackUrl = donorBackUrl + "&" + urllib.parse.urlencode(backParams)
 
         donorDesignHtml = (
-            """<a href="%s" class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</a> """
+            """<a href="%s" class="kiStep tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Design donor DNA</a> """
             % (donorBackUrl, donorDesignText, stepStyles[0])
         )
 
     else:
         donorDesignHtml = (
-            """<a class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;" onclick="showBeTable('hdrTable')">&nbsp Design donor DNA</a> """
+            """<a class="kiStep tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;" onclick="showBeTable('hdrTable')">&nbsp Design donor DNA</a> """
             % (donorDesignText, stepStyles[1])
         )
 
@@ -12770,7 +12982,7 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
     Then, you may trim the sequence to facilitate its synthesis (for example by removing repeated regions), or generate alternative designs with a barcode to check for homozygous editing (<i>not implemented yet</i>).<br>
     """
     donorDisplayHtml = (
-        """ <div class="tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Visualize and download guide + donor DNA</div> """
+        """ <div class="kiStep tooltipsterInteract" title="%s" style="%s color: #ff6000; font-size: 1.25em;">&nbsp Visualize and download guide + donor DNA</div> """
         % (donorDisplayText, stepStyles[2])
     )
 
@@ -12779,21 +12991,25 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
         print(
             """<div style="text-align: %(align)s;">
                 <p>Workflow overview <small>(hover on each step to get details, or click on a previous step to go back)</small></p>
-                <div style="display: flex; flex-direction: row; justify-content: %(align)s; gap: 12px; margin-top: 12px;">
-                    <div style="margin-top: 14px;">
+                <div class="kiSteps kiStepsBox" style="display: flex; flex-direction: row; align-items: center; justify-content: %(align)s; gap: 12px; margin-top: 12px;">
+                    <div>
                         %(guideHtml)s
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 12px">
-                        <div style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8599</div>
-                        <div style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8600</div>
+                    <!-- the two arrows are pushed to the top and to the bottom of
+                         the column so that each one points at its own branch, while
+                         "Select an editing strategy" stays vertically centred
+                         between them (align-items: center on the row) -->
+                    <div style="align-self: stretch; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="kiStepArrow" style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8599</div>
+                        <div class="kiStepArrow" style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8600</div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 32px; margin-top: 8px;">
-                        <div style="margin-top: -12px; display: flex; flex-direction: row;">
+                    <div style="display: flex; flex-direction: column; gap: 32px;">
+                        <div class="kiSteps" style="display: flex; flex-direction: row;">
                             %(donorDesignHtml)s
-                            <div style="font-weigth: bold; font-size: 1.25em;">&nbsp &#8594</div>
+                            <div class="kiStepArrow" style="font-weigth: bold; font-size: 1.25em;">&nbsp &#8594</div>
                             %(donorDisplayHtml)s
                         </div>
-                        <div style="margin-top: -12px; display: flex; flex-direction: row;">
+                        <div class="kiSteps" style="display: flex; flex-direction: row;">
                             %(editorHtml)s
                         </div>
                     </div>
@@ -12808,11 +13024,11 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="center", useBaseE
         print(
             """<div style="text-align: %s; margin-bottom: 48px;">
                 <p>Workflow overview <small>(hover on each step to get details, or click on a previous step to go back)</small></p>
-                <div style="display: flex; flex-direction: row; justify-content: %s;">
+                <div class="kiSteps kiStepsBox" style="display: flex; flex-direction: row; justify-content: %s;">
                     %s
-                    <div style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8594</div>
+                    <div class="kiStepArrow" style="font-weight: 1000; font-size: 1.25em;">&nbsp &#8594</div>
                     %s
-                    <div style="font-weigth: bold; font-size: 1.25em;">&nbsp &#8594</div>
+                    <div class="kiStepArrow" style="font-weigth: bold; font-size: 1.25em;">&nbsp &#8594</div>
                     %s
                 </div>
             </div>
@@ -12932,7 +13148,7 @@ def printAltBases(minRecodeCoord, maxRecodeCoord, pamStart, pamEnd, seedStart,
             span = seedSpan
         elif pos in range(guideStart, guideEnd):
             span = guideSpan
-        elif pos in range(gapStart, guideStart):
+        else:
             span = "<span>"
 
         print("""<div style="display: flex; flex-direction: column;">""")
@@ -13163,6 +13379,145 @@ def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords
     print("</div>")
 
 
+def getArmExtension(recodedArmSeq, recodeArm):
+    """
+    Number of bases that have to be added to the outer end of a recoded homology
+    arm so that its length is counted from the recoded base that is the furthest
+    away from the edit site, and not from the edit site itself.
+
+    This is the distance between the edit site and that base, i.e. the number of
+    bases of the arm that are not unmodified homology anymore.
+    Recoded bases are the uppercase ones (both arms are lowercased before recoding,
+    only the recoding and the edit are uppercase).
+
+    Returns 0 if the arm contains no recoded base.
+    """
+
+    if not recodedArmSeq:
+        return 0
+
+    recodedPos = [pos for pos, base in enumerate(recodedArmSeq) if base.isupper()]
+    if len(recodedPos) == 0:
+        return 0
+
+    if recodeArm == "HA5":
+        # the 5' arm ends at the edit site : the outermost recoded base is the first one
+        return len(recodedArmSeq) - min(recodedPos)
+    else:
+        # the 3' arm starts at the edit site : the outermost recoded base is the last one
+        return max(recodedPos) + 1
+
+
+def extendRecodedArm(
+    org,
+    posStr,
+    insertIdx,
+    kiType,
+    insertSeq,
+    donorType,
+    recodeArm,
+    HA5,
+    HA3,
+    recodedArmSeq,
+    HA5repeats,
+    HA3repeats,
+):
+    """
+    Extends the recoded homology arm on its outer end (away from the edit site),
+    so that the length requested by the user is counted from the first recoded base
+    and not from the edit site : whatever the recoding, the arm keeps the requested
+    length of unmodified homology beyond the recoded bases.
+    The additional bases are retrieved from the genome, right next to the outer end
+    of the arm, so they are appended to both the recoded and the original arm.
+
+    Both arms are in the orientation of the input sequence, so the arm to extend is
+    on the left of the edit site in genomic coordinates only if it is the 5' arm on
+    the plus strand or the 3' arm on the minus strand.
+
+    The coordinates of the recoding (recodeCoords, annotationCoords, mutEvents) are
+    NOT shifted : they stay relative to the arm as it was built by writeDonorSeq().
+
+    returns (HA5, HA3, recodedArmSeq, HA5repeats, HA3repeats)
+    """
+
+    unchanged = (HA5, HA3, recodedArmSeq, HA5repeats, HA3repeats)
+
+    armExt = getArmExtension(recodedArmSeq, recodeArm)
+    if armExt == 0:
+        return unchanged
+
+    if donorType == "ss":
+        # the length of a single stranded donor is limited (see printKiForm)
+        maxLen = 200
+        armExt = min(armExt, maxLen - (len(HA5) + len(HA3) + len(insertSeq)))
+        if armExt <= 0:
+            return unchanged
+
+    chrom, start, end, strand = parsePos(posStr)
+    if strand == "+":
+        insertCoord = int(start + insertIdx)
+    else:
+        insertCoord = int(end - insertIdx)
+
+    # the deleted / replaced bases are not part of the 3' homology arm
+    if kiType in ["deletion", "substitution", "replacement"]:
+        editOffset = len(insertSeq)
+    else:
+        editOffset = 0
+
+    # genomic coordinates of the bases to add, next to the outer end of the arm
+    if recodeArm == "HA5":
+        if strand == "+":
+            armEdge = insertCoord - len(HA5)
+            extStart, extEnd = armEdge - armExt, armEdge
+        else:
+            armEdge = insertCoord + len(HA5)
+            extStart, extEnd = armEdge, armEdge + armExt
+    else:
+        if strand == "+":
+            armEdge = insertCoord + editOffset + len(HA3)
+            extStart, extEnd = armEdge, armEdge + armExt
+        else:
+            armEdge = insertCoord - editOffset - len(HA3)
+            extStart, extEnd = armEdge - armExt, armEdge
+
+    extStart, extEnd = checkCoords(extStart, extEnd, org, chrom)
+    # the arm cannot be extended any further (end of the chromosome)
+    if extEnd - extStart <= 0:
+        return unchanged
+
+    extSeq = getSeq(
+        org,
+        "%s:%s-%s:%s" % (chrom, extStart, extEnd, strand),
+        maxlen=False,
+        minlen=False,
+    )
+    if not extSeq:
+        return unchanged
+
+    # annotate repeats (= lowercase bases) before lowercasing the extension
+    extRepeats = findRepeats(extSeq)
+    extSeq = extSeq.lower()
+
+    if recodeArm == "HA5":
+        # the 5' arm grows on its left side : shift the coordinates of its repeats
+        HA5repeats = extRepeats + [
+            (repStart + len(extSeq), repEnd + len(extSeq))
+            for repStart, repEnd in HA5repeats
+        ]
+        HA5 = extSeq + HA5
+        recodedArmSeq = extSeq + recodedArmSeq
+    else:
+        # the 3' arm grows on its right side : its own coordinates do not change
+        HA3repeats = HA3repeats + [
+            (repStart + len(HA3), repEnd + len(HA3)) for repStart, repEnd in extRepeats
+        ]
+        HA3 = HA3 + extSeq
+        recodedArmSeq = recodedArmSeq + extSeq
+
+    return HA5, HA3, recodedArmSeq, HA5repeats, HA3repeats
+
+
 def showDonor(
     HA5,
     HA3,
@@ -13282,9 +13637,6 @@ def showDonor(
     else:
         templateStrand = strand
 
-    # get the newly recoded sequence
-    orgDonor = HA5 + newInsertSeq + HA3
-
     codonFreqFname = "%s_codonFrequency.json" % org
     codonFreqFile = join(genomesDir, org, codonFreqFname)
 
@@ -13369,20 +13721,44 @@ def showDonor(
         mutEvents = newMutEvents
         recodedArmSeq = ''.join(newHA)
 
+    # the menu of manualRecodingMenu() and all the coordinates of the recoding
+    # (annotationCoords, recodeCoords, mutEvents) are relative to the homology arms
+    # as they were built by writeDonorSeq() : keep them, they must not be shifted by
+    # the extension below.
+    recodeHA5, recodeHA3, recodeArmSeq = HA5, HA3, recodedArmSeq
+
+    # the length of the recoded arm is counted from the first recoded base and not
+    # from the edit site : add the missing bases at the outer end of the arm.
+    # This is done here and not in writeDonorSeq() because the user can overwrite
+    # the automatic recoding on this page, which changes the position of the first
+    # recoded base.
+    if recodedArmSeq and recodeArm:
+        HA5, HA3, recodedArmSeq, HA5repeats, HA3repeats = extendRecodedArm(
+            org,
+            posStr,
+            insertIdx,
+            kiType,
+            insertSeq,
+            donorType,
+            recodeArm,
+            HA5,
+            HA3,
+            recodedArmSeq,
+            HA5repeats,
+            HA3repeats,
+        )
+
+    # from here on, the coordinates in the donor DNA are all relative to the
+    # (possibly extended) homology arms : len(HA5) is the start of the edit
+    orgDonor = HA5 + newInsertSeq + HA3
+
+    if recodedArmSeq:
         if recodeArm == "HA3":
             donorSeq = HA5 + newInsertSeq + recodedArmSeq
         else:
             donorSeq = recodedArmSeq + newInsertSeq + HA3
-
-    elif recodedArmSeq:
-        if recodeArm == "HA3":
-            donorSeq = HA5 + newInsertSeq + recodedArmSeq
-        else:
-            donorSeq = recodedArmSeq + newInsertSeq + HA3
-
     else:
-        donorSeq = HA5 + newInsertSeq + HA3
-        orgDonor = donorSeq
+        donorSeq = orgDonor
 
     if strand != templateStrand:
         isRev = True
@@ -13601,11 +13977,9 @@ def showDonor(
             )
         )
 
-    if len(HA3repeats) > 0:
-        if kiType in ["substitution", "deletion", "replacement"]:
-            offset = len(HA3)
-        else:
-            offset = len(HA3) + len(newInsertSeq)
+    # the 3' homology arm starts after the edit : donorSeq = HA5 + newInsertSeq + HA3
+    # (newInsertSeq is empty for deletions)
+    offset = len(HA5) + len(newInsertSeq)
 
     for repeatStart, repeatEnd in HA3repeats:
         highlights.append(
@@ -13702,21 +14076,21 @@ def showDonor(
         transcriptUrl = "at position %s in %s" % (seqStart + insertIdx, chrom)
 
     print(
-        """<div class="title" style="text-align:center; margin-bottom=50px;margin-top=50px;">%s : %s %s </div><br> """
+        """<div class="title" style="width: 80%%; margin-left:10%%; margin-right:10%%; text-align:left; margin-bottom:50px; margin-top:50px;">%s : %s %s </div><br> """
         % (dbInfo.scientificName, seqMsg, transcriptUrl)
     )
 
     # print("<small>Black lines = homology arms. Sequence = insert sequence</small>")
+    print(
+        """<div style='width: 80%; margin-top: 12px; margin-left:10%; margin-right:10%; text-align:left;'>"""
+    )
 
     printKiSteps(batchId, step=3, backParams=backParams)
 
     print("""<input type="hidden" id="donorSeq" value="%s"></input>""" % donorSeq)
     print("""<input type="hidden" id="guideSeq" value="%s"></input>""" % guideSeq.upper())
 
-    print(
-        """<div style='width: 80%; margin-top: 12px; margin-left:20%; margin-right:50%; text-align:left;'>"""
-    )
-    print("""<div style="display: flex; flex-direction: column;">""")
+    print("""<div style="display: flex; flex-direction: column; align-items: flex-start;">""")
 
     print("<form>")
 
@@ -13808,7 +14182,7 @@ def showDonor(
     # highlight region that might be detrimental to synthesis (only dor double stranded donors)
 
     print(
-            """<div style="font-family: Source Code Pro; justify-self:center; margin-bottom:12px;">"""
+            """<div style="font-family: Source Code Pro; align-self:flex-start; text-align:left; margin-bottom:12px;">"""
     )
     fastaWidth = 80
     if len(donorSeq) > fastaWidth:
@@ -13876,7 +14250,7 @@ def showDonor(
       </div> """ % (scriptName, urllib.parse.urlencode(downloadParams), pairStr)
     )
 
-    print("""<div style="margin-right: 15%;">""")
+    print("""<div>""")
 
     if donorCfd != -1:
         print("<p>CFD score of the guide against donor DNA: %s</p>" % round(donorCfd, 2))
@@ -13915,7 +14289,10 @@ def showDonor(
                 },
                 skip=["altCodon", "altBase"]
             )
-            manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords, recodeCoords, codonFreq, manualExStrand, kiType)
+            # the menu works on the arms before their extension : the positions of
+            # its parameters (altBase / altCodon) stay relative to the arms built by
+            # writeDonorSeq(), whatever the recoding the user selects
+            manualRecodingMenu(org, recodeArm, recodeArmSeq, recodeHA5, recodeHA3, annotationCoords, recodeCoords, codonFreq, manualExStrand, kiType)
             print("</form>")
 
         recNc = False
@@ -14008,7 +14385,7 @@ def showDonor(
             )
 
         print(
-            """<div style="display: flex; flex-direction: column; align-items: left; gap: 8px; margin: 0 auto; margin-right: 30%; min-width: 800px;"> """
+            """<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0; width: 100%;"> """
         )
         if kiType == "insertion":
             print(
@@ -14057,7 +14434,7 @@ def showDonor(
 
         if kiType in ["tagging", "qTag", "insertion"]:
             print(
-                """<button style="align-self: center; width: 75px;" type="submit" value="update">update</button>"""
+                """<button style="align-self: flex-start; width: 75px;" type="submit" value="update">update</button>"""
             )
 
             print("</form>")
@@ -14074,6 +14451,7 @@ def showDonor(
 
     print("</div>")
     print("</div>")
+    print("<br>")
     print("""
     <script>
     // save the states of detail elements on page reload
@@ -15054,7 +15432,6 @@ function toggleExonSeq(selectedValue) {
 
     print(
         """ <div id="geneModel" style="
-          width: 1650px;
           overflow-x:scroll;
           display:flex;
           align-items:center;
@@ -15431,7 +15808,7 @@ def printReleaseNote():
         % releaseNote
     )
     '''
-    print("""<i>Disclaimer : this version if still in development and may be unstable. If you find any bugs, please <a href='mailto:%s'>contact us</a>.""" % contactEmail)
+    print("""<i>Disclaimer : this version is still in development and may be unstable. If you find any bugs, please <a href='mailto:%s'>contact us</a>.""" % contactEmail)
 
     print("</div>")
 
@@ -18167,7 +18544,7 @@ $(document).ready(function() {
 
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ko">
-        <div style="display:grid; clear:both; width: 100%%; min-width: 1650px; grid-template-columns: 42% 58%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
+        <div class="reflowGridKo" style="display:grid; clear:both; width: 100%%; grid-template-columns: 42% 58%; grid-template-rows: auto auto; place-self:center; justify-self:center; space:20px; padding:12px;">
         <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1;">
 
             <details id="ko1" open>
@@ -18874,10 +19251,15 @@ function clearEndSeq() {
         <input type=hidden name="assist" value="1">
         <input type=hidden name="expType" value="ki">
 
-       <div style="display:flex; clear:both; padding:12px; width: 100%; min-width: 1550px;">
-       <div style="width: 50% ;flex:0 0 41%; display:flex; flex-direction:column; gap:14%;">
+       <div class="reflowFlexKi" style="display:flex; clear:both; padding:12px; width: 100%;">
+       <div style="flex:1 1 41%; display:flex; flex-direction:column; gap:14%;">
 
-        <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:30%;">
+        <!-- no fixed height: `height:30%` is a percentage of the (stretched) left
+             column, so as soon as the layout collapses vertically - narrow window,
+             stacked columns - the panel became shorter than its own content and
+             the genome drop-down / notes spilled out of the bottom of the box.
+             An auto height always follows the content. -->
+        <div class="windowstep subpanel" style="width:90%; grid-column:1; grid-row:1; height:auto;">
 
             <details id="ki1" open>
             <summary><small>Show / Hide step 1</small></summary>
@@ -18906,7 +19288,9 @@ function clearEndSeq() {
     )
     print(
         """
-        <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2; height: 30%%;">
+        <!-- same as step 1 above: auto height, so the PAM drop-down and the
+             "notes on enzymes" line never overflow the bottom of the panel. -->
+        <div class="windowstep subpanel" style="width:90%%; grid-column:1; grid-row:2; height: auto;">
 
         <details id="ki2" open>
         <summary><small>Show / Hide step 2</small></summary>
@@ -18948,7 +19332,7 @@ function clearEndSeq() {
 
     print(
         """
-        <div style="flex:0 0 59%%; display:flex; flex-direction:column; width: 100%%;">
+        <div style="flex:1 1 59%%; display:flex; flex-direction:column; width: 100%%;">
         <div class="windowstep subpanel" style="width:100%%; grid-column:2; grid-row:1;">
             <div class="title" style="cursor:pointer; margin-bottom:4px;" onclick="$('#helpstep3').toggle('fast')">
                 Step 3
@@ -19013,9 +19397,14 @@ function clearEndSeq() {
                             Enter the edited sequence (target sequence with edits)<br>
                             <small>Modified bases in UPPERCASE, with the rest in lowercase</small>
                         </div>
-                        <div style="display: flex; flex-direction: row; justify-content: space-around; width:50%%;">
-                            <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
-                            <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%%; justify-self: center; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
+                        <!-- align-items:flex-start + height:auto on the buttons: as
+                             flex items they used to be stretched to the height of the
+                             row (i.e. of the text on the left) instead of being sized
+                             by their own label. They now grow/shrink with the wrapped
+                             label, whatever the resolution. -->
+                        <div style="display: flex; flex-direction: row; justify-content: space-around; align-items: flex-start; width:50%%;">
+                            <button type="button" onclick="changeSeqCase('uppercase')" style="width: 30%%; height: auto; white-space: normal; padding: 6px 8px; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to uppercase</small></button>
+                            <button type="button" onclick="changeSeqCase('lowercase')" style="width: 30%%; height: auto; white-space: normal; padding: 6px 8px; background: #ffffff; color: #0480be; box-shadow: 0 2px 10px 2px #9bdcfd; webkit-box-shadow: 0 2px 10px 2px #9bdcfd; moz-box-shadow: 0 2px 10px 2px #9bdcfd;"><small>Change selection to lowercase</small></button>
                         </div>
                     </div><br>
                     <div style="display: flex; flex-direction: column;">
@@ -22762,6 +23151,9 @@ def donorDesignPage(params):
 
     # save guide Info in params for recoding
     guideInfo = (pamSeq, guideStart, guideStrand)
+    print(
+        """<div style='width: 80%; margin-top: 54px; margin-left:10%; margin-right:10%; text-align:left;'>"""
+    )
 
     printKiSteps(batchId, step=2)
 
@@ -22917,9 +23309,6 @@ def donorDesignPage(params):
     </script>
     """
         % locals()
-    )
-    print(
-        """<div style='width: 80%; margin-top: 54px; margin-left:10%; margin-right:10%; text-align:left;'>"""
     )
 
     # custom track test
@@ -24019,9 +24408,9 @@ def printAssistant(params):
                         class="%s"
                         style="min-width: 100px;"
                         title="Original mode : enter a sequence to find guides.">
-                    <span>
+                    <span style="text-align: center;">
                         Classic<br>
-                        <small style="font-size: 0.5em; margin-left: 12px;">&nbsp</small>
+                        <small style="font-size: 0.5em;">&nbsp</small>
                     </span>
                 </button>
 
@@ -24030,9 +24419,9 @@ def printAssistant(params):
                         style="min-width: 400px;"
                         title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Edtiting (BE), or edits with Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
-                        <span style="text-align: left;">
+                        <span style="text-align: center;">
                             Knock-out<br>
-                            <small style="font-size: 0.5em; margin-left: 12px;">(NHEJ / BE / PE)</small>
+                            <small style="font-size: 0.5em;">(NHEJ / BE / PE)</small>
                         </span>
                         <span class="tabBadge assistant" style="height: 12px; align-self: center;">New</span>
                     </span>
@@ -24043,9 +24432,9 @@ def printAssistant(params):
                         style="min-width: 275px;"
                         title="Assistant to edit a sequence in multiple ways, including insertion, deletion, substitution, replacement, or protein tagging. Depending on the intended modification, multiple editing strategies are suggested, including Homology-Directed Repair (HDR) based editing with donor DNA design, Base Editing (BE) or Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
-                        <span>
+                        <span style="text-align: center;">
                             Precision Editing<br>
-                           <small style="font-size: 0.5em; margin-left: 48px;">(HDR / BE / PE)</small>
+                            <small style="font-size: 0.5em;">(HDR / BE / PE)</small>
                         </span>
                         <span class="tabBadge assistant" style="height: 12px; align-self: center;">New</span>
                     </span>
