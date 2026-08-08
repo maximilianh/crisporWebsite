@@ -2979,3 +2979,17 @@ FORECasT-BE :
 - sauvegarde des paramètres de modification de l'insert dans le donneur en même temps que recodage custom
 - url error pour PAMs alternatifs en mode KI ?
 - filtrer PAMs redondants en mode KI / BE
+
+# 08/08/26
+
+## global
+
+- fix de l'affichage de la page à basses résolutions avec Claude
+
+## Knock-in mode
+
+- Extension du bras d'homologie depuis la base recodée la plus éloignée de l'edit avec Claude
+
+## à faire
+
+- taille de boutons de sélection de tableaux HDR / double nicking / BE relative à la page

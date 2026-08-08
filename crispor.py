@@ -8065,6 +8065,20 @@ div.contentcentral { text-align: left; float: left}
     .assistantMenu { margin-left: 0 !important; }
 }
 
+/* The bar that selects which result table is shown (KiResultsPage: "guides
+   for HDR-based editing" / "pairs of guides ... double-nicking strategy" /
+   "guides for base editing"). It reuses .assistantMenu, so all the rules
+   above already apply to it - single row, labels never wrapping, min-width
+   auto, scaled gaps and paddings. Only the font-size needs its own value:
+   the labels here are full sentences rather than the one or two words of the
+   main tab bar, so they are capped at the 24px they used to be given inline
+   instead of the 28px of the main bar - above that the three unwrappable
+   labels no longer fit side by side, even on a wide screen. Below that width
+   they scale down continuously with the viewport like everything else. */
+.assistantMenu.resultTabs button.assistantButton {
+    font-size: clamp(8px, 1.25vw, 24px);
+}
+
 /* Workflow overview of the precision-editing pages (printKiSteps).
 
    Same logic as the assistant tab bar above: the label of a step ("Design
@@ -12611,22 +12625,27 @@ def KiResultsPage(params, batchId, download=False):
         # clean dict consistent with the currently selected gene model
         annotParams = resolveAnnotationParams(org, seq, posStr)
 
+        # same structure as the tab bar of printAssistant: the buttons are
+        # wrapped in a .tabs row and carry no inline font-size, so the
+        # .assistantMenu rules of the stylesheet keep them on a single line
+        # and scale them (font, gaps, paddings) with the resolution.
         print("""
-        <div class="assistantMenu" style="margin-bottom: 24px; margin-left: 18px; margin-top: 12px;">
-            <button class="assistantButton active tooltipsterInteract" style="font-size: 24px;" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">guides for HDR-based editing </button>
+        <div class="assistantMenu resultTabs" style="margin-bottom: 24px; margin-left: 18px; margin-top: 12px;">
+            <div class="tabs">
+            <button class="assistantButton active tooltipsterInteract" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">guides for HDR-based editing </button>
         """)
 
         if pairedGuides and len(pairedGuides) > 0:
             print("""
-            <button class="assistantButton tooltipsterInteract" style="font-size: 24px;" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">pairs of guides for HDR-based editing using a double-nicking strategy</button>
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">pairs of guides for HDR-based editing using a double-nicking strategy</button>
             """)
 
         if useBaseEditor:
             print("""
-            <button class="assistantButton tooltipsterInteract" style="font-size: 24px;" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">guides for base editing</button>
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">guides for base editing</button>
             """)
 
-        print("</div>")
+        print("</div></div>")
 
         print("""<div name="guideTablePanel" id="hdrTable">""")
 
@@ -14177,9 +14196,7 @@ def showDonor(
     """
     )
 
-
     print(" <h4>Sequence of the %s : </h4>" % donorTypeText)
-    # highlight region that might be detrimental to synthesis (only dor double stranded donors)
 
     print(
             """<div style="font-family: Source Code Pro; align-self:flex-start; text-align:left; margin-bottom:12px;">"""
@@ -19355,10 +19372,10 @@ function clearEndSeq() {
                     <small><a href="javascript:resetToExample()">Set a default example</a></small>
                     <small>
                         <input style="margin-left: 24px;" type="checkbox" name="noPerfectMatch" value=1 />Sequence not in reference genome
-                        <img src=" %s image/info-small.png" class="tooltipsterInteract" title="By default, CRISPOR only uses the coordinates of input sequences that are identical to the reference genome, to differentiate off-target and on-target sites. However, the coordinates are needed to design donor DNA. You can select this option to use the coordinates of the best match in the genome as the on-target site instead, allowing to search in sequences that differ from the genome. For example, this option can be used to correct pathogenic mutations in disease models.">
+                        <img src=" %s image/info-small.png" class="tooltipsterInteract" title="By default, CRISPOR only uses the coordinates of input sequences that are identical to the reference genome, to differentiate off-target and on-target sites. You can select this option to use the coordinates of the best match in the genome as the on-target site instead, allowing to search in sequences that differ from the genome. For example, this option can be used to correct pathogenic mutations in disease models.">
                     </small>
                 </div>
-                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target sequence here (max. 2300bp). The sequence should be identical to the selected genome." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target genomic sequence here. Uppercase / lowercase bases will be conserved. If the sequence is not identical to the selected reference genome, please check the box above." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
