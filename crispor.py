@@ -5359,7 +5359,8 @@ def mergeGuideInfo(
 
         # in KI mode, discard BE guides that can't introduce the substitution,
         # while keeping all HDR guides for the selected PAM list
-        if beFilter and pamPat not in orgPamList and pamId not in bePamIds:
+        # setupPamInfo() strips PAM options, so compare the full name, if we have it
+        if beFilter and (pamFullName or pamPat) not in orgPamList and pamId not in bePamIds:
             continue
 
         if pamId in otMatches:
@@ -5968,14 +5969,14 @@ def printTableHead(
             htmls.push("<table class='editTable'>");
 
 
-            htmls.push("<th>Model</th><th>Predicted efficiency <br><small>(at intended position)</small></th><th>Most frequent outcome</th><th>Predicted Frequency</th>");
+            htmls.push("<th>Model</th><th>Predicted editing <br><small>(at intended position)</small></th><th>Most frequent outcome</th><th>Predicted Frequency</th>");
             let count = 0;
             for (outcome of outcomes) {
 
                 let modelName = outcome[0];
                 htmls.push("<tr><td>" + modelName + "</td>");
                 let eff = effs[count][1] * 100;
-                htmls.push("<td>" + eff.toFixed(2) + "</td>");
+                htmls.push("<td>" + eff.toFixed(2) + " %</td>");
 
                 count += 1;
 
@@ -6301,7 +6302,11 @@ def printTableHead(
     print("</th>")
 
     if pamFullName and ((multipam and multipam != "20bp-NGG") or editData):
-        print('<th data-col-id="ez" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Enzyme </th>' % colWidths["ez"])
+        if editData:
+            casStr = "Nickase"
+        else:
+            casStr = "Nuclease"
+        print('<th data-col-id="ez" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">%s </th>' % (colWidths["ez"], casStr))
 
     print(
         '<th data-col-id="guide" style="top: 1px; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Guide Sequence + <i>PAM</i><br>'
@@ -6490,7 +6495,7 @@ You can adapt the global score to your gRNA production method (select below), wh
 
     if editData and usedBeModels:
         print('<th data-col-id="beEffs" colspan="%d" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; height: 325px; border-bottom:none">' % (len(usedBeModels), colWidths["beEffTotal"]))
-        print('Predicted editing efficiency at intended position')
+        print('Predicted editing frequency at intended position')
         if pamFullName:
             beEffText = "substitution (without any bystander edits)"
         else:
@@ -6889,7 +6894,7 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
 <small style="margin-top: 24px; width: 20px;">Click to highlight the corresponding PAMs on the sequence viewer</small>
 </th>
 
-        <th rowspan=2 %(headerCss)s>Off-targets double nicking sites <img src="%(htmlPrefix)simage/info-small.png" title="This column shows pairs of off-target sites that are within 118bp of each other, regardless of the orientation. While using a nickase mitagates the risk of off-target effects, such off-target sites may be subject to double strand breaks." class="tooltipster">
+        <th rowspan=2 %(headerCss)s>Pairs of off-target sites <img src="%(htmlPrefix)simage/info-small.png" title="This column shows pairs of off-target sites that are within 118bp of each other, regardless of the orientation. While using a nickase mitagates the risk of off-target effects, such off-target sites may be subject to double strand breaks." class="tooltipster">
 </th>
 
         <th rowspan=2 %(headerCss)s>Design link</th>
@@ -6925,9 +6930,9 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
             doubleOts = []
 
         if len(doubleOts) == 0:
-            otText = "no promiscuous off-target sites"
+            otText = "no off-target sites in close proximity"
         else:
-            otText = "found promiscuous off-target sites. However, the interface is not implemented yet. In the meantime, please navigate to the main table to investigate off-targets individually."
+            otText = "found off-target sites in close proximity. However, the interface is not implemented yet. In the meantime, please navigate to the main table to investigate off-targets individually."
 
         donorParams = {
             "batchId": batchId,
@@ -8410,7 +8415,8 @@ def writePamFlank(seq, startDict, pam, faFname, pamFullName=None, beFilter=None)
     ) in flankSeqIter(
         seq, startDict, len(pam), True, exonId=None, pamFullName=pamFullName
     ):
-        if beFilter and pam not in orgPamList and pamId not in bePamIds:
+        # setupPamInfo() strips PAM options, so compare the full name, if we have it
+        if beFilter and (pamFullName or pam) not in orgPamList and pamId not in bePamIds:
             continue
 
         logging.info("wrote PAM %s to fasta" % pamId)
@@ -8805,7 +8811,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
     # need to reduce possible scores
     # need to create the same rows for all PAMs (if the score isn't calculated for this pam, assign the value 0 / NA)
     # move the score calculation to a shared function, and row creation to a specialized one ?
-
+    orgPamList, bePamIds = [], []
     if beFilter:
         orgPamList, bePamIds = beFilter
 
@@ -8820,13 +8826,13 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
     pamIds = []
     guides = []
     longSeqs = []
-
     for pamId, startPos, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamInfo:
 
         # in KI mode, the list of PAMs was extended for base editing guides
         # filter out the guides that can't introduce the substitution,
         # but only for PAMs that are only used for base editing
-        if beFilter and pam not in orgPamList and pamId not in bePamIds:
+        # compare the full name, setupPamInfo() strips options, e.g. TTTV-21 -> TTTV
+        if beFilter and pamFullName not in orgPamList and pamId not in bePamIds:
             continue
 
         logging.info("PAM ID: %s - guideSeq %s" % (pamId, guideSeq))
@@ -9730,9 +9736,9 @@ def processMultiSeqSubmission(
 
         # if no STOP codons can be introduced with SpCas9, switch to SpRY
         # alternatively, move this block to a new function a search with increasingly pamless Cas until ~ 5 guides are found ?
-        if koMethod == "stop" and pam != "NRN" and len(stopGuides) == 0:
+        if koMethod == "stop": # and pam != "NRN" and len(stopGuides) == 0:
 
-            queue.startStep(batchId, "SpRY", "Could not find any guides with %s : searching guides with SpRY Cas9 (PAM NRN)." % pamToEnzyme[pam])
+            queue.startStep(batchId, "SpRY", "Could not find any guides with the selected PAM : searching guides with SpRY Cas9 (PAM NRN).")
 
             # set the maximum number of guides to score before filtering
             limit = 100
@@ -9928,7 +9934,9 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     # PAM list selected from the menu (not extended to include BE pams)
     # score and search off-targets for all of these PAMs
     # for PAMs to be used with BE, only score guides that can be used to introduce the substitution
+    # without base editing, no PAM variants were added, so nothing has to be filtered
     orgPamList = multiPamDict[multipam][0]
+    beFilter = (orgPamList, bePamIds) if useBaseEditor else None
 
     for i, pamFullName in enumerate(pamList):
 
@@ -9944,7 +9952,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         if doEffScoring:
             queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
             createMultiBatchEffScoreTable(
-                batchId, tempEffScoresFname, queue, pam, pamFullName, extSeq, i, beFilter=(orgPamList, bePamIds)
+                batchId, tempEffScoresFname, queue, pam, pamFullName, extSeq, i, beFilter=beFilter
             )  # simplify the scores table
 
         if isfile(tempEffScoresFname):
@@ -9956,7 +9964,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
 
         logging.info("searching for off-targets with PAM %s" % pamFullName)
         startDict, endSet = findAllPams(uppSeq, pam)
-        writePamFlank(seq, startDict, pam, faFname, pamFullName, beFilter=(orgPamList, bePamIds))
+        writePamFlank(seq, startDict, pam, faFname, pamFullName, beFilter=beFilter)
 
         # find offtargets and append them to the main file
         # if useBowtie:
@@ -12660,17 +12668,17 @@ def KiResultsPage(params, batchId, download=False):
         print("""
         <div class="assistantMenu resultTabs" style="margin-bottom: 24px; margin-left: 18px; margin-top: 12px;">
             <div class="tabs">
-            <button class="assistantButton active tooltipsterInteract" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">guides for HDR-based editing </button>
+            <button class="assistantButton active tooltipsterInteract" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">Guides for HDR-based editing </button>
         """)
 
         if pairedGuides and len(pairedGuides) > 0:
             print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">pairs of guides for HDR-based editing using a double-nicking strategy</button>
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">Pairs of guides for HDR-based editing using a double-nicking strategy</button>
             """)
 
         if useBaseEditor:
             print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">guides for base editing</button>
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">Guides for base editing</button>
             """)
 
         print("</div></div>")
@@ -13401,7 +13409,7 @@ def manualRecodingMenu(org, recodeArm, recodedArmSeq, HA5, HA3, annotationCoords
     nonCoding = recodeSize - codingRecodeSize >= 5
 
     if nonCoding:
-        print("""<p>You can choose to recode in non coding regions. In this case, the coordinates of the kozak consensus sequence and splicing sites are flagged with '!!!', to avoid introducing a mutation that results in an unintentional knock-out.</p>""")
+        print("""<p>You can choose to recode in non coding regions. In this case, the coordinates of the kozak consensus sequence and splice sites are flagged with '!!!', to avoid introducing a mutation that results in an unintentional knock-out.</p>""")
 
     print('<input type="hidden" name="manualRecoding" value=1/>')
     print("""<div style="display: flex; flex-direction: row; margin-top: 24px;">""")
@@ -14817,8 +14825,8 @@ def printMutEventsTable(mutEvents, HA3, insertSeq, HA5, recodeArm, isRev):
         else:
             if mut == "No (in 5'UTR)" and coding is False:
                 aaStr = "5'UTR"
-            elif mut == "No (in a splicing site)" and coding is False:
-                aaStr = "splicing site"
+            elif mut == "No (in a splice site)" and coding is False:
+                aaStr = "splice site"
             else:
                 aaStr = "non-coding"
 
@@ -18880,11 +18888,11 @@ def printTagsAndLinkers(tag=True, qTAG=True, tagNames=None):
     }
 
     linkers = {
-        "flexible linker": ["GGGGS", "GSGGG", "(GGGGS)x2", "XTEN"],
-        "rigid linkers": [
+        "Flexible linkers": ["GGGGS", "GSGGG", "(GGGGS)x2", "XTEN"],
+        "Rigid linkers": [
             "",
         ],
-        "multimer linkers": [""],
+        # "Multimer linkers": [""],
     }
 
     # qTAG cassette elements
@@ -21035,7 +21043,7 @@ def getRecodeCodons(
     splicePos = set()
     for start, end in spliceCoords:
         for i in range(start, end):
-            # avoid flagging splicing sites in UTRs
+            # avoid flagging splice sites in UTRs
             if i in kozakPos or i in UTRpos:
                 continue
             else:
@@ -21199,7 +21207,7 @@ def recodeDonor(
                     motif,
                 )
             elif pos in splicePos:
-                mutEvents[(base, None, pos)] = ("No (in a splicing site)", None, motif)
+                mutEvents[(base, None, pos)] = ("No (in a splice site)", None, motif)
             else:
                 # choice = [b for b in bases if b != base]
                 # newBase = choice[pos % 3]  # select a "random" base for now
