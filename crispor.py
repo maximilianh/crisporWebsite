@@ -2361,13 +2361,22 @@ def getSelGeneModel(org, noGenes=True, manual=False, noAllTrans=False):
             geneModels = [("manual", "manual annotation")]
 
     if geneModels:
+        for model, modelDesc in geneModels:
+            if model == "knownGene":
+                continue
+            if model == "refSeq":
+                defaultModel = model
+                break
+            else:
+                defaultModel = model
+                break
         if noGenes:
-            selGeneModel = cgiParams.get("geneModelSelection", geneModels[0][0])
+            selGeneModel = cgiParams.get("geneModelSelection", defaultModel)
             geneModels.insert(0, ("noGenes", "Do not show"))
         else:
-            selGeneModel = cgiParams.get("geneModelSelection", geneModels[0][0])
+            selGeneModel = cgiParams.get("geneModelSelection", defaultModel)
             if selGeneModel == "None":
-                selGeneModel = geneModels[0][0]
+                selGeneModel = defaultModel
         possNames = [x for x, y in geneModels]
         if selGeneModel not in possNames:
             errAbort(
@@ -3573,7 +3582,7 @@ def showSeqAndPams(
     if multiPamInfo is not None:
         print("""<details id="results2" open style="margin-bottom: 12px;">""")
         print(
-            """<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Legend and general information about the results</summary>"""
+            """<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Legend and results summary</summary>"""
         )
     else:
         print("<div class='substep' style='margin-top: 24px;'>")
@@ -3604,7 +3613,7 @@ def showSeqAndPams(
             if multiPamInfo and useBaseEditor:
                 beCasList = [pamToEnzyme[pamStr][0] for pamStr in pamVariantModels.keys()]
                 print(
-                    """Shown below are ther PAM sites and the expected cleavage position for the following nucleases :
+                    """Shown below are ther PAM sites and the expected cleavage position for the following Cas :
                     <ul>
                         <li>HDR-based editing : %s</li>
                         <li>Base editing : %s</li>
@@ -3692,6 +3701,8 @@ def showSeqAndPams(
             print(
                 "Once you selected a transcript, it will be used as a model to recode the donor DNA, if needed.<br>"
             )
+        print("""<div style="display: flex; flex-direction: row; gap: 6px; align-items: center;">""")
+        print("<div>")
         print("Reference gene set:")
         printDropDown(
             "geneModelSelection", geneModels, selGeneModel, style="width:20em"
@@ -3779,9 +3790,10 @@ def showSeqAndPams(
 
             selTransId = "manual annotation"
             labelLen = max(labelLen, len(selTransId))
-
+        print("</div>")
         if selGeneModel not in ["noGenes", "manual"] and not noPerfectMatch:
             selTransId = annotParams["selTransId"]
+            print("<div>")
             print("Transcript:")
             # only one transcript per symbol in refSeq select
             if selGeneModel != "refSeqSelect":
@@ -3791,6 +3803,7 @@ def showSeqAndPams(
             for transId, sym in list(exonInfo.keys()):
                 transIdInfo.append((transId, sym + " / " + transId))
             printDropDown("selTransId", transIdInfo, selTransId, style="width:20em")
+            print("</div>")
 
         if selGeneModel != "noGenes":
             exonLines = makeExonLines(exonInfo, seq, selTransId)
@@ -3798,6 +3811,7 @@ def showSeqAndPams(
         print(
             """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update"><br>"""
         )
+        print("</div>")
         if selTransId:
             if "ENST" in selTransId:
                 print(
@@ -3831,11 +3845,8 @@ def showSeqAndPams(
         )
         if multiPamInfo is not None:
             print(
-                """<p>Base editing can be used to introduce this substitution.</p>"""
+                """<p>Base editing can be used to introduce this substitution. Navigate to the "base editing to" field below to visualize the edit.</p>"""
             )
-        print(
-            """<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>"""
-        )
         if multiPamInfo is not None:
             print(
                 """
@@ -3847,7 +3858,7 @@ def showSeqAndPams(
             )
 
         print(
-            """Hover on an edit to show the corresponding guides and their predicted efficiencies and outcome sequences, or click on it to navigate to the table.<br>"""
+            """Hover on an edit to show the top three guides to edit the corresponding base, or click on it to navigate to the table.<br>"""
         )
 
         # input te change the base editor modification window
@@ -5041,8 +5052,8 @@ def matchRestrEnz(allEnzymes, guideSeq, pamSeq, pamPlusSeq, pamPat):
 def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE, globEffScore):
     "Calculate a global score for a sgRNA based of Specificity, Efficientcy, GC content and free-energy"
 
-    MitScaled = MitScore / 100
-    # CfdScaled = CfdScore/100
+    # specScaled = MitScore / 100
+    specScaled = CfdScore/100
 
     # for base editors, get the mean of editing frequency at the intended position
     if baseEditor:
@@ -5073,8 +5084,7 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE,
     if globEffScore == "seqDeepCpf1" or globEffScore == "EVA":
         mainScore = 100 * effScore
     else:
-        mainScore = 100 * (0.60 * MitScaled + 0.40 * effScore)
-    # coefficients will need to be adjusted
+        mainScore = 100 * (0.60 * specScaled + 0.40 * effScore)
 
     # penalties
 
@@ -5779,7 +5789,18 @@ def printTableHead(
     "print guide score table description and columns"
     # one row per guide sequence
 
-    if not pamIsCpf1(pam) or pamFullName:
+    if editData:
+        print(
+            """<div class='substep'>Ranked by default from highest to lowest editing frequency at intended position. Click on a column title to rank by a specific score.<br>"""
+        )
+        print("</div>")
+    elif pamFullName and not editData:
+        print(
+            """<div class='substep'>Ranked by default by the distance between the cut site and the edit. Click on a column title to rank by a specific score.<br>"""
+        )
+        print("</div>")
+
+    else:
         print(
             """<div class='substep'>Ranked by default from highest to lowest Global Score. Click on a column title to rank by a specific score.<br>"""
         )
@@ -6016,12 +6037,14 @@ def printTableHead(
     }
 
     function emptyBeRows() {
-    // hides the rows for which no resuts can be shown based on the selected BE models (see below)
+    // hides the rows for which no resuts can be shown based on the selected BE models.
 
         $(".beModel").closest("tr").each(function () {
             var hasVisible = $(this).find(".beModel").filter(function () {
                 return this.style.display !== "none";
                 }).length > 0;
+                // toggle() restores a <tr> to display:"" (i.e. table-row), it never
+                // forces display:block, so the row keeps its place in the column flow
                 $(this).toggle(hasVisible);
         });
 
@@ -6031,28 +6054,42 @@ def printTableHead(
     var hiddenBeModels = new Set();
 
     var MIN_BE_GROUP_WIDTH = 150;
+    var MAX_BE_GROUP_PCT = 40;
 
-    // The two tables are fluid (width:100%) and their columns are sized in
-    // percent, so this works entirely in percent space and never touches
-    // table.style.width. Both tables carry the same data-col-id set and run
-    // through the same deterministic computation, which is what keeps the
-    // header and the body columns aligned -- no measuring, no copying.
+    function otTablePairs() {
+        var headers = document.querySelectorAll('#otTableHeader');
+        var bodies = document.querySelectorAll('#otTable');
+        var pairs = [];
+        for (var i = 0; i < Math.max(headers.length, bodies.length); i++) {
+            var pair = [];
+            if (headers[i]) pair.push(headers[i]);
+            if (bodies[i]) pair.push(bodies[i]);
+            if (pair.length) pairs.push(pair);
+        }
+        return pairs;
+    }
+
     function resizeOtTables() {
         // the body's scrollbar may appear/disappear when rows are hidden, and the
         // header has to reserve exactly the same gutter or the columns drift
         if (typeof window.syncOtTableGutter === 'function') window.syncOtTableGutter();
-        ['otTableHeader', 'otTable'].forEach(function (id) {
-            var table = document.getElementById(id);
-            if (!table) return;
-            var cols = Array.prototype.slice.call(table.querySelectorAll('col[data-col-id]'));
-            if (!cols.length) return;
 
-            // MIN_BE_GROUP_WIDTH is a px design constant -> express it as a share of
-            // the table's *current* width so it keeps its meaning at any window size
-            var minBePct = 100 * MIN_BE_GROUP_WIDTH / (table.clientWidth || 1);
+        otTablePairs().forEach(function (tables) {
+            var colsPerTable = tables.map(function (t) {
+                return Array.prototype.slice.call(t.querySelectorAll('col[data-col-id]'));
+            });
+            if (!colsPerTable[0].length) return;
 
-            var pct = {}, beCols = [];
-            cols.forEach(function (col) {
+            // the one reference width of the pair. It is 0 while the pair has no
+            // layout at all (a result tab still display:none, a body whose rows
+            // have all been hidden): the px minimum cannot be expressed as a
+            // percentage then, so it is skipped rather than turned into a 15000%
+            // column that would wreck the colgroup.
+            var refWidth = 0;
+            tables.forEach(function (t) { refWidth = Math.max(refWidth, t.clientWidth || 0); });
+
+            var pct = {}, colIds = [], beCols = [];
+            colsPerTable[0].forEach(function (col) {
                 var colId = col.getAttribute('data-col-id');
                 var base = parseFloat(col.dataset.basePct) || 0;
                 if (colId.indexOf('beEff-') === 0) {
@@ -6060,13 +6097,17 @@ def printTableHead(
                     if (hiddenBeModels.has(colId.slice('beEff-'.length)))
                         base = 0;
                 }
+                colIds.push(colId);
                 pct[colId] = base;
             });
 
             // keep the beEff group from collapsing to 0 so its spanning
             // "Predicted editing efficiency" header stays visible; pad the first
             // beEff col (its cells are visibility:hidden, so it just reads as empty)
-            if (beCols.length) {
+            if (beCols.length && refWidth) {
+                // MIN_BE_GROUP_WIDTH is a px design constant -> express it as a share of
+                // the pair's *current* width so it keeps its meaning at any window size
+                var minBePct = Math.min(100 * MIN_BE_GROUP_WIDTH / refWidth, MAX_BE_GROUP_PCT);
                 var beSum = beCols.reduce(function (s, k) { return s + pct[k]; }, 0);
                 if (beSum < minBePct)
                     pct[beCols[0]] += minBePct - beSum;
@@ -6074,32 +6115,39 @@ def printTableHead(
 
             // renormalise so the columns always fill exactly 100% of the fluid
             // table: the space freed by a hidden beEff column goes to the others
-            var total = cols.reduce(function (s, c) { return s + pct[c.getAttribute('data-col-id')]; }, 0) || 1;
-            cols.forEach(function (col) {
-                col.style.width = (100 * pct[col.getAttribute('data-col-id')] / total).toFixed(4) + '%';
+            var total = colIds.reduce(function (s, k) { return s + pct[k]; }, 0) || 1;
+            var widths = {};
+            colIds.forEach(function (k) {
+                widths[k] = (100 * pct[k] / total).toFixed(4) + '%';
+            });
+
+            colsPerTable.forEach(function (cols) {
+                cols.forEach(function (col) {
+                    var w = widths[col.getAttribute('data-col-id')];
+                    if (w !== undefined) col.style.width = w;
+                });
             });
         });
+
+        // the widths just written re-wrap the cell contents, so the height of the
+        // body -- and with it the presence of its scrollbar -- may have changed
+        // again since the sync above: re-run it, otherwise the header keeps the
+        // gutter of the previous state and all the columns are off by its width.
+        if (typeof window.syncOtTableGutter === 'function') window.syncOtTableGutter();
     }
 
     function showBeModelResults(checkbox, modelId) {
     // hides / shows base editing outcomes and scores for a given model
-        // The beEff column is hidden two ways: (1) collapse its <col> to width 0 in
-        // resizeOtTables() to reclaim the space, and (2) set its th/td to
-        // visibility:hidden here. We use visibility, NOT display:none: display:none
-        // removes a cell from the column flow (shifting every column to its right),
-        // whereas visibility:hidden keeps the cell in flow but hides its content and
-        // any rotated-label overflow. The outcome <div>s inside the beOutcome cell
-        // are block elements, so display:none is fine for them.
         const $models = $('[name="' + modelId + '"]');
-        const $cells = $('.beEffCol-' + modelId);
+        const $cellContents = $('.beEffCol-' + modelId).children();
 
         if (checkbox.checked) {
             $models.show();
-            $cells.css('visibility', 'visible');
+            $cellContents.css('visibility', 'visible');
             hiddenBeModels.delete(modelId);
         } else {
             $models.hide();
-            $cells.css('visibility', 'hidden');
+            $cellContents.css('visibility', 'hidden');
             hiddenBeModels.add(modelId);
         }
         emptyBeRows();
@@ -6293,7 +6341,7 @@ def printTableHead(
     if pamFullName and editData is None:
         print(
             """ <th data-col-id="distance" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none;">
-            <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edit site. Click to sort this table by this distance (default)">Distance between cut site and editing site</a><br>
+            <a href="crispor.py?batchId=%s&sortBy=insertDistance" class="tooltipster" title="The distance between the cut site (3bp 5' of the PAM on the non-target strand for spCas9 and 18bp 3' of the PAM for Cas12a (Cpf1) and the edit site. Click to sort this table by this distance (default)">Distance between cut site and edit</a><br>
             </th>"""
             % (colWidths["distance"], batchId)
         )
@@ -6313,25 +6361,24 @@ def printTableHead(
     htmlHelp(
         """
             The global score is used to rank the guides based on their specificity and efficiency. It ranges from 0 to 100 and is calculated as :<br><br>
-            <i>0.6*MIT specificity + 0.4*efficiency - penalties</i><br><br>
+            <i>0.6*CFD specificity score + 0.4*efficiency score - penalties</i><br><br>
 Each score is normalized before calculation.<br>
 For Cas12a (Cpf1) enzymes, this score is only the predicted efficiency minus penalties, since no specificity score is available for these enzymes.<br>
-You can adapt the global score to your delivery method (select below), which changes the efficiency score as well as the penalties.<br><br>
+You can adapt the global score to your gRNA production method (select below), which changes the efficiency score and penalties.<br><br>
 
 <u>Efficiency scores :</u>
     <ul>
         <li>Rule set 3 is used for guides transcribed <i>in vivo</i>.</li>
         <li>Moreno-Mateos is used for guides transcribed <i>in vitro</i>.</li>
-        <li>EVA activity score is used for synthetic guides.</li>
+        <li>EVA activity score is used for synthetic guides. This score is left unchanged (except for the GC content penalty) as it already integrates specificity, efficiency and penalties.</li>
         <li>deepCpf1 is used for Cas12a guides (penalties are still applied relative to the selected production method).</li>
     </ul>
 <u>Penalties :</u>
     <ul>
-        <li>GC content of lower than 25%% or higher than 75%% : -25 ( <a href='https://doi.org/10.1126/science.1246981'>Wang et al, 2014</a>)).</li>
-        <li>Minimum free energy of < -3.6 / -6 kcal/mol : -7.5 / -15 (-15 / -30 for synthetic guides, <a href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al, 2025</a>).</li>
-        <li>Presence of a a stretch of four T that terminates transcription : -25 (only for guides transcribed <i>in vivo</i>).</li>
-        <li>Presence of a 'TT' motif : -25 (only for spCas9 guides transcribed <i>in vivo</i>, <a href='https://doi.org/10.1016/j.celrep.2019.01.024'>Graf et al, 2019</a>).</li>
-        <li>presence of a 'GCC' motif -40 (only for spCas9 guides, <a href='https://doi.org/10.1016/j.celrep.2019.01.024'>Graf et al, 2019</a>).</li>
+        <li>GC content of lower than 25%% or higher than 75%% : -25 (<a href='https://doi.org/10.1126/science.1246981'>Wang et al, 2014</a>).</li>
+        <li>Minimum free energy of < -3.6 / -6 kcal/mol : -7.5 / -15.</li>
+        <li>Presence of a a stretch of four T that terminates transcription : -25 (only for guides produced from cell cultures).</li>
+        <li>Presence of a 'TT' motif : -25 (only for spCas9 guides produced from cell cultures, <a href='https://doi.org/10.1016/j.celrep.2019.01.024'>Graf et al, 2019</a>).</li>
     </ul><br>
     %s
     """
@@ -6342,7 +6389,7 @@ You can adapt the global score to your delivery method (select below), which cha
         print("""<small>Select a production method</small><br>""")
         globEffScore = cgiParams.get("globEffScore", "EVA")
         useScores = [
-                ("rs3", "Cell culture U6", "<i>In vivo</i> transcription from a U6 promoter."),
+                ("rs3", "Cell culture U6", "Transcription from a U6 promoter."),
             ("crisprScan", "T7 transcription", "<i>In vitro</i> transcription from a T7 promoter."),
             ("EVA", "Chemical synthesis", "Chemically synthetized guide RNA."),
         ]
@@ -6483,6 +6530,8 @@ You can adapt the global score to your delivery method (select below), which cha
                     # replace the model name with the corresponding enzyme
                     ezName = modelToEnzyme[model.split(" - ")[1]][0]
                     modelStr = model.split(" - ")[0] + " - " + ezName
+                    modelStr = re.sub("DeepBe", "DeepBE", modelStr)
+                    modelStr = re.sub("ForecastBe", "ForecastBE", modelStr)
                     modelHtml = re.sub(r"\s+", "", model)
                     if i == 0:
                         print("""<p style="font-weight: bold;">%s</p>""" % ezType)
@@ -6591,6 +6640,8 @@ You can adapt the global score to your delivery method (select below), which cha
             model = modelByHtml[modelHtml]
             ezName, modelDesc = modelToEnzyme[model.split(" - ")[1]]
             modelStr = model.split(" - ")[0] + " - " + ezName
+            modelStr = re.sub("DeepBe", "DeepBE", modelStr)
+            modelStr = re.sub("ForecastBe", "ForecastBE", modelStr)
             if not pamFullName:
                 urlBeParams = "batchId=%s" % batchId
             else:
@@ -7545,8 +7596,12 @@ def showGuideTable(
                     beEff = '-'
                 else:
                     beEff = str(round(beEff * 100, 2))
-                print("""<td class="beEffCol-%s" style="width:10px; background-color: %s;">%s</td>""" % (modelHtml, backgroundColor, beEff))
-                print("</td>")
+                # the score is wrapped in a <span> so that showBeModelResults() can
+                # hide the value without hiding the cell: the cell of a hidden model
+                # may be the one padded to MIN_BE_GROUP_WIDTH by resizeOtTables(),
+                # and it has to keep painting its background and its borders then,
+                # otherwise the row shows a blank hole instead of an empty cell.
+                print("""<td class="beEffCol-%s" style="width:10px; background-color: %s;"><span>%s</span></td>""" % (modelHtml, backgroundColor, beEff))
 
             print("""<td style="width:%dpx; background-color: %s;">""" % (colWidths["beOutcome"], backgroundColor))
             # or display a barplot ?
@@ -7736,14 +7791,6 @@ def showGuideTable(
     print("</div>")  # guideRowsScroll
     print("</div>")  # guideTableScroll
 
-    # Both tables are width:100% and share an identical percentage <colgroup>, so
-    # their columns line up by construction -- nothing has to be measured and
-    # copied. Two things still need doing whenever the window size changes:
-    # reserve the width of the body's vertical scrollbar on the header (the body
-    # is the only one of the two that scrolls, so without this the body table is
-    # ~15px narrower than the header one and every column drifts), and re-run
-    # resizeOtTables(), whose minimum base-editing group width is a px constant
-    # that has to be re-expressed as a percentage of the new table width.
     print(
         """
     <script type="text/javascript">
@@ -7781,6 +7828,28 @@ def showGuideTable(
         }
         window.addEventListener('load', schedule);
         window.addEventListener('resize', schedule);
+
+        if (window.ResizeObserver) {
+            var lastWidth = new WeakMap();
+            var obs = new ResizeObserver(function(entries) {
+                var changed = false;
+                for (var i = 0; i < entries.length; i++) {
+                    var w = Math.round(entries[i].contentRect.width);
+                    if (lastWidth.get(entries[i].target) !== w) {
+                        lastWidth.set(entries[i].target, w);
+                        changed = true;
+                    }
+                }
+                if (changed) schedule();
+            });
+            // several guide tables share the same ids, and this script is printed
+            // once per table: only take the containers nobody is watching yet
+            Array.prototype.forEach.call(document.querySelectorAll('#guideTableScroll'), function(el) {
+                if (el.dataset.otResizeWatched) return;
+                el.dataset.otResizeWatched = '1';
+                obs.observe(el);
+            });
+        }
     })();
     </script>
     """
@@ -7911,6 +7980,15 @@ def printHeader(batchId, title):
         """
 <style>
 
+/* style/tefor/squeleton.css (pulled in via includes.txt) sets
+   body { min-width: 1000px }. That is what made the page stop following the
+   window width: below ~1000px the body box simply refused to get any narrower,
+   so the window scrolled horizontally instead of the layout reflowing, and none
+   of the percentage widths below could shrink any further either.
+   Letting the body follow the viewport is the precondition for everything
+   else in this stylesheet to work on small screens. */
+body { min-width: 0; }
+
 select { font-size: 80%; }
 
 body {
@@ -7941,17 +8019,7 @@ mut {
 tt { font-size: 90% }
 div.contentcentral { text-align: left; float: left}
 
-/* for chosen.js (the genome drop-down, see printOrgDropDown).
-
-   The drop-down must follow the width of the panel it is placed in - those
-   panels are sized in printForm / printKoForm / printKiForm - and must never
-   stick out of it, whatever the resolution. The old fixed `width: 600px`
-   overflowed every panel narrower than 600px, so it is now a *maximum* and
-   the real width is a percentage of the parent.
-
-   chosen.js writes an inline width on .chosen-container, so the percentage
-   itself is passed as the `width` option when chosen is initialised; the
-   rules below only cap it and keep the borders inside the box. */
+// for genome drowDown
 .chosen-container {
     max-width: min(600px, 100%);
     box-sizing: border-box;
@@ -7991,12 +8059,6 @@ div.contentcentral { text-align: left; float: left}
 /* precision-editing form (printKiForm).
    This one is a flex row; wrap its two columns and let each take full width. */
 .reflowFlexKi { flex-wrap: wrap; }
-/* The step 3/4 textareas are sized with cols=..., so the right-hand column has
-   a min-content width much larger than its 59% flex-basis. Without the two
-   rules below it therefore wraps onto its own line long before the 1024px
-   breakpoint, while the step 1/2 column keeps its 41% basis, i.e. roughly half
-   the window. Allowing the columns to shrink and capping the textareas at the
-   column width keeps the wrapping under the control of the media query. */
 .reflowFlexKi > * { min-width: 0; }
 .reflowFlexKi textarea { max-width: 100%; box-sizing: border-box; }
 @media (max-width: 1024px) {
@@ -8010,18 +8072,6 @@ div.contentcentral { text-align: left; float: left}
     .reflowFlexKi .windowstep.subpanel { width: 100% !important; }
 }
 
-/* Assistant tab bar (printAssistant): must ALWAYS stay a single horizontal
-   row, at every resolution, and no label inside it may ever break onto a
-   second line ("Knock-out", "Precision Editing" and their "(NHEJ / BE / PE)"
-   sub-labels stay on one line whatever the window width).
-
-   Instead of stepping the sizes down at a couple of breakpoints (which still
-   left the labels wrapping in between), everything in the row now scales
-   continuously with the viewport via clamp(): the CRISPOR title, the button
-   labels, the sub-labels, the gaps, the paddings and the two logos. Combined
-   with white-space:nowrap and min-width:auto (= never shrink a flex item
-   below its own content), the labels are always shown in full on one line.
-   `!important` is needed because most of these sizes live in inline styles. */
 .assistantMenu, .assistantMenu .tabs { flex-wrap: nowrap !important; }
 
 /* nothing in the bar is ever allowed to wrap */
@@ -8065,30 +8115,10 @@ div.contentcentral { text-align: left; float: left}
     .assistantMenu { margin-left: 0 !important; }
 }
 
-/* The bar that selects which result table is shown (KiResultsPage: "guides
-   for HDR-based editing" / "pairs of guides ... double-nicking strategy" /
-   "guides for base editing"). It reuses .assistantMenu, so all the rules
-   above already apply to it - single row, labels never wrapping, min-width
-   auto, scaled gaps and paddings. Only the font-size needs its own value:
-   the labels here are full sentences rather than the one or two words of the
-   main tab bar, so they are capped at the 24px they used to be given inline
-   instead of the 28px of the main bar - above that the three unwrappable
-   labels no longer fit side by side, even on a wide screen. Below that width
-   they scale down continuously with the viewport like everything else. */
 .assistantMenu.resultTabs button.assistantButton {
     font-size: clamp(8px, 1.25vw, 24px);
 }
 
-/* Workflow overview of the precision-editing pages (printKiSteps).
-
-   Same logic as the assistant tab bar above: the label of a step ("Design
-   donor DNA", "Visualize and download guide + donor DNA", ...) must never
-   break onto a second line, whatever the window width. So instead of the
-   fixed `font-size: 1.25em` of the inline styles, the labels scale
-   continuously with clamp(), and white-space:nowrap plus min-width:auto (= a
-   flex item is never shrunk below its own content) guarantee that the text is
-   always shown in full on one line.
-   `!important` is needed because these sizes live in inline styles. */
 .kiSteps .kiStep,
 .kiSteps .kiStep *,
 .kiSteps .kiStepArrow {
@@ -8100,18 +8130,6 @@ div.contentcentral { text-align: left; float: left}
    scaling the font instead (see below). */
 .kiSteps { flex-wrap: nowrap !important; }
 
-/* The scaling reference is the *container*, not the viewport: donorDesignPage
-   and showDonor print this row inside a `width: 80%` wrapper, so a vw-based
-   size is ~25% too large there and the last step did not fit (it dropped onto
-   a second line until the window became narrow enough for the font to shrink).
-   `container-type: inline-size` on the outer row turns it into a query
-   container, so 1cqi = 1% of the width really available and the steps fit at
-   every resolution and in every wrapper.
-
-   The container is declared only on the outer row (.kiStepsBox): the nested
-   rows of the base-editor layout are flex items whose width comes from their
-   content, and inline-size containment would resolve that width as if they
-   were empty. They inherit the outer container as their query container. */
 .kiStepsBox { container-type: inline-size; }
 
 .kiSteps .kiStep,
@@ -9671,7 +9689,7 @@ def processMultiSeqSubmission(
                     limit = 100
                     maxGuides = 20
                 else:
-                    limit = None
+                    limit = 500
                     maxGuides = 100
 
                 queue.startStep(batchId, "BE", "Predicting base editing efficiencies and outcomes")
@@ -10161,7 +10179,7 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     coding = False
                 isAltName = len(cols) > 11
                 if isAltName:
-                    altId = cols[11]
+                    altId = cols[11].strip('\n')
                 else:
                     altId = ""
                 if len(cols) >= 14 and coding:
@@ -10213,7 +10231,7 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                             0,
                             {
                                 "id": "%s~SYM" % sym,
-                                "text": "Search exons common to all transcripts in %s"
+                                "text": "Search exons common to 80%% of %s transcripts"
                                 % sym,
                                 "exonCount": 0,
                                 "exFrames": "",
@@ -10405,7 +10423,7 @@ def printForm(params):
       <small>Text case is preserved, e.g. you can mark ATGs with lowercase.<br>Instead of a sequence, you can paste a chromosome range, e.g. chr1:11,130,540-11,130,751</small>
 
 <details id="geneSelection" style = "margin-top:12px;">
-    <summary>Click here to enter a gene ID and select a target exon instead</summary>
+    <summary>Click here to enter a gene symbol and select a target exon instead</summary>
           """
         % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
     )
@@ -10488,7 +10506,7 @@ def printForm(params):
     <details id="customPAM" style = "margin-top:12px;">
         <input name = "customPAM" placeholder="PAM (at least 1 non-N, 3-8 nt)" style="height:22px; width:180px;" onkeydown="handleEnter(event)"></input>
         <select name = "customType" class="js-example-basic-single" style="width:25%%">
-            <option value="">Select enzyme type</option>
+            <option value="">Select nuclease cutting behaviour</option>
             <option value="Cas9">Cas9</option>
             <option value="Cas12a">Cas12a (Cpf1)</option>
             <!--<option value="CBE">Cytosine base editor</option>-->
@@ -10497,7 +10515,7 @@ def printForm(params):
         <input type="range" id="customGUIDELEN" name="customGUIDELEN" value="20" min="16" max="30" style="vertical-align:middle; width:15%%;" oninput="this.nextElementSibling.value = this.value">
         <output>20</output> nt guide
         </select>
-        <summary>Using a Custom enzyme ? Click here to enter its specifications <img src="%simage/info-small.png" title="We cannot guarrantee the accuracy of efficiency scores for custom enzymes. If you want to add a new score or enzyme, please send an email at %s" class="tooltipsterInteract"> </summary>
+        <summary>Using a Custom enzyme ? Click here to enter its specifications <img src="%simage/info-small.png" title="Efficiency and specificity scores may not be accurate for custom enzymes. If you want to add a new score or enzyme, please send an email at <a href='mailto:%s'>CRISPOR support</a>" class="tooltipsterInteract">.</summary>
     </details>
 
     </div>
@@ -12208,7 +12226,7 @@ def classicResultsPage(
         '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
     )
 
-    makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
+    # makeCustomTrack(org, chrom, start, end, strand, guideData, batchId, batchName)
 
     print(
         """
@@ -12426,6 +12444,16 @@ def KiResultsPage(params, batchId, download=False):
                     } else {
                         table.style.display = "none";
                     }}
+
+                // the table that has just been revealed had no layout while it was
+                // display:none (clientWidth 0), so its percentage columns and the
+                // scrollbar gutter of its header could not be computed: do it now
+                if (typeof resizeOtTables === "function") {
+                    if (window.requestAnimationFrame)
+                        window.requestAnimationFrame(resizeOtTables);
+                    else
+                        resizeOtTables();
+                }
                 }
         </script>
         """ % (maxPamWindow, maxPamWindow))
@@ -12691,7 +12719,7 @@ def KiResultsPage(params, batchId, download=False):
 
         print(
             """
-        <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 6px;">
         <p>Add PAMs</p>
               """
         )
@@ -12721,8 +12749,8 @@ def KiResultsPage(params, batchId, download=False):
             """
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; flex-direction: row; gap: 10%; align-self: center;">
-                <button id="distButton" style="width: 80px; height: 32px; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update</button>
+            <div style="display: flex; flex-direction: row; gap: 10%; align-self: center;">
+                <button id="distButton" style="width: 70px; height: 28px; display: flex; align-items: center; justify-contents: center;" name="submit" type="submit" value="Update">Update</button>
         """
         )
 
@@ -12745,7 +12773,7 @@ def KiResultsPage(params, batchId, download=False):
             print(
                 """
                 <a href="%s" style="width: 320px; display: flex; align-items: center;">
-                    <div class="button" style="display: flex; align-items: center; height: 32px;">New search with the selected PAMs</div>
+                    <div class="button" style="display: flex; align-items: center; height: 28px;">New search with the selected PAMs</div>
                 </a>
             """
                 % actionStr
@@ -12763,7 +12791,7 @@ def KiResultsPage(params, batchId, download=False):
             """
         <p style="width: 50%;">
         Note : by default, only guides that result in a DSB less than 10bp away from the edit site are displayed.<br>
-        If there are no guides found or you want to examine more possible guides, either increase this theshold, or look for other PAMs in the sequence (in gray on the sequence viewer). Note that guides with other PAMs don't have any specificity or efficiency scores yet. You can submit a new search with the selected PAMs to get the corresponding guides and scores.
+        If the table is empty or you want to examine more possible guides, either increase this theshold or show the position of PAMs from other Cas nucleases. Note that these PAMs will not have any specificity or efficiency scores yet. You can submit a new search with the selected PAMs to get the corresponding guides and scores.
         </p>
         </div>
         """
@@ -15060,20 +15088,20 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
                         """<summary style="font-weight: bold; font-size: 20px; margin-top: 24px; margin-bottom: 12px;">Base editing information</summary>"""
                     )
                     print(
-                        "<p>Show below the sequence are the possible edits, using this base editor with the selected modification window.<br>"
+                        """The "base editing to" field below lists the possible edits on this sequence."""
                     )
                     if koMethod == "stop":
                         print(
                             """
                               <ul>
-                                    <li>Edits in red result in the introduction of a premature STOP codon.</li>
+                                    <li>Edits in red result in the introduction of a premature STOP codon or disruption of a slice donor site.</li>
                                     <li>Edits in grey corresponds to "bystander" edits (i.e, additional edits that can occur when using the same guide).</li>
                               </ul>
                               """
                         )
                     print(
-                        """Hover on an edit to show the corresponding guides and their predicted efficiencies and outcome sequences.<br>
-                             Clicking on the edit will redirect to the row of the guide with the highest predicted efficiency.<br>"""
+                        """Hover on an edit to show the top three guides to edit the corresponding base, or click on it to nagivate to the table.<br>
+                        """
                     )
 
                     '''
@@ -18656,7 +18684,7 @@ $(document).ready(function() {
         ),
         (
             "stop",
-            " Introduce a premature STOP codon in the first half of the coding sequence with base editing",
+            " Introduce a premature STOP codon or disrupt a splice site with base editing",
         ),
         ("excision", " Excision of the gene locus"),
         ("promoter", " Removal of the promoter"),
@@ -20063,6 +20091,13 @@ def getGeneModel(allExons, strand):
     return geneModel
 
 
+# when targeting a gene symbol, a coding region is kept if it is coding in at least this
+# share of the gene's transcripts. Requiring all of them lets the shortest, lowest-support
+# isoform decide for the whole gene: with the GENCODE transcripts of knownGene.gp in,
+# that leaves 80bp of BRCA1 and no targetable region at all for ~6% of the genes.
+commonExonMinShare = 0.8
+
+
 def getGenePos(geneID, org, method, targetLen):
 
     genomeDir = genomesDir
@@ -20070,6 +20105,7 @@ def getGenePos(geneID, org, method, targetLen):
     genomePath = "%(genomeDir)s/%(org)s/" % locals()
     genomeFiles = os.listdir(genomePath)
     gpFiles = [f for f in genomeFiles if f.endswith(".gp")]
+    geneInfo = None
 
     if "SYM" in geneID:
         commonExons = True
@@ -20083,7 +20119,10 @@ def getGenePos(geneID, org, method, targetLen):
         with open(gpFilePath, "r") as genePred:
 
             for geneLine in genePred:
-                geneLine = geneLine.split("\t")
+                # the newline has to go before the split: knownGene.gp has exactly 12
+                # columns, so the symbol is the last field and would otherwise be
+                # compared as "TP53\n", which never matches any geneID
+                geneLine = geneLine.rstrip("\n").split("\t")
                 if (commonExons is False and geneLine[0] == geneID) or (
                     commonExons is True
                     and len(geneLine) >= 12
@@ -20115,50 +20154,88 @@ def getGenePos(geneID, org, method, targetLen):
         if not allExons:
             raise ValueError("")
 
-        def intersect(aStarts, aEnds, bStarts, bEnds, cdsStart, cdsEnd):
-            resStarts, resEnds = [], []
-            for aStart, aEnd in zip(aStarts, aEnds):
-                # clip coords within the CDS
-                aStart, aEnd = max(aStart, cdsStart), min(aEnd, cdsEnd)
-                for bStart, bEnd in zip(bStarts, bEnds):
-                    bStart, bEnd = max(bStart, cdsStart), min(bEnd, cdsEnd)
-                    commonStart = max(aStart, bStart)
-                    commonEnd = min(aEnd, bEnd)
-                    if commonStart < commonEnd:
-                        resStarts.append(commonStart)
-                        resEnds.append(commonEnd)
-            return resStarts, resEnds
+        # non-coding isoforms (NR_/lncRNA transcripts, cdsStart == cdsEnd) have no coding
+        # exon at all. They must not take part in the vote below, otherwise they dilute
+        # the coding regions of the isoforms that do have a CDS and, when they are the
+        # majority, hand back the UTRs of the gene as its coding exons.
+        codingTrans = [tx for tx in allExons if tx["cdsEnd"] - tx["cdsStart"] > 1]
+        # a gene with no coding isoform at all (lncRNA, miRNA, ...) has no CDS to clip
+        # to: keep its exons whole, like the non-coding branch further down does
+        hasCds = len(codingTrans) > 0
+        if hasCds:
+            allExons = codingTrans
 
-        # Initialize with the first transcript
-        resStarts = allExons[0]["exonStarts"]
-        resEnds = allExons[0]["exonEnds"]
-        txStart, txEnd = allExons[0]["txStart"], allExons[0]["txEnd"]
-        cdsStart, cdsEnd = allExons[0]["cdsStart"], allExons[0]["cdsEnd"]
+        def codingExons(txInfo):
+            """the exons of one transcript, each clipped to that transcript's own CDS.
+            This is what removes the 5'/3' UTRs: an exon is only coding in the frame of
+            the transcript it comes from, so it has to be clipped before the intersection,
+            not after it."""
+            exons = []
+            for start, end in zip(txInfo["exonStarts"], txInfo["exonEnds"]):
+                if hasCds:
+                    start, end = max(start, txInfo["cdsStart"]), min(end, txInfo["cdsEnd"])
+                if start < end:
+                    exons.append((start, end))
+            return exons
 
-        for i in range(1, len(allExons)):
-            currentInfo = allExons[i]
-            nextStarts, nextEnds = intersect(
-                resStarts, resEnds, currentInfo["exonStarts"], currentInfo["exonEnds"], cdsStart, cdsEnd
+        def majorityRegions(txExons, minShare):
+            """the regions that are coding in at least minShare of the transcripts, as a
+            sorted list of merged (start, end) intervals. Sweeps the exon boundaries and
+            keeps the stretches covered by enough transcripts."""
+            covChange = defaultdict(int)
+            for exons in txExons:
+                for start, end in exons:
+                    covChange[start] += 1
+                    covChange[end] -= 1
+
+            # cut the gene at every exon boundary and count the transcripts covering
+            # each of the resulting stretches
+            segments = []
+            coverage = 0
+            bounds = sorted(covChange)
+            for i, pos in enumerate(bounds[:-1]):
+                coverage += covChange[pos]
+                if coverage > 0:
+                    segments.append((pos, bounds[i + 1], coverage))
+            if not segments:
+                return []
+
+            # never come back empty-handed: if no stretch is shared widely enough, keep
+            # the most widely shared ones instead
+            minCov = min(
+                math.ceil(minShare * len(txExons)),
+                max(coverage for start, end, coverage in segments),
             )
 
-            # Only update intersection and bounds if there are still common exons
-            if nextStarts:
-                res_starts, res_ends = nextStarts, nextEnds
-                tx_start = max(txStart, currentInfo["txStart"])
-                tx_end = min(txEnd, currentInfo["txEnd"])
-                cds_start = max(cdsStart, currentInfo["cdsStart"])
-                cds_end = min(cdsEnd, currentInfo["cdsEnd"])
-            else:
-                # No common exons with this specific transcript, skipping its contribution to bounds
-                continue
+            resExons = []
+            for start, end, coverage in segments:
+                if coverage < minCov:
+                    continue
+                if resExons and resExons[-1][1] == start:
+                    # the stretch continues the previous one: they are one exon
+                    resExons[-1] = (resExons[-1][0], end)
+                else:
+                    resExons.append((start, end))
+            return resExons
+
+        resExons = majorityRegions(
+            [codingExons(txInfo) for txInfo in allExons], commonExonMinShare
+        )
 
         geneInfo = allExons[0].copy()
-        geneInfo["exonStarts"] = resStarts
-        geneInfo["exonEnds"] = resEnds
-        geneInfo["txStart"] = txStart
-        geneInfo["txEnd"] = txEnd
-        geneInfo["cdsStart"] = cdsStart
-        geneInfo["cdsEnd"] = cdsEnd
+        geneInfo["exonStarts"] = [start for start, end in resExons]
+        geneInfo["exonEnds"] = [end for start, end in resExons]
+        # the span of the gene, not of one arbitrary isoform: the transcripts are read in
+        # file order, so allExons[0] is whichever one the first .gp file happened to list
+        geneInfo["txStart"] = min(txInfo["txStart"] for txInfo in allExons)
+        geneInfo["txEnd"] = max(txInfo["txEnd"] for txInfo in allExons)
+        if hasCds and resExons:
+            # resExons is already clipped to each transcript's own CDS, so the clipping
+            # further down has nothing left to do -- and must not undo this: a region can
+            # be coding in 80% of the transcripts and still sit outside the CDS of the
+            # other 20%, which a CDS range shared by all of them would cut away again
+            geneInfo["cdsStart"] = resExons[0][0]
+            geneInfo["cdsEnd"] = resExons[-1][1]
 
     if geneInfo is None:
         raise ValueError("")
@@ -20202,14 +20279,15 @@ def getGenePos(geneID, org, method, targetLen):
         exonEnds = geneInfo["exonEnds"]
 
         if cdsEnd - cdsStart <= 1:
+            # a purely non-coding gene: there is no CDS to clip to, so target the exons
             featureList = [(start, end) for start, end in zip(exonStarts, exonEnds)]
-
-        for start, end in zip(exonStarts, exonEnds):
-            if end <= cdsStart or start >= cdsEnd:
-                continue
-            codingExonStart = max(start, cdsStart)
-            codingExonEnd = min(end, cdsEnd)
-            featureList.append((codingExonStart, codingExonEnd))
+        else:
+            for start, end in zip(exonStarts, exonEnds):
+                if end <= cdsStart or start >= cdsEnd:
+                    continue
+                codingExonStart = max(start, cdsStart)
+                codingExonEnd = min(end, cdsEnd)
+                featureList.append((codingExonStart, codingExonEnd))
 
         if strand == "-":
             featureList = featureList[::-1]
@@ -23023,7 +23101,7 @@ def primerDetailsPage(params):
         print(
             (
                 "<a href='%s#donorGuide'>Click here to list mutated guides "
-                "sorted by off-targetactivity</a>" % url
+                "sorted by off-target activity</a>" % url
             )
         )
 
@@ -23556,6 +23634,8 @@ def donorDesignPage(params):
                 """<p>Select a transcript ID with the coding sequence to be used for recoding <img src=" %s image/info-small.png" title="This step will attempt to introduce silent mutations, so a gene model needs to be selected to get the position of codons.<br> To visualize the sequence of each transcript, you can go back to the previous step by clicking on 'Select guide sequences' above. Then, select a gene model and a transcript using the dropdown menu on top of the sequence." class="tooltipsterInteract"></p>"""
                 % HTMLPREFIX
             )
+            print("""<div style="display: flex; flex-direction: row; gap: 12px;">""")
+            print("<div>")
             print("Reference gene set:")
             printDropDown(
                 "geneModelSelection",
@@ -23565,6 +23645,8 @@ def donorDesignPage(params):
                 form="updateModel",
                 onChange="updateModel.submit()",
             )
+            print("</div>")
+            print("<div>")
             print("Transcript:")
             transIdInfo = []
             for transId, sym in list(exonInfo.keys()):
@@ -23572,7 +23654,7 @@ def donorDesignPage(params):
             printDropDown(
                 "selTransId", transIdInfo, selTransId, style="width:20em", form="main"
             )
-            print("""<br>""")
+            print("</div>")
         print("</div>")
 
     print(
@@ -23582,10 +23664,10 @@ def donorDesignPage(params):
         <div style="display: flex; gap: 25%%; align-items: center;">
             <div>
                 <div style="display: flex; flex-direction: row; gap: 4px;">
-                    <div style="margin-top: 8px;"><input type="checkbox" %(recodeChecked)s form="main" id="recodePam" name="recodePam" value="True" onchange="toggleRecodeGap()" autocomplete="off"/>Introduce silent mutation(s) in the PAM motif or the PAM-proximal end of the guide</div>
+                    <div style="margin-top: 8px;"><input type="checkbox" %(recodeChecked)s form="main" id="recodePam" name="recodePam" value="True" onchange="toggleRecodeGap()" autocomplete="off"/>Introduce silent mutation(s) in the PAM motif or the PAM-proximal end of the guide.</div>
                     <img src=" %(htmlprefix)s image/info-small.png" style="width: 16px; height: 16px;" title="This step will attempt to introduce a single PAM-blocking mutation. If the PAM motif can't be recoded, two mutations will be introduced in the 15 PAM-proximal end of the guide (seed region). In this case, mutations near the PAM are prioritized." class="tooltipsterInteract"><br>
                 </div>
-                <div id="recodeGapDisplay" style="display: %(recodeGapDisplay)s; margin-top: 8px;"><input type="checkbox" name="recodeGap" form="main" value="True" autocomplete="off"/>Introduce silent mutations at all possible positions between the cut site and insertion site</div>
+                <div id="recodeGapDisplay" style="display: %(recodeGapDisplay)s; margin-top: 8px;"><input type="checkbox" name="recodeGap" form="main" value="True" autocomplete="off"/>Introduce silent mutations at all possible positions between the cut site and the edit.</div>
                 </div>
             </div>
         </div>
@@ -24434,7 +24516,7 @@ def printAssistant(params):
                 <button type="submit" name="expType" value="ko"
                         class="%s"
                         style="min-width: 400px;"
-                        title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Edtiting (BE), or edits with Prime Editing (PE) <i>(not implemented yet)</i>.">
+                        title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Editing (BE), or edits with Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span style="text-align: center;">
                             Knock-out<br>

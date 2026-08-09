@@ -2992,4 +2992,13 @@ FORECasT-BE :
 
 ## à faire
 
-- taille de boutons de sélection de tableaux HDR / double nicking / BE relative à la page
+- corriger "DeepBe" -> "DeepBE"
+
+# 09/08/26
+
+## Knock-out mode
+
+- fix du calcul des common exons avec Claude :
+    - retrait des UTR / transcrits non codants
+    - sélection des exons communs à 80%
+
