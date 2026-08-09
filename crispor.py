@@ -210,7 +210,7 @@ DEFAULTORG = "hg19"
 DEFAULTSEQ = "cttcctttgtccccaatctgggcgcgcgccggcgccccctggcggcctaaggactcggcgcgccggaagtggccagggcgggggcgacctcggctcacagcgcgcccggctattctcgcagctcaccatgGATGATGATATCGCCGCGCTCGTCGTCGACAACGGCTCCGGCATGTGCAAGGCCGGCTTCGCGGGCGACGATGCCCCCCGGGCCGTCTTCCCCTCCATCGTGGGGCGCC"
 
 DEFAULTKISEQ = "cctgcgaactagtcggtggctcgggcgccggcggggagctgctcggcggcggacagtgtaATGTTGGGTGGGAGTGCGGGACGCCTCAAAATGTCTTCCAGTGGCACCCTCAGCAACTA"
-DEFAULTINSERTSEQ = "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTA"
+DEFAULTINSERTSEQ = "GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAG"
 DEFAULTINSERT = (
     DEFAULTKISEQ[0:63].lower() + DEFAULTINSERTSEQ + DEFAULTKISEQ[63:].lower()
 )
@@ -8687,12 +8687,15 @@ def extractMutScores(scoreDict, pamIds):
 
 
 def calcSaveEffScores(
-    batchId, seq, extSeq, pam, queue, writeHeader, seqNumber=None, exonId=None, stopGuides=None
+    batchId, seq, extSeq, pam, queue, colNames=None, seqNumber=None, exonId=None, stopGuides=None
 ):
     """given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores.
-    Return a
-    list of rows [headers, (guideSeq, 100mer, score1, score2, score3,...), ... ]
+    Return (colNames, rows), the score column names and a
+    list of rows [(guideSeq, 100mer, score1, score2, score3,...), ... ], without a header.
+
+    colNames are the score columns to write. If None, the scores of these guides define
+    them. The caller passes them when it appends to a file that has a header already.
 
     Also write the results to a database so they can be retrieved later.
 
@@ -8770,38 +8773,42 @@ def calcSaveEffScores(
     else:
         effScores = {}
 
-    activeScoreNames = list(effScores.keys())
-
-    # in knock out mode, don't write the header if no guides were found for the current exon
-    if not effScores:
-        writeHeader = False
+    # in KO mode, one exon is appended to the file after the other and the set of scores
+    # can differ between exons: the outcome scores are skipped as soon as stop guides were
+    # found (see above) and the score list depends on the enzyme. Always write the columns
+    # of the header, using 0 for the scores that were not calculated for this exon,
+    # otherwise the rows do not match the header and are all skipped when reading the file.
+    if colNames is None:
+        colNames = list(effScores.keys())
 
     # reformat to rows, write all scores to file
     assert len(pamIds) == len(guides) == len(longSeqs)
     rows = []
     for i, (guideId, guide, longSeq) in enumerate(zip(pamIds, guides, longSeqs)):
         row = [guideId, guide, longSeq]
-        for scoreName in activeScoreNames:
-            scoreList = effScores[scoreName]
-            if len(scoreList) > 0:
+        for scoreName in colNames:
+            scoreList = effScores.get(scoreName)
+            if scoreList:
                 row.append(scoreList[i])
             else:
-                row.append("noScore?")
+                row.append(0)
         rows.append(row)
 
-    if writeHeader is True:
-        headerRow = ["guideId", "guide", "longSeq"]
-        headerRow.extend(activeScoreNames)
-        rows.insert(0, headerRow)
-
-    return rows
+    return colNames, rows
 
 
-def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterIdx, beFilter=None):
+def multiPamScoreNames():
+    """the score columns of the effScores table in multi-PAM (KI) mode. They are the same
+    for every PAM: scores that are not calculated for a PAM are written as 0, so that the
+    single header of the table matches the rows of all PAMs"""
+    return list(allScoreNames) + ["seqDeepCpf1", "najm", "oof", "lindel"]
+
+
+def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, beFilter=None):
     """given a sequence and an extended sequence, get all potential guides
     with pam, extend them to 100mers and score them with various eff. scores.
     Return a
-    list of rows [headers, (guideSeq, 100mer, score1, score2, score3,...), ... ]
+    list of rows [(guideSeq, 100mer, score1, score2, score3,...), ... ], without a header
 
     Also write the results to a database so they can be retrieved later.
 
@@ -8847,12 +8854,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
         guides.append(guideSeq + pamSeq)
 
     # Define consistent output columns for all PAMs
-
-    outputScoreNames = list(allScoreNames) + ["seqDeepCpf1", "najm", "oof", "lindel"]
-
-    if baseEditor and outputScoreNames:
-        outputScoreNames.remove("oof")
-        outputScoreNames.remove("lindel")
+    outputScoreNames = multiPamScoreNames()
 
     if len(longSeqs) > 0 and doEffScoring:
         enz = None
@@ -8925,11 +8927,8 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, iterId
                 row.append("noScore?")
         rows.append(row)
 
-    # avoid creating multiple headers for each pam
-    if iterIdx == 0:
-        headerRow = ["guideId", "guide", "longSeq"]
-        headerRow.extend(outputScoreNames)
-        rows.insert(0, headerRow)
+    # the header is written once by the caller, for all PAMs: writing it here made it
+    # depend on which PAM comes first in the loop and on whether that PAM has any guides
     return rows
 
 
@@ -8938,6 +8937,18 @@ def writeRow(ofh, row):
     row = [str(x) for x in row]
     ofh.write("\t".join(row))
     ofh.write("\n")
+
+
+def readEffScoreHeader(ofh):
+    """given the handle of an eff scores file that is being written to, return the score
+    column names of the header that was already written to it, or None if it is still empty
+    """
+    if ofh.tell() == 0:
+        return None
+    ofh.flush()
+    with open(ofh.name) as ifh:
+        # the first three fields are the guideId, guide and longSeq, they are not scores
+        return ifh.readline().rstrip("\n").split("\t")[3:]
 
 
 def createBatchEffScoreTable(
@@ -8975,20 +8986,22 @@ def createBatchEffScoreTable(
     if seqInMultiseq:
         # the function is called in a loop : the file is appended to
         guideFh = outFh
-        # if the there are no guides for the first exon, eff scores headers are missing
-        # write the headers only if there are scores
-        if (guideFh.tell() == 0 and exonId > 0) or exonId == 0:
-            writeHeader = True
-        else:
-            writeHeader = False
+        # keep the columns of the header that was written for the first exon that had
+        # guides, the scores of this exon may not be exactly the same set
+        colNames = readEffScoreHeader(guideFh)
     else:
         guideFh = open(outFname, "w")
         logging.info("wrote scores to file")
-        writeHeader = True
+        colNames = None
 
-    guideRows = calcSaveEffScores(
-        batchId, seq, extSeq, pam, queue, writeHeader, seqNumber, exonId, stopGuides=stopGuides
+    colNames, guideRows = calcSaveEffScores(
+        batchId, seq, extSeq, pam, queue, colNames, seqNumber, exonId, stopGuides=stopGuides
     )
+
+    # in KO mode, write the header only once we have scores: a header written for an exon
+    # without any guides has no score columns at all and would break all following exons
+    if guideFh.tell() == 0 and (guideRows or not seqInMultiseq):
+        writeRow(guideFh, ["guideId", "guide", "longSeq"] + colNames)
 
     for row in guideRows:
         writeRow(guideFh, row)
@@ -9003,7 +9016,7 @@ def createBatchEffScoreTable(
 
 
 def createMultiBatchEffScoreTable(
-    batchId, Fname, queue, pam, pamFullName, extSeq, iterIdx, beFilter=None
+    batchId, Fname, queue, pam, pamFullName, extSeq, beFilter=None
 ):
 
     pam = setupPamInfo(pamFullName)
@@ -9011,16 +9024,17 @@ def createMultiBatchEffScoreTable(
     seq = batchInfo["seq"]
     extSeq = batchInfo.get("extSeq")
 
-    guideFh = open(Fname, "w")
-
     logging.info("writing eff scores for PAM %s" % pam)
     seq = seq.upper() if seq is not None else seq
     guideRows = calcMultiSaveEffScores(
-        batchId, seq, extSeq, pam, queue, pamFullName, iterIdx, beFilter=beFilter
+        batchId, seq, extSeq, pam, queue, pamFullName, beFilter=beFilter
     )
 
-    for row in guideRows:
-        writeRow(guideFh, row)
+    # no header here, the caller wrote it for all PAMs. Close the file before we return,
+    # the caller appends it to the table of the whole batch.
+    with open(Fname, "w") as guideFh:
+        for row in guideRows:
+            writeRow(guideFh, row)
 
 
 def readEffScores(batchId, multipam=None):
@@ -9603,6 +9617,74 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
         return newEditData, newStopGuides
 
 
+# a batch that is flagged as running for longer than this is considered abandoned. Only
+# used for flags written by another machine, where we cannot check the process itself.
+MAXRUNFLAGAGE = 2 * 3600
+
+
+def batchRunFlagFname(batchBase):
+    "name of the file that flags a batch as currently being processed by a worker"
+    return batchBase + ".jobRunning"
+
+
+def isBatchRunning(batchBase):
+    """True if another, still living process is working on this batch.
+    The results page re-submits the job on every page refresh and every new search, so the
+    same batch can be queued again after its job was removed from the queue. Two runs in
+    parallel would truncate and append to the same temp files, which loses the header of
+    the eff scores table and mixes up the PAMs / exons of the two runs.
+
+    The flag file is inside batchDir, so parallel installations with their own batchDir
+    never see each other's flags.
+    """
+    flagFname = batchRunFlagFname(batchBase)
+    if not isfile(flagFname):
+        return False
+
+    fields = open(flagFname).read().split()
+    if len(fields) != 2 or not fields[0].isdigit():
+        # cannot tell who wrote it, assume that the flag file is stale
+        return False
+
+    pid, host = int(fields[0]), fields[1]
+
+    # a run that was killed leaves its flag file behind: never block a batch forever on it
+    if time.time() - os.path.getmtime(flagFname) > MAXRUNFLAGAGE:
+        logging.info("Flag file %s is older than %d secs, ignoring it" % (flagFname, MAXRUNFLAGAGE))
+        return False
+
+    if host != platform.node():
+        # batchDir is shared with another machine: we cannot check a process over there,
+        # so we can only trust the flag file until it times out above
+        return True
+
+    if pid == os.getpid():
+        return False
+
+    try:
+        os.kill(pid, 0)  # does not kill anything, only checks that the process is still there
+    except ProcessLookupError:
+        logging.info("Flag file %s is stale, process %d is gone" % (flagFname, pid))
+        return False
+    except OSError:
+        pass  # not allowed to signal it, so it is alive
+
+    return True
+
+
+def markBatchRunning(batchBase):
+    "flag a batch as being processed by this process, see isBatchRunning()"
+    with open(batchRunFlagFname(batchBase), "w") as flagFh:
+        flagFh.write("%d %s" % (os.getpid(), platform.node()))
+
+
+def clearBatchRunning(batchBase):
+    "remove the flag file of a batch, if it is ours. A crashed run leaves it behind, but isBatchRunning() ignores it then"
+    flagFname = batchRunFlagFname(batchBase)
+    if isfile(flagFname):
+        os.remove(flagFname)
+
+
 def processMultiSeqSubmission(
     multiseq, genome, pam, batchBase, batchId, queue, koMethod
 ):
@@ -9624,15 +9706,24 @@ def processMultiSeqSubmission(
 
     bedFname = batchBase + ".bed.gz"
     effScoresFname = batchBase + ".effScores.tab"
-    bedFnameTmp = bedFname + ".tmp"
-    effScoresFnameTmp = effScoresFname + ".tmp"
-    faFname = batchBase + ".fa"
+
+    # the temp files of a run include its process id: if the same batch is being processed
+    # twice at the same time, the two runs must not write to the same temp files
+    runBase = "%s.%d" % (batchBase, os.getpid())
+    bedFnameTmp = runBase + ".bed.gz.tmp"
+    effScoresFnameTmp = runBase + ".effScores.tab.tmp"
+    faFname = runBase + ".fa"
 
     # use the effscores and offtarget files if they already exist
     if isfile(effScoresFname) and isfile(bedFname):
         return bedFname, effScoresFname
 
+    elif isBatchRunning(batchBase):
+        logging.info("Batch %s is already being processed, not running it a second time" % batchId)
+        return None, None
+
     else:
+        markBatchRunning(batchBase)
 
         batchInfo["koMethod"] = koMethod
         batchInfo["exonSeqs"] = []
@@ -9736,7 +9827,7 @@ def processMultiSeqSubmission(
 
         # if no STOP codons can be introduced with SpCas9, switch to SpRY
         # alternatively, move this block to a new function a search with increasingly pamless Cas until ~ 5 guides are found ?
-        if koMethod == "stop": # and pam != "NRN" and len(stopGuides) == 0:
+        if koMethod == "stop" and pam != "NRN" and len(stopGuides) == 0:
 
             queue.startStep(batchId, "SpRY", "Could not find any guides with the selected PAM : searching guides with SpRY Cas9 (PAM NRN).")
 
@@ -9790,11 +9881,11 @@ def processMultiSeqSubmission(
         # find offtargets and append them to the main file
         if useBowtie:
             findOfftargetsBowtie(
-                queue, batchId, batchBase, faFname, genome, pam, bedFnameTmp
+                queue, batchId, runBase, faFname, genome, pam, bedFnameTmp
             )
         else:
             findOfftargetsBwa(
-                queue, batchId, batchBase, faFname, genome, pam, bedFnameTmp
+                queue, batchId, runBase, faFname, genome, pam, bedFnameTmp
             )
 
         if not DEBUG:
@@ -9804,6 +9895,8 @@ def processMultiSeqSubmission(
         # create the final file to end the job
         shutil.move(bedFnameTmp, bedFname)
         shutil.move(effScoresFnameTmp, effScoresFname)
+
+        clearBatchRunning(batchBase)
 
         return bedFname, effScoresFname
 
@@ -9830,7 +9923,9 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     if seq is None and posStr is None:
         return None, None
 
-    pamList = set(multiPamDict[multipam][0])
+    # keep the order of the PAM list: a set is iterated in a random order in every process,
+    # which made the order of the guides in the table and the temp file names below random
+    pamList = list(dict.fromkeys(multiPamDict[multipam][0]))
 
     logging.info("PAMs are : %s" % ", ".join(pamList))
 
@@ -9840,12 +9935,24 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     if isfile(bedFname) and isfile(effScoresFname):
         return bedFname, effScoresFname
 
-    bedFnameTmp = bedFname + ".tmp"
-    effScoresFnameTmp = effScoresFname + ".tmp"
+    if isBatchRunning(batchBase):
+        logging.info("Batch %s is already being processed, not running it a second time" % batchId)
+        return None, None
 
-    # Clear output offtargets and effscores file
+    markBatchRunning(batchBase)
+
+    # the temp files of a run include its process id: if the same batch is being processed
+    # twice at the same time, the two runs must not write to the same temp files
+    runBase = "%s.%d" % (batchBase, os.getpid())
+    bedFnameTmp = runBase + ".bed.gz.tmp"
+    effScoresFnameTmp = runBase + ".effScores.tab.tmp"
+
+    # Clear output offtargets file and write the header of the eff scores file. The header
+    # is written here, for all PAMs: the PAM that happens to come first in the loop below
+    # cannot write it, it may not even have a single guide.
     open(bedFnameTmp, "wb").close()
-    open(effScoresFnameTmp, "w").close()
+    with open(effScoresFnameTmp, "w") as mainScores:
+        writeRow(mainScores, ["guideId", "guide", "longSeq"] + multiPamScoreNames())
 
     # initialize sequence data
     uppSeq = seq.upper()
@@ -9886,7 +9993,8 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         for pamVariant in pamVariantModels.keys():
             if pamVariant == "NRN":
                 continue
-            pamList.add(pamVariant)
+            if pamVariant not in pamList:
+                pamList.append(pamVariant)
 
     writeBatchAsDict(batchInfo, batchId)
     # do eff scoring and off target search for each pam
@@ -9943,7 +10051,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         # set globals for this PAM
         pam = setupPamInfo(pamFullName)
 
-        iterBatchBase = "%s.%d" % (batchBase, i)
+        iterBatchBase = "%s.%d" % (runBase, i)
         faFname = iterBatchBase + ".fa"
         tempBedFname = iterBatchBase + ".bed"
         tempEffScoresFname = iterBatchBase + ".effScores.tab"
@@ -9952,7 +10060,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         if doEffScoring:
             queue.startStep(batchId, "effScores", "Calculating guide efficiency scores")
             createMultiBatchEffScoreTable(
-                batchId, tempEffScoresFname, queue, pam, pamFullName, extSeq, i, beFilter=beFilter
+                batchId, tempEffScoresFname, queue, pam, pamFullName, extSeq, beFilter=beFilter
             )  # simplify the scores table
 
         if isfile(tempEffScoresFname):
@@ -9997,6 +10105,8 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     # create the final file to end the job
     shutil.move(bedFnameTmp, bedFname)
     shutil.move(effScoresFnameTmp, effScoresFname)
+
+    clearBatchRunning(batchBase)
 
     return bedFname, effScoresFname
 
@@ -11030,6 +11140,12 @@ def submitMultiSearch(batchId, org, pamDesc, mode):
         otBedFname = batchBase + ".bed.gz"
         effScoresFname = batchBase + ".effScores.tab"
 
+        # the results are there, nothing to submit. This page is reloaded on every refresh
+        # and on every change of a display option, re-submitting the job every time only
+        # made the workers run the batch again to find that its files are already there
+        if isfile(otBedFname) and isfile(effScoresFname):
+            return otBedFname, effScoresFname
+
         q = JobQueue()
         q.openSqlite()
         ip = os.environ.get("REMOTE_ADDR", "noIp")
@@ -11040,9 +11156,6 @@ def submitMultiSearch(batchId, org, pamDesc, mode):
             print("CRISPOR job %s failed-running..." % batchId)
             pass
         q.close()
-
-        if isfile(otBedFname) and isfile(effScoresFname):
-            return otBedFname, effScoresFname
 
 
 def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
@@ -11234,10 +11347,9 @@ def printStatus(batchId, msg):
 
     errorState = False
     if "Traceback" in status:
-        # don't forget to unquote
-        # print("<!--")
+        print("<!--")
         print(status)
-        # print("-->")
+        print("-->")
         status = (
             "An error occured during the processing.<br> Please send an email to %s and tell us that the failing batchId was %s.<br>We can usually fix this quickly. Thanks! <br>If you submit the same sequence/genome/name again, it will not be re-run, Crispor will pickup the old error. We will have to reset it before you can resubmit this particular sequence, so you will have to contact us or change the sequence to get a new job into the system."
             % (contactEmail, batchId)
@@ -12310,7 +12422,8 @@ def KiResultsPage(params, batchId, download=False):
     pamWindow = int(params.get("pamWindow", defaultWindow))
     otherPam = params.get("otherPam")
 
-    pamList = set(multiPamDict[multipam][0])
+    # same order as in processMultiPamSubmission(), a set is iterated in a random order
+    pamList = list(dict.fromkeys(multiPamDict[multipam][0]))
 
     chrom, start, end, strand = parsePos(posStr)
 
@@ -12347,7 +12460,8 @@ def KiResultsPage(params, batchId, download=False):
                     for pamVariant in pamVariantModels.keys():
                         if pamVariant == "NRN":
                             continue
-                        pamList.add(pamVariant)
+                        if pamVariant not in pamList:
+                            pamList.append(pamVariant)
 
     if not download:
 
@@ -12614,7 +12728,7 @@ def KiResultsPage(params, batchId, download=False):
     else:
 
         pairedGuides = None
-        if len(insertSeq) < 10:
+        if len(insertSeq) < 10 and "NGG" in pamList:
             # select paired guides in PAM-out orientation for double nicking strategy width D10A
             # only documented for small edits
             pairedGuides = getNickPairs(seq, pamList, insertIdx, allGuideData)
@@ -13092,18 +13206,17 @@ def printKiSteps(batchId: str, step=1, backParams=None, align="left", useBaseEdi
         )
 
 
-def deserialize(inStr, inType="list"):
+def parseListParam(inStr):
+    """parse a list of values that printHiddenFields() wrote as json into an html form,
+    e.g. the guideInfo of the donor page. Returns a list.
     """
-    deserializes the repr of a tuple or a list into a list
-    JSON should be used, but params saved as hidden html inputs can't be loaded as json
-    """
-
-    if inType == "tuple":
-        lbrd, rbrd = "(", ")"
-    else:
-        lbrd, rbrd = "[", "]"
-
-    return inStr.strip(lbrd).strip(rbrd).replace("'", "").replace(" ", "").split(",")
+    try:
+        return json.loads(inStr)
+    except ValueError:
+        # a page that was still rendered before these params were saved as json has the
+        # repr of the original python tuple in its form, e.g. "('AGG', 47, '+')"
+        logging.info("Parameter %s is not json, falling back to the old repr format" % repr(inStr))
+        return [field.strip().strip("'\"") for field in inStr.strip("()[] ").split(",")]
 
 
 def getRecodingInterval(recodeCoords, armLen, recodeArm, kiType):
@@ -13606,12 +13719,12 @@ def showDonor(
     if doubleNicking:
 
         revPamId = params["revPamId"]
-        revGuideSeq, revPamSeq, revGuideStrand, revGuideStart = deserialize(params["revGuideInfo"], inType="tuple")
+        revGuideSeq, revPamSeq, revGuideStrand, revGuideStart = parseListParam(params["revGuideInfo"])
         revDoRecoding = params["revDoRecoding"]
         revCfd = params["revCfd"]
 
         fwPamId = params["fwPamId"]
-        fwGuideSeq, fwPamSeq, fwGuideStrand, fwGuideStart = deserialize(params["fwGuideInfo"], inType="tuple")
+        fwGuideSeq, fwPamSeq, fwGuideStrand, fwGuideStart = parseListParam(params["fwGuideInfo"])
         fwDoRecoding = params["fwDoRecoding"]
         fwCfd = params["fwCfd"]
 
@@ -13676,9 +13789,7 @@ def showDonor(
     dbInfo = readDbInfo(org)
     chrom, seqStart, seqEnd, strand = parsePos(posStr)
 
-    # this is not good
-    # but can't save guideInfo as json as it comes from a hidden html input
-    pamSeq, guideStart, pamStrand = deserialize(guideInfo, inType="tuple")
+    pamSeq, guideStart, pamStrand = parseListParam(guideInfo)
     pamStart = int(pamId.split(".")[1].strip("[s+-]"))
 
     if donorType == "ss":
@@ -19464,7 +19575,7 @@ function clearEndSeq() {
                         <div style="display: flex; flex-direction: row; gap: 4px; align-items: center;">
                             <small><a href="javascript:clearEndSeq()">Clear Box</a> -</small>
                             <small>Set an example for :</small>
-                            <small class="tooltipsterInteract" title="In this example, the CDS of the mCherry fluorescent protein (%d bp) is inserted after the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:insertExample()"> Insertion</a></small>
+                            <small class="tooltipsterInteract" title="In this example, the CDS of eGFP (%d bp) is inserted after the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:insertExample()"> Insertion</a></small>
                             <small>/</small>
                             <small class="tooltipsterInteract" title="In this example, a 3bp deletion is introduced to delete the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:delExample()"> Deletion</a></small>
                             <small>/</small>
@@ -20454,8 +20565,7 @@ def writeDonorSeq(params):
     kiType = batchInfo.get("kiType")
     insertSeq = batchInfo.get("insertSeq")
     chrom, start, end, strand = parsePos(posStr)
-    # convert to string representation of the original tuple to a tuple again (not optimal at all)
-    guideInfo = deserialize(guideInfo, inType="tuple")
+    guideInfo = parseListParam(guideInfo)
     pamPat = pamId.split(".")[0]
 
     pamPat = setupPamInfo(pamPat)
@@ -22184,7 +22294,20 @@ def printHiddenFields(params, changeParams, form=None, excludeParams=None, skip=
                     break
             if skip_this:
                 continue
-        print(("<input type=\"hidden\" name=\"%s\" value=\"%s\" %s>" % (key, val, formStr)))
+
+        # lists, tuples and dicts have to survive the round trip through the form: str()
+        # would write a python repr with single quotes, which is not valid json. Read them
+        # back with json.loads() or, for tuples, with parseListParam()
+        if isinstance(val, (list, tuple, dict)):
+            val = json.dumps(val)
+
+        # the value can contain double quotes, e.g. the json-encoded geneModel or tagNames
+        # of a KI batch. Without escaping them, the browser ends the attribute at the first
+        # one and submits a truncated value, e.g. "[[" for the geneModel
+        print((
+            "<input type=\"hidden\" name=\"%s\" value=\"%s\" %s>"
+            % (html.escape(str(key)), html.escape(str(val)), formStr)
+        ))
 
 
 def cgiGetSelfUrl(changeParams, anchor=None, onlyParams=None):
