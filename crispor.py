@@ -6942,6 +6942,7 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
             "cutUpstream": cutUpstream1,
             "doubleNicking": True,
             "insertDistance": effScores1.get("insertDistance"),
+            "EVA": effScores1.get("EVA"),
             "revPamId": pamId1,
             "revDoRecoding": doRecoding1,
             "revCfd": cfd1,
@@ -7410,6 +7411,7 @@ def showGuideTable(
                 "doRecoding": doRecoding,
                 "cutUpstream": cutUpstream,
                 "insertDistance": effScores.get("insertDistance"),
+                "EVA": effScores.get("EVA")
             }
             # geneModelSelection is omitted from annotParams for the manual case;
             # carry it from cgiParams so donorDesignPage sees useManualAnnotation
@@ -13686,6 +13688,122 @@ def extendRecodedArm(
     return HA5, HA3, recodedArmSeq, HA5repeats, HA3repeats
 
 
+def calcDonorEff(donorSeq, fromNucl, toNucl, insertDistance, editStart, EVA):
+    """
+    From Riesenberg et al. 2025 :
+    returns a prediction of editing efficiency for ssODN (substitutions only)
+    Only for single substitutions and donors with the same strand orientation as the gRNA
+    """
+
+    distPenalties = {
+            -20:	0.04,
+            -19:	0.04,
+            -18:	0.05,
+            -17:	0.05,
+            -16:	0.06,
+            -15:	0.07,
+            -14:	0.08,
+            -13:	0.09,
+            -12:	0.11,
+            -11:	0.12,
+            -10:	0.15,
+            -9:	0.19,
+            -8:	0.23,
+            -7:	0.29,
+            -6:	0.38,
+            -5:	0.50,
+            -4:	0.65,
+            -3:	0.80,
+            -2:	0.95,
+            -1:	1.00,
+            0: 1.00,
+            1:	0.92,
+            2:	0.75,
+            3:	0.59,
+            4:	0.44,
+            5:	0.34,
+            6:	0.27,
+            7:	0.22,
+            8:	0.17,
+            9:	0.14,
+            10:	0.12,
+            11:	0.10,
+            12:	0.09,
+            13:	0.08,
+            14:	0.07,
+            15:	0.06,
+            16:	0.06,
+            17:	0.05,
+            18:	0.04,
+            19:	0.04,
+            20:	0.03
+            }
+    # fromNucl -> toNucl
+    nuclPenalties = {
+            "G": {
+                "A": 24.6,
+                "C": 23.1,
+                "T": 23.1
+                },
+            "A": {
+                "G": 22.2,
+                "C": 6.9,
+                "T": 10.5
+                },
+            "C": {
+                "G": 0,
+                "A": 1.1,
+                "T": 2.4,
+                },
+            "T": {
+                "G": 27.4,
+                "A": 28.4,
+                "C": 19.4
+                }
+            }
+
+    # EVA and insertDistance come from the CGI parameters, they can be missing or the
+    # string "None" for guides without an EVA score (e.g. Cpf1) or for old batches
+    try:
+        insertDistance, editStart, EVA = int(insertDistance), int(editStart), float(EVA)
+    except (TypeError, ValueError):
+        return None
+
+    # only single A/C/G/T substitutions are covered by the model
+    fromNucl, toNucl = str(fromNucl).upper(), str(toNucl).upper()
+    if toNucl not in nuclPenalties.get(fromNucl, {}):
+        return None
+
+    # if the length of the donor is > 90nt, get the free energy of the 90nt around the cut site
+    if len(donorSeq) > 90:
+        # derive the cut position from the edit position
+        cutPos = editStart + insertDistance
+
+        # keep a full 90nt window: shift it, do not shrink it, if the cut is close to an end
+        winSize = 90
+        clipMin = max(0, min(cutPos - winSize // 2, len(donorSeq) - winSize))
+        clipMax = clipMin + winSize
+
+        freeEnergy = getFreeEnergy(donorSeq[clipMin: clipMax])
+    else:
+        freeEnergy = getFreeEnergy(donorSeq)
+
+    if abs(insertDistance) > 20:
+        distPenalty = 0.01
+    else:
+        distPenalty = distPenalties[insertDistance]
+
+    nuclPenalty = nuclPenalties[fromNucl][toNucl]
+
+    # formula from the calculator
+    donorEff = 19.6355 + 6.76173 + 0.2412 * EVA + 1.2018 * freeEnergy + -0.3525 * nuclPenalty * distPenalty
+
+    # the sheet says "For edits at different positions multiply the HDR prediction score with the decay factor.", in this case :
+    # donorEff = (19.6355 + 6.76173 + 0.2412 * EVA + 1.2018 * freeEnergy + -0.3525 * nuclPenalty) * distPenalty ?
+
+    return donorEff
+
+
 def showDonor(
     HA5,
     HA3,
@@ -13714,6 +13832,8 @@ def showDonor(
     pam = setupPamInfo(pam)
     guideSeq = params["guideSeq"]
     guideInfo = params["guideInfo"]
+    insertDistance = params["insertDistance"]
+    EVA = params.get("EVA")
 
     doubleNicking = params.get("doubleNicking")
     if doubleNicking:
@@ -13759,7 +13879,7 @@ def showDonor(
 
     # save params to include it in the return link in printKiSteps()
     backParams = {}
-    for param in ["manualExStart", "manualExEnd", "manualExFrame", "manualExStrand"]:
+    for param in ["manualExStart", "manualExEnd", "manualExFrame", "manualExStrand", "EVA", "insertDistance"]:
         val = params.get(param)
         if val:
             backParams[param] = val
@@ -14421,6 +14541,25 @@ def showDonor(
     else:
         print("<p>The guide sequence is outside the coordinates of the donor DNA and will unlikely re-cleave it after insertion.</p>")
 
+    if (
+        donorType == "ss"
+        and kiType == "substitution"
+        and len([base for base in donorSeq if base.isupper()]) == 1
+        and templateStrand == strand
+        and len(donorSeq) >= 90
+        and EVA not in (None, "", "None")
+    ):
+        donorEff = calcDonorEff(donorSeq, seq[insertIdx], insertSeq, insertDistance, editStart, EVA)
+        if donorEff is not None:
+            print("""<p>HDR efficiency prediction score: %s <img src="%simage/info-small.png" title="Linear regression model with the following coefficients :
+                  <ul>
+                    <li>Minimum free energy of the 90nt sequence around the cut site</li>
+                    <li>EVA score of the guide</li>
+                    <li>Type of substitution </li>
+                    <li>Distance between the cut site and the edit</li>
+                  </ul>
+                  This score is designed for donors introducing a single substitution, with 45nt homology arms and with the same sens orientation as the guide. For more information, see <a target='blank' href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al. 2025</a>" class="tooltipsterInteract"></p>""" % (round(donorEff, 2), HTMLPREFIX))
+
     if noModel is True:
         print(
             """
@@ -14610,6 +14749,7 @@ def showDonor(
         print(
             "<summary>Show the free energy and secondary structure of the ssODN</summary>"
         )
+
         showSecondaryStructure(params, donorSeq=donorSeq)
         print("</details>")
 
@@ -17866,6 +18006,8 @@ def printBackLink(toDonorPage=False, returnUrl=False):
         newParams["doRecoding"] = cgiParams["doRecoding"]
         newParams["cutUpstream"] = cgiParams["cutUpstream"]
         newParams["insertDistance"] = cgiParams["insertDistance"]
+        if "EVA" in cgiParams:
+            newParams["EVA"] = cgiParams["EVA"]
         linkText = "return to donor DNA design"
     else:
         linkText = "return to the list of all guides"
@@ -23257,6 +23399,8 @@ def donorDesignPage(params):
     doRecoding = params["doRecoding"]
     cutUpstream = params["cutUpstream"]
     insertDistance = params["insertDistance"]
+    # EVA is missing on the links from the double-nicking table and from printBackLink()
+    EVA = params.get("EVA")
     manualExStart = params.get("manualExStart")
 
     # must fix this
@@ -23626,6 +23770,7 @@ def donorDesignPage(params):
         "pamId": pamId,
         "doRecoding": doRecoding,
         "insertDistance": insertDistance,
+        "EVA": EVA, 
         "cutUpstream": cutUpstream,
         "doubleNicking": doubleNicking
     }
@@ -23649,7 +23794,7 @@ def donorDesignPage(params):
     else:
         mainChanges["selTransId"] = selTransId
     printHiddenFields(params, mainChanges, form="main")
-    
+
     print(
         """
     <h2>Donor DNA design options</h2>

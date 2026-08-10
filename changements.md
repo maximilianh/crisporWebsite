@@ -3001,4 +3001,17 @@ FORECasT-BE :
 - fix du calcul des common exons avec Claude :
     - retrait des UTR / transcrits non codants
     - sélection des exons communs à 80%
+- fix de deux bugs avec Claude : 
+    - duplication des jobs ayant le même batchId en mode KI ("submit new search") -> suppression du header effScores.tab
+    - en mode KO, le tableau des effScores n'avait pas un nombre de colones fixes
 
+
+## à faire
+
+- fix disparition de l'edit si affichage de nouveaux PAMs en mode KI
+
+# 10/08/26
+
+## knock-in mode
+
+- ajout de calcDonorEff : prédiction de l'efficacité HDR à partir de la séquence du donneur / substitution / EVA score
