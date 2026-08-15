@@ -214,7 +214,7 @@ DEFAULTINSERTSEQ = "GTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGC
 DEFAULTINSERT = (
     DEFAULTKISEQ[0:63].lower() + DEFAULTINSERTSEQ + DEFAULTKISEQ[63:].lower()
 )
-DEFAULTDEL = DEFAULTKISEQ[0:45].lower() + DEFAULTKISEQ[60:].lower()
+DEFAULTDEL = DEFAULTKISEQ[0:54].lower() + DEFAULTKISEQ[60:].lower()
 DEFAULTSUBST = DEFAULTKISEQ[0:60].lower() + "G" + DEFAULTKISEQ[61:].lower()
 DEFAULTREPL = DEFAULTKISEQ[0:60].lower() + "TAG" + DEFAULTKISEQ[63:].lower()
 
@@ -837,7 +837,7 @@ scoreDescs = {
     ),
     "EVA": (
         "EVA score",
-        "EVA score, predicts the activity of synthetic guides (range 0-100). This score is derived from a linear model, based on data from human cell lines edited with synthetic gRNAs. See <a href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al. 2025</a>",
+        "EVA score, predicts the activity of synthetic guides (range 0-100). This score is derived from a linear regression model which includes the MIT specificity score, the minimum free energy of the guide sequence and nucleotide penalties. The model was fitted using data from human cell lines edited with synthetic gRNAs. See <a href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al. 2025</a> for more information.",
     ),
 }
 
@@ -2364,7 +2364,10 @@ def getSelGeneModel(org, noGenes=True, manual=False, noAllTrans=False):
         for model, modelDesc in geneModels:
             if model == "knownGene":
                 continue
-            if model == "refSeq":
+            if model == "refSeqSelect":
+                defaultModel = model
+                break
+            elif model == "refSeq":
                 defaultModel = model
                 break
             else:
@@ -3523,10 +3526,10 @@ def showSeqAndPams(
     editLines = []
     exonLines = []
 
+    found = False
     # pre-select the geneId
     if geneId and cgiParams.get("geneModelSelection") is None and not noPerfectMatch:
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
-        found = False
         for model, modelStr in geneModels:
             exonInfo, _ = getExonInfo(org, model, position)
             for tId, sym in list(exonInfo.keys()):
@@ -3538,7 +3541,8 @@ def showSeqAndPams(
             if found:
                 break
 
-    geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
+    if found is False:
+        geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
 
     # in only show manual annotation to avoid showing the wrong aa sequence
     if noPerfectMatch:
@@ -5062,10 +5066,10 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE,
         for eff in beEffs.values():
             if eff == -1:
                 continue
-            validBeEffs + 1
+            validBeEffs += 1
             beEffSum += eff
         validEffs = 1 if validBeEffs == 0 else validBeEffs
-        effScore = beEffSum / validEffs
+        effScore = 100 * (beEffSum / validEffs)
 
     else:
         effScore = effs[globEffScore]
@@ -5073,7 +5077,7 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE,
     # for Cas12a, get the selected production method, independent of the global effScore to use
     selGlobEffScore = cgiParams.get("globEffScore")
 
-    if globEffScore == "rs3":
+    if globEffScore == "rs3" and not baseEditor:
         effScore = (effScore + 200) / 400
 
     else:
@@ -5081,7 +5085,7 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE,
 
     # no specificity scores available for Cas12a : use predicted efficiency only
 
-    if globEffScore == "seqDeepCpf1" or globEffScore == "EVA":
+    if globEffScore == "seqDeepCpf1" or globEffScore == "EVA" and not baseEditor:
         mainScore = 100 * effScore
     else:
         mainScore = 100 * (0.60 * specScaled + 0.40 * effScore)
@@ -5103,7 +5107,7 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE,
     if GC < 0.25 or GC > 0.75:
         mainScore -= 25
 
-    if freeE < -3.6 and globEffScore != "EVA":
+    if freeE < -3.6 and globEffScore != "EVA" or baseEditor:
         if freeE < -6:
             mainScore -= 20
         else:
@@ -5141,9 +5145,9 @@ def calcInsertDistance(
         guideWindowEnd = guideStart + 15
     if pamIsFirst:
         if strand == "+":
-            cutPos = guideStart + 19
+            cutPos = guideStart + 15
         else:
-            cutPos = pamStart - 18
+            cutPos = pamStart - 15
     else:
         if strand == "+":
             cutPos = pamStart - 3
@@ -6377,6 +6381,7 @@ You can adapt the global score to your gRNA production method (select below), wh
         <li>Moreno-Mateos is used for guides transcribed <i>in vitro</i>.</li>
         <li>EVA activity score is used for synthetic guides. This score is left unchanged (except for the GC content penalty) as it already integrates specificity, efficiency and penalties.</li>
         <li>deepCpf1 is used for Cas12a guides (penalties are still applied relative to the selected production method).</li>
+        <li>For base editors, the mean of editing frequency at the intended position is used instead.</li>
     </ul>
 <u>Penalties :</u>
     <ul>
@@ -7101,10 +7106,10 @@ def showGuideTable(
         scoreNames = allScoreNames
     showColumns = set()
     # show the CFD guide score?
-    if pamIsSpCas9(pam):
+    if pamIsSpCas9(pam) or (pamFullName and multipam == "20bp-NGG"):
         showColumns.add("cfdGuideScore")
 
-    if koMethod is not None and editData is None:
+    if pamFullName is None and editData is None:
         showPamWarning(pam)
     showNoGenomeWarning(dbInfo)
     printTableHead(
@@ -12008,7 +12013,7 @@ def crisprSearch(params):
                 print("Please use a PAM sequence between 3nt and 8nt long")
                 return
 
-            legalChars = ["N", "A", "T", "G", "C"]  # add Y / R / V ?
+            legalChars = ["N", "A", "T", "G", "C", "R", "V", "C", "H", "D", "B", "W", "S", "M", "K", "Y"]  # add Y / R / V ?
             ncount = 0
             for char in pamSeq:
                 if char not in legalChars:
@@ -12410,7 +12415,7 @@ def KiResultsPage(params, batchId, download=False):
 
     otMatches = parseOfftargets(org, batchId)
     effScores = readEffScores(batchId, multipam=multipam)
-    globEffScore = params.get("globEffScore", "rs3")
+    globEffScore = params.get("globEffScore", "EVA")
 
     # increase the default window for substitutions to display PAMs for base editing
     maxPamWindow = max(len(seq[0:insertIdx]), len(seq[insertIdx: len(seq)]))
@@ -12878,7 +12883,7 @@ def KiResultsPage(params, batchId, download=False):
         """
         )
 
-        if otherPam is not None:
+        if otherPam is not None and otherPam != "plasmid":
             # get the url to submit a new search with the selected PAM list
             newParams = {
                 param: val
@@ -14227,6 +14232,9 @@ def showDonor(
     if not guideOutsideDonor and not pamIsCpf1(pam):
         donorCfd = calcCfdScore(guideTarget.upper(), guideDonor.upper())
         # donorCfd = 1
+    elif pamIsCpf1(pam):
+        # donorCfd = calcHitScore(guideSeq.upper(), donorSeq[guideStartCoord: guideEndCoord].upper())
+        donorCfd = -1
     else:
         donorCfd = -1
 
@@ -14538,8 +14546,10 @@ def showDonor(
 
     if donorCfd != -1:
         print("<p>CFD score of the guide against donor DNA: %s</p>" % round(donorCfd, 2))
+    elif pamIsCpf1(pam):
+        pass
     else:
-        print("<p>The guide sequence is outside the coordinates of the donor DNA and will unlikely re-cleave it after insertion.</p>")
+        print("<p>The CFD score couldn't be calculated (guide sequence outside donor DNA coordinates).</p>")
 
     if (
         donorType == "ss"
@@ -14558,7 +14568,7 @@ def showDonor(
                     <li>Type of substitution </li>
                     <li>Distance between the cut site and the edit</li>
                   </ul>
-                  This score is designed for donors introducing a single substitution, with 45nt homology arms and with the same sens orientation as the guide. For more information, see <a target='blank' href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al. 2025</a>" class="tooltipsterInteract"></p>""" % (round(donorEff, 2), HTMLPREFIX))
+                  This score is designed for single substitutions, using donors with 45nt homology arms in the same sense orientation as the guide. For more information, see <a target='blank' href='https://doi.org/10.1038/s41467-025-59947-0'>Riesenberg et al. 2025</a>." class="tooltipsterInteract"></p>""" % (round(donorEff, 2), HTMLPREFIX))
 
     if noModel is True:
         print(
@@ -14644,7 +14654,10 @@ def showDonor(
     if kiType in ["tagging", "qTag", "insertion"]:
 
         print("""<details id="insertForm" style="margin-top: 24px;">""")
-        print("<summary>Modification of the inserted sequence</summary>")
+        if kiType == "insertion":
+            print("<summary>Enter a different insert sequence</summary>")
+        else:
+            print("<summary>Select alternative tags and linkers</summary>")
 
         print("<form>")
 
@@ -14699,7 +14712,7 @@ def showDonor(
 
         elif kiType == "tagging":
             print(
-                """<p>If you want to select other markers, use the dropdown menu below and click on update button. Updating with nothing selected will restore the original sequence.</p>"""
+                """<p>If you want to select other markers, use the dropdown menu below and click on the update button.</p>"""
             )
             printTagsAndLinkers(qTAG=False, tagNames=tagNames)
 
@@ -15166,7 +15179,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False):
         defaultSort = "main"
     sortBy = params.get("sortBy", defaultSort)
 
-    globEffScore = params.get("globEffScore", "rs3")
+    globEffScore = params.get("globEffScore", "EVA")
     selGeneModel = params.get("geneModelSelection")
 
     otMatches = parseOfftargets(org, batchId)
@@ -16112,7 +16125,7 @@ def printReleaseNote():
         % releaseNote
     )
     '''
-    print("""<i>Disclaimer : this version is still in development and may be unstable. If you find any bugs, please <a href='mailto:%s'>contact us</a>.""" % contactEmail)
+    print("""<i>Note : this version is still in development and may be unstable. If you find any bugs, please <a href='mailto:%s'>contact us</a>.""" % contactEmail)
 
     print("</div>")
 
@@ -17410,7 +17423,7 @@ def downloadFile(params):
         )
 
     else:
-        globEffScore = params.get("globEffScore")
+        globEffScore = params.get("globEffScore", "EVA")
         seq, org, pam, position, guideData = readBatchAndGuides(
             batchId, globEffScore=globEffScore
         )
@@ -19719,7 +19732,7 @@ function clearEndSeq() {
                             <small>Set an example for :</small>
                             <small class="tooltipsterInteract" title="In this example, the CDS of eGFP (%d bp) is inserted after the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:insertExample()"> Insertion</a></small>
                             <small>/</small>
-                            <small class="tooltipsterInteract" title="In this example, a 3bp deletion is introduced to delete the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:delExample()"> Deletion</a></small>
+                            <small class="tooltipsterInteract" title="In this example, a 6bp deletion is introduced upstream of the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:delExample()"> Deletion</a></small>
                             <small>/</small>
                             <small class="tooltipsterInteract" title="In this example, a A to G substitution is introduced in the first base of the START codon in the human homeobox D9 (HOXD9) gene."><a href="javascript:substExample()"> Substitution</a></small>
                             <small>/</small>
