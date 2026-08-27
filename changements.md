@@ -3015,3 +3015,25 @@ FORECasT-BE :
 ## knock-in mode
 
 - ajout de calcDonorEff : prédiction de l'efficacité HDR à partir de la séquence du donneur / substitution / EVA score
+
+## 11/08/24
+
+# Notes Schubert et al. : design donneurs Cas12a
+
+- position optimale entre 12 et 16 nt
+- préférence pour le brin non target
+
+## notes cshl
+
+- retirer GC content des pénalités EVA score (énergie libre meilleur prédicteur)
+    - + préciser conditions exp
+- ajouter reccherche de guides dans région répétées ?
+- en mode KI, ajouter l'option de floxer l'edit
+- ajouter options command line (liste guides KO, design donneur (1 / guide ?)
+
+# 24/08/24
+
+## knock-in mode
+
+- correction d'un bug : edits BE non affichés si affichage de PAMs supplémentaires
+- affichage des PAMs supplémentaires dans un élément "details"

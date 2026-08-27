@@ -2951,7 +2951,7 @@ def makePamLines(
             else:
                 classStr = "tooltipsterInteract"
                 mouseOver = """
-                title='The scores for the guide sequence corresponding to this PAM are not calculated yet. Click on "New search with the selected PAMs" to show their scores.'
+                title='The scores for the guide sequence corresponding to this PAM are not calculated yet. Click on "New search with the selected PAMs" in the "guides for HDR-based editing" section below to show their scores.'
                 """
                 score = ""
 
@@ -3418,7 +3418,7 @@ def showSeqAndPams(
         )
 
         # in KI mode, show BE guides separately
-        if editData:
+        if editData and useBaseEditor:
 
             bePamIds = set(buildEditData(editData).keys())
             bePamSeqs = []
@@ -3549,7 +3549,7 @@ def showSeqAndPams(
         geneModels = [("manual", "manual annotation")]
         selGeneModel = geneModels[0][0]
 
-    if baseEditor:
+    if useBaseEditor:
         # beWinStart, beWinEnd = getBeWin(cgiParams.get("beWin", DEFAULTBEWIN))
         enzList = allBeModels[enzyme]
 
@@ -3971,7 +3971,7 @@ def showSeqAndPams(
 
     printLines(exonLines, labelLen)
 
-    if baseEditor:
+    if useBaseEditor:
         printLines(editLines, labelLen)
         # print("<details><summary>%s</summary>" % editDetailsLabel)
         # printLines(editGuideLines, labelLen)
@@ -3981,16 +3981,19 @@ def showSeqAndPams(
 
     printLines(pamLines, labelLen)
 
-    if baseEditor:
+    if useBaseEditor:
         print("</details>")
-        print("""<details id="bePams"><summary>Show/hide BE PAMs</summary>""")
+        print("""<details id="bePams"><summary>show/hide be pams</summary>""")
         printLines(bePamLines, labelLen)
         print("</details>")
 
     if otherPam:
-        print(("{:" + str(labelLen) + "s} ").format(otherPamLabel), end=" ")
-        print("".join(["- - " for i in range(0, int(len(seq) / 4))]))
+        print("</details open>")
+        print("""<details id="suppPams"><summary>show/hide supplementary PAMs</summary>""")
+        # print(("{:" + str(labelLen) + "s} ").format(otherPamLabel), end=" ")
+        # print("".join(["- - " for i in range(0, int(len(seq) / 4))]))
         printLines(otherPamLinesHtml, labelLen)
+        print("</details>")
 
     print("</pre><br>")
 
