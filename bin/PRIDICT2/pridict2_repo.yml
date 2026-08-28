@@ -1,0 +1,26 @@
+# torch has to be installed separately after installing the conda environment!
+# install torch with the following command after activating the environment:
+# pip install torch==2.0.1 --index-url https://download.pytorch.org/whl/cpu
+name: pridict2
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+  - https://conda.anaconda.org/main
+dependencies:
+  - pip=23.1.2
+  - python=3.10.12
+  - python-dateutil=2.8.2
+  - python_abi=3.10
+  - tensorflow==2.13.1
+  - pip:
+      - biopython==1.81
+      - joblib==1.3.1
+      - matplotlib==3.7.2
+      - pandas==2.0.3
+      - prettytable==3.8.0
+      - primer3-py==2.3.0
+      - scikit-learn==1.3.0
+      - scipy==1.11.1
+      - seaborn==0.12.2
+      - tqdm==4.65.0

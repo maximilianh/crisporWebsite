@@ -3037,3 +3037,29 @@ FORECasT-BE :
 
 - correction d'un bug : edits BE non affichés si affichage de PAMs supplémentaires
 - affichage des PAMs supplémentaires dans un élément "details"
+
+# 27/08/26
+
+## Prime Editing
+
+- ajout de PRIDICT2 (https://github.com/uzh-dqbm-cmi/PRIDICT2)
+    - création d'un environnement virtuel
+    - édition du script principal : ajout d'une option pour retourner le df pandas au lieu d'écrire un fichier
+    - ajout à subserverconf.py (lancement dans un sous-serveur comme les modèles BE)
+    - ajout de runPRIDICT2.py : lancement de PRIDICT2 et parsing des résultats
+
+## à faire
+
+- au dessous des onglets HDR / BE / PE -> code couleur selon faisabilité de le techinque (insertDist HDR, freqAtEdit BE...)
+- ajouter mutation sliencieuses dans pegRNA
+- design alternatif pegRNA : placement du PBS dans la boucle entre tracr / crisprRNA
+- score K562 + généralisable / HEK293
+
+# 28/08/26
+
+## Prime Editing
+
+- dans processMultiPamSubmission : écriture des pegRNA dans un fichier json
+- lecture du json dans KiResultsPage
+- si json -> affichage de l'onglet de sélection du tableau PE
+- ajout de showPegTablee() : affichage des pegRNA : seq, spacer, strand, scores..

@@ -3983,7 +3983,7 @@ def showSeqAndPams(
 
     if useBaseEditor:
         print("</details>")
-        print("""<details id="bePams"><summary>show/hide be pams</summary>""")
+        print("""<details id="bePams"><summary>show/hide BE PAMs</summary>""")
         printLines(bePamLines, labelLen)
         print("</details>")
 
@@ -5601,9 +5601,25 @@ def sortPairedGuides(pairedGuides, pairSortBy):
         elif "Eff" in pairSortBy:
             sortFunc = lambda pairData: pairData[1][4].get(pairSortBy[5:])
     else:
-        errAbort("Unknown pairSortBy value. This is a bug. Please contact us.")
+        errAbort("Unknown sorting value. This is a bug. Please contact us.")
 
     pairedGuides.sort(key=sortFunc, reverse=reverse)
+
+
+def sortPegData(pegData, pegSortBy):
+
+    reverse = True
+    if pegSortBy == "K562":
+        sortFunc = lambda pegData: pegData[5]
+    elif pegSortBy == "HEK":
+        sortFunc = lambda pegData: pegData[6]
+    elif pegSortBy == "nickDist":
+        sortFunc = lambda pegData: int(pegData[7])
+        reverse = False
+    else:
+        errAbort("Unknown sorting value. This is a bug, please contact us.")
+
+    pegData.sort(key=sortFunc, reverse=reverse)
 
 
 def printDownloadTableLinks(batchId, addTsv=False, nonClassicMode=None):
@@ -6991,6 +7007,73 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
         print("""<td>%s</td>""" % donorLink)
         print("<tr>")
     print("</table></div>")
+
+
+def showPegTable(batchId, seq, pegData):
+    """Displays the table for pegRNAs designed with PRIDICT2"""
+
+    pegSortBy = cgiParams.get("pegSortBy", "K562")
+    sortPegData(pegData, pegSortBy)
+    # startDict, endSet = findAllPams(seq, "NGG")
+
+    """
+    allParams = "sequence_name,PRIDICT2_0_editing_Score_deep_K562,PRIDICT2_0_editing_Score_deep_HEK,K562_percentile_to_librarydiverse,HEK_percentile_to_librarydiverse,K562_rank,HEK_rank,PRIDICT2_Format,Original_Sequence,Edited_Sequence,Target-Strand,Mutation_Type,Correction_Type,Correction_Length,Editing_Position,PBSlength,RToverhanglength,RTlength,EditedAllele,OriginalAllele,Spacer-Sequence,PBSrevcomp,RTseqoverhangrevcomp,RTrevcomp,PCR-GG-Oligo1_Spacer,PCR-GG-Oligo2_Extension,Anza_Method_Spacer-Oligo-FW,Anza_Method_Spacer-Oligo-RV,Anza_Method_Extension-Oligo-FW,Anza_Method_Extension-Oligo-RV,Scaffold_Optimized,pegRNA,Editor_Variant,protospacermt,extensionmt,RTmt,RToverhangmt,PBSmt,original_base_mt,edited_base_mt,original_base_mt_nan,edited_base_mt_nan,RToverhangmatches,wide_initial_target,wide_mutated_target,protospacerlocation_only_initial,PBSlocation,RT_initial_location,RT_mutated_location,deepeditposition,deepeditposition_lst".split(",")
+
+    for i, param in enumerate(allParams):
+        print(i, param, "<br>")
+    """
+    print("<table>")
+
+    print("""
+    <thead><tr>
+    <th>pegRNA sequence <br> <span style="background-color: rgba(255, 0, 0, 0.4)">RT Template</span>  <span style="background-color: rgba(0, 128, 255, 0.4)">Primer Binding Site</span></th>
+    <th>Spacer sequence</th>
+    <th>Prime Editor</th>
+    <th>pegRNA strand</th>
+    <th><a href="crispor.py?batchId=%(batchId)s&pegSortBy=K562">Predicted Efficiency (PRIDICT2 - K652)</a></th>
+    <th><a href="crispor.py?batchId=%(batchId)s&pegSortBy=HEK">Predicted Efficiency (PRIDICT2 - HEK)</a></th>
+    <th><a href="crispor.py?batchId=%(batchId)s&pegSortBy=nickDist">Distance between edit and nick site</a></th>
+    <th>Primers</th>
+    </tr></thead>
+    """ % locals())
+
+    for pegInfo in pegData:
+
+        pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords, pbsCoords, rtCoords, editorVariant, primers = pegInfo
+        print("<tr>")
+        print('<td style="font-family: Source Code Pro; font-size: 1em; margin: 0 0;">')
+        # rtCoords, pbsCoords = [0, 0], [0, 0]
+        RTTstart = len(pegSeq) - len(PBSrevComp) - len(RTTrevComp)
+        RTTend = RTTstart + len(RTTrevComp)
+        print('<div style="display: flex; flex-direction: column;">')
+        for i, base in enumerate(pegSeq):
+            if i == 0:
+                print('<div style="display: flex; flex-direction: row;">')
+            if i == len(pegSeq):
+                print("</div>")
+            if i % 40 == 0:
+                print("</div><br>")
+                print('<div style="display: flex; flex-direction: row; gap: -1px;">')
+            if i in range(RTTstart, RTTend):
+                span = '<span style="background-color: rgba(255, 0, 0, 0.4)">'
+            elif i in range(RTTend, len(pegSeq)):
+                span = '<span style="background-color: rgba(0, 128, 255, 0.4)">'
+            else:
+                span = "<span>"
+            print(span, base, "</span>")
+        print("</div>")
+        print("</td>")
+
+        print('<td style="font-family: Source Code Pro; font-size: 1em; margin: 0 0;">%s</td>' % spacer)
+        print("<td>%s</td>" % editorVariant)
+        print("<td>%s</td>" % ("+" if strand == "Fw" else "-"))
+        print("<td>%s</td>" % round(K562score, 2))
+        print("<td>%s</td>" % round(HEKscore, 2))
+        print("<td>%s</td>" % editToNick)
+        print('<td><a>Download primers</a></td>')
+        print("</tr>")
+
+    print("</table>")
 
 
 def showGuideTable(
@@ -10056,6 +10139,26 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     orgPamList = multiPamDict[multipam][0]
     beFilter = (orgPamList, bePamIds) if useBaseEditor else None
 
+    # pegRNA design with PRIDICT2
+    if len(insertSeq) <= 50:
+        queue.startStep(batchId, "PE", "Designing and scoring pegRNAs with PRIDICT2")
+        pegFname = batchBase + ".pegData.json"
+        if kiType == "substitution":
+            formatSeq = seq[0:insertIdx].upper() + "(" + seq[insertIdx].upper() + "/" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
+        elif kiType == "replacement":
+            formatSeq = seq[0:insertIdx].upper() + "(" + seq[insertIdx: insertIdx + len(insertSeq)].upper() + "/" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
+        elif kiType == "deletion":
+            formatSeq = seq[0:insertIdx].upper() + "(-" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
+        elif kiType == "insertion":
+            formatSeq = seq[0:insertIdx].upper() + "(+" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
+
+        inData = (batchId, formatSeq)
+        pegData = callSubServer("runPRIDICT2", inData, timeout=60)
+        pegFh = open(pegFname, "w")
+        logging.info("PEGDATA: %s " % pegData)
+        json.dump(pegData["out"], pegFh)
+        pegFh.close()
+
     for i, pamFullName in enumerate(pamList):
 
         # set globals for this PAM
@@ -10110,7 +10213,6 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         if not DEBUG:
             if isfile(faFname):
                 os.remove(faFname)
-
 
     # create the final file to end the job
     shutil.move(bedFnameTmp, bedFname)
@@ -12389,6 +12491,7 @@ def KiResultsPage(params, batchId, download=False):
     otherwise the http headers are broken
     """
 
+    batchBase = join(batchDir, batchId)
     batchInfo = readBatchAsDict(batchId)
     org = batchInfo["org"]
     seq = batchInfo["seq"]
@@ -12450,7 +12553,6 @@ def KiResultsPage(params, batchId, download=False):
         for editList in possibleEdits.values():
             if fromToNucl in editList:
                 # load edit data
-                batchBase = join(batchDir, batchId)
                 editFname = batchBase + ".editData.json"
                 if isfile(editFname):
                     editData = json.load(open(editFname))
@@ -12472,6 +12574,11 @@ def KiResultsPage(params, batchId, download=False):
                             continue
                         if pamVariant not in pamList:
                             pamList.append(pamVariant)
+    # load PE data
+    pegData = None
+    pegFname = batchBase + ".pegData.json"
+    if isfile(pegFname):
+        pegData = json.load(open(pegFname))
 
     if not download:
 
@@ -12805,6 +12912,11 @@ def KiResultsPage(params, batchId, download=False):
             <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">Guides for base editing</button>
             """)
 
+        if pegData:
+            print("""
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="peSelect" onclick="showTable('peTable', this, setDist=1)">pegRNAs for prime editing</button>
+            """)
+
         print("</div></div>")
 
         print("""<div name="guideTablePanel" id="hdrTable">""")
@@ -12973,6 +13085,11 @@ def KiResultsPage(params, batchId, download=False):
             )
             print("</div>")
 
+        if pegData:
+            print("""<div name="guideTablePanel" id="peTable" >""")
+            showPegTable(batchId, seq, pegData)
+            print("</div>")
+
         print('<br><a class="neutral" href="crispor.py?expType=ki">')
         print(
             '<div class="button" style="margin-left:auto;margin-right:auto;width:150px;">New Query</div></a>'
@@ -13009,10 +13126,11 @@ def KiResultsPage(params, batchId, download=False):
                    showTable('pairTable', savedButton, setDist=0);
                 } else if (buttonId === "beSelect") {
                     showTable('beTable', savedButton, setDist=0)
+                } else if (buttonId === "peSelect") {
+                    showTable('peTable', savedButton, setDist=0)
                 } else {
                     showTable('hdrTable', savedButton, setDist=0)
                 }
-                // will add PE table here
             } else {
                 // default view: show the HDR table, hide the rest
                 const hdrButton = document.getElementById('hdrSelect');
