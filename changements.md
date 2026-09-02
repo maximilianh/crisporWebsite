@@ -3025,11 +3025,16 @@ FORECasT-BE :
 
 ## notes cshl
 
-- retirer GC content des pénalités EVA score (énergie libre meilleur prédicteur)
+- retirer GC content des pénalités EVA score (énergie libre meilleur prédicteur) DONE
     - + préciser conditions exp
-- ajouter reccherche de guides dans région répétées ?
+- ajouter recherche de guides dans région répétées ?
 - en mode KI, ajouter l'option de floxer l'edit
 - ajouter options command line (liste guides KO, design donneur (1 / guide ?)
+- ajouter remplacement / coupure avec deux guides en mode KI
+- augmenter la taille max de la séquence d'input ?
+- ajouter nouveau modèle de prédiction des outcomes réparation DSB (lorsque dispo)
+- ajouter "sequence not in reference genome" en mode classic
+- en mode KO / excision -> afficher message inversions -> inhibiteur NHEJ
 
 # 24/08/24
 
@@ -3063,3 +3068,39 @@ FORECasT-BE :
 - lecture du json dans KiResultsPage
 - si json -> affichage de l'onglet de sélection du tableau PE
 - ajout de showPegTablee() : affichage des pegRNA : seq, spacer, strand, scores..
+- ajout de sortPegData : tri des pegRNAs en fonction du score choisi
+- surlignage de l'edit / RTT / PBS sur la séquence du peg
+
+## à faire
+
+- ajouter téléchargement des primers en FASTA
+- ajouter mouseovers + textes desriptifs
+
+# 02/09/26
+
+## global
+
+- retrait de la pénalité GC content pour global score avec EVA
+
+## knock-in mode
+
+- ajout d'un texte descriptif des codes couleurs pour la sélection du tableau
+
+## prime editing
+
+- ajout d'une vignette (vert / jaune / rouge) dans boutton de sélection de la technique
+    - HDR : distance DSB / edit (0-5-10)
+    - double Nicking : moyenne des global scores (75-50-0)
+    - base editing : fréquence d'édition à position prévue (50-10-0)
+    - Prime editng score PRIDICT2-K562 (50-10-0) -> à faire confirmer
+
+## à faire
+
+- bystander silencieux BE!
+- ajouter page d'affichage primers pegRNAs
+- ajouter optiPrime (https://optipri.me/)
+- ajouter input CRISPRlungo ?
+
+## à faire
+
+- feux rouges KI

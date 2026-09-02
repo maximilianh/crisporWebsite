@@ -27,3 +27,15 @@
 - simplify the display in showDonor () ?
 - add CDS replacement ? https://doi.org/10.1038/s41467-023-42036-5
 - Don't put dononr DNA sequence into the url (induces a size limit)
+
+## notes 02/09/26
+
+- Ajouter prime editing dans mode KO
+- Biblio KI / Double nicking
+- Renommer mode "Sequence not in referece genome" : ajouter alignement + message d'alerte + ajouter en mode classic
+- RPE1 genome
+- conserver tous les boutons en mode KI -> message si technique impossible
+- vérifier sécurité IA
+- captcha ?
+- tuto
+- manuel

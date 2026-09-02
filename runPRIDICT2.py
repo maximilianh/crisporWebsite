@@ -10,12 +10,11 @@ outDir = join(pridictDir, "predictions")
 from pridict2_pegRNA_design import predict_single_sequence
 
 
-def run(data):
+def run(editSeq):
 
-    seqName, editSeq = data
-
-    editSeq = "GCCTGGAGGTGTCTGGGTCCCTCCCCCACCCGACTACTTCACTCTCTGTCCTCTCTGCCCAGGAGCCCAGGATGTGCGAGTTCAAGTGGCTACGGCCGA(G/C)GTGCGAGGCCAGCTCGGGGGCACCGTGGAGCTGCCGTGCCACCTGCTGCCACCTGTTCCTGGACTGTACATCTCCCTGGTGACCTGGCAGCGCCCAGATGCACCTGCGAACCACCAGAATGTGGCCGC"
-
+    # seqName, editSeq = data
+    seqName = "test"
+    print(editSeq)
     df = predict_single_sequence(
         sequence_name=seqName,
         editseq=editSeq,
@@ -30,7 +29,12 @@ def run(data):
     allPegs = []
     out = []
     maxRank = 0
-
+    """
+    if df is None:
+        return {"status": "error",
+                "model": "PRIDICT2",
+                "out": []}
+    """
     for _, pegDesc in df.iterrows():
         K562score = pegDesc[1]
         K562rank = pegDesc[3]

@@ -5107,7 +5107,7 @@ def calcGlobScore(guideSeq, pamSeq, MitScore, CfdScore, effs, beEffs, GC, freeE,
     ):
         mainScore -= 25
 
-    if GC < 0.25 or GC > 0.75:
+    if (GC < 0.25 or GC > 0.75) and globEffScore != "EVA":
         mainScore -= 25
 
     if freeE < -3.6 and globEffScore != "EVA" or baseEditor:
@@ -7009,12 +7009,14 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
     print("</table></div>")
 
 
-def showPegTable(batchId, seq, pegData):
+def showPegTable(batchId, seq, pegData, kiType):
     """Displays the table for pegRNAs designed with PRIDICT2"""
 
     pegSortBy = cgiParams.get("pegSortBy", "K562")
     sortPegData(pegData, pegSortBy)
     # startDict, endSet = findAllPams(seq, "NGG")
+
+    headerCss = """style = "background-color:#F0F0F0;" """
 
     """
     allParams = "sequence_name,PRIDICT2_0_editing_Score_deep_K562,PRIDICT2_0_editing_Score_deep_HEK,K562_percentile_to_librarydiverse,HEK_percentile_to_librarydiverse,K562_rank,HEK_rank,PRIDICT2_Format,Original_Sequence,Edited_Sequence,Target-Strand,Mutation_Type,Correction_Type,Correction_Length,Editing_Position,PBSlength,RToverhanglength,RTlength,EditedAllele,OriginalAllele,Spacer-Sequence,PBSrevcomp,RTseqoverhangrevcomp,RTrevcomp,PCR-GG-Oligo1_Spacer,PCR-GG-Oligo2_Extension,Anza_Method_Spacer-Oligo-FW,Anza_Method_Spacer-Oligo-RV,Anza_Method_Extension-Oligo-FW,Anza_Method_Extension-Oligo-RV,Scaffold_Optimized,pegRNA,Editor_Variant,protospacermt,extensionmt,RTmt,RToverhangmt,PBSmt,original_base_mt,edited_base_mt,original_base_mt_nan,edited_base_mt_nan,RToverhangmatches,wide_initial_target,wide_mutated_target,protospacerlocation_only_initial,PBSlocation,RT_initial_location,RT_mutated_location,deepeditposition,deepeditposition_lst".split(",")
@@ -7022,27 +7024,40 @@ def showPegTable(batchId, seq, pegData):
     for i, param in enumerate(allParams):
         print(i, param, "<br>")
     """
+
     print("<table>")
 
     print("""
     <thead><tr>
-    <th>pegRNA sequence <br> <span style="background-color: rgba(255, 0, 0, 0.4)">RT Template</span>  <span style="background-color: rgba(0, 128, 255, 0.4)">Primer Binding Site</span></th>
-    <th>Spacer sequence</th>
-    <th>Prime Editor</th>
-    <th>pegRNA strand</th>
-    <th><a href="crispor.py?batchId=%(batchId)s&pegSortBy=K562">Predicted Efficiency (PRIDICT2 - K652)</a></th>
-    <th><a href="crispor.py?batchId=%(batchId)s&pegSortBy=HEK">Predicted Efficiency (PRIDICT2 - HEK)</a></th>
-    <th><a href="crispor.py?batchId=%(batchId)s&pegSortBy=nickDist">Distance between edit and nick site</a></th>
-    <th>Primers</th>
+    <th>pegRNA sequence <br>
+    """)
+    if kiType != "deletion":
+        print("""<span style="background-color: rgba(255, 0, 0, 0.4)">Edit</span>
+        """)
+    print("""
+    <span style="background-color: rgba(0, 255, 255, 0.4)">RT Template</span>  <span style="background-color: rgba(255, 255, 0, 0.4)">Primer Binding Site</span></th>
+    <th %(headerCss)s >Spacer sequence</th>
+    <th %(headerCss)s >Prime Editor</th>
+    <th %(headerCss)s >pegRNA strand</th>
+    <th %(headerCss)s ><a href="crispor.py?batchId=%(batchId)s&pegSortBy=K562">Predicted Efficiency (PRIDICT2 - K652)</a></th>
+    <th %(headerCss)s ><a href="crispor.py?batchId=%(batchId)s&pegSortBy=HEK">Predicted Efficiency (PRIDICT2 - HEK)</a></th>
+    <th %(headerCss)s ><a href="crispor.py?batchId=%(batchId)s&pegSortBy=nickDist">Distance between edit and nick site</a></th>
+    <th %(headerCss)s >Primers</th>
     </tr></thead>
     """ % locals())
 
-    for pegInfo in pegData:
+    for nRow, pegInfo in enumerate(pegData):
+
+        # only show the top 50 pegs
+        if nRow >= 50:
+            continue
 
         pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords, pbsCoords, rtCoords, editorVariant, primers = pegInfo
         print("<tr>")
         print('<td style="font-family: Source Code Pro; font-size: 1em; margin: 0 0;">')
         # rtCoords, pbsCoords = [0, 0], [0, 0]
+        spacerStart = 0
+        spacerEnd = len(spacer)
         RTTstart = len(pegSeq) - len(PBSrevComp) - len(RTTrevComp)
         RTTend = RTTstart + len(RTTrevComp)
         print('<div style="display: flex; flex-direction: column;">')
@@ -7054,14 +7069,18 @@ def showPegTable(batchId, seq, pegData):
             if i % 40 == 0:
                 print("</div><br>")
                 print('<div style="display: flex; flex-direction: row; gap: -1px;">')
-            if i in range(RTTstart, RTTend):
+            # edit
+            if base.islower():
                 span = '<span style="background-color: rgba(255, 0, 0, 0.4)">'
+            elif i in range(RTTstart, RTTend):
+                span = '<span style="background-color: rgba(0, 255, 255, 0.4)">'
             elif i in range(RTTend, len(pegSeq)):
-                span = '<span style="background-color: rgba(0, 128, 255, 0.4)">'
+                span = '<span style="background-color: rgba(255, 255, 0, 0.4)">'
             else:
                 span = "<span>"
             print(span, base, "</span>")
         print("</div>")
+        # print("<a href="">Show secondary structure</a>")
         print("</td>")
 
         print('<td style="font-family: Source Code Pro; font-size: 1em; margin: 0 0;">%s</td>' % spacer)
@@ -7694,11 +7713,7 @@ def showGuideTable(
                     beEff = '-'
                 else:
                     beEff = str(round(beEff * 100, 2))
-                # the score is wrapped in a <span> so that showBeModelResults() can
-                # hide the value without hiding the cell: the cell of a hidden model
-                # may be the one padded to MIN_BE_GROUP_WIDTH by resizeOtTables(),
-                # and it has to keep painting its background and its borders then,
-                # otherwise the row shows a blank hole instead of an empty cell.
+
                 print("""<td class="beEffCol-%s" style="width:10px; background-color: %s;"><span>%s</span></td>""" % (modelHtml, backgroundColor, beEff))
 
             print("""<td style="width:%dpx; background-color: %s;">""" % (colWidths["beOutcome"], backgroundColor))
@@ -8215,6 +8230,25 @@ div.contentcentral { text-align: left; float: left}
 
 .assistantMenu.resultTabs button.assistantButton {
     font-size: clamp(8px, 1.25vw, 24px);
+}
+
+/* Label + status circle of a result tab. The circle is a flex item that must
+   never be shrunk away when the label is long (e.g. the paired-guides tab):
+   flex:none keeps it at its declared 15x15 and the label, being nowrap, is
+   what determines the button's minimum size. */
+.assistantMenu.resultTabs .resultTabLabel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+}
+.assistantMenu.resultTabs .resultTabLabel .tabStatusDot {
+    flex: 0 0 15px;
+    width: 15px;
+    height: 15px;
+    overflow: visible;
 }
 
 .kiSteps .kiStep,
@@ -10140,20 +10174,27 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     beFilter = (orgPamList, bePamIds) if useBaseEditor else None
 
     # pegRNA design with PRIDICT2
+    # PRIDICT2 needs 100bp at least flanking sequences from the edit
     if len(insertSeq) <= 50:
         queue.startStep(batchId, "PE", "Designing and scoring pegRNAs with PRIDICT2")
         pegFname = batchBase + ".pegData.json"
-        if kiType == "substitution":
-            formatSeq = seq[0:insertIdx].upper() + "(" + seq[insertIdx].upper() + "/" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
-        elif kiType == "replacement":
-            formatSeq = seq[0:insertIdx].upper() + "(" + seq[insertIdx: insertIdx + len(insertSeq)].upper() + "/" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
-        elif kiType == "deletion":
-            formatSeq = seq[0:insertIdx].upper() + "(-" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
-        elif kiType == "insertion":
-            formatSeq = seq[0:insertIdx].upper() + "(+" + insertSeq.upper() + ")" + seq[insertIdx + 1:].upper()
 
-        inData = (batchId, formatSeq)
-        pegData = callSubServer("runPRIDICT2", inData, timeout=60)
+        # extend 100 bp in 5' and 3'
+        extendedSeq = getSeq(genome, "%s:%s-%s:%s" % (chrom, start - 100, end + 100, strand))
+        extInsertIdx = insertIdx + 100
+
+        if kiType == "substitution":
+            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(" + extendedSeq[extInsertIdx].upper() + "/" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
+        elif kiType == "replacement":
+            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(" + extendedSeq[extInsertIdx: extInsertIdx + len(insertSeq)].upper() + "/" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + len(insertSeq):].upper()
+        elif kiType == "deletion":
+            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(-" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
+        elif kiType == "insertion":
+            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(+" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
+
+        # inData = [batchId, formatSeq]
+        logging.info("INDATA : %s" % formatSeq)
+        pegData = callSubServer("runPRIDICT2", formatSeq, timeout=60)
         pegFh = open(pegFname, "w")
         logging.info("PEGDATA: %s " % pegData)
         json.dump(pegData["out"], pegFh)
@@ -12490,7 +12531,8 @@ def KiResultsPage(params, batchId, download=False):
     Note : print calls should only occur when download is False,
     otherwise the http headers are broken
     """
-
+    
+    htmlPrefix = HTMLPREFIX
     batchBase = join(batchDir, batchId)
     batchInfo = readBatchAsDict(batchId)
     org = batchInfo["org"]
@@ -12577,7 +12619,7 @@ def KiResultsPage(params, batchId, download=False):
     # load PE data
     pegData = None
     pegFname = batchBase + ".pegData.json"
-    if isfile(pegFname):
+    if isfile(pegFname) and os.path.getsize(pegFname) > 0:
         pegData = json.load(open(pegFname))
 
     if not download:
@@ -12887,35 +12929,124 @@ def KiResultsPage(params, batchId, download=False):
                 % contactEmail
             )
 
+        greenCircle = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#32cd32'/></svg>"""
+        yellowCircle = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#ffff00'/></svg>"""
+        redCircle = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#f01'/></svg>"""
+
+        print("""<p>Click on the tabs below to display the results for each possible technique. %(greenCircle)s, %(yellowCircle)s and %(redCircle)s indicate high, medium and low feasability of the technique.
+              <img src=" %(htmlPrefix)s image/info-small.png"
+                  title="
+                        The feasability of each technique is classified as follows :
+                        <ul>
+                            <li>HDR-based editing :
+                                <ul>
+                                    <li>Distance between DSB and edit.</li>
+                                    <li>%(greenCircle)s < 5 bp &nbsp%(yellowCircle)s 5-10 bp &nbsp%(redCircle)s > 10 bp</li>
+                                </ul>
+                            </li><br>
+                            <li>HDR-based editing (double nicking strategy) :
+                                <ul>
+                                    <li>Mean of global scores of the two guides.</li>
+                                    <li>%(greenCircle)s > 75 &nbsp%(yellowCircle)s 50-75 &nbsp%(redCircle)s < 50</li>
+                                </ul>
+                            </li><br>
+                            <li>Base editing :
+                                <ul>
+                                    <li>Predicted editing frequency at intended position.</li>
+                                    <li>%(greenCircle)s > 50 &nbsp%(yellowCircle)s 10-50 &nbsp%(redCircle)s < 10</li>
+                                </ul>
+                            </li><br>
+                            <li>Prime editing :
+                                <ul>
+                                    <li>Predicted efficiency in K562 (MMR +) cells.</li>
+                                    <li>%(greenCircle)s > 50 &nbsp%(yellowCircle)s 10-50 &nbsp%(redCircle)s < 10</li>
+                                </ul>
+                            </li>
+
+
+
+                        </ul>"
+              class="tooltipsterInteract"> </p>""" % locals())
+
         # showSeqAndPams above has already validated and written annotation
         # params back into cgiParams, so resolveAnnotationParams returns a
         # clean dict consistent with the currently selected gene model
         annotParams = resolveAnnotationParams(org, seq, posStr)
 
-        # same structure as the tab bar of printAssistant: the buttons are
-        # wrapped in a .tabs row and carry no inline font-size, so the
-        # .assistantMenu rules of the stylesheet keep them on a single line
-        # and scale them (font, gaps, paddings) with the resolution.
+        # closest guide to the edit site
+        minInsertDist = min([row[2]["insertDistance"] for row in allGuideData])
+
+        if minInsertDist <= 5:
+            hdrCircle = greenCircle
+        elif 10 >= minInsertDist > 5:
+            hdrCircle = yellowCircle
+        else:
+            hdrCircle = redCircle
         print("""
-        <div class="assistantMenu resultTabs" style="margin-bottom: 24px; margin-left: 18px; margin-top: 12px;">
+        <div class="assistantMenu resultTabs" style="margin-bottom: 24px; margin-left: 18px; margin-top: 2px;">
             <div class="tabs">
-            <button class="assistantButton active tooltipsterInteract" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">Guides for HDR-based editing </button>
-        """)
+            <button class="assistantButton active tooltipsterInteract" name="tableSelectButton" id="hdrSelect" onclick="showTable('hdrTable', this, setDist=0)">
+                <div class="resultTabLabel">
+                    Guides for HDR-based editing
+                    %s
+                </div>
+            </button>
+        """ % hdrCircle)
 
         if pairedGuides and len(pairedGuides) > 0:
+            maxMeanScores = max([row[3] for row in pairedGuides])
+            if maxMeanScores >= 75:
+                pairedCircle = greenCircle
+            elif 50 < maxMeanScores < 75:
+                pairedCircle = yellowCircle
+            else:
+                pairedCircle = redCircle
             print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">Pairs of guides for HDR-based editing using a double-nicking strategy</button>
-            """)
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">
+                <div class="resultTabLabel">
+                    Pairs of guides for HDR-based editing
+                    %s
+                </div>
+            </button>
+            """ % pairedCircle)
 
         if useBaseEditor:
+
+            # maximum editing frequency at intended position
+            maxBeScore = max([max(row[20].values()) if len(row[20]) > 0 else 0 for row in allGuideData]) * 100
+            if maxBeScore >= 50:
+                beCircle = greenCircle
+            elif 10 <= maxBeScore < 50:
+                beCircle = yellowCircle
+            else:
+                beCircle = redCircle
+
             print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">Guides for base editing</button>
-            """)
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">
+                <div class="resultTabLabel">
+                    Guides for base editing
+                    %s
+                </div>
+            </button>
+            """ % beCircle)
 
         if pegData:
+            # K562 efficiency score
+            maxPegScore = max([row[5] for row in pegData])
+            if maxPegScore >= 50:
+                peCircle = greenCircle
+            elif 10 <= maxPegScore < 50:
+                peCircle = yellowCircle
+            else:
+                peCircle = redCircle
             print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="peSelect" onclick="showTable('peTable', this, setDist=1)">pegRNAs for prime editing</button>
-            """)
+            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="peSelect" onclick="showTable('peTable', this, setDist=1)">
+                <div class="resultTabLabel">
+                    pegRNAs for prime editing
+                    %s
+                </div>
+            </button>
+            """ % peCircle)
 
         print("</div></div>")
 
@@ -13066,6 +13197,7 @@ def KiResultsPage(params, batchId, download=False):
 
         if editData:
             print("""<div name="guideTablePanel" id="beTable" >""")
+
             tableEditData = buildEditData(editData, targetPos=insertIdx)
             # sort by the mean of edit frequencies at intended position by default
             showGuideTable(
@@ -13087,7 +13219,7 @@ def KiResultsPage(params, batchId, download=False):
 
         if pegData:
             print("""<div name="guideTablePanel" id="peTable" >""")
-            showPegTable(batchId, seq, pegData)
+            showPegTable(batchId, seq, pegData, kiType)
             print("</div>")
 
         print('<br><a class="neutral" href="crispor.py?expType=ki">')
