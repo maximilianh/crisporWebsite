@@ -46,7 +46,7 @@ min-width: 0;             /* allow the button to shrink below its content min-wi
 gap: 10px;
 padding: 16px 20px 14px;
 background: transparent;
-border: none;
+border:  border: 2px solid lightgrey;
 border-bottom: 3px solid transparent;
 color: var(--crispor-muted);
 font-size: 28px;

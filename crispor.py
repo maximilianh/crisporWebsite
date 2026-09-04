@@ -724,9 +724,10 @@ taggingSeqs = {
     "3XFLAG": "GATTACAAGGATGACGACGATAAGGACTATAAGGACGATGATGACAAGGACTACAAAGATGATGACGATAAA",
     "3XHA": "TACCCATACGATGTTCCAGATTACGCTTACCCCTACGACGTGCCTGATTATGCCTACCCATACGATGTGCCAGACTATGCC",
     "V5": "GGCAAGCCCATCCCCAACCCCCTGCTGGGCCTGGACAGCACC",
-    "lox66": "ATAACTTCGTATAGCATACATTATACGAACGGTA",
-    "lox71": "TACCGTTCGTATAGCATACATTATACGAAGTTAT",
-    "loxP": "ATAACTTCGTATAGCATACATTATACGAAGTTAT",
+    # adding CC in 5' to keep frame (to verify)
+    "lox66": "ATAACTTCGTATAGCATACATTATACGAACGGTACC",
+    "lox71": "TACCGTTCGTATAGCATACATTATACGAAGTTATCC",
+    "loxP": "ATAACTTCGTATAGCATACATTATACGAAGTTATCC",
     "SBP": "GACGAGAAGACCACTGGTTGGCGAGGTGGACACGTTGTTGAAGGACTGGCTGGGGAACTTGAACAACTTCGTGCACGACTGGAGCATCACCCACAAGGTCAACGTGAACCA",
     "3Flag": "GACTACAAAGACCATGACGGTGATTATAAAGATCATGACATCGATTACAAGGATGACGATGACAAG",
     "SBP3Flag": "GACGAGAAGACCACTGGTTGGCGAGGTGGACACGTTGTTGAAGGACTGGCTGGGGAACTTGAACAACTTCGTGCACGACTGGAGCATCACCCACAAGGTCAACGTGAACCAGGAGGCAGCGACTACAAAGACCATGACGGTGATTATAAAGATCATGACATCGATTACAAGGATGACGATGACAAG",
@@ -2361,18 +2362,17 @@ def getSelGeneModel(org, noGenes=True, manual=False, noAllTrans=False):
             geneModels = [("manual", "manual annotation")]
 
     if geneModels:
-        for model, modelDesc in geneModels:
-            if model == "knownGene":
-                continue
-            if model == "refSeqSelect":
-                defaultModel = model
-                break
-            elif model == "refSeq":
-                defaultModel = model
-                break
-            else:
-                defaultModel = model
-                break
+        # pre-select a model
+        possibleModels = [model for model, modelDesc in geneModels]
+        if "refSeqSelect" in possibleModels:
+            defaultModel = "refSeqSelect"
+        elif "refSeq" in possibleModels:
+            defaultModel = "refSeq"
+        elif "refGene" in possibleModels:
+            defaultModel = "refGene"
+        else:
+            defaultModel = possibleModels[0]
+
         if noGenes:
             selGeneModel = cgiParams.get("geneModelSelection", defaultModel)
             geneModels.insert(0, ("noGenes", "Do not show"))
@@ -2404,6 +2404,7 @@ def resolveAnnotationParams(org, seq, position):
 
     if selModel == "manual":
         return {
+            "geneModelSelection": "manual",
             "manualExStart": cgiParams.get("manualExStart", "1"),
             "manualExEnd": cgiParams.get("manualExEnd", str(len(seq))),
             "manualExFrame": cgiParams.get("manualExFrame", "0"),
@@ -3342,6 +3343,7 @@ def showSeqAndPams(
     editData=None,
     batchId=None,
     noPerfectMatch=None,
+    pegPams=None
 ):
     "show the sequence and the PAM sites underneath in a sequence viewer"
 
@@ -3463,6 +3465,12 @@ def showSeqAndPams(
             )
             # discard empty pam lines
             bePamLines = [pamTpl for pamTpl in bePamLines if len(pamTpl[2]) > 0]
+        """
+        if pegPams:
+            peStartDict, peEndSet = findAllPams(seq.upper(), "NGG")
+            pePamSeqs = list(flankSeqIter(seq, peStartDict, 3, True))
+            peLines, peMaxY = distrOnLines(seq.upper(), peStartDict, 3, pam)
+        """
 
         # in KI mode, display other PAMs on the sequence if the option was selected
         if otherPam:
@@ -5249,12 +5257,51 @@ def calcInsertDistance(
     return insertDistance, doRecoding, cutUpstream
 
 
-def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos):
+def silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable):
+    """
+    Returns True if all bystander edits in the outcome sequence result in silent mutations based on the selected annotation.
+    Bystanders in non-coding regions are counted as non-silent
+    codonPos is a dict mapping positions that flank the edit to their codons {pos: (codon, posInCodon)}
+    """
+    isSilent = False
+
+    totalBystanders = 0
+    for i, base in enumerate(outSeq):
+        pos = i + outStart
+        if base.isupper() and pos != insertIdx:
+            totalBystanders += 1
+
+    silentBystanders = 0
+
+    for i, base in enumerate(outSeq):
+        pos = i + outStart
+        # intended edit
+        if pos == insertIdx:
+            continue
+
+        if base.isupper() and pos in codonPos.keys():
+            codon, posInCodon = codonPos[pos]
+            newCodon = ''.join([b if i != posInCodon else base for i, b in enumerate(codon)])
+
+            aa = codonTable[codon]
+            newAa = codonTable[''.join(newCodon)]
+            if newAa == aa:
+                silentBystanders += 1
+
+    # all the bystander edit are silent
+    if silentBystanders == totalBystanders:
+        isSilent = True
+
+    return isSilent
+
+
+def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos, codonPos=None, codonTable=None):
     """
     from base editing outcomes, returns the editing frequency at the intended position.
     In KO mode, returns the sum of all outcomes that result in a STOP
     In KI mode (subtitution), returns the frequency of outcomes that contain the edit without bystander edits
     (or with bystander that result in a silent mutation)
+    If a transcript is provided, slient bystander edits will be included in the score (precision editing mode only)
     """
 
     # get the position of the outcome relative the the input sequence
@@ -5265,8 +5312,8 @@ def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos
 
     if insertIdx:
         targetPos = insertIdx
-        # don't allow non-synonymous bystander edits
         restrictive = True
+        isSilent = False
     elif stopPos:
         targetPos = stopPos
         restrictive = False
@@ -5276,13 +5323,16 @@ def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos
 
         singleEdit = len([base for base in outSeq if base.isupper()]) == 1
 
+        # check if all bystander edits are silent
+        if restrictive and not singleEdit and codonPos:
+            isSilent = silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable)
+
         for i, outBase in enumerate(outSeq):
 
-            # also need to check if bystander is silent
-            if restrictive and not singleEdit:
-                continue
-
             outBasePos = outStart + i
+
+            if restrictive and not singleEdit and not isSilent:
+                continue
 
             if outBasePos == targetPos and outBase.isupper():
                 totalFreq += outFreq
@@ -5308,7 +5358,9 @@ def mergeGuideInfo(
     getSuppInfo=False,
     stopGuides=None,
     allEditData=None,
-    beFilter=None
+    beFilter=None,
+    strand=None,
+    posStr=None
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -5350,6 +5402,70 @@ def mergeGuideInfo(
             for usedModel in usedBeModelSet:
                 if model in usedModel:
                     usedBeModels.append(usedModel)
+
+        # in KI mode, freqAtEdit is recalculated to include silent bystanders
+        # This is done here so that the score changes based on the selected coding sequence
+        # first, get the selected coding sequence or default to one
+        if kiType:
+            # need to move this to a function
+            codonTable = buildCodonTable()
+            geneModels = getGeneModels(org)
+            annotParams = resolveAnnotationParams(org, seq, posStr)
+            selGeneModel, selTransId = annotParams.get("geneModelSelection"), annotParams.get("selTransId")
+            if selGeneModel != "manual":
+                if selGeneModel is None:
+                    possibleGeneModels = [model for model, modelDesc in geneModels]
+                    if "refSeqSelect" in possibleGeneModels:
+                        selGeneModel = "refSeqSelect"
+                    elif "refSeq" in possibleGeneModels:
+                        selGeneModel = "refSeq"
+                    elif "refGene" in possibleGeneModels:
+                        selGeneModel = "refGene"
+                    else:
+                        selGeneModel = possibleGeneModels[0]
+                exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, inputPos)
+
+                # select the first transcript if no transcript was selected
+                if selTransId == "allTrans" or selTransId is None:
+                    selTransId = list(exonInfo.keys())[0][0]
+                # get the selected transcript
+                for transId, sym in exonInfo.keys():
+                    if transId == selTransId:
+                        transcript = exonInfo[(transId, sym)]
+                        break
+            else:
+                manualExStart = annotParams.get("manualExStart", 0)
+                manualExEnd = annotParams.get("manualExEnd", len(seq))
+                manualExStrand = annotParams.get("manualExStrand", strand)
+                manualExFrame = annotParams.get("manualExFrame", 0)
+                transcript = [(
+                            1,
+                            int(manualExStart),
+                            int(manualExEnd),
+                            int(manualExFrame),
+                            int(manualExFrame),
+                            0,
+                            manualExStrand)]
+
+            # dict of codons corresponding to each position in the sequence
+            codonPos = {}
+            # {pos: (codon, posInCodon)}
+            for _, exonStart, exonEnd, exonFrame, _, _, exonStrand in transcript:
+
+                if exonFrame == -1:
+                    continue
+
+                exonOffset = (3 - exonFrame) % 3
+                for codonStart in range(exonStart + exonOffset, exonEnd, 3):
+                    if codonStart + 3 > exonEnd:
+                        break
+                    # limit to the 15bp flanking the edit
+                    if codonStart + 3 < insertIdx - 15 or codonStart > insertIdx + 15:
+                        continue
+                    else:
+                        codon = seq[codonStart: codonStart + 3].upper()
+                        for posInCodon, pos in enumerate(range(codonStart, codonStart + 3)):
+                            codonPos[pos] = (codon, posInCodon)
     else:
         editData = None
 
@@ -5412,23 +5528,29 @@ def mergeGuideInfo(
         # in Ki mode, HDR and BE tables share the same guideData
         if editData and pamId in editData:
             edits = editData[pamId]
-
+            newEffs = {}
             # sorting by outcome is not needed : just add the models for the current guide
             for _, _, _, allOutcomes in edits:
-                for beModel, outcomes in allOutcomes:
-
+                for outcomeModel, outcomes in allOutcomes:
                     outcomes.sort(key=lambda x: x[1], reverse=True)
-                    beOutcomes[beModel] = outcomes
+                    beOutcomes[outcomeModel] = outcomes
+                    # in KI mode, freqAtEdit is recalculated here to include silent bystander edits
+                    if kiType:
+                        freqAtEdit = calcFreqAtEdit(guideStart, pamStart, strand, outcomes, insertIdx, None, codonPos=codonPos, codonTable=codonTable)
+                        newEffs[outcomeModel] = freqAtEdit
 
-            for model in usedBeModels:
-                # assign -1 if the model isn't available for the current guide to sort by model
-                selEff = -1
-                for pos, base, effs, allOutcomes in edits:
-                    for beModel, eff in effs:
-                        if beModel != model:
-                            continue
-                        selEff = eff
-                beScoring[model] = selEff
+            for effModel in usedBeModels:
+                if kiType:
+                    selEff = newEffs.get(effModel, -1)
+                else:
+                    # in KO mode, get freqAtEdit from editData
+                    selEff = -1
+                    for pos, base, effs, allOutcomes in edits:
+                        for beModel, eff in effs:
+                            if beModel != model:
+                                continue
+                            selEff = eff
+                beScoring[effModel] = selEff
             # print(beScoring, beOutcomes, "<br>")
 
         # make old jobs compatible
@@ -6565,6 +6687,14 @@ You can adapt the global score to your gRNA production method (select below), wh
                     if i == 0:
                         print("""<p style="font-weight: bold;">%s</p>""" % ezType)
                     print("""<input type="checkbox" id="selectBeModel-%s" checked autocomplete="off" onchange="showBeModelResults(this, '%s')"/>%s<br>""" % (modelHtml, modelHtml, modelStr))
+        print("""
+        <br>
+        lowercase : unedited bases<br>
+        UPPERCASE : edited bases<br>
+        <span style="background-color: rgba(255, 0, 0, 0.4)">Intended edit</span>&nbsp
+        <span style="background-color: rgba(255, 255, 0, 0.4)">Guide</span>&nbsp
+        <span style="background-color: rgba(0, 255, 255, 0.4)">PAM</span><br>
+        """)
 
         print("</small>")
         print('</th>')
@@ -7009,7 +7139,7 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
     print("</table></div>")
 
 
-def showPegTable(batchId, seq, pegData, kiType):
+def showPegTable(batchId, seq, pegData, pegPams, kiType):
     """Displays the table for pegRNAs designed with PRIDICT2"""
 
     pegSortBy = cgiParams.get("pegSortBy", "K562")
@@ -7029,8 +7159,9 @@ def showPegTable(batchId, seq, pegData, kiType):
 
     print("""
     <thead><tr>
-    <th>pegRNA sequence <br>
-    """)
+    <th %(headerCss)s>PAM position / strand</th>
+    <th %(headerCss)s>pegRNA sequence <br>
+    """ % locals())
     if kiType != "deletion":
         print("""<span style="background-color: rgba(255, 0, 0, 0.4)">Edit</span>
         """)
@@ -7053,7 +7184,21 @@ def showPegTable(batchId, seq, pegData, kiType):
             continue
 
         pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords, pbsCoords, rtCoords, editorVariant, primers = pegInfo
+
+        pamId = pegPams[pegSeq]
         print("<tr>")
+
+        print('<td>')
+        print("""<a href="#list%s" onclick="highlightPam('list%s')">""" % (pamId, pamId))
+        pamPos = pamId[5:].rstrip(pamId[-1])
+        if pamId[-1] == "+":
+            pamStrand = "fw"
+        else:
+            pamStrand = "rev"
+        print("%s / %s" % (pamPos, pamStrand))
+        print("</a>")
+        print('</td>')
+
         print('<td style="font-family: Source Code Pro; font-size: 1em; margin: 0 0;">')
         # rtCoords, pbsCoords = [0, 0], [0, 0]
         spacerStart = 0
@@ -8878,7 +9023,7 @@ def calcSaveEffScores(
         if not stopGuides:
 
             # these are slow algorithms, so store the results for later
-            queue.startStep(batchId, "outcome", "Calculating DSB repair outcomes")
+            queue.startStep(batchId, "outcome", "Predicting DSB repair outcomes")
             mutScores = crisporEffScores.calcMutSeqs(
                 pamIds, longSeqs, enz, scoreNames=mutScoreNames
             )
@@ -9623,6 +9768,7 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     optionally write status updates to work queue. Remove faFname.
     """
     batchInfo = readBatchAsDict(batchId)
+    noPerfectMatch = batchInfo.get("noPerfectMatch")
 
     if genome == "noGenome":
         posStr = "?"
@@ -9636,7 +9782,7 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
             "bwasw",
             "Searching genome for one 100% identical match to input sequence",
         )
-        posStr = findPerfectMatch(batchId)
+        posStr = findPerfectMatch(batchId, noPerfectMatch=noPerfectMatch)
 
     batchInfo["posStr"] = posStr
 
@@ -9742,6 +9888,51 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
             newEditData = {}
 
         return newEditData, newStopGuides
+
+
+def pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType):
+    """
+    Formats the sequence for PRIDICT2 : extends 150bp up/downstream,
+    and flag the edit as NNN(WT/EDIT)NNN
+    """
+
+    chrom, start, end, strand = parsePos(posStr)
+
+    logging.info(posStr)
+    # extend 150 bp in 5' and 3'
+    if strand == "+":
+        extPosStr = "%s:%d-%s:%s" % (chrom, start - 150, end + 150, strand)
+    else:
+        extPosStr = "%s:%d-%s:%s" % (chrom, start + 150, end - 150, strand)
+
+    logging.info("EXTPOSSTR: %s" % extPosStr)
+
+    extendedSeq = getSeq(genome, extPosStr, maxlen=False)
+    if strand == "+":
+        extInsertIdx = insertIdx + 150
+    else:
+        extInsertIdx = insertIdx - 150
+
+    if kiType == "substitution":
+        formatSeq = extendedSeq[0:extInsertIdx].upper() + "(" + extendedSeq[extInsertIdx].upper() + "/" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
+    elif kiType == "replacement":
+
+        # discard identical flanking bases ( e.g N(TGG/TAA)N -> NT(GG/AA)N )
+        wtSeq = extendedSeq[extInsertIdx: extInsertIdx + len(insertSeq)].upper()
+        replSeq = insertSeq.upper()
+        replStart, replEnd = extInsertIdx, extInsertIdx + len(insertSeq)
+        while len(wtSeq) > 1 and wtSeq[0] == replSeq[0]:
+            wtSeq, replSeq, replStart = wtSeq[1:], replSeq[1:], replStart + 1
+        while len(wtSeq) > 1 and wtSeq[-1] == replSeq[-1]:
+            wtSeq, replSeq, replEnd = wtSeq[:-1], replSeq[:-1], replEnd - 1
+
+        formatSeq = extendedSeq[0:replStart].upper() + "(" + wtSeq + "/" + replSeq + ")" + extendedSeq[replEnd:].upper()
+    elif kiType == "deletion":
+        formatSeq = extendedSeq[0:extInsertIdx].upper() + "(-" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx - len(insertSeq):].upper()
+    elif kiType == "insertion":
+        formatSeq = extendedSeq[0:extInsertIdx].upper() + "(+" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx:].upper()
+
+    return formatSeq
 
 
 # a batch that is flagged as running for longer than this is considered abandoned. Only
@@ -10174,29 +10365,18 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     beFilter = (orgPamList, bePamIds) if useBaseEditor else None
 
     # pegRNA design with PRIDICT2
-    # PRIDICT2 needs 100bp at least flanking sequences from the edit
-    if len(insertSeq) <= 50:
+    # PRIDICT2 needs 150bp at least flanking sequences from the edit
+    if len(insertSeq) <= 40 and posStr != "?":
         queue.startStep(batchId, "PE", "Designing and scoring pegRNAs with PRIDICT2")
         pegFname = batchBase + ".pegData.json"
 
-        # extend 100 bp in 5' and 3'
-        extendedSeq = getSeq(genome, "%s:%s-%s:%s" % (chrom, start - 100, end + 100, strand))
-        extInsertIdx = insertIdx + 100
+        # get the frame of the coding sequence to introduce silent bystander edits
+        formatSeq = pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType)
 
-        if kiType == "substitution":
-            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(" + extendedSeq[extInsertIdx].upper() + "/" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
-        elif kiType == "replacement":
-            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(" + extendedSeq[extInsertIdx: extInsertIdx + len(insertSeq)].upper() + "/" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + len(insertSeq):].upper()
-        elif kiType == "deletion":
-            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(-" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
-        elif kiType == "insertion":
-            formatSeq = extendedSeq[0:extInsertIdx].upper() + "(+" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
-
-        # inData = [batchId, formatSeq]
-        logging.info("INDATA : %s" % formatSeq)
+        # inData = [batchId, formatSeq]
+        logging.info("PRIDICT2 in : %s" % formatSeq)
         pegData = callSubServer("runPRIDICT2", formatSeq, timeout=60)
         pegFh = open(pegFname, "w")
-        logging.info("PEGDATA: %s " % pegData)
         json.dump(pegData["out"], pegFh)
         pegFh.close()
 
@@ -10442,12 +10622,28 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     break
                 cols = line.strip().split("\t")
                 mainId = cols[0]
+                strand = cols[2]
                 cdsStart = int(cols[5])
                 cdsEnd = int(cols[6])
                 if cdsEnd - cdsStart > 3:
                     coding = True
                 else:
                     coding = False
+
+                # get the length of all exons
+                exStarts = cols[8].strip('\n').split(',')[0:-1]
+                exEnds = cols[9].strip('\n').split(',')[0:-1]
+                if coding:
+                    # get coding exons
+                    exLengths = [min(cdsEnd, int(end)) - max(cdsStart, int(start)) for start, end in zip(exStarts, exEnds)]
+                else:
+                    exLengths = [int(end) - int(start) for start, end in zip(exStarts, exEnds)]
+
+                exLengths = [i for i in exLengths if i > 0]
+
+                if strand == "-":
+                    exLengths = exLengths[::-1]
+
                 isAltName = len(cols) > 11
                 if isAltName:
                     altId = cols[11].strip('\n')
@@ -10459,8 +10655,11 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     exFrames = ""
                 if isAltName and term in altId.lower() and onlySymbol is True:
                     foundGenes += 1
-                    exonCount = cols[7]
-                    matches.append((altId, mainId, exonCount, exFrames, coding, isMane))
+                    if coding:
+                        exonCount = len(exLengths)
+                    else:
+                        exonCount = cols[7]
+                    matches.append((altId, mainId, exonCount, exFrames, exLengths, coding, isMane))
 
     # select2 data formats : https://select2.org/data-sources/formats
 
@@ -10469,7 +10668,8 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
     # merge transcripts belonging to the same gene
 
     for match in matches:
-        sym, transcript, exonCount, exFrames, coding, isMane = match
+        sym, transcript, exonCount, exFrames, exLengths, coding, isMane = match
+
         if coding:
             codingStr = ""
         else:
@@ -10494,8 +10694,10 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                     transDict = {
                         "id": transcript,
                         "text": matchText,
+                        "coding": coding,
                         "exonCount": exonCount,
                         "exFrames": exFrames,
+                        "exLengths": exLengths
                     }
                     if commonExons and (len(transList) - maneCount) == 2:
                         transList.insert(
@@ -10504,8 +10706,10 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                                 "id": "%s~SYM" % sym,
                                 "text": "Search exons common to 80%% of %s transcripts"
                                 % sym,
+                                "coding": "",
                                 "exonCount": 0,
                                 "exFrames": "",
+                                "exLengths": ""
                             },
                         )
                     # show the MANE select transcript at the top of the options
@@ -10520,8 +10724,10 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                 {
                     "id": transcript,
                     "text": matchText,
+                    "coding": coding,
                     "exonCount": exonCount,
                     "exFrames": exFrames,
+                    "exLengths": exLengths
                 }
             ]
 
@@ -10583,11 +10789,8 @@ def printGeneSelection(paramName, onlySymbol=False, commonExons=False):
 
         gene_select.on('select2:select', function (e) {
             var data = e.params.data;
-            if (data.exonCount) {
-                $('#exonCountVal').val(data.exonCount);
-            };
-            if (data.exFrames) {
-                $('#exFrames').val(data.exFrames);
+            if (data.exLengths) {
+                $('#exLengthsVal').val(data.exLengths);
             };
         });
 
@@ -10687,6 +10890,12 @@ def printForm(params):
     <br>
     <small><a href="javascript:clearInput()">Clear Box</a> - </small>
     <small><a href="javascript:resetToExample()">Reset to default</a></small>
+    <!--
+    <small>
+        <input style="margin-left: 24px;" type="checkbox" name="noPerfectMatch" value=1 />Allow mutations (e.g SNPs) in the target sequence
+        <img src="%simage/info-small.png" class="tooltipsterInteract" title="By default, CRISPOR only aligns the target sequence to the selected genome if it is a perfect match. This allows to discriminate the on-target site from off-target sites.<br><br>By checking this option, you can use target sequences that differ from the selected genome (e.g, with SNPs). In this case, CRISPOR will use the best match in the selected genome as the on-target site. This option can be used to search guides in disease models, for example.">
+    </small>
+    -->
     </div>
 
     <textarea tabindex="1" style="width:98%%" name="seq" rows="12" autocorrect="off" spellcheck="false"
@@ -10696,7 +10905,7 @@ def printForm(params):
 <details id="geneSelection" style = "margin-top:12px;">
     <summary>Click here to enter a gene symbol and select a target exon instead</summary>
           """
-        % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, MAXSEQLEN, lastseq)
+        % (scriptName, seqName, MAXSEQLEN, HTMLPREFIX, HTMLPREFIX, MAXSEQLEN, lastseq)
     )
 
     printGeneSelection("koGeneId")
@@ -10709,7 +10918,7 @@ def printForm(params):
     print(
         """
     </select>
-<img src="%simage/info-small.png" title="Due to technical constraints, small exons (<23 bp) will be omitted, and large exons (>2300 bp) splitted into several smaller ones." class="tooltipsterInteract"><br>
+<img src="%simage/info-small.png" title="Note that large exons (> 2300 bp) will be truncated to the first 2300 bp." class="tooltipsterInteract"><br>
     </div>
 """
         % HTMLPREFIX
@@ -10851,12 +11060,21 @@ $(document).ready(function() {
         var data = e.params.data;
         var exonSelect = $('#exonSelect');
         exonSelect.empty();
+        var exLengths = data.exLengths;
+        var exFrames = data.exFrames;
+        var codingTrans = data.coding;
 
         if (data.exonCount) {
             for (var i = 0; i < data.exonCount; i++) {
+                exLen = exLengths[i];
                 j = i+1;
 
-                var exonText = 'find guides for exon ' + j;
+                if (codingTrans === true) {
+                    var codingText = "coding ";
+                } else {
+                    var codingText = "";
+                }
+                var exonText = codingText + 'exon ' + j + ' (' + exLen + ' bp)';
                 var option = new Option(exonText, i, false, false);
                 exonSelect.append(option);
             }
@@ -11116,7 +11334,7 @@ def findAllPams(seq, pam, exonId=None):
     return startDict, endSet
 
 
-def newBatch(batchName, seq, org, pam):
+def newBatch(batchName, seq, org, pam, noPerfectMatch):
     """obtain a batch ID and write seq/org/pam to their files.
     Return batchId.
     """
@@ -11133,6 +11351,8 @@ def newBatch(batchName, seq, org, pam):
     batchData["batchName"] = batchName
     batchData["seq"] = seq
     batchData["posStr"] = ""
+    if noPerfectMatch:
+        batchData["noPerfectMatch"] = noPerfectMatch
 
     writeBatchAsDict(batchData, batchId)
     return batchId
@@ -11203,10 +11423,15 @@ def newMultiPamBatch(
     noPerfectMatch=None
 ):
 
-    if seq:
-        concatSeq = seq + insertSeq + str(insertIdx)
+    if noPerfectMatch:
+        noPerfectMatchStr = "nPM"
     else:
-        concatSeq = posStr + insertSeq + str(insertIdx)
+        noPerfectMatchStr = "PM"
+
+    if seq:
+        concatSeq = seq + insertSeq + str(insertIdx) + noPerfectMatchStr
+    else:
+        concatSeq = posStr + insertSeq + str(insertIdx) + noPerfectMatchStr
 
     batchId = makeTempBase(concatSeq, org, multipam, batchName)
     batchBase = join(batchDir, batchId)
@@ -12076,6 +12301,34 @@ def getExonInfo(org, geneName, position, extendPos=None):
     return ret, maxIdLen
 
 
+def linkPegToPams(seq, pegData, guideData):
+    """
+    Links the pegRNA to their corresponding pamIds.
+    Returns a dict -> {pegSeq: pamId}
+    """
+
+    pegPamIds = {}
+
+    for nRow, pegInfo in enumerate(pegData):
+
+        # only show the top 50 pegs
+        if nRow >= 50:
+            continue
+
+        pegSeq, pegSpacer = pegInfo[0], pegInfo[1].upper()
+
+        for _, guideRow in enumerate(guideData):
+            guidePamId = guideRow[6]
+            guideSpacer = guideRow[7].upper()
+
+            if guideSpacer != pegSpacer:
+                continue
+            else:
+                pegPamIds[pegSeq] = guidePamId
+
+    return pegPamIds
+
+
 def checkOtherArgs(params):
     # check if minFreq was specified
     minFreq = params.get("minFreq", "0.01")
@@ -12192,6 +12445,9 @@ def crisprSearch(params):
         multiseq = params.get("multiseq")
         exonSelect = params.get("exonSelect")
 
+        # allow to use the coordinates of the best match as posStr
+        noPerfectMatch = params.get("noPerfectMatch")
+
         if multipam or multiseq:
             if multipam:
                 assist = params["assist"]
@@ -12204,9 +12460,6 @@ def crisprSearch(params):
                 tagNames = params.get("tagNames")
                 nonCoding = params.get("nonCoding")
                 clippedSeq = params.get("clippedSeq")
-
-                # allow to use the coordinates of the best match as posStr
-                noPerfectMatch = params.get("noPerfectMatch")
 
                 if isinstance(tagNames, str):
                     tagNames = json.loads(tagNames)
@@ -12274,7 +12527,7 @@ def crisprSearch(params):
                 )
 
             else:
-                batchId = newBatch(newBatchName, seq, org, pamDesc)
+                batchId = newBatch(newBatchName, seq, org, pamDesc, noPerfectMatch)
 
         print("<script>")
         print(
@@ -12531,7 +12784,7 @@ def KiResultsPage(params, batchId, download=False):
     Note : print calls should only occur when download is False,
     otherwise the http headers are broken
     """
-    
+
     htmlPrefix = HTMLPREFIX
     batchBase = join(batchDir, batchId)
     batchInfo = readBatchAsDict(batchId)
@@ -12859,7 +13112,7 @@ def KiResultsPage(params, batchId, download=False):
                 startDict,
                 pam,
                 otMatches,
-                None,
+                posStr,
                 effScores,
                 sortBy,
                 org=org,
@@ -12871,7 +13124,9 @@ def KiResultsPage(params, batchId, download=False):
                 insertSeq=insertSeq,
                 getSuppInfo=True,
                 allEditData=editData,
-                beFilter=beFilter
+                beFilter=beFilter,
+                strand=strand,
+                posStr=posStr
             )
         )
 
@@ -12885,6 +13140,11 @@ def KiResultsPage(params, batchId, download=False):
     if download:
         return seq, org, pam, posStr, allGuideData
     else:
+
+        # link the pegRNAs to their corresponding pamId
+        pegPams = None
+        if pegData:
+            pegPams = linkPegToPams(seq, pegData, allGuideData)
 
         pairedGuides = None
         if len(insertSeq) < 10 and "NGG" in pamList:
@@ -12917,6 +13177,7 @@ def KiResultsPage(params, batchId, download=False):
             editData=editData,
             batchId=batchId,
             noPerfectMatch=noPerfectMatch,
+            pegPams=pegPams
         )
 
         showSeqDownloadMenu(batchId)
@@ -12929,11 +13190,12 @@ def KiResultsPage(params, batchId, download=False):
                 % contactEmail
             )
 
-        greenCircle = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#32cd32'/></svg>"""
-        yellowCircle = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#ffff00'/></svg>"""
-        redCircle = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#f01'/></svg>"""
+        greenLight = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#32cd32'/></svg>"""
+        yellowLight = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#ffff00'/></svg>"""
+        orangeLight = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#ff7f04'/></svg>"""
+        redLight = """<svg class='tabStatusDot' viewBox='0 0 15 15' width='12' height='12'><circle cx='7.5' cy='7.5' r='7.5' fill='#f01'/></svg>"""
 
-        print("""<p>Click on the tabs below to display the results for each possible technique. %(greenCircle)s, %(yellowCircle)s and %(redCircle)s indicate high, medium and low feasability of the technique.
+        print("""<p>Click on the tabs below to display the results for each possible technique. %(greenLight)s, %(yellowLight)s and %(orangeLight)s indicate high, medium and low feasability of the technique.
               <img src=" %(htmlPrefix)s image/info-small.png"
                   title="
                         The feasability of each technique is classified as follows :
@@ -12941,47 +13203,108 @@ def KiResultsPage(params, batchId, download=False):
                             <li>HDR-based editing :
                                 <ul>
                                     <li>Distance between DSB and edit.</li>
-                                    <li>%(greenCircle)s < 5 bp &nbsp%(yellowCircle)s 5-10 bp &nbsp%(redCircle)s > 10 bp</li>
+                                    <li>%(greenLight)s < 5 bp &nbsp%(yellowLight)s 5-10 bp &nbsp%(orangeLight)s > 10 bp</li>
                                 </ul>
                             </li><br>
                             <li>HDR-based editing (double nicking strategy) :
                                 <ul>
                                     <li>Mean of global scores of the two guides.</li>
-                                    <li>%(greenCircle)s > 75 &nbsp%(yellowCircle)s 50-75 &nbsp%(redCircle)s < 50</li>
+                                    <li>%(greenLight)s > 75 &nbsp%(yellowLight)s 50-75 &nbsp%(orangeLight)s < 50</li>
                                 </ul>
                             </li><br>
                             <li>Base editing :
                                 <ul>
                                     <li>Predicted editing frequency at intended position.</li>
-                                    <li>%(greenCircle)s > 50 &nbsp%(yellowCircle)s 10-50 &nbsp%(redCircle)s < 10</li>
+                                    <li>%(greenLight)s > 50 &nbsp%(yellowLight)s 10-50 &nbsp%(orangeLight)s < 10</li>
                                 </ul>
                             </li><br>
                             <li>Prime editing :
                                 <ul>
                                     <li>Predicted efficiency in K562 (MMR +) cells.</li>
-                                    <li>%(greenCircle)s > 50 &nbsp%(yellowCircle)s 10-50 &nbsp%(redCircle)s < 10</li>
+                                    <li>%(greenLight)s > 50 &nbsp%(yellowLight)s 10-50 &nbsp%(orangeLight)s < 10</li>
                                 </ul>
                             </li>
 
 
 
                         </ul>"
-              class="tooltipsterInteract"> </p>""" % locals())
+              class="tooltipsterInteract"> <br>%(redLight)s indicate that the technique is not possible for this type of edit, or that no gRNA / pegRNA were found in the target sequence.</p>""" % locals())
 
         # showSeqAndPams above has already validated and written annotation
         # params back into cgiParams, so resolveAnnotationParams returns a
         # clean dict consistent with the currently selected gene model
         annotParams = resolveAnnotationParams(org, seq, posStr)
 
+        # HDR parameters
+
         # closest guide to the edit site
         minInsertDist = min([row[2]["insertDistance"] for row in allGuideData])
 
         if minInsertDist <= 5:
-            hdrCircle = greenCircle
+            hdrLight = greenLight
         elif 10 >= minInsertDist > 5:
-            hdrCircle = yellowCircle
+            hdrLight = yellowLight
         else:
-            hdrCircle = redCircle
+            hdrLight = orangeLight
+
+        # HDR / double nicking parameters
+
+        # inactivate the button if the strategy is not possible
+        pairedDisabled = "disabled"
+        pairedLight = redLight
+        pairedMouseOver = "HDR-based editing using a pair of guides is only available for < 10 bp edits, and if at least two guides flank the edit in a PAM-out orientation."
+        if pairedGuides and len(pairedGuides) > 0:
+            pairedDisabled = ""
+            maxMeanScores = max([row[3] for row in pairedGuides])
+            if maxMeanScores >= 75:
+                pairedLight = greenLight
+            elif 50 < maxMeanScores < 75:
+                pairedLight = yellowLight
+            else:
+                pairedLight = orangeLight
+
+        # BE parameters
+
+        beDisabled = "disabled"
+        beLight = redLight
+        beMouseOver = """
+        Base editing is only available for the following substitutions :
+        <ul>
+            <li>CBE : C &#8594 T and G &#8594 A</li>
+            <li>ABE : A &#8594 G and T &#8594 C</li>
+            <li>CGBE : C &#8594 G and G &#8594 C</li>
+        </ul>
+                      """
+
+        if useBaseEditor:
+            beDisabled = ""
+            # maximum editing frequency at intended position
+            maxBeScore = max([max(row[20].values()) if len(row[20]) > 0 else 0 for row in allGuideData]) * 100
+            if maxBeScore >= 50:
+                beLight = greenLight
+            elif 10 <= maxBeScore < 50:
+                beLight = yellowLight
+            else:
+                beLight = orangeLight
+
+        # PE parameters
+
+        peDisabled = "disabled"
+        peLight = redLight
+        peMouseOver = "Prime Editing is only available for < 40 bp edits, which is the maximum length on which PRIDICT2 was trained."
+        if pegData:
+            peDisabled = ""
+            # K562 efficiency score
+            maxPegScore = max([row[5] for row in pegData])
+            if maxPegScore >= 50:
+                peLight = greenLight
+            elif 10 <= maxPegScore < 50:
+                peLight = yellowLight
+            else:
+                peLight = orangeLight
+
+        # table select buttons
+
         print("""
         <div class="assistantMenu resultTabs" style="margin-bottom: 24px; margin-left: 18px; margin-top: 2px;">
             <div class="tabs">
@@ -12991,62 +13314,34 @@ def KiResultsPage(params, batchId, download=False):
                     %s
                 </div>
             </button>
-        """ % hdrCircle)
+        """ % hdrLight)
 
-        if pairedGuides and len(pairedGuides) > 0:
-            maxMeanScores = max([row[3] for row in pairedGuides])
-            if maxMeanScores >= 75:
-                pairedCircle = greenCircle
-            elif 50 < maxMeanScores < 75:
-                pairedCircle = yellowCircle
-            else:
-                pairedCircle = redCircle
-            print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">
-                <div class="resultTabLabel">
-                    Pairs of guides for HDR-based editing
-                    %s
-                </div>
-            </button>
-            """ % pairedCircle)
+        print("""
+        <button %s class="assistantButton tooltipsterInteract" title="%s" name="tableSelectButton" id="pairSelect" onclick="showTable('pairTable', this, setDist=1)">
+            <div class="resultTabLabel">
+                Pairs of guides for HDR-based editing
+                %s
+            </div>
+        </button>
+        """ % (pairedDisabled, pairedMouseOver, pairedLight))
 
-        if useBaseEditor:
+        print("""
+        <button %s class="assistantButton tooltipsterInteract" title="%s" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">
+            <div class="resultTabLabel">
+                Guides for base editing
+                %s
+            </div>
+        </button>
+        """ % (beDisabled, beMouseOver, beLight))
 
-            # maximum editing frequency at intended position
-            maxBeScore = max([max(row[20].values()) if len(row[20]) > 0 else 0 for row in allGuideData]) * 100
-            if maxBeScore >= 50:
-                beCircle = greenCircle
-            elif 10 <= maxBeScore < 50:
-                beCircle = yellowCircle
-            else:
-                beCircle = redCircle
-
-            print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="beSelect" onclick="showTable('beTable', this, setDist=1)">
-                <div class="resultTabLabel">
-                    Guides for base editing
-                    %s
-                </div>
-            </button>
-            """ % beCircle)
-
-        if pegData:
-            # K562 efficiency score
-            maxPegScore = max([row[5] for row in pegData])
-            if maxPegScore >= 50:
-                peCircle = greenCircle
-            elif 10 <= maxPegScore < 50:
-                peCircle = yellowCircle
-            else:
-                peCircle = redCircle
-            print("""
-            <button class="assistantButton tooltipsterInteract" name="tableSelectButton" id="peSelect" onclick="showTable('peTable', this, setDist=1)">
-                <div class="resultTabLabel">
-                    pegRNAs for prime editing
-                    %s
-                </div>
-            </button>
-            """ % peCircle)
+        print("""
+        <button %s class="assistantButton tooltipsterInteract" title="%s" name="tableSelectButton" id="peSelect" onclick="showTable('peTable', this, setDist=1)">
+            <div class="resultTabLabel">
+                pegRNAs for prime editing
+                %s
+            </div>
+        </button>
+        """ % (peDisabled, peMouseOver, peLight))
 
         print("</div></div>")
 
@@ -13219,7 +13514,7 @@ def KiResultsPage(params, batchId, download=False):
 
         if pegData:
             print("""<div name="guideTablePanel" id="peTable" >""")
-            showPegTable(batchId, seq, pegData, kiType)
+            showPegTable(batchId, seq, pegData, pegPams, kiType)
             print("</div>")
 
         print('<br><a class="neutral" href="crispor.py?expType=ki">')
@@ -13252,8 +13547,10 @@ def KiResultsPage(params, batchId, download=False):
 
             const savedId = localStorage.getItem('kiActiveTable');
             const savedButton = savedId ? document.getElementById(savedId) : null;
-            if (savedButton && savedButton.getAttribute('name') === 'tableSelectButton') {
+            // on a new batch, avoid selecting a non-available technique
+            if (savedButton && !savedButton.disabled && savedButton.getAttribute('name') === 'tableSelectButton') {
                 let buttonId = savedButton.getAttribute('id');
+
                 if (buttonId === "pairSelect") {
                    showTable('pairTable', savedButton, setDist=0);
                 } else if (buttonId === "beSelect") {
@@ -19926,8 +20223,8 @@ function clearEndSeq() {
                     <small><a href="javascript:clearStartSeq()">Clear Box</a> - </small>
                     <small><a href="javascript:resetToExample()">Set a default example</a></small>
                     <small>
-                        <input style="margin-left: 24px;" type="checkbox" name="noPerfectMatch" value=1 />Sequence not in reference genome
-                        <img src=" %s image/info-small.png" class="tooltipsterInteract" title="By default, CRISPOR only uses the coordinates of input sequences that are identical to the reference genome, to differentiate off-target and on-target sites. You can select this option to use the coordinates of the best match in the genome as the on-target site instead, allowing to search in sequences that differ from the genome. For example, this option can be used to correct pathogenic mutations in disease models.">
+                        <input style="margin-left: 24px;" type="checkbox" name="noPerfectMatch" value=1 />Allow mutations (e.g SNPs) in the target sequence
+                        <img src=" %s image/info-small.png" class="tooltipsterInteract" title="By default, CRISPOR only aligns the target sequence to the selected genome if it is a perfect match. This allows to discriminate the on-target site from off-target sites.<br><br>By checking this option, you can use target sequences that differ from the selected genome (e.g, with SNPs). In this case, CRISPOR will use the best match in the selected genome as the on-target site. This option can be used to correct pathogenic mutations in disease models, for example.">
                     </small>
                 </div>
                 <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target genomic sequence here. Uppercase / lowercase bases will be conserved. If the sequence is not identical to the selected reference genome, please check the box above." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
@@ -20264,7 +20561,12 @@ def printBody(params):
                 if exonSelect in exonIds:
                     for seqInfo in multiseq:  # seqInfo is (exonId, posStr)
                         if seqInfo[0] == exonSelect:
-                            params["pos"] = seqInfo[1]
+                            exonPosStr = seqInfo[1]
+                            chrom, start, end, strand = parsePos(exonPosStr)
+                            # If the selected exon is too long, clip it to MAXSEQLEN
+                            if end - start >= MAXSEQLEN:
+                                exonPosStr = "%s:%s-%s:%s" % (chrom, start, start + MAXSEQLEN, strand)
+                            params["pos"] = exonPosStr
                             break
                 else:
                     raise ValueError
@@ -20881,8 +21183,8 @@ def formatExonPos(exons, chrom, strand, pamlen):
 
 
 def getPosAndSeq(org, seq, posStr, batchId):
-    """from an insert position, writes the sequence of the donor DNA in the batch params.
-    additionnaly, returns the formatted sequence and coordinates of the target region
+    """
+    returns the formatted sequence and coordinates of the target region
     """
 
     batchInfo = readBatchAsDict(batchId)
@@ -25047,7 +25349,7 @@ def printAssistant(params):
 
                 <button type="submit" name="mode" value="classic"
                         class="%s"
-                        style="min-width: 100px;"
+                        style="min-width: 100px; border-left: 1px solid lightgrey; border-right: 1px solid lightgrey; border-top: 1px solid lightgrey; border-radius: 25px 25px 0px 0px;"
                         title="Original mode : enter a sequence to find guides.">
                     <span style="text-align: center;">
                         Classic<br>
@@ -25057,7 +25359,7 @@ def printAssistant(params):
 
                 <button type="submit" name="expType" value="ko"
                         class="%s"
-                        style="min-width: 400px;"
+                        style="min-width: 400px; border-left: 1px solid lightgrey; border-right: 1px solid lightgrey; border-top: 1px solid lightgrey; border-radius: 25px 25px 0px 0px;"
                         title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Editing (BE), or edits with Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span style="text-align: center;">
@@ -25070,7 +25372,7 @@ def printAssistant(params):
 
                 <button type="submit" name="expType" value="ki"
                         class="%s"
-                        style="min-width: 275px;"
+                        style="min-width: 275px; border-left: 1px solid lightgrey; border-right: 1px solid lightgrey; border-top: 1px solid lightgrey; border-radius: 25px 25px 0px 0px;""
                         title="Assistant to edit a sequence in multiple ways, including insertion, deletion, substitution, replacement, or protein tagging. Depending on the intended modification, multiple editing strategies are suggested, including Homology-Directed Repair (HDR) based editing with donor DNA design, Base Editing (BE) or Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span style="text-align: center;">

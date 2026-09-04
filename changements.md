@@ -3074,7 +3074,7 @@ FORECasT-BE :
 ## à faire
 
 - ajouter téléchargement des primers en FASTA
-- ajouter mouseovers + textes desriptifs
+- ajouter mouseovers + textes descriptifs
 
 # 02/09/26
 
@@ -3085,6 +3085,8 @@ FORECasT-BE :
 ## knock-in mode
 
 - ajout d'un texte descriptif des codes couleurs pour la sélection du tableau
+- affichage des boutons pour toutes les techniques dans tous les cas 
+- si une technique n'est pas réalisable -> rouge + explication dans mouseover
 
 ## prime editing
 
@@ -3093,6 +3095,8 @@ FORECasT-BE :
     - double Nicking : moyenne des global scores (75-50-0)
     - base editing : fréquence d'édition à position prévue (50-10-0)
     - Prime editng score PRIDICT2-K562 (50-10-0) -> à faire confirmer
+- correction des coordonnées de l'edit dans séquence input PRIDICT2
+- SI remplacement, retrait des bases identiques dans séquence input (sinon crash PRIDICT2)
 
 ## à faire
 
@@ -3103,4 +3107,62 @@ FORECasT-BE :
 
 ## à faire
 
-- feux rouges KI
+- CSS feux rouges KI
+- PRIDICT2 + remplacement -> crash ? DONE
+- ajouter citation PRIDICT2
+
+# 03/09/26
+
+## global
+
+- modification des textes de l'option "Sequence not in reference genome"
+    - + ajout de l'option en mode classic
+
+## prime editing
+
+- ajout de linkPegToPams() : assignation d'un pamId pour chaque pegRNA
+- dans showPegTable, ajout d'une colonne pour la position du PAM, avec surlignage du PAM correspondant sur la séquence
+
+- intégration des addons "silent bystander" and "flexible mutation" (codon STOP à toutes les positions possibles) avec Claude :
+
+    - modification des notebooks jupyter en modules
+    - les modules retournent une liste (au lieu d'écrire un fichier)
+    - modification de pridict2_pegRNA_design.py : accepte liste en mode batch au lieu d'un fichier
+    - modification de runPRIDICT2.py : import des deux modules + gestion des erreurs
+
+## à faire
+
+- filtrer l'affichage des PAMs si sélection tableau PE ? en JS, ou afficher un nouvel onglet sur le sequence viewer
+
+# 04/09/26
+
+## global
+
+- En mode classic, affichage de la longeur des exons dans dropdown sélection exon + passage exon frame
+    - si transcrit codant, affichage de la longeur des exons codants + adaptation du texte
+    - si sélection d'un exon > MAXSEQLEN, réduction de sa taille jusqu'à MAXSEQLEN
+
+## knock-in mode
+
+- correction d'un bug : passage du paramètre inputPos dans annotateOffTargets
+- si une technique n'est pas disponible, celle-ci ne peut plus être pré-sélectionnée via localStorage
+    - (car conservation du bouton sélectionnée entre != batch)
+    - dans ce cas -> affichage tableau HDR
+
+## prime editing
+
+- déplacement de la création de la séquence d'input pour PRIDICT2 dans une fonction dédiée
+- Correction d'un bug : si recherche dans une séquence != WT sans cocher l'option dédiée : posStr = ? : impossible d'étendre la séquence
+    - dans ce cas, skip prime editing
+
+## base editing 
+
+- ajout d'une description des couleurs / case dans la partie "predicted outcomes" du tableau BE
+- prise en compte des bystander silencieux lors de calcul de freqAtEdit en mode KI:
+    - call de calcFreqAtEdit dans mergeGuideInfo
+    - obtention des coordonnées des codons en fonction de l'annotation sélectionnée
+    - ajout de silentBystander : check si tous les bystanders sont silencieux, si oui, prise en compte de l'outcome dans freqAtEdit
+
+## à faire
+
+- prise en compte bystander silencieux pour séquences codantes sur le brin inverse

@@ -614,11 +614,84 @@ def primerdesign(seq):
     return primerdf_short, primerdf
 
 
+def normalize_batch_sequences(sequences, default_name="sequence"):
+    """Turn any batch input into a dataframe with {sequence_name, editseq} columns.
+
+    ``sequences`` can be:
+
+    * a pandas DataFrame with an ``editseq`` (and optionally ``sequence_name``) column
+    * an iterable of dicts, e.g. the output of
+      ``addons.flexible_mutations.flexible_mutation_sequences()`` or
+      ``addons.silentbystander.silent_bystander_sequences()``
+    * an iterable of ``(sequence_name, editseq)`` tuples
+    * an iterable of plain edit-sequence strings (names are generated)
+
+    Missing sequence names are filled in as ``{default_name}_{i}``.
+    """
+    if isinstance(sequences, pd.DataFrame):
+        batchsequencedf = sequences.copy()
+    else:
+        rows = []
+        for i, item in enumerate(sequences):
+            if isinstance(item, dict):
+                row = dict(item)
+            elif isinstance(item, pd.Series):
+                row = item.to_dict()
+            elif isinstance(item, str):
+                row = {"editseq": item}
+            elif isinstance(item, (tuple, list)) and len(item) == 2:
+                row = {"sequence_name": item[0], "editseq": item[1]}
+            else:
+                raise ValueError(
+                    "Unsupported batch input element: expected a dict, a string or a "
+                    f"(sequence_name, editseq) pair, got {type(item).__name__}."
+                )
+            if not row.get("sequence_name"):
+                row["sequence_name"] = f"{default_name}_{i + 1}"
+            rows.append(row)
+        batchsequencedf = pd.DataFrame(rows, columns=["sequence_name", "editseq"] if not rows else None)
+
+    if not len(batchsequencedf):
+        return pd.DataFrame(columns=["sequence_name", "editseq"])
+    if "editseq" not in batchsequencedf:
+        raise ValueError('Batch input is missing the "editseq" column.')
+    if "sequence_name" not in batchsequencedf:
+        batchsequencedf["sequence_name"] = [
+            f"{default_name}_{i + 1}" for i in range(len(batchsequencedf))
+        ]
+    # PRIDICT2.0 writes one output per sequence_name, so names have to be unique
+    batchsequencedf["sequence_name"] = batchsequencedf["sequence_name"].astype(str)
+    return batchsequencedf
+
+
 def parallel_batch_analysis(
-    inp_dir, inp_fname, out_dir, num_proc_arg, nicking, ngsprimer, run_ids=[0]
+    inp_dir,
+    inp_fname,
+    out_dir,
+    num_proc_arg,
+    nicking,
+    ngsprimer,
+    run_ids=[0],
+    sequences=None,
+    save_outputs=True,
+    return_dfs=False,
+    write_log=True,
 ):
-    """Perform pegRNA predictions in batch-mode."""
-    batchsequencedf = pd.read_csv(os.path.join(inp_dir, inp_fname))
+    """Perform pegRNA predictions in batch-mode.
+
+    The sequences to design pegRNAs for either come from a csv file
+    (``inp_dir``/``inp_fname``) or, when ``sequences`` is given, from any
+    iterable accepted by :func:`normalize_batch_sequences` - e.g. the output of
+    the addon modules in ``./addons``.  In the latter case ``inp_dir`` and
+    ``inp_fname`` are only used to name the log file and may be ``None``.
+
+    Returns a dict {sequence_name: DataFrame} when ``return_dfs=True``.
+    """
+    if sequences is None:
+        batchsequencedf = pd.read_csv(os.path.join(inp_dir, inp_fname))
+    else:
+        batchsequencedf = normalize_batch_sequences(sequences)
+    results = None
     log_entries = []
     if "editseq" in batchsequencedf:
         if "sequence_name" in batchsequencedf:
@@ -631,7 +704,7 @@ def parallel_batch_analysis(
                     batchsequencedf["sequence_name"] = batchsequencedf[
                         "sequence_name"
                     ].astype(str)
-                    run_processing_parallel(
+                    results = run_processing_parallel(
                         batchsequencedf,
                         out_dir,
                         num_proc_arg,
@@ -639,6 +712,8 @@ def parallel_batch_analysis(
                         ngsprimer,
                         run_ids,
                         log_entries,
+                        save_outputs=save_outputs,
+                        return_dfs=return_dfs,
                     )
                 except Exception as e:
                     print(f"Exception: {e}")
@@ -690,25 +765,33 @@ def parallel_batch_analysis(
                 }
             )
 
-    # Save log entries to CSV
-    log_df = pd.DataFrame(log_entries)
+    if write_log:
+        # Save log entries to CSV
+        log_df = pd.DataFrame(log_entries)
 
-    # Get current date and time
-    current_time = time.strftime("%Y%m%d_%H%M")
+        # Get current date and time
+        current_time = time.strftime("%Y%m%d_%H%M")
 
-    # only take filename without path (splitting with "/" and taking last element)
-    log_inp_fname = inp_fname.split("/")[-1]
+        # only take filename without path (splitting with "/" and taking last element)
+        if inp_fname:
+            log_inp_fname = os.path.basename(inp_fname)
+            log_stem = log_inp_fname[:-4] if log_inp_fname.endswith(".csv") else log_inp_fname
+        else:
+            log_stem = "sequences"
 
-    # Create the log filename with date and time
-    log_filename = f"{current_time}_{log_inp_fname[:-4]}_batch_logfile.csv"
+        # Create the log filename with date and time
+        log_filename = f"{current_time}_{log_stem}_batch_logfile.csv"
 
-    # Ensure the log directory exists
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    log_dir = os.path.join(script_dir, "log")
-    os.makedirs(log_dir, exist_ok=True)
+        # Ensure the log directory exists
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        log_dir = os.path.join(script_dir, "log")
+        os.makedirs(log_dir, exist_ok=True)
 
-    # Save the log file in the specified directory
-    log_df.to_csv(os.path.join(log_dir, log_filename), index=False)
+        # Save the log file in the specified directory
+        log_df.to_csv(os.path.join(log_dir, log_filename), index=False)
+
+    if return_dfs:
+        return results if results is not None else {}
 
 
 def pegRNAfinder(
@@ -730,9 +813,12 @@ def pegRNAfinder(
 
     When used as a module, pass ``queue=None``, ``pred_dir=None``, ``save_outputs=False``
     and ``return_df=True`` to receive the computed pandas DataFrame directly without
-    writing any CSV files.
+    writing any CSV files.  When ``return_df=True`` and a ``queue`` is given (batch mode
+    run in separate processes), the DataFrame is put on the queue as third element of
+    the ``(pindx, error_message, dataframe)`` tuple.
     """
     error_message = None
+    result_df = None
     try:
         if type(dfrow["editseq"]) == pd.Series:  # case of dfrow is a group
             sequence = dfrow["editseq"].values[0]
@@ -1454,7 +1540,7 @@ def pegRNAfinder(
                 )
 
         if return_df:
-            return pegdataframe
+            result_df = pegdataframe
 
     except Exception as e:
         print("-- Exception occured --")
@@ -1463,12 +1549,12 @@ def pegRNAfinder(
     finally:
         if queue is not None:
             if error_message is None:
-                queue.put((pindx, "Prediction successful!"))
+                queue.put((pindx, "Prediction successful!", result_df))
             else:
-                queue.put((pindx, error_message))
+                queue.put((pindx, error_message, None))
 
     if return_df:
-        return None
+        return result_df
 
 
 def compute_average_predictions(df, grp_cols=["seq_id", "dataset_name"]):
@@ -1485,9 +1571,23 @@ def compute_average_predictions(df, grp_cols=["seq_id", "dataset_name"]):
 
 
 def run_processing_parallel(
-    df, pred_dir, num_proc_arg, nicking, ngsprimer, run_ids, log_entries
+    df,
+    pred_dir,
+    num_proc_arg,
+    nicking,
+    ngsprimer,
+    run_ids,
+    log_entries,
+    save_outputs=True,
+    return_dfs=False,
 ):
+    """Run the pegRNA design for every row of ``df`` in separate processes.
 
+    When ``return_dfs=True``, a dict mapping ``sequence_name`` to the computed
+    pandas DataFrame is returned (sequences that failed map to ``None``).
+    """
+
+    results = {}
     queue = mp.Queue()
     q_processes = []
     if num_proc_arg == 0:
@@ -1514,6 +1614,8 @@ def run_processing_parallel(
             pred_dir=pred_dir,
             nicking=nicking,
             ngsprimer=ngsprimer,
+            save_outputs=save_outputs,
+            return_df=return_dfs,
         )
         q_processes.append(q_process)
         spawn_q_process(q_process)
@@ -1522,8 +1624,14 @@ def run_processing_parallel(
 
     print("*" * 25)
     for q_i in range(num_rows):
-        join_q_process(q_processes[q_i])
-        released_proc_num, error_message = queue.get()
+        # Read from the queue *before* joining, and join the process that just
+        # reported rather than the one at the loop index: a child that puts a large
+        # payload (the result dataframe) on the queue cannot exit before the parent
+        # has read it, so joining any other process first would deadlock.
+        released_proc_num, error_message, released_df = queue.get()
+        join_q_process(q_processes[released_proc_num])
+        if return_dfs:
+            results[df.iloc[released_proc_num]["sequence_name"]] = released_df
         if error_message:
             log_entries.append(
                 {
@@ -1533,7 +1641,7 @@ def run_processing_parallel(
                 }
             )
         # print("released_process_num:", released_proc_num)
-        q_processes[q_i] = None  # free resources ;)
+        q_processes[released_proc_num] = None  # free resources ;)
         if spawned_processes < num_rows:
             q_i_upd = q_i + num_proc
             # print('q_i:', q_i, 'q_i_updated:', q_i_upd)
@@ -1548,11 +1656,16 @@ def run_processing_parallel(
                 pred_dir=pred_dir,
                 nicking=nicking,
                 ngsprimer=ngsprimer,
+                save_outputs=save_outputs,
+                return_df=return_dfs,
             )
 
             q_processes.append(q_process)
             spawn_q_process(q_process)
             spawned_processes = spawned_processes + 1
+
+    if return_dfs:
+        return results
 
 
 def remove_col(df, colname):
@@ -1574,10 +1687,21 @@ def join_q_process(q_process):
     print("<<< joined row computation process")
 
 
-def create_q_process(dfrow, models_list, queue, pindx, pred_dir, nicking, ngsprimer):
+def create_q_process(
+    dfrow,
+    models_list,
+    queue,
+    pindx,
+    pred_dir,
+    nicking,
+    ngsprimer,
+    save_outputs=True,
+    return_df=False,
+):
     return mp.Process(
         target=pegRNAfinder,
         args=(dfrow, models_list, queue, pindx, pred_dir, nicking, ngsprimer),
+        kwargs={"save_outputs": save_outputs, "return_df": return_df},
     )
 
 
@@ -1605,6 +1729,89 @@ def predict_single_sequence(
         save_outputs=False,
         return_df=True,
     )
+
+
+def predict_batch_sequences(
+    sequences,
+    nicking=False,
+    ngsprimer=False,
+    use_5folds=False,
+    run_ids=None,
+    num_proc=1,
+    out_dir=None,
+    combine=False,
+    default_name="sequence",
+):
+    """Convenience wrapper for batch mode without file I/O.
+
+    ``sequences`` is any iterable accepted by :func:`normalize_batch_sequences`,
+    in particular the output of the addon modules::
+
+        from addons.flexible_mutations import flexible_mutation_sequences
+        from addons.silentbystander import silent_bystander_sequences
+
+        seqs = silent_bystander_sequences(pridict_input, name="cftr")
+        results = predict_batch_sequences(seqs)
+
+    Returns a dict {sequence_name: DataFrame} (``None`` for sequences whose
+    design failed), or one concatenated DataFrame when ``combine=True``.
+    Results are only written to disk when ``out_dir`` is given.
+    """
+    if run_ids is None:
+        run_ids = list(range(5)) if use_5folds else [0]
+
+    batchsequencedf = normalize_batch_sequences(sequences, default_name=default_name)
+    if not len(batchsequencedf):
+        return pd.DataFrame() if combine else {}
+    if len(batchsequencedf.sequence_name.unique()) != len(batchsequencedf):
+        raise ValueError(
+            'At least one sequence_name in the batch input is not unique. Prediction aborted.'
+        )
+
+    save_outputs = out_dir is not None
+    if save_outputs:
+        os.makedirs(out_dir, exist_ok=True)
+
+    if num_proc and num_proc > 1:
+        results = run_processing_parallel(
+            batchsequencedf,
+            out_dir,
+            num_proc,
+            nicking,
+            ngsprimer,
+            run_ids,
+            log_entries=[],
+            save_outputs=save_outputs,
+            return_dfs=True,
+        )
+    else:
+        # single process: load the models once and reuse them for all sequences
+        models_list = load_pridict_model(run_ids=run_ids)
+        results = {}
+        for _, row in batchsequencedf.iterrows():
+            results[row["sequence_name"]] = pegRNAfinder(
+                row,
+                models_list,
+                queue=None,
+                pindx=0,
+                pred_dir=out_dir,
+                nicking=nicking,
+                ngsprimer=ngsprimer,
+                save_outputs=save_outputs,
+                return_df=True,
+            )
+
+    if combine:
+        frames = []
+        for name, df in results.items():
+            if df is None or not len(df):
+                continue
+            df = df.copy()
+            if "sequence_name" not in df:
+                df.insert(0, "sequence_name", name)
+            frames.append(df)
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    return results
 
 
 def summarize_top_scoring(out_dir, summary_filename, cell_type, top_n):
