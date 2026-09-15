@@ -61,6 +61,14 @@ button.assistantButton:hover {
 color: var(--crispor-ink);
 }
 
+button.mainMenu {
+min-width: 100px;
+border-left: 1px solid lightgrey;
+border-right: 1px solid lightgrey;
+border-top: 1px solid lightgrey;
+border-radius: 25px 25px 0px 0px;
+}
+
 /* Active tab — orange underline.
    Uses ::after so it sits flush with the assistantMenu's bottom border,
    even after `all: unset` would otherwise wipe the border styling. */

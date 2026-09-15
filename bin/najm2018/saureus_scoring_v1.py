@@ -1,5 +1,15 @@
 import pandas as pd
-import csv, argparse
+import csv, argparse, sys
+from os.path import join
+
+myDir = "/data/www/crispor"
+aziDir = join(myDir, "bin/Azimuth-2.0/")
+sys.path.append(aziDir)
+aziBin = join(aziDir, "azimuth")
+sys.path.append(aziBin)
+featuresDir = join(aziBin, "features")
+sys.path.append(featuresDir)
+
 import azimuth
 import azimuth.model_comparison
 import numpy as np

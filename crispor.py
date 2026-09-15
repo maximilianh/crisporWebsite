@@ -3552,7 +3552,7 @@ def showSeqAndPams(
     if found is False:
         geneModels, selGeneModel, selTransId = getSelGeneModel(org, manual=True)
 
-    # in only show manual annotation to avoid showing the wrong aa sequence
+    # only show manual annotation to avoid showing the wrong aa sequence
     if noPerfectMatch:
         geneModels = [("manual", "manual annotation")]
         selGeneModel = geneModels[0][0]
@@ -4802,6 +4802,10 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN, noPer
     #>>> extendAndGetSeq("hg19", "chr21", 10000000, 10000005, "+", flank=3)
     #'AAGGAATGTAG'
     """
+
+    if noPerfectMatch:
+        return None
+
     assert (
         "|" not in chrom
     )  # we are using | to split info in BED files. | is not allowed in the fasta
@@ -5257,7 +5261,7 @@ def calcInsertDistance(
     return insertDistance, doRecoding, cutUpstream
 
 
-def silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable):
+def silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable, exonStrand):
     """
     Returns True if all bystander edits in the outcome sequence result in silent mutations based on the selected annotation.
     Bystanders in non-coding regions are counted as non-silent
@@ -5280,12 +5284,32 @@ def silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable):
             continue
 
         if base.isupper() and pos in codonPos.keys():
-            codon, posInCodon = codonPos[pos]
-            newCodon = ''.join([b if i != posInCodon else base for i, b in enumerate(codon)])
 
+            codon, posInCodon = codonPos[pos]
+
+            if exonStrand == "-":
+                # revComp the edited base and reverse the position of the base within the codon
+                base = revComp(base)
+                posInCodon = 3 - posInCodon
+
+            # check if other bystander edits lie within the codon
+            altCodonPos = [pos for pos in range(0, 3) if pos != posInCodon]
+            # dict to store the positions of bystander edits within the current codon
+            modPos = {posInCodon: base}
+            for altPos in altCodonPos:
+                # get the position of alternative codon bases in the outcome sequence
+                altBasePos = i + (altPos - posInCodon)
+                altBase = outSeq[altBasePos]
+                if altBase.isupper():
+                    modPos[altPos] = altBase
+
+            newCodon = ''.join([b if i not in modPos.keys() else modPos[i] for i, b in enumerate(codon)])
+
+            # print(codon, newCodon, "<br>")
             aa = codonTable[codon]
             newAa = codonTable[''.join(newCodon)]
             if newAa == aa:
+                # print(codon, newCodon, "<br>")
                 silentBystanders += 1
 
     # all the bystander edit are silent
@@ -5295,7 +5319,7 @@ def silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable):
     return isSilent
 
 
-def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos, codonPos=None, codonTable=None):
+def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos, codonPos=None, codonTable=None, exonStrand=None):
     """
     from base editing outcomes, returns the editing frequency at the intended position.
     In KO mode, returns the sum of all outcomes that result in a STOP
@@ -5321,17 +5345,17 @@ def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos
     totalFreq = 0
     for outSeq, outFreq in outcomes:
 
-        singleEdit = len([base for base in outSeq if base.isupper()]) == 1
+        # singleEdit = len([base for base in outSeq if base.isupper()]) == 1
 
         # check if all bystander edits are silent
-        if restrictive and not singleEdit and codonPos:
-            isSilent = silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable)
+        if restrictive and codonPos:
+            isSilent = silentBystander(outSeq, outStart, insertIdx, codonPos, codonTable, exonStrand)
 
         for i, outBase in enumerate(outSeq):
 
             outBasePos = outStart + i
 
-            if restrictive and not singleEdit and not isSilent:
+            if restrictive and not isSilent:
                 continue
 
             if outBasePos == targetPos and outBase.isupper():
@@ -5409,6 +5433,10 @@ def mergeGuideInfo(
         if kiType:
             # need to move this to a function
             codonTable = buildCodonTable()
+            """
+            for k, v in buildCodonTable(key="aa").items():
+                print(k, v, "<br>")
+            """
             geneModels = getGeneModels(org)
             annotParams = resolveAnnotationParams(org, seq, posStr)
             selGeneModel, selTransId = annotParams.get("geneModelSelection"), annotParams.get("selTransId")
@@ -5426,7 +5454,8 @@ def mergeGuideInfo(
                 exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, inputPos)
 
                 # select the first transcript if no transcript was selected
-                if selTransId == "allTrans" or selTransId is None:
+                transcript = None
+                if selTransId == "allTrans" or selTransId is None and len(exonInfo) > 0:
                     selTransId = list(exonInfo.keys())[0][0]
                 # get the selected transcript
                 for transId, sym in exonInfo.keys():
@@ -5446,26 +5475,41 @@ def mergeGuideInfo(
                             int(manualExFrame),
                             0,
                             manualExStrand)]
+            if transcript:
+                # dict of codons corresponding to each position in the sequence
+                codonPos = {}
+                # {pos: (codon, posInCodon)}
+                for _, exonStart, exonEnd, exonFrame, _, _, exonStrand in transcript:
 
-            # dict of codons corresponding to each position in the sequence
-            codonPos = {}
-            # {pos: (codon, posInCodon)}
-            for _, exonStart, exonEnd, exonFrame, _, _, exonStrand in transcript:
-
-                if exonFrame == -1:
-                    continue
-
-                exonOffset = (3 - exonFrame) % 3
-                for codonStart in range(exonStart + exonOffset, exonEnd, 3):
-                    if codonStart + 3 > exonEnd:
-                        break
-                    # limit to the 15bp flanking the edit
-                    if codonStart + 3 < insertIdx - 15 or codonStart > insertIdx + 15:
+                    if exonFrame == -1:
                         continue
+
+                    exonOffset = (3 - exonFrame) % 3
+
+                    if exonStrand == "+":
+                        posRange = range(exonStart + exonOffset, exonEnd, 3)
                     else:
-                        codon = seq[codonStart: codonStart + 3].upper()
-                        for posInCodon, pos in enumerate(range(codonStart, codonStart + 3)):
-                            codonPos[pos] = (codon, posInCodon)
+                        posRange = reversed(range(exonStart, exonEnd - exonOffset, 3))
+
+                    for codonStart in posRange:
+                        if codonStart + 3 > exonEnd and exonStrand == "+":
+                            break
+                        if codonStart - 3 < 0 and exonStrand == "-":
+                            break
+                        # limit to the 15bp flanking the edit
+                        if codonStart + 3 < insertIdx - 15 or codonStart > insertIdx + 15:
+                            continue
+                        else:
+                            codon = seq[codonStart: codonStart + 3].upper()
+                            if exonStrand == "-":
+                                codon = revComp(codon)
+                            # print(codonStart, codonTable[codon])
+                            for posInCodon, pos in enumerate(range(codonStart, codonStart + 3)):
+                                codonPos[pos] = (codon, posInCodon)
+                            # get the strand of the exon that overlaps the edit
+                            # should not place this in the loop..
+                            selExonStrand = exonStrand
+                    # print("<br>")
     else:
         editData = None
 
@@ -5535,12 +5579,13 @@ def mergeGuideInfo(
                     outcomes.sort(key=lambda x: x[1], reverse=True)
                     beOutcomes[outcomeModel] = outcomes
                     # in KI mode, freqAtEdit is recalculated here to include silent bystander edits
-                    if kiType:
-                        freqAtEdit = calcFreqAtEdit(guideStart, pamStart, strand, outcomes, insertIdx, None, codonPos=codonPos, codonTable=codonTable)
+                    if kiType and transcript:
+                        freqAtEdit = calcFreqAtEdit(guideStart, pamStart, strand, outcomes, insertIdx,
+                                                    None, codonPos=codonPos, codonTable=codonTable, exonStrand=selExonStrand)
                         newEffs[outcomeModel] = freqAtEdit
 
             for effModel in usedBeModels:
-                if kiType:
+                if kiType and transcript:
                     selEff = newEffs.get(effModel, -1)
                 else:
                     # in KO mode, get freqAtEdit from editData
@@ -6643,7 +6688,7 @@ You can adapt the global score to your gRNA production method (select below), wh
         print('<th data-col-id="beEffs" colspan="%d" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; height: 325px; border-bottom:none">' % (len(usedBeModels), colWidths["beEffTotal"]))
         print('Predicted editing frequency at intended position')
         if pamFullName:
-            beEffText = "substitution (without any bystander edits)"
+            beEffText = "substitution alone or with silent bystander edits"
         else:
             beEffText = "edit resulting in a STOP codon"
         htmlHelp("""This column shows the predicted base editing efficiencies for available models.<br>
@@ -7185,7 +7230,7 @@ def showPegTable(batchId, seq, pegData, pegPams, kiType):
 
         pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords, pbsCoords, rtCoords, editorVariant, primers = pegInfo
 
-        pamId = pegPams[pegSeq]
+        pamId = pegPams.get(pegSeq, "not found")
         print("<tr>")
 
         print('<td>')
@@ -7195,7 +7240,11 @@ def showPegTable(batchId, seq, pegData, pegPams, kiType):
             pamStrand = "fw"
         else:
             pamStrand = "rev"
-        print("%s / %s" % (pamPos, pamStrand))
+        if pamId == "not found":
+            pamStr = pamId
+        else:
+            pamStr = "%s / %s" % (pamPos, pamStrand)
+        print(pamStr)
         print("</a>")
         print('</td>')
 
@@ -9768,7 +9817,6 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     optionally write status updates to work queue. Remove faFname.
     """
     batchInfo = readBatchAsDict(batchId)
-    noPerfectMatch = batchInfo.get("noPerfectMatch")
 
     if genome == "noGenome":
         posStr = "?"
@@ -9782,21 +9830,31 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
             "bwasw",
             "Searching genome for one 100% identical match to input sequence",
         )
-        posStr = findPerfectMatch(batchId, noPerfectMatch=noPerfectMatch)
+        posStr = findPerfectMatch(batchId)
+
+        # no perfect match found : use the best match instead
+        if posStr == "?":
+            noPerfectMatch = True
+            posStr = findPerfectMatch(batchId, noPerfectMatch=noPerfectMatch)
+            wtSeq = getSeq(genome, posStr, maxlen=False)
+            batchInfo["wtSeq"] = wtSeq
+            batchInfo["noPerfectMatch"] = noPerfectMatch
+        else:
+            noPerfectMatch = None
 
     batchInfo["posStr"] = posStr
 
     if posStr != "?":
         # get a 100bp-extended version of the input seq
         chrom, start, end, strand = parsePos(posStr)
-        extSeq = extendAndGetSeq(genome, chrom, start, end, strand, batchInfo["seq"])
-        if extSeq is None:
+        extSeq = extendAndGetSeq(genome, chrom, start, end, strand, batchInfo["seq"], noPerfectMatch=noPerfectMatch)
+        if extSeq is None and noPerfectMatch is None:
             # this can only happen if there is a 100%-M match but small SNPs in it compared to the input sequence
             # so the extension of the input fails.
             # in this case, we also invalidate the position, as there was no perfect match and the user
             # has to do something to fix it
             batchInfo["posStr"] = "?"
-        else:
+        elif extSeq is not None:
             logging.debug("100pb-extended seq (len: %d) is: %s" % (len(extSeq), extSeq))
             batchInfo["extSeq"] = extSeq
 
@@ -11482,14 +11540,17 @@ def readDbInfo(org):
     return dbInfo
 
 
-def printQueryNotFoundNote(dbInfo):
+def printQueryNotFoundNote(dbInfo, batchInfo=None):
+
+    if batchInfo is None:
+        print(
+            "<div class='title'>Query sequence, not found in the selected genome, %s (%s)</div>"
+            % (dbInfo.scientificName, dbInfo.name)
+        )
     print(
-        "<div class='title'>Query sequence, not found in the selected genome, %s (%s)</div>"
-        % (dbInfo.scientificName, dbInfo.name)
+        "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue;'>"
     )
-    print(
-        "<div class='substep' style='border: 1px black solid; padding:5px; background-color: aliceblue'>"
-    )
+
     print(
         "<strong>Warning:</strong> The query sequence was not found in the selected genome."
     )
@@ -11501,6 +11562,11 @@ def printQueryNotFoundNote(dbInfo):
         "Use a tool like <a target=_blank href='http://genome.ucsc.edu/cgi-bin/hgBlat'>BLAT</a> to check if the "
         "sequence really has a 100% identical match in the target genome.<p>"
     )
+    if batchInfo:
+        print("<p>Below is an alignement of the query sequence against the selected reference genome.</p>")
+        seq = batchInfo["seq"]
+        showNoPerfectMatch(seq, batchInfo)
+
     print(
         "When reading the list of guide sequences and off-targets below, bear in mind that in case that the input sequence is really in the genome and just has a few differences, the software will use the first found match as the on-target as it cannot distinguish 0-mismatch off-targets from 0-mismatch on-targets. In this case, the specificity scores of guide sequences are too low. In other words, some guides may be fine, the problem may just be that the on-target is shown as an off-target. <br>"
     )
@@ -12353,6 +12419,57 @@ def checkOtherArgs(params):
     return minFreq, varDb
 
 
+def showNoPerfectMatch(seq, batchInfo):
+    """
+    Shows an alignment of the query sequence compared
+    to the best match in the genome
+    """
+
+    wtSeq = batchInfo.get("wtSeq")
+    matcher = difflib.SequenceMatcher(
+        a=seq.lower(), b=wtSeq.lower(), autojunk=False
+    )
+
+    seqWidth = 80
+    seqLine = []
+    diffLine = []
+    wtLine = []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        # print(tag, i1, i2, j1, j2, "<br>")
+        if tag == "equal":
+            seqLine.append(seq[i1:i2])
+            diffLine.extend(["|" for i in range(i1, i2)])
+            wtLine.append(wtSeq[j1:j2])
+        if tag == "insert":
+            seqLine.extend(["." for i in range(j1, j2)])
+            diffLine.extend(["*" for i in range(j1, j2)])
+            wtLine.append(wtSeq[j1:j2])
+        elif tag == "delete":
+            seqLine.append(seq[i1:i2])
+            diffLine.extend(["*" for i in range(i1, i2)])
+            wtLine.extend(["." for i in range(i1, i2)])
+        elif tag == "replace":
+            seqLine.append(seq[i1: i2])
+            diffLine.extend(["*" for i in range(i1, i2)])
+            wtLine.append(wtSeq[j1: j2])
+
+    seqLine = ''.join(seqLine)
+    diffLine = ''.join(diffLine)
+    wtLine = ''.join(wtLine)
+    print('<small style="font-family: Source Code Pro; background-color: #e6e6e6;">')
+    for i in range(0, len(seqLine), seqWidth):
+        # if len(re.sub('[.]', '', seqLine[i:])) == 0:
+        #     break
+        endIdx = i + seqWidth
+        if endIdx > len(seqLine):
+            endIdx = len(seqLine)
+        print("Query" + ''.join(["&nbsp" for i in range(4)]), seqLine[i: endIdx], "<br>")
+        print(''.join(["&nbsp" for i in range(9)]), diffLine[i: endIdx], endIdx, "<br>")
+        print("Reference", wtLine[i: endIdx], "<br>")
+        print("<br>")
+    print("</small>")
+
+
 def crisprSearch(params):
     "do crispr off target search and eff. scoring"
     if "org" in params:
@@ -12616,11 +12733,15 @@ def classicResultsPage(
     parse eff scores and offtargets and prints the results
     """
 
-    # if we reach this, the batch has been processed
     batchInfo = readBatchAsDict(batchId)
     position = batchInfo.get("posStr")  # if there was no match, the posStr key is "?"
 
-    if dbInfo == None:
+    noPerfectMatch = batchInfo.get("noPerfectMatch")
+
+    if noPerfectMatch:
+        printQueryNotFoundNote(dbInfo, batchInfo=batchInfo)
+
+    if dbInfo is None:
         print(
             "<div class='title'>No Genome selected, specificity scoring is deactivated</div>"
         )
@@ -12740,7 +12861,8 @@ def classicResultsPage(
         minFreq,
         position,
         pamIdToSeq,
-        batchId=batchId
+        batchId=batchId,
+        noPerfectMatch=noPerfectMatch
     )
 
     showSeqDownloadMenu(batchId)
@@ -20571,9 +20693,9 @@ def printBody(params):
                 else:
                     raise ValueError
             except ValueError:
-                print(
-                    "<p>The exon you selected is too small to be processed (< 23bp). Please select another exon</p>"
-                )
+                msg = "<p>The exon you selected is too small to be processed (< 23bp). Please select another exon</p>"
+                wrongInputRedirect(msg)
+
             if "pos" in params:
                 printCrisporBodyStart()
                 try:
@@ -21199,6 +21321,15 @@ def getPosAndSeq(org, seq, posStr, batchId):
     if posStr is None and seq:
 
         posStr = findPerfectMatch(batchId, seq, org, noPerfectMatch=noPerfectMatch)
+
+        if noPerfectMatch is None and posStr is None:
+            noPerfectMatch = True
+            batchInfo["noPerfectMatch"] = noPerfectMatch
+            posStr = findPerfectMatch(batchId, seq, org, noPerfectMatch=noPerfectMatch)
+
+        if noPerfectMatch:
+            wtSeq = getSeq(org, posStr)
+            batchInfo["wtSeq"] = wtSeq
         batchInfo["posStr"] = posStr
 
     # input is a transcriptID
@@ -21236,7 +21367,7 @@ def getPosAndSeq(org, seq, posStr, batchId):
 
     writeBatchAsDict(batchInfo, batchId)
 
-    return seq, posStr
+    return seq, posStr, noPerfectMatch
 
 
 def writeDonorSeq(params):
@@ -22465,12 +22596,17 @@ def findPerfectMatch(batchId, seq=None, genome=None, noPerfectMatch=None):
         # allow imperfect matches
         if noPerfectMatch:
             cleanCigar = re.sub('[D/H/I/M/N/P/S/X]', "", cigar)
+            logging.info("CLEANCIGAR : %s" % cleanCigar)
+            # using the length of cleanCigar here results in an large extension of the coordinates
         else:
             cleanCigar = cigar.replace("M", "")
         if not cleanCigar.isdigit():
             logging.debug("match found, but cigar string was %s" % cigar)
             continue
-        matchLen = int(cleanCigar)
+        if noPerfectMatch:
+            matchLen = len(seq)
+        else:
+            matchLen = int(cleanCigar)
         chrom, start, end = (
             rName,
             int(pos) - 1,
@@ -24925,7 +25061,7 @@ def runQueueWorker(noFork):
             batchBase = join(batchDir, batchId)
             if jobType == "multipam":
                 try:
-                    seq, posStr = getPosAndSeq(org, seq, position, batchId)
+                    seq, posStr, noPerfectMatch = getPosAndSeq(org, seq, position, batchId)
                     processMultiPamSubmission(
                         org, seq, posStr, multipam, batchBase, batchId, q
                     )
@@ -25335,9 +25471,9 @@ def printAssistant(params):
     def cls(tabId):
         # `active` adds the orange underline (see style/assistant.css)
         return (
-            "assistantButton active tooltipsterInteract"
+            "assistantButton mainMenu active tooltipsterInteract"
             if tabId == active
-            else "assistantButton tooltipsterInteract"
+            else "assistantButton mainMenu tooltipsterInteract"
         )
 
     print(
@@ -25349,7 +25485,13 @@ def printAssistant(params):
 
                 <button type="submit" name="mode" value="classic"
                         class="%s"
-                        style="min-width: 100px; border-left: 1px solid lightgrey; border-right: 1px solid lightgrey; border-top: 1px solid lightgrey; border-radius: 25px 25px 0px 0px;"
+                        style="
+                            min-width: 100px;
+                            border-left: 1px solid lightgrey;
+                            border-right: 1px solid lightgrey;
+                            border-top: 1px solid lightgrey;
+                            border-radius: 25px 25px 0px 0px;
+                        "
                         title="Original mode : enter a sequence to find guides.">
                     <span style="text-align: center;">
                         Classic<br>

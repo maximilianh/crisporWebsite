@@ -3154,6 +3154,7 @@ FORECasT-BE :
 - déplacement de la création de la séquence d'input pour PRIDICT2 dans une fonction dédiée
 - Correction d'un bug : si recherche dans une séquence != WT sans cocher l'option dédiée : posStr = ? : impossible d'étendre la séquence
     - dans ce cas, skip prime editing
+- si pegRNA spacer en dehors des coordonnées de la séquence, pas de recherche du pamID -> affichage "not found"
 
 ## base editing 
 
@@ -3162,7 +3163,44 @@ FORECasT-BE :
     - call de calcFreqAtEdit dans mergeGuideInfo
     - obtention des coordonnées des codons en fonction de l'annotation sélectionnée
     - ajout de silentBystander : check si tous les bystanders sont silencieux, si oui, prise en compte de l'outcome dans freqAtEdit
+    - prise en compte des exons situés sur le brin inverse
+    - prise en compte de plusieurs bystanders dans le même codon
 
 ## à faire
 
-- prise en compte bystander silencieux pour séquences codantes sur le brin inverse
+- vérifier prise en compte silent bystanders sur CPS1 + autres seqs...
+
+# 14/09/26
+
+## global
+
+- utilisation de wrongInputRedirect si sélection d'un exon <23bp en mode classic
+- installation pyenv + création d'un venv python 3.7.9 pour najm2018
+
+## classic mode
+
+- si séquence != génome, utilisation automatique du best match
+- écriture de la séquence WT dans batch params
+- ajout de showNoPerfectMatch() :
+    - alignement query / WT avec difflib
+    - affichage de l'aligmement
+
+## à faire
+
+- update msg "query not found" -> no matches in the genome -> wrongInputRedirect // ou affichage alignement
+- findPerfectMatch étend la séquence de 700bp si noPerfectMatch=True ??
+
+# 15/09/26
+
+## global 
+
+- symlink des dépendances azimuth dans bin/najm2018/saureus_scoring*.py
+
+- si noPerfectMatch : pas d'extension de la séquence (sinon crash car PAMs non trouvés)
+- affichage de l'alignement dans printQueryNotFoundNote
+- correction de l'extension de la séquence si noPerfectMatch : obtention des coordonnées avec start + len(seq) au lien de int(cleanCigar)
+
+## à faire 
+
+- adapter taille séquence en fonction du code cigar (ne pas utiliser len(seq) )
+- venvNajm sous python 3.3+ (sans segfault ?)

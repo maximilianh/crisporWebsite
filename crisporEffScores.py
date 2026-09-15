@@ -1,4 +1,4 @@
-# main functions: calcAllScores and calcMutSeqs 
+# main functions: calcAllScores and calcMutSeqs
 
 # this library re-implements the efficiency scoring functions of these articles in calcAllScores():
 
@@ -15,7 +15,7 @@
 
 # Also includes the prediction of DSB-repair outcome in calcMutSeqs:
 # - OOF: Microhomology and out-of-frame score from Bae et al, Nat Biotech 2014 , PMID24972169 http://www.rgenome.net/mich-calculator/
-# - Wei Chen et al: 
+# - Wei Chen et al:
 
 # the input are 100bp sequences that flank the basepair just 5' of the PAM +/-50bp.
 # so 50bp 5' of the PAM, and 47bp 3' of the PAM -> 100bp
@@ -73,87 +73,162 @@ TEMPDIR = "/var/tmp"
 
 BUFSIZE = 10000000
 
+
 def setBinDir(path):
     global binDir
     binDir = path
+
 
 def setCacheDir(path):
     global cacheDir
     cacheDir = path
 
+
 def getBinPath(name, isDir=False):
     """
     get the full pathname of a platform-specific binary, in the bin/ directory relative to this directory
     """
-    binPath = join(binDir, platform.system()+"-"+platform.machine(), name)
+    binPath = join(binDir, platform.system() + "-" + platform.machine(), name)
     if isDir and not isdir(binPath):
         raise Exception("Could not find directory %s" % binPath)
     if not isDir and not isfile(binPath):
         raise Exception("Could not find file %s" % binPath)
     return binPath
 
-def seqToVec(seq, offsets={"A":0,"C":1,"G":2,"T":3}):
-    """ convert a x bp sequence to a 4 * x 0/1 vector
+
+def seqToVec(seq, offsets={"A": 0, "C": 1, "G": 2, "T": 3}):
+    """convert a x bp sequence to a 4 * x 0/1 vector
     >>> seqToVec("AAAAATTTTTGGGGGCCCCC")
     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]
     """
-    assert(len(seq)==20)
-    row = [0]*len(seq)*4
+    assert len(seq) == 20
+    row = [0] * len(seq) * 4
     pseudoOffset = offsets["A"]
     for pos, nucl in enumerate(seq):
         nucl = nucl.upper()
         # treat N, Y, etc like "A". Happens very rarely.
         nuclOffset = offsets.get(nucl, pseudoOffset)
-        vecPos = (pos*len(offsets))+nuclOffset
-        #if vecPos not in range(len(row)):
-            #ofh = open("temp.txt", "a")
-            #ofh.write(str(vecPos)+" "+seq+" "+str(row)+"pos %d, nucl %s" % (pos, nucl)+"\n")
-            #assert(False)
+        vecPos = (pos * len(offsets)) + nuclOffset
+        # if vecPos not in range(len(row)):
+        # ofh = open("temp.txt", "a")
+        # ofh.write(str(vecPos)+" "+seq+" "+str(row)+"pos %d, nucl %s" % (pos, nucl)+"\n")
+        # assert(False)
         row[vecPos] = 1
     return row
 
+
 def vecToSeqDicts(coefs):
-    " convert a list of 80 floats to 20 dictionaries with A/C/T/G -> float "
+    "convert a list of 80 floats to 20 dictionaries with A/C/T/G -> float"
     freqs = []
-    for i in range(0,20):
+    for i in range(0, 20):
         charFreqs = {}
-        for nucl, x in zip("ACGT", list(range(0,4))):
-            freq = coefs[i*4+x]
-            if freq==0.0:
+        for nucl, x in zip("ACGT", list(range(0, 4))):
+            freq = coefs[i * 4 + x]
+            if freq == 0.0:
                 continue
             charFreqs[nucl] = freq
         freqs.append(charFreqs)
     return freqs
 
+
 paramsCRISPRscan = [
-# converted excel table of logistic regression weights with 1-based positions
-('AA',18,-0.097377097),
-('TT',18,-0.094424075),('TT',13,-0.08618771),('CT',26,-0.084264893),('GC',25,-0.073453609),
-('T',21,-0.068730497),('TG',23,-0.066388075),('AG',23,-0.054338456),('G',30,-0.046315914),
-('A',4,-0.042153521),('AG',34,-0.041935908),('GA',34,-0.037797707),('A',18,-0.033820432),
-('C',25,-0.031648353),('C',31,-0.030715556),('G',1,-0.029693709),('C',16,-0.021638609),
-('A',14,-0.018487229),('A',11,-0.018287292),('T',34,-0.017647692),('AA',10,-0.016905415),
-('A',19,-0.015576499),('G',34,-0.014167123),('C',30,-0.013182733),('GA',31,-0.01227989),
-('T',24,-0.011996172),('A',15,-0.010595296),('G',4,-0.005448869),('GG',9,-0.00157799),
-('T',23,-0.001422243),('C',15,-0.000477727),('C',26,-0.000368973),('T',27,-0.000280845),
-('A',31,0.00158975),('GT',18,0.002391744),('C',9,0.002449224),('GA',20,0.009740799),
-('A',25,0.010506405),('A',12,0.011633235),('A',32,0.012435231),('T',22,0.013224035),
-('C',20,0.015089514),('G',17,0.01549378),('G',18,0.016457816),('T',30,0.017263162),
-('A',13,0.017628924),('G',19,0.017916844),('A',27,0.019126815),('G',11,0.020929039),
-('TG',3,0.022949996),('GC',3,0.024681785),('G',14,0.025116714),('GG',10,0.026802158),
-('G',12,0.027591138),('G',32,0.03071249),('A',22,0.031930909),('G',20,0.033957008),
-('C',21,0.034262921),('TT',17,0.03492881),('T',13,0.035445171),('G',26,0.036146649),
-('A',24,0.037466478),('C',22,0.03763162),('G',16,0.037970942),('GG',12,0.041883009),
-('TG',18,0.045908991),('TG',31,0.048136812),('A',35,0.048596259),('G',15,0.051129717),
-('C',24,0.052972314),('TG',15,0.053372822),('GT',11,0.053678436),('GC',9,0.054171402),
-('CA',30,0.057759851),('GT',24,0.060952114),('G',13,0.061360905),('CA',24,0.06221937),
-('AG',10,0.063717093),('G',10,0.067739182),('C',13,0.069495944),('GT',31,0.07342535),
-('GG',13,0.074355848),('C',27,0.079933922),('G',27,0.085151052),('CC',21,0.088919601),
-('CC',23,0.095072286),('G',22,0.10114438),('G',24,0.105488325),('GT',23,0.106718563),
-('GG',25,0.111559441),('G',9,0.114600681)]
+    # converted excel table of logistic regression weights with 1-based positions
+    ("AA", 18, -0.097377097),
+    ("TT", 18, -0.094424075),
+    ("TT", 13, -0.08618771),
+    ("CT", 26, -0.084264893),
+    ("GC", 25, -0.073453609),
+    ("T", 21, -0.068730497),
+    ("TG", 23, -0.066388075),
+    ("AG", 23, -0.054338456),
+    ("G", 30, -0.046315914),
+    ("A", 4, -0.042153521),
+    ("AG", 34, -0.041935908),
+    ("GA", 34, -0.037797707),
+    ("A", 18, -0.033820432),
+    ("C", 25, -0.031648353),
+    ("C", 31, -0.030715556),
+    ("G", 1, -0.029693709),
+    ("C", 16, -0.021638609),
+    ("A", 14, -0.018487229),
+    ("A", 11, -0.018287292),
+    ("T", 34, -0.017647692),
+    ("AA", 10, -0.016905415),
+    ("A", 19, -0.015576499),
+    ("G", 34, -0.014167123),
+    ("C", 30, -0.013182733),
+    ("GA", 31, -0.01227989),
+    ("T", 24, -0.011996172),
+    ("A", 15, -0.010595296),
+    ("G", 4, -0.005448869),
+    ("GG", 9, -0.00157799),
+    ("T", 23, -0.001422243),
+    ("C", 15, -0.000477727),
+    ("C", 26, -0.000368973),
+    ("T", 27, -0.000280845),
+    ("A", 31, 0.00158975),
+    ("GT", 18, 0.002391744),
+    ("C", 9, 0.002449224),
+    ("GA", 20, 0.009740799),
+    ("A", 25, 0.010506405),
+    ("A", 12, 0.011633235),
+    ("A", 32, 0.012435231),
+    ("T", 22, 0.013224035),
+    ("C", 20, 0.015089514),
+    ("G", 17, 0.01549378),
+    ("G", 18, 0.016457816),
+    ("T", 30, 0.017263162),
+    ("A", 13, 0.017628924),
+    ("G", 19, 0.017916844),
+    ("A", 27, 0.019126815),
+    ("G", 11, 0.020929039),
+    ("TG", 3, 0.022949996),
+    ("GC", 3, 0.024681785),
+    ("G", 14, 0.025116714),
+    ("GG", 10, 0.026802158),
+    ("G", 12, 0.027591138),
+    ("G", 32, 0.03071249),
+    ("A", 22, 0.031930909),
+    ("G", 20, 0.033957008),
+    ("C", 21, 0.034262921),
+    ("TT", 17, 0.03492881),
+    ("T", 13, 0.035445171),
+    ("G", 26, 0.036146649),
+    ("A", 24, 0.037466478),
+    ("C", 22, 0.03763162),
+    ("G", 16, 0.037970942),
+    ("GG", 12, 0.041883009),
+    ("TG", 18, 0.045908991),
+    ("TG", 31, 0.048136812),
+    ("A", 35, 0.048596259),
+    ("G", 15, 0.051129717),
+    ("C", 24, 0.052972314),
+    ("TG", 15, 0.053372822),
+    ("GT", 11, 0.053678436),
+    ("GC", 9, 0.054171402),
+    ("CA", 30, 0.057759851),
+    ("GT", 24, 0.060952114),
+    ("G", 13, 0.061360905),
+    ("CA", 24, 0.06221937),
+    ("AG", 10, 0.063717093),
+    ("G", 10, 0.067739182),
+    ("C", 13, 0.069495944),
+    ("GT", 31, 0.07342535),
+    ("GG", 13, 0.074355848),
+    ("C", 27, 0.079933922),
+    ("G", 27, 0.085151052),
+    ("CC", 21, 0.088919601),
+    ("CC", 23, 0.095072286),
+    ("G", 22, 0.10114438),
+    ("G", 24, 0.105488325),
+    ("GT", 23, 0.106718563),
+    ("GG", 25, 0.111559441),
+    ("G", 9, 0.114600681),
+]
+
 
 def calcCrisprScanScores(seqs):
-    """ input is a 35bp long sequence: 6bp 5', 20bp guide, 3 bp PAM and 6bp 3'
+    """input is a 35bp long sequence: 6bp 5', 20bp guide, 3 bp PAM and 6bp 3'
     >>> calcCrisprScanScores(["TCCTCTGGTGGCGCTGCTGGATGGACGGGACTGTA"])
     [77]
     >>> calcCrisprScanScores(["TCCTCTNGTGGCGCTGCTGGATGGACGGGACTGTA"])
@@ -161,23 +236,24 @@ def calcCrisprScanScores(seqs):
     """
     scores = []
     for seq in seqs:
-        assert(len(seq)==35)
+        assert len(seq) == 35
         intercept = 0.183930943629
         score = intercept
         for modelSeq, pos, weight in paramsCRISPRscan:
-            subSeq = seq[pos-1:pos+len(modelSeq)-1]
-            if subSeq==modelSeq:
+            subSeq = seq[pos - 1 : pos + len(modelSeq) - 1]
+            if subSeq == modelSeq:
                 score += weight
-        scores.append(int(100*score))
+        scores.append(int(100 * score))
     return scores
 
+
 def listToSvml(vec, res):
-    """ convert a list of values to a line in svml format line like "+1 1:0.5 2:1.5 ...
-    """
+    """convert a list of values to a line in svml format line like "+1 1:0.5 2:1.5 ..."""
     parts = [str(res)]
     for i, val in enumerate(vec):
-        parts.append("%d:%d" % (i+1, val))
+        parts.append("%d:%d" % (i + 1, val))
     return " ".join(parts)
+
 
 def calcWangSvmScores(seqs):
     """
@@ -212,12 +288,12 @@ def calcWangSvmScores(seqs):
     [60]
     """
     scores = []
-    vecOrder = {"A":0, "C":1, "T":2, "G":3}
+    vecOrder = {"A": 0, "C": 1, "T": 2, "G": 3}
 
     lines = []
     for seq in seqs:
         seq = seq.upper()
-        assert(len(seq)==20)
+        assert len(seq) == 20
         vec = seqToVec(seq, offsets=vecOrder)
         lines.append(listToSvml(vec, 0))
 
@@ -225,7 +301,15 @@ def calcWangSvmScores(seqs):
     binPath = getBinPath("svm-predict")
     modelFname = join(binDir, "src", "wangSabatiniSvm", "wang.model")
     cmd = [binPath, "-b", "1", "/dev/stdin", modelFname, "/dev/stdout"]
-    proc = Popen(cmd,stdout=PIPE, stdin=PIPE, stderr=None, bufsize=BUFSIZE, encoding="utf8", text=True)
+    proc = Popen(
+        cmd,
+        stdout=PIPE,
+        stdin=PIPE,
+        stderr=None,
+        bufsize=BUFSIZE,
+        encoding="utf8",
+        text=True,
+    )
     dataOut = proc.communicate(input=dataIn)[0]
 
     lines = dataOut.splitlines()
@@ -234,45 +318,100 @@ def calcWangSvmScores(seqs):
             continue
         if line.startswith("Accuracy"):
             break
-        score = int(100*(1.0 - float(line.split()[-1])))
+        score = int(100 * (1.0 - float(line.split()[-1])))
         scores.append(score)
 
     return scores
 
-# DOENCH SCORING 
+
+# DOENCH SCORING
 doenchParams = [
-# pasted/typed table from PDF and converted to zero-based positions
-(1,'G',-0.2753771),(2,'A',-0.3238875),(2,'C',0.17212887),(3,'C',-0.1006662),
-(4,'C',-0.2018029),(4,'G',0.24595663),(5,'A',0.03644004),(5,'C',0.09837684),
-(6,'C',-0.7411813),(6,'G',-0.3932644),(11,'A',-0.466099),(14,'A',0.08537695),
-(14,'C',-0.013814),(15,'A',0.27262051),(15,'C',-0.1190226),(15,'T',-0.2859442),
-(16,'A',0.09745459),(16,'G',-0.1755462),(17,'C',-0.3457955),(17,'G',-0.6780964),
-(18,'A',0.22508903),(18,'C',-0.5077941),(19,'G',-0.4173736),(19,'T',-0.054307),
-(20,'G',0.37989937),(20,'T',-0.0907126),(21,'C',0.05782332),(21,'T',-0.5305673),
-(22,'T',-0.8770074),(23,'C',-0.8762358),(23,'G',0.27891626),(23,'T',-0.4031022),
-(24,'A',-0.0773007),(24,'C',0.28793562),(24,'T',-0.2216372),(27,'G',-0.6890167),
-(27,'T',0.11787758),(28,'C',-0.1604453),(29,'G',0.38634258),(1,'GT',-0.6257787),
-(4,'GC',0.30004332),(5,'AA',-0.8348362),(5,'TA',0.76062777),(6,'GG',-0.4908167),
-(11,'GG',-1.5169074),(11,'TA',0.7092612),(11,'TC',0.49629861),(11,'TT',-0.5868739),
-(12,'GG',-0.3345637),(13,'GA',0.76384993),(13,'GC',-0.5370252),(16,'TG',-0.7981461),
-(18,'GG',-0.6668087),(18,'TC',0.35318325),(19,'CC',0.74807209),(19,'TG',-0.3672668),
-(20,'AC',0.56820913),(20,'CG',0.32907207),(20,'GA',-0.8364568),(20,'GG',-0.7822076),
-(21,'TC',-1.029693),(22,'CG',0.85619782),(22,'CT',-0.4632077),(23,'AA',-0.5794924),
-(23,'AG',0.64907554),(24,'AG',-0.0773007),(24,'CG',0.28793562),(24,'TG',-0.2216372),
-(26,'GT',0.11787758),(28,'GG',-0.69774)]
+    # pasted/typed table from PDF and converted to zero-based positions
+    (1, "G", -0.2753771),
+    (2, "A", -0.3238875),
+    (2, "C", 0.17212887),
+    (3, "C", -0.1006662),
+    (4, "C", -0.2018029),
+    (4, "G", 0.24595663),
+    (5, "A", 0.03644004),
+    (5, "C", 0.09837684),
+    (6, "C", -0.7411813),
+    (6, "G", -0.3932644),
+    (11, "A", -0.466099),
+    (14, "A", 0.08537695),
+    (14, "C", -0.013814),
+    (15, "A", 0.27262051),
+    (15, "C", -0.1190226),
+    (15, "T", -0.2859442),
+    (16, "A", 0.09745459),
+    (16, "G", -0.1755462),
+    (17, "C", -0.3457955),
+    (17, "G", -0.6780964),
+    (18, "A", 0.22508903),
+    (18, "C", -0.5077941),
+    (19, "G", -0.4173736),
+    (19, "T", -0.054307),
+    (20, "G", 0.37989937),
+    (20, "T", -0.0907126),
+    (21, "C", 0.05782332),
+    (21, "T", -0.5305673),
+    (22, "T", -0.8770074),
+    (23, "C", -0.8762358),
+    (23, "G", 0.27891626),
+    (23, "T", -0.4031022),
+    (24, "A", -0.0773007),
+    (24, "C", 0.28793562),
+    (24, "T", -0.2216372),
+    (27, "G", -0.6890167),
+    (27, "T", 0.11787758),
+    (28, "C", -0.1604453),
+    (29, "G", 0.38634258),
+    (1, "GT", -0.6257787),
+    (4, "GC", 0.30004332),
+    (5, "AA", -0.8348362),
+    (5, "TA", 0.76062777),
+    (6, "GG", -0.4908167),
+    (11, "GG", -1.5169074),
+    (11, "TA", 0.7092612),
+    (11, "TC", 0.49629861),
+    (11, "TT", -0.5868739),
+    (12, "GG", -0.3345637),
+    (13, "GA", 0.76384993),
+    (13, "GC", -0.5370252),
+    (16, "TG", -0.7981461),
+    (18, "GG", -0.6668087),
+    (18, "TC", 0.35318325),
+    (19, "CC", 0.74807209),
+    (19, "TG", -0.3672668),
+    (20, "AC", 0.56820913),
+    (20, "CG", 0.32907207),
+    (20, "GA", -0.8364568),
+    (20, "GG", -0.7822076),
+    (21, "TC", -1.029693),
+    (22, "CG", 0.85619782),
+    (22, "CT", -0.4632077),
+    (23, "AA", -0.5794924),
+    (23, "AG", 0.64907554),
+    (24, "AG", -0.0773007),
+    (24, "CG", 0.28793562),
+    (24, "TG", -0.2216372),
+    (26, "GT", 0.11787758),
+    (28, "GG", -0.69774),
+]
+
 
 def calcDoenchScores(seqs):
     """
     Code reproduced following paper's methods section. Thanks to Daniel McPherson for fixing it.
     Input is a 30mer: 4bp 5', 20bp guide, 3bp PAM, 3bp 5'
     """
-    intercept =  0.59763615
-    gcHigh    = -0.1665878
-    gcLow     = -0.2026259
+    intercept = 0.59763615
+    gcHigh = -0.1665878
+    gcLow = -0.2026259
 
     scores = []
     for seq in seqs:
-        assert(len(seq)==30)
+        assert len(seq) == 30
         score = intercept
 
         guideSeq = seq[4:24]
@@ -281,39 +420,44 @@ def calcDoenchScores(seqs):
             gcWeight = gcLow
         if gcCount > 10:
             gcWeight = gcHigh
-        score += abs(10-gcCount)*gcWeight
+        score += abs(10 - gcCount) * gcWeight
 
         for pos, modelSeq, weight in doenchParams:
-            subSeq = seq[pos:pos+len(modelSeq)]
-            if subSeq==modelSeq:
+            subSeq = seq[pos : pos + len(modelSeq)]
+            if subSeq == modelSeq:
                 score += weight
-        expScore = int(100*(1.0/(1.0+math.exp(-score))))
+        expScore = int(100 * (1.0 / (1.0 + math.exp(-score))))
         scores.append(expScore)
 
     return scores
 
+
 def calcSscScores(seqs):
-    """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
+    """calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015
     Input is a 30mer, 20bp for the guide, 3bp PAM, 7bp 3' flanking
     >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
     [0.182006]
     """
-    assert(len(seqs)!=0) # need at least one sequence
+    assert len(seqs) != 0  # need at least one sequence
     strList = []
     for s in seqs:
-        assert(len(s)==30)
+        assert len(s) == 30
         strList.append("%s 0 0 + dummy" % s)
     sscIn = "\n".join(strList)
 
-    # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix 
+    # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix
     # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19
     # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  0 0 -   t
     # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19  0.182006
     sscPath = getBinPath("SSC")
-    matPath = join(binDir, "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
+    matPath = join(
+        binDir, "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix"
+    )
     cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
     try:
-        stdout, stderr = Popen(cmd, stdin=PIPE, stdout=PIPE, bufsize=BUFSIZE, encoding="utf8", text=True).communicate(sscIn)
+        stdout, stderr = Popen(
+            cmd, stdin=PIPE, stdout=PIPE, bufsize=BUFSIZE, encoding="utf8", text=True
+        ).communicate(sscIn)
     except OSError:
         raise Exception("Cannot run command %s" % " ".join(cmd))
     scores = {}
@@ -325,40 +469,43 @@ def calcSscScores(seqs):
         seq, score = fs[0], float(fs[-1])
         scores[seq] = score
         lineIdx += 1
-        if lineIdx==len(seqs):
+        if lineIdx == len(seqs):
             break
 
     scoreList = []
     # make sure we got a score for each input sequence
     for s in seqs:
         scoreList.append(scores[s])
-        
+
     return scoreList
 
+
 def seqsToChariSvml(seqs):
-    """ partially copied from generateSVMFile.FASTA.py in the Chari et al source code
+    """partially copied from generateSVMFile.FASTA.py in the Chari et al source code
     >>> seqsToChariSvml(["CTTCTTCAAGGTAACTGCAGA", "CTTCTTCAAGGTAACTGGGGG"])
     '0 13:1 22:1 32:1 43:1 52:1 62:1 73:1 84:1 94:1 101:1 111:1 122:1 134:1 144:1 153:1 162:1 171:1 183:1 194:1 201:1 214:1\\n0 13:1 22:1 32:1 43:1 52:1 62:1 73:1 84:1 94:1 101:1 111:1 122:1 134:1 144:1 153:1 162:1 171:1 181:1 191:1 201:1 211:1'
     """
     vecs = []
     for seq in seqs:
-        assert(len(seq)==21)
+        assert len(seq) == 21
         vec = []
         # end index
         for pos in range(0, 21):
             for nuclIdx, char in enumerate("GTCA"):
-                val = int(seq[pos]==char)
-                if val!=0:
-                    vec.append( ("%d%d" % (pos+1, nuclIdx+1), val) )
-        vecs.append( vec )
+                val = int(seq[pos] == char)
+                if val != 0:
+                    vec.append(("%d%d" % (pos + 1, nuclIdx + 1), val))
+        vecs.append(vec)
 
     lines = []
     for vec in vecs:
-        vec = ["%s:%s" % (x,y) for x,y in vec]
-        lines.append("0 "+" ".join(vec))
+        vec = ["%s:%s" % (x, y) for x, y in vec]
+        lines.append("0 " + " ".join(vec))
     return "\n".join(lines)
 
+
 chariRanges = None
+
 
 def convertChariToRankPerc(score):
     """
@@ -368,22 +515,28 @@ def convertChariToRankPerc(score):
     global chariRanges
     if chariRanges is None:
         # parse values
-        fname = join(binDir, "src", "sgRNA.Scorer.1.0", "Hg19.RefFlat.Genes.75bp.NoUTRs.SPSites.SVMOutput.ranges.txt")
+        fname = join(
+            binDir,
+            "src",
+            "sgRNA.Scorer.1.0",
+            "Hg19.RefFlat.Genes.75bp.NoUTRs.SPSites.SVMOutput.ranges.txt",
+        )
         ranges = open(fname).read().splitlines()
         ranges = [float(x) for x in ranges]
 
     # use bisection to find the right value
-    fastPerc = bisect.bisect(ranges, score)-1
+    fastPerc = bisect.bisect(ranges, score) - 1
 
     # the old, slow way
-    #fname = join(binDir, "src", "sgRNA.Scorer.1.0", "Hg19.RefFlat.Genes.75bp.NoUTRs.SPSites.SVMOutput.txt")
-    #allData = open(fname).read().splitlines()
-    #allData = np.array([float(x) for x in allData])
-    #slowPerc = 100.0*(allData[allData < score].size / float(allData.size))
+    # fname = join(binDir, "src", "sgRNA.Scorer.1.0", "Hg19.RefFlat.Genes.75bp.NoUTRs.SPSites.SVMOutput.txt")
+    # allData = open(fname).read().splitlines()
+    # allData = np.array([float(x) for x in allData])
+    # slowPerc = 100.0*(allData[allData < score].size / float(allData.size))
     return fastPerc
 
+
 def calcChariScores(seqs, baseDir="."):
-    """ return dict with chari 2015 scores, returns two lists (rawScores, rankPercent)
+    """return dict with chari 2015 scores, returns two lists (rawScores, rankPercent)
     input seqs have lengths 21bp: 20 bp guide + 1bp first from PAM
     >>> calcChariScores(["CTTCTTCAAGGTAACTGCAGA", "CTTCTTCAAGGTAACTGGGGG"])
     ([0.54947621, 0.58604487], [80, 81])
@@ -392,20 +545,20 @@ def calcChariScores(seqs, baseDir="."):
     """
     # this is a rewritten version of scoreMySites.py in the Chari2015 suppl files
     chariDir = join(binDir, "src", "sgRNA.Scorer.1.0")
-    modelFname = join(chariDir,'293T.HiSeq.SP.Nuclease.100.SVM.Model.txt')
+    modelFname = join(chariDir, "293T.HiSeq.SP.Nuclease.100.SVM.Model.txt")
     dataIn = seqsToChariSvml(seqs)
 
-    #tempFh = tempfile.NamedTemporaryFile()
+    # tempFh = tempfile.NamedTemporaryFile()
     tempFname = tempfile.mktemp()
-    #tempFh = open("temp3.txt", "w")
+    # tempFh = open("temp3.txt", "w")
     tempFh = open(tempFname, "w")
-    tempFh.write(dataIn+"\n")
+    tempFh.write(dataIn + "\n")
     tempFh.close()
-    #tempFname = tempFh.name
-    #tempFh.close()
+    # tempFname = tempFh.name
+    # tempFh.close()
 
-    #outTempFh = tempfile.NamedTemporaryFile()
-    #outName = outTempFh.name
+    # outTempFh = tempfile.NamedTemporaryFile()
+    # outName = outTempFh.name
     outName = tempfile.mktemp()
 
     svmlPath = getBinPath("svm_classify")
@@ -427,34 +580,36 @@ def calcChariScores(seqs, baseDir="."):
         ranks.append(convertChariToRankPerc(score))
     return scores, ranks
 
-    #cmd = svmlight.classify(model, vecs)
-    #return scores
+    # cmd = svmlight.classify(model, vecs)
+    # return scores
+
 
 def writeDict(d, fname):
-    " write dict as a tab file "
+    "write dict as a tab file"
     if not isdir(dirname(fname)):
         logging.debug("Cannot write %s, no caching of efficiency scores" % fname)
         return
 
     ofh = open(fname, "w")
     for k, v in d.items():
-        if type(v)==tuple:
+        if type(v) == tuple:
             ofh.write("%s\t%s\n" % (k, "\t".join([str(x) for x in v])))
         else:
             ofh.write("%s\t%s\n" % (k, str(v)))
     ofh.close()
 
+
 def readDict(fname, isFloat=True):
-    " read dict from a tab sep file "
+    "read dict from a tab sep file"
     if not isfile(fname):
         logging.debug("%s does not exist. Returning empty dict" % fname)
         return {}
 
-    logging.info("Reading %s" %fname)
+    logging.info("Reading %s" % fname)
     data = {}
     for line in open(fname):
         fs = line.rstrip("\n").split("\t")
-        if len(fs)==2:
+        if len(fs) == 2:
             k, v = fs
             if isFloat:
                 v = float(v)
@@ -465,6 +620,7 @@ def readDict(fname, isFloat=True):
                 v = tuple([float(x) for x in v])
         data[k] = v
     return data
+
 
 class ScoreCache:
     """
@@ -478,7 +634,7 @@ class ScoreCache:
         self.scoreCache = scoreCache
 
     def findNewSeqs(self, seqs):
-        """ get seqs that are not in cache. If all are, return the list of scores.
+        """get seqs that are not in cache. If all are, return the list of scores.
         Otherwise return None for the scores.
         Returns tuple (seqs, scores)
         """
@@ -489,7 +645,7 @@ class ScoreCache:
                 newSeqs.add(s)
 
         scoreList = None
-        if len(newSeqs)==0:
+        if len(newSeqs) == 0:
             scoreList = [self.scoreCache[s] for s in seqs]
         self.newSeqs = newSeqs
         return newSeqs, scoreList
@@ -497,7 +653,7 @@ class ScoreCache:
     def mergeIntoCache(self, newScores):
         # create final result merging cache and newly obtained scores
         scoreList = []
-        assert(len(newScores)==len(self.newSeqs))
+        assert len(newScores) == len(self.newSeqs)
         newScoreDict = dict(list(zip(self.newSeqs, newScores)))
 
         for s in self.allSeqs:
@@ -509,6 +665,7 @@ class ScoreCache:
         self.scoreCache.update(newScoreDict)
         writeDict(self.scoreCache, self.cacheFname)
         return scoreList
+
 
 def sendFusiRequest(seqs):
     """
@@ -523,28 +680,30 @@ def sendFusiRequest(seqs):
     if not isfile(keyFname):
         keyFname = "fusiKey.txt"
     if not isfile(keyFname):
-        raise Exception("No ./fusiKey.txt and ~/.fusiKey.txt file found. Request an API key from azimuth@microsoft.com, write it into this file (single line) and retry")
+        raise Exception(
+            "No ./fusiKey.txt and ~/.fusiKey.txt file found. Request an API key from azimuth@microsoft.com, write it into this file (single line) and retry"
+        )
 
     api_key = open(keyFname, "r").read().strip()
-    paramList = [ [seq, "-1", "-1"] for seq in seqs]
-                        #"Values": [ [ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "-1", "-1" ] ]
-    data =  {
-
-            "Inputs": {
-
-                    "input1":
-                    {
-                        "ColumnNames": ["sequence", "cutsite", "percentpeptide"],
-                        "Values": paramList,
-                    },        },
-                "GlobalParameters": {
+    paramList = [[seq, "-1", "-1"] for seq in seqs]
+    # "Values": [ [ "GGGAGGCTGCTTTACCCGCTGTGGGGGCGC", "-1", "-1" ] ]
+    data = {
+        "Inputs": {
+            "input1": {
+                "ColumnNames": ["sequence", "cutsite", "percentpeptide"],
+                "Values": paramList,
+            },
+        },
+        "GlobalParameters": {},
     }
-        }
 
     body = str.encode(json.dumps(data))
 
-    url = 'https://ussouthcentral.services.azureml.net/workspaces/ee5485c1d9814b8d8c647a89db12d4df/services/c24d128abfaf4832abf1e7ef45db4b54/execute?api-version=2.0&details=true'
-    headers = {'Content-Type':'application/json', 'Authorization':('Bearer '+ api_key)}
+    url = "https://ussouthcentral.services.azureml.net/workspaces/ee5485c1d9814b8d8c647a89db12d4df/services/c24d128abfaf4832abf1e7ef45db4b54/execute?api-version=2.0&details=true"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": ("Bearer " + api_key),
+    }
 
     req = urllib.request.Request(url, body, headers)
 
@@ -552,11 +711,11 @@ def sendFusiRequest(seqs):
         response = urllib.request.urlopen(req)
 
         # If you are using Python 3+, replace urllib2 with urllib.request in the above code:
-        # req = urllib.request.Request(url, body, headers) 
+        # req = urllib.request.Request(url, body, headers)
         # response = urllib.request.urlopen(req)
 
         dataList = json.loads(response.read())["Results"]["output2"]["value"]["Values"]
-        scores = [int(round(100*float(x[0]))) for x in dataList]
+        scores = [int(round(100 * float(x[0]))) for x in dataList]
         return scores
 
     except urllib.error.HTTPError as error:
@@ -564,71 +723,77 @@ def sendFusiRequest(seqs):
 
         print((error.info()))
 
-        print((json.loads(error.read()))) 
+        print((json.loads(error.read())))
         sys.exit(1)
 
+
 def trimSeqs(seqs, fiveFlank, threeFlank):
-    """ given a list of 100bp sequences, return a list of sequences with the
+    """given a list of 100bp sequences, return a list of sequences with the
     given number of basepairs 5' and 3' added from the middle position (pos 50) of
     the sequences.
     """
     trimSeqs = []
     for s in seqs:
-        seq = s[50+fiveFlank:50+threeFlank].upper()
+        seq = s[50 + fiveFlank : 50 + threeFlank].upper()
         trimSeqs.append(seq)
     return trimSeqs
 
+
 def trimSeqsForGuides(seqs, fiveFlank, threeFlank):
-    " like trimSeqs, but yield  (guide, trimmedSeq) "
+    "like trimSeqs, but yield  (guide, trimmedSeq)"
     trimmedSeqs = trimSeq(seqs, fiveFlank, threeFlank)
     return list(zip(seqs, trimmedSeqs))
 
+
 def iterSvmRows(seqs):
-    """ translate sequences to wang/sabatini/lander paper representation
+    """translate sequences to wang/sabatini/lander paper representation
     >>> list(iterSvmRows(["ATAGACCTACCTTGTTGAAG"]))
     [['SEQ', 'BP1A', 'BP1C', 'BP1T', 'BP1G', 'BP2A', 'BP2C', 'BP2T', 'BP2G', 'BP3A', 'BP3C', 'BP3T', 'BP3G', 'BP4A', 'BP4C', 'BP4T', 'BP4G', 'BP5A', 'BP5C', 'BP5T', 'BP5G', 'BP6A', 'BP6C', 'BP6T', 'BP6G', 'BP7A', 'BP7C', 'BP7T', 'BP7G', 'BP8A', 'BP8C', 'BP8T', 'BP8G', 'BP9A', 'BP9C', 'BP9T', 'BP9G', 'BP10A', 'BP10C', 'BP10T', 'BP10G', 'BP11A', 'BP11C', 'BP11T', 'BP11G', 'BP12A', 'BP12C', 'BP12T', 'BP12G', 'BP13A', 'BP13C', 'BP13T', 'BP13G', 'BP14A', 'BP14C', 'BP14T', 'BP14G', 'BP15A', 'BP15C', 'BP15T', 'BP15G', 'BP16A', 'BP16C', 'BP16T', 'BP16G', 'BP17A', 'BP17C', 'BP17T', 'BP17G', 'BP18A', 'BP18C', 'BP18T', 'BP18G', 'BP19A', 'BP19C', 'BP19T', 'BP19G', 'BP20A', 'BP20C', 'BP20T', 'BP20G'], ['ATAGACCTACCTTGTTGAAG', 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]]
     """
-    offsets = {"A":0,"C":1,"T":2,"G":3}
+    offsets = {"A": 0, "C": 1, "T": 2, "G": 3}
     # construct and write header
     headers = ["SEQ"]
     fields = []
     for i in range(1, 21):
         for n in ["A", "C", "T", "G"]:
-            fields.append("BP"+str(i)+n)
+            fields.append("BP" + str(i) + n)
     headers.extend(fields)
     yield headers
 
     for seq in seqs:
         row = []
-        row.extend([0]*80)
+        row.extend([0] * 80)
         for pos, nucl in enumerate(seq):
             nuclOffset = offsets[nucl]
-            row[pos*4+nuclOffset] = 1
-        assert(len(seq)==20)
+            row[pos * 4 + nuclOffset] = 1
+        assert len(seq) == 20
         row.insert(0, seq)
         yield row
 
+
 def writeSvmRows(seqs, fname):
-    """ write the seqs in wang/sabatini SVM format to a file
+    """write the seqs in wang/sabatini SVM format to a file
     #>>> writeSvmRows(["ATAGACCTACCTTGTTGAAG"])
     """
     tmpFile = open(fname, "w")
-    #tmpFile = tempfile.NamedTemporaryFile(prefix="svmR")
+    # tmpFile = tempfile.NamedTemporaryFile(prefix="svmR")
     for row in iterSvmRows(seqs):
         tmpFile.write("\t".join([str(x) for x in row]))
         tmpFile.write("\n")
     tmpFile.close()
 
+
 def parseSvmOut(fname):
-    " parse R SVM output file, return as dict seq -> score "
+    "parse R SVM output file, return as dict seq -> score"
     data = {}
-    for line in open (fname):
+    for line in open(fname):
         fs = line.strip().split()
         seq, score = fs
         seq = seq.strip('"')
         score = score.strip('"')
         data[seq] = float(score)
     return data
+
 
 def calcWangSvmScoresUsingR(seqs):
     """
@@ -638,20 +803,24 @@ def calcWangSvmScoresUsingR(seqs):
     """
     writeSvmRows(seqs, "/tmp/temp.txt")
     wangSabDir = join(binDir, "src", "wangSabatiniSvm")
-    cmd = "cd %s; R --slave --no-save -f scorer.R --args /tmp/temp.txt /tmp/temp.out" % wangSabDir
+    cmd = (
+        "cd %s; R --slave --no-save -f scorer.R --args /tmp/temp.txt /tmp/temp.out"
+        % wangSabDir
+    )
     print("running", cmd)
-    assert(os.system(cmd)==0)
+    assert os.system(cmd) == 0
     scoreDict = parseSvmOut("/tmp/temp.out")
     scoreList = []
     for s in seqs:
         scoreList.append(1.0 - scoreDict[s])
     return scoreList
 
+
 def cacheScores(scoreName, scoreFunc, seqs):
-    " run scoreFunc on seqs, using an on-disk score cache to improve speed "
+    "run scoreFunc on seqs, using an on-disk score cache to improve speed"
     if cacheDir is None:
         return scoreFunc(seqs)
-    
+
     logging.info("Getting %d scores of type %s" % (len(seqs), scoreName))
     effCache = ScoreCache(scoreName)
     newSeqs, allScoresFound = effCache.findNewSeqs(seqs)
@@ -660,17 +829,18 @@ def cacheScores(scoreName, scoreFunc, seqs):
     else:
         newScores = scoreFunc(newSeqs)
     allScores = effCache.mergeIntoCache(newScores)
-    assert(len(allScores)==len(seqs))
+    assert len(allScores) == len(seqs)
     return allScores
 
+
 def getGrafType(seq):
-    """ check if a guide fulfills the criteria described in Graf et al, Cell Reports 2019
+    """check if a guide fulfills the criteria described in Graf et al, Cell Reports 2019
     returns "tt" or "gcc" depending on the motif found or None if none of them were found.
     """
     # guide ends with TTC or TTT
-    #seq = seq.upper()
-    #if seq.endswith("TTC") or seq.endswith("TTT"):
-        #return "tt"
+    # seq = seq.upper()
+    # if seq.endswith("TTC") or seq.endswith("TTT"):
+    # return "tt"
 
     seq = seq.upper()
 
@@ -679,11 +849,11 @@ def getGrafType(seq):
 
     # the last 4 nucleotides contain only T and C and more than 2 Ts
     suffix = seq[-4:]
-    if set(suffix)==set(["T", "C"]) and suffix.count("T")>=2:
+    if set(suffix) == set(["T", "C"]) and suffix.count("T") >= 2:
         return "tt"
 
-    # the last four positions contain "TT" and at last one more T or C 
-    if "TT" in suffix and (suffix.count("T")>=3 or suffix.count("C")>=1):
+    # the last four positions contain "TT" and at last one more T or C
+    if "TT" in suffix and (suffix.count("T") >= 3 or suffix.count("C") >= 1):
         return "tt"
 
     # the guide ends with [AGT]GCC
@@ -696,8 +866,9 @@ def getGrafType(seq):
 
     return None
 
+
 def runLindel(seqIds, seqs):
-    """ based on Lindel_prediction.py sent by Wei Chen
+    """based on Lindel_prediction.py sent by Wei Chen
     runtime 1-2 seconds.
     Return: a dict with seqId -> list of (fs-score, list of (seq-illustration, score, indel-desc))
     >>> ret = runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
@@ -710,45 +881,57 @@ def runLindel(seqIds, seqs):
     import Lindel.Predictor
     import pickle as pkl
 
-    weights = pkl.load(open(os.path.join(Lindel.__path__[0], "Model_weights.pkl"),'rb'))
-    prerequesites = pkl.load(open(os.path.join(Lindel.__path__[0],'model_prereq.pkl'),'rb'))
+    weights = pkl.load(
+        open(os.path.join(Lindel.__path__[0], "Model_weights.pkl"), "rb")
+    )
+    prerequesites = pkl.load(
+        open(os.path.join(Lindel.__path__[0], "model_prereq.pkl"), "rb")
+    )
 
     ret = {}
-    assert(len(seqIds)==len(seqs))
+    assert len(seqIds) == len(seqs)
     for seqId, seq in zip(seqIds, seqs):
         if "N" in seq:
             logging.warning("guide %s contains at least one N" % seq)
-            if seq.count("N")>3:
-                ret[seqId] = ( None, [] )
+            if seq.count("N") > 3:
+                ret[seqId] = (None, [])
                 continue
 
-        seq = seq.replace("N", "A") # hack. Chen confirmed that Ns are not in the mode. But Ns are rare in the genome
+        seq = seq.replace(
+            "N", "A"
+        )  # hack. Chen confirmed that Ns are not in the mode. But Ns are rare in the genome
 
         logging.debug("Lindel: %s - %s" % (seqId, seq))
         try:
-            y_hat, fs = Lindel.Predictor.gen_prediction(seq,weights,prerequesites)
+            y_hat, fs = Lindel.Predictor.gen_prediction(seq, weights, prerequesites)
         except ValueError:
-            print('Error: No PAM sequence found. Please check your sequence and try again')
+            print(
+                "Error: No PAM sequence found. Please check your sequence and try again"
+            )
             raise
 
         rev_index = prerequesites[1]
         pred_freq = {}
         for i in range(len(y_hat)):
-            if y_hat[i]!=0:
+            if y_hat[i] != 0:
                 pred_freq[rev_index[i]] = y_hat[i]
-        pred_sorted = sorted(list(pred_freq.items()), key=lambda kv: kv[1],reverse=True)
+        pred_sorted = sorted(
+            list(pred_freq.items()), key=lambda kv: kv[1], reverse=True
+        )
 
         indelData = Lindel.Predictor.iter_results(seq, pred_sorted, pred_freq)
-        ret[seqId] = ( int(round(100*fs)), list(indelData) )
+        ret[seqId] = (int(round(100 * fs)), list(indelData))
 
     return ret
 
+
 def calcLindelScore(seqIds, seqs):
-    """ run model by Wei Chen. seqs is 100bp long sequences around beginning of PAM, like all other code.
+    """run model by Wei Chen. seqs is 100bp long sequences around beginning of PAM, like all other code.
     returns dict with seqId -> (probability of frameshift, mutSeqs)
     """
-    assert(len(seqIds)==len(seqs))
+    assert len(seqIds) == len(seqs)
     return runLindel(seqIds, trimSeqs(seqs, -33, 27))
+
 
 def calcAllBaeScores(seqs):
     """
@@ -762,15 +945,16 @@ def calcAllBaeScores(seqs):
     """
     mhScores, oofScores, allMhSeqs = [], [], []
     for seq in seqs:
-        assert(len(seq)%2==0)
-        mhScore, oof, mhSeqs = calcMicroHomolScore(seq, len(seq)/2)
+        assert len(seq) % 2 == 0
+        mhScore, oof, mhSeqs = calcMicroHomolScore(seq, len(seq) / 2)
         mhScores.append(mhScore)
         oofScores.append(oof)
         allMhSeqs.append(mhSeqs)
     return mhScores, oofScores, allMhSeqs
 
+
 def calcMicroHomolScore(seq, left):
-    """ calculate the micro homology and out-of-frame score for a breakpoint in a 60-80mer
+    """calculate the micro homology and out-of-frame score for a breakpoint in a 60-80mer
     See http://www.nature.com/nmeth/journal/v11/n7/full/nmeth.3015.html
     Source code adapted from Supp File 1
     returns micro-homology score, out-of-frame score and a list of tuples:
@@ -787,68 +971,74 @@ def calcMicroHomolScore(seq, left):
     frameshifting deletions by the microhomology score."
     """
     seq = seq.upper()
-    length_weight=20.0
+    length_weight = 20.0
     left = int(left)
-    right=len(seq)-left
+    right = len(seq) - left
 
     duplRows = []
     seqs = []
-    for k in reversed(list(range(2,left))):
-        for j in range(left,left+right-k+1): 
-            for i in range(0,left-k+1):
-                if seq[i:i+k]==seq[j:j+k]:
-                    length = j-i
-                    dupSeq = seq[i:i+k]
-                    duplRows.append( (dupSeq, i, i+k, j, j+k, length) )
+    for k in reversed(list(range(2, left))):
+        for j in range(left, left + right - k + 1):
+            for i in range(0, left - k + 1):
+                if seq[i : i + k] == seq[j : j + k]:
+                    length = j - i
+                    dupSeq = seq[i : i + k]
+                    duplRows.append((dupSeq, i, i + k, j, j + k, length))
 
-    if len(duplRows)==0:
+    if len(duplRows) == 0:
         return 0, 0, []
 
-    ### After searching out all microhomology patterns, duplication should be removed!! 
-    sum_score_3=0
-    sum_score_not_3=0
+    ### After searching out all microhomology patterns, duplication should be removed!!
+    sum_score_3 = 0
+    sum_score_not_3 = 0
 
     for i in range(len(duplRows)):
-        n=0
+        n = 0
         scrap, left_start, left_end, right_start, right_end, length = duplRows[i]
 
         for j in range(i):
-            _, left_start_ref, left_end_ref, right_start_ref, right_end_ref, _ = duplRows[j]
+            _, left_start_ref, left_end_ref, right_start_ref, right_end_ref, _ = (
+                duplRows[j]
+            )
 
-            if (left_start >= left_start_ref) and \
-               (left_end <= left_end_ref) and \
-               (right_start >= right_start_ref) and \
-               (right_end <= right_end_ref) and \
-               (left_start - left_start_ref) == (right_start - right_start_ref) and \
-               (left_end - left_end_ref) == (right_end - right_end_ref):
-                    n+=1
+            if (
+                (left_start >= left_start_ref)
+                and (left_end <= left_end_ref)
+                and (right_start >= right_start_ref)
+                and (right_end <= right_end_ref)
+                and (left_start - left_start_ref) == (right_start - right_start_ref)
+                and (left_end - left_end_ref) == (right_end - right_end_ref)
+            ):
+                n += 1
 
         if n != 0:
             continue
 
-        length_factor = round(1/math.exp(length/length_weight),3)
-        num_GC=scrap.count("G")+scrap.count("C")
-        score = 100*length_factor*((len(scrap)-num_GC)+(num_GC*2))
+        length_factor = round(1 / math.exp(length / length_weight), 3)
+        num_GC = scrap.count("G") + scrap.count("C")
+        score = 100 * length_factor * ((len(scrap) - num_GC) + (num_GC * 2))
 
-        if (length % 3)==0:
-            sum_score_3+=score
-        elif (length % 3)!=0:
-            sum_score_not_3+=score
+        if (length % 3) == 0:
+            sum_score_3 += score
+        elif (length % 3) != 0:
+            sum_score_not_3 += score
 
-        newSeq = seq[0:left_end] + ('-'*length) + seq[right_end:]
-        seqs.append( (float(score), newSeq) )
+        newSeq = seq[0:left_end] + ("-" * length) + seq[right_end:]
+        seqs.append((float(score), newSeq))
 
-    mhScore = sum_score_3+sum_score_not_3
-    oofScore = ((sum_score_not_3)*100) / (sum_score_3+sum_score_not_3)
+    mhScore = sum_score_3 + sum_score_not_3
+    oofScore = ((sum_score_not_3) * 100) / (sum_score_3 + sum_score_not_3)
     return int(mhScore), int(oofScore), seqs
 
+
 def calcWeiChenScores(seqs):
-    """ Calc weiChen score 
-    """
+    """Calc weiChen score"""
     return fs
 
+
 def isCas9(enzyme):
-    return (enzyme==None or enzyme=="spcas9")
+    return enzyme == None or enzyme == "spcas9"
+
 
 def forceWrapper(func, seqs):
     """
@@ -857,33 +1047,34 @@ def forceWrapper(func, seqs):
     try:
         return func(seqs)
     except:
-        return [-1]*len(seqs)
+        return [-1] * len(seqs)
+
 
 def calcFreeEnergyViennaRNA(seq, temperature=37):
-    """ With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float
+    """With ViennaRNA, returns the minimum free energy of a given RNA sequence (in Kcal/mol) as a float
     >>> print(calcFreeEnergyViennaRNA("TGAACGTGGCTATGCCTTCA"))
     -2.5
     >>> print(calcFreeEnergyViennaRNA("GCCCAGGGTGCGGTGGGCCC"))
     -8.5
     """
     # temporary solution, should it use the viennarna python package instead ?
-    binDir = abspath(join(myDir, "bin", platform.system()+"-"+platform.machine()))
+    binDir = abspath(join(myDir, "bin", platform.system() + "-" + platform.machine()))
     cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), binDir, temperature)
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
     vienna = proc.stdout.read()
     proc.wait()  # useless in this case ?
-    viennaouts = [out for out in vienna.split(' ')]
+    viennaouts = [out for out in vienna.split(" ")]
     deltaG = viennaouts.pop()
     # structure (unused for now, needs to be displayed with a monospaced font)
     # seqStructure = ''.join(viennaouts)
 
-    return float(deltaG.strip().replace(')', '').replace('(', ''))
+    return float(deltaG.strip().replace(")", "").replace("(", ""))
 
 
 def calcFreeEnergyRNAStructure(seq):
-    """ Using RNAstructure (https://rna.urmc.rochester.edu/Releases/6.0.1/manual/RNA_class/html/index.html)
+    """Using RNAstructure (https://rna.urmc.rochester.edu/Releases/6.0.1/manual/RNA_class/html/index.html)
     returns the minimum free energy (in kcal/mol) of a sequence
-    >>> print(calcFreeEnergyRNAStructure("TGAACGTGGCTATGCCTTCA")) 
+    >>> print(calcFreeEnergyRNAStructure("TGAACGTGGCTATGCCTTCA"))
     -2.6
     >>> print(calcFreeEnergyRNAStructure("GCCCAGGGTGCGGTGGGCCC"))
     -8.5
@@ -898,6 +1089,7 @@ def calcFreeEnergyRNAStructure(seq):
     freeEnergy = guideStructure.GetFreeEnergy(structurenumber=1)
 
     return freeEnergy
+
 
 def calcEvaLikeScore(seqs):
     """
@@ -940,42 +1132,65 @@ def calcEvaLikeScore(seqs):
         else:
             clippedFreeEnergy = freeEnergy
 
-        nGA = seq.upper().count('GA')
-        if len(seq) > 17 and seq[16] == 'G':
+        nGA = seq.upper().count("GA")
+        if len(seq) > 17 and seq[16] == "G":
             G17 = 1
         else:
             G17 = 0
-        if len(seq) > 20 and seq[19] == 'C':
+        if len(seq) > 20 and seq[19] == "C":
             C20 = 1
         else:
             C20 = 0
-        EVA = 83.5821 + 6.5242*clippedFreeEnergy + 2.9282*nGA + -5.0730*C20 + -8.5009*G17
+        EVA = (
+            83.5821
+            + 6.5242 * clippedFreeEnergy
+            + 2.9282 * nGA
+            + -5.0730 * C20
+            + -8.5009 * G17
+        )
         evaScores.append(EVA)
         freeEnergies.append(freeEnergy)
     return evaScores, freeEnergies
 
 
 def inList(l, name):
-    " return true if name is in list l  "
-    return (name in l)
+    "return true if name is in list l"
+    return name in l
+
 
 # list of possible score names, by enzyme
 # 2025: had to remove aziInVitro - not supported anymore, Jennifer Listgarden does not reply to emails about this anymore
 possibleScores = {
-    "spcas9" : ["fusi", "rs3", "housden", "wang", "doench", "ssc",
-        "wuCrispr", "chariRank", "crisprScan", "ccTop", "oof", "EVA", "freeEnergy"],
-    "cpf1" : ["seqDeepCpf1", "oof", "EVA", "freeEnergy"],
-    "sacas9" : ["najm", "oof", "EVA", "freeEnergy"]
+    "spcas9": [
+        "fusi",
+        "rs3",
+        "housden",
+        "wang",
+        "doench",
+        "ssc",
+        "wuCrispr",
+        "chariRank",
+        "crisprScan",
+        "ccTop",
+        "oof",
+        "EVA",
+        "freeEnergy",
+    ],
+    "cpf1": ["seqDeepCpf1", "oof", "EVA", "freeEnergy"],
+    "sacas9": ["najm", "oof", "EVA", "freeEnergy"],
 }
 
 # list of possible DSB repair score names, by enzyme
 possibleMutScores = {
-    "spcas9" : ["oof", "lindel"],
-    "cpf1" : ["oof"],
-    "sacas9" : ["oof"],
+    "spcas9": ["oof", "lindel"],
+    "cpf1": ["oof"],
+    "sacas9": ["oof"],
 }
 
-def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None): # add MIT score in parameters
+
+def calcAllScores(
+    seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None
+):  # add MIT score in parameters
     """
     given 100bp sequences (50bp 5' of PAM, 50bp 3' of PAM) calculate all efficiency scores
     and return as a dict scoreName -> list of scores (same order).
@@ -991,7 +1206,7 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
     scores = {}
 
     for s in seqs:
-        if len(s)!=100:
+        if len(s) != 100:
             raise Exception("sequence %s is %d bp and not 100 bp long" % (s, len(s)))
 
     guideSeqs = trimSeqs(seqs, -20, 0)
@@ -1003,19 +1218,26 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
         logging.debug("Using default scores for enzyme %s" % enzyme)
         scoreNames = possibleScores[enzyme]
 
-    logging.debug("Calculating efficiency scores %s for enzyme %s" % (scoreNames, enzyme))
+    logging.debug(
+        "Calculating efficiency scores %s for enzyme %s" % (scoreNames, enzyme)
+    )
 
     if inList(scoreNames, "finalGc6"):
-        scores["finalGc6"] = [int(s.count("G")+s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)]
+        scores["finalGc6"] = [
+            int(s.count("G") + s.count("C") >= 4) for s in trimSeqs(seqs, -6, 0)
+        ]
 
     if inList(scoreNames, "finalGg"):
-        scores["finalGg"] = [int(s=="GG") for s in trimSeqs(seqs, -2, 0)]
+        scores["finalGg"] = [int(s == "GG") for s in trimSeqs(seqs, -2, 0)]
 
     unknownScores = set(scoreNames) - set(possibleScores[enzyme])
-    if len(unknownScores)!=0:
-        raise Exception("Unknown score names: %s. Enzyme: %s, scoreNames: %s" % (unknownScores, enzyme, scoreNames))
+    if len(unknownScores) != 0:
+        raise Exception(
+            "Unknown score names: %s. Enzyme: %s, scoreNames: %s"
+            % (unknownScores, enzyme, scoreNames)
+        )
 
-    if enzyme=="spcas9":
+    if enzyme == "spcas9":
         if inList(scoreNames, "fusi"):
             logging.debug("Azimuth score")
             scores["fusi"] = calcAziScore(trimSeqs(seqs, -24, 6))
@@ -1024,35 +1246,37 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
             logging.debug("Doench RS3 score")
             scores["rs3"] = calcRs3Scores(trimSeqs(seqs, -24, 6))
 
-        #if inList(scoreNames, "fusiOld"):
-            # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
-            # scores are the not exactly the same, they differ by 2-3%, but somtimes more!
-            #logging.debug("Fusi score")
-            #scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
+        # if inList(scoreNames, "fusiOld"):
+        # this uses the old implementation of the Doench2016 / aka Fusi / aka Azimuth score
+        # scores are the not exactly the same, they differ by 2-3%, but somtimes more!
+        # logging.debug("Fusi score")
+        # scores["fusiOld"] = calcFusiDoench(trimSeqs(seqs, -24, 6))
 
         # the fusi score calculated by the Microsoft Research Server is not run by
         # default, requires an apiKey
-        #if "fusiOnline" in addOpt or doAll:
-            #scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+        # if "fusiOnline" in addOpt or doAll:
+        # scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
         # I used to use the python source code sent to me by John Doench ('oldFusi')
         # Now we use the (almost identical) Azimuth implementation
 
         # fusiForce is a request to the online API that will not fail
         # if any exception is thrown, we set the scores to -1
-        #if "fusiForce" in addOpt:
-            #scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
+        # if "fusiForce" in addOpt:
+        # scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
         if inList(scoreNames, "housden"):
             logging.debug("Housden scores")
             scores["housden"] = calcHousden(trimSeqs(seqs, -20, 0))
-            #scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
+            # scores["drsc"] = scores["housden"] # for backwards compatibility with my old scripts.
 
         if inList(scoreNames, "wang"):
             logging.debug("Wang scores")
             scores["wang"] = cacheScores("wang", calcWangSvmScores, guideSeqs)
 
         if inList(scoreNames, "wangOrig"):
-            scores["wangOrig"] = cacheScores("wangOrig", calcWangSvmScoresUsingR, guideSeqs)
+            scores["wangOrig"] = cacheScores(
+                "wangOrig", calcWangSvmScoresUsingR, guideSeqs
+            )
 
         if inList(scoreNames, "doench"):
             logging.debug("Doench score")
@@ -1067,7 +1291,7 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
             scores["crisprScan"] = calcCrisprScanScores(trimSeqs(seqs, -26, 9))
 
         if inList(scoreNames, "wuCrispr"):
-        #if not "wuCrispr" in skipScores:
+            # if not "wuCrispr" in skipScores:
             logging.debug("wuCrispr score")
             scores["wuCrispr"] = calcWuCrisprScore(trimSeqs(seqs, -20, 4))
 
@@ -1092,32 +1316,37 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
                 freeEnergies.append(freeEnergy)
             scores["freeEnergy"] = freeEnergies
 
-        #if inList(scoreNames, "aziInVitro"):
-            #logging.debug("Azimuth in-vitro")
-            #scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
+        # if inList(scoreNames, "aziInVitro"):
+        # logging.debug("Azimuth in-vitro")
+        # scores["aziInVitro"] = calcAziInVitro(trimSeqs(seqs, -24, 6))
 
         if inList(scoreNames, "ccTop"):
             scores["ccTop"] = calcCctopScore(trimSeqs(seqs, -20, 0))
 
-    elif enzyme=="cpf1":
-        deepSeqs = trimSeqs(seqs, -31, 3) # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
+    elif enzyme == "cpf1":
+        deepSeqs = trimSeqs(
+            seqs, -31, 3
+        )  # (4 bp + 4bp PAM + 23 bp protospacer + 3 bp) = 34bp
         cpfScores = calcDeepCpf1Scores(deepSeqs)
         if inList(scoreNames, "seqDeepCpf1"):
             scores["seqDeepCpf1"] = cpfScores[0]
             scores["deepCpf1NoDnase"] = cpfScores[1]
             scores["deepCpf1Dnase"] = cpfScores[2]
 
-    elif enzyme=="sacas9":
+    elif enzyme == "sacas9":
         pass
-        #if inList(scoreNames, "najm"):
-            #logging.debug("Najm 2018 score")
-            #scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
-
+        """
+        if inList(scoreNames, "najm"):
+            logging.debug("Najm 2018 score")
+            scores["najm"] = calcNajmScore(trimSeqs(seqs, -25, 11))
+        """
     # not used anymore:
     # the fusi score calculated by the Microsoft Research Server is not run by
     # default, requires an apiKey
     if inList(scoreNames, "fusiOnline"):
-        scores["fusiOnline"] = cacheScores("fusi", sendFusiRequest, trimSeqs(seqs, -24, 6))
+        scores["fusiOnline"] = cacheScores(
+            "fusi", sendFusiRequest, trimSeqs(seqs, -24, 6)
+        )
     # by default, I use the python source code sent to me by John Doench
 
     # not used anymore:
@@ -1126,14 +1355,15 @@ def calcAllScores(seqs, addOpt=[], skipScores=[], enzyme=None, scoreNames=None):
     if inList(scoreNames, "fusiOnline"):
         scores["fusiForce"] = forceWrapper(sendFusiRequest, trimSeqs(seqs, -24, 6))
 
-    #logging.debug("self-complementarity using mfold")
-    #mfoldScore = calcFreeEnergy(trimSeqs(seqs, -20, 0))
-    #scores["mfold"] = mfoldScore
+    # logging.debug("self-complementarity using mfold")
+    # mfoldScore = calcFreeEnergy(trimSeqs(seqs, -20, 0))
+    # scores["mfold"] = mfoldScore
 
     return scores
 
+
 def printScoreTabSep(seqs, enzyme=None):
-    " print tab-sep rows with all seqs "
+    "print tab-sep rows with all seqs"
     scoreDict = calcAllScores(seqs, enzyme=enzyme)
     scoreNames = list(scoreDict.keys())
     headers = ["fullSeq", "guideSeqWithPam"]
@@ -1142,54 +1372,156 @@ def printScoreTabSep(seqs, enzyme=None):
     print("\t".join(headers))
     for i, seq in enumerate(seqs):
         if isCas9(enzyme):
-            row = [seq, seq[30:53]] # 20bp guide + 3bp PAM 3' of guide
-        elif enzyme=="cpf1":
-            row = [seq, seq[(50-(4+23)):50]] # 4bp PAM 5' of guide + 23bp guide
+            row = [seq, seq[30:53]]  # 20bp guide + 3bp PAM 3' of guide
+        elif enzyme == "cpf1":
+            row = [seq, seq[(50 - (4 + 23)) : 50]]  # 4bp PAM 5' of guide + 23bp guide
         for scoreName in scoreNames:
             row.append(str(scoreDict[scoreName][i]))
         print("\t".join(row))
 
+
 def test():
     import doctest
+
     doctest.testmod()
 
+
 def parseArgs():
-    parser = optparse.OptionParser("usage: %prog [options] filename - given a text file with 100mer sequences (+- 50bp around the end position of the guide, one per line), calculate efficiency scores and output as a tab-sep file to stdout")
-    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-    parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
-    parser.add_option("-a", "--all", dest="all", action="store_true", help="show all possible scores, even those that are slow to obtain or redundant with others")
-    parser.add_option("-e", "--enzyme", dest="enzyme", action="store", help="specify a non-SpCas9 enzyme. Possible values: 'cpf1' and 'aureus'")
-    #parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+    parser = optparse.OptionParser(
+        "usage: %prog [options] filename - given a text file with 100mer sequences (+- 50bp around the end position of the guide, one per line), calculate efficiency scores and output as a tab-sep file to stdout"
+    )
+    parser.add_option(
+        "-d", "--debug", dest="debug", action="store_true", help="show debug messages"
+    )
+    parser.add_option(
+        "-t", "--test", dest="test", action="store_true", help="run tests"
+    )
+    parser.add_option(
+        "-a",
+        "--all",
+        dest="all",
+        action="store_true",
+        help="show all possible scores, even those that are slow to obtain or redundant with others",
+    )
+    parser.add_option(
+        "-e",
+        "--enzyme",
+        dest="enzyme",
+        action="store",
+        help="specify a non-SpCas9 enzyme. Possible values: 'cpf1' and 'aureus'",
+    )
+    # parser.add_option("", "--test", dest="test", action="store_true", help="do something")
     (options, args) = parser.parse_args()
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    if args==[] and not options.test:
+    if args == [] and not options.test:
         parser.print_help()
         exit(1)
     return args, options
 
+
 def readSeqs(inFname):
-    seqs = [line.strip() for line in open(inFname, 'U')]
-    seqs = [s for s in seqs if len(s)!=0]
+    seqs = [line.strip() for line in open(inFname, "U")]
+    seqs = [s for s in seqs if len(s) != 0]
     filtSeqs = []
     for s in seqs:
         if len(s) != 100:
-            logging.error("sequence %s is not 100bp long but %d bp long, skipping" % (s, len(s)))
+            logging.error(
+                "sequence %s is not 100bp long but %d bp long, skipping" % (s, len(s))
+            )
             continue
         filtSeqs.append(s)
     return filtSeqs
+
 
 # Housden matrix (see function below):
 # an array of 4x20=80 floats. The first 20 are for A, the next 20 for T, then C, then G
 # imported from original file received from the authors: matrix_final.txt
 factors = [
-    0.4979, 0.7959, 0.7553, 0.6569, 0.9481, 0.7147, 0.437, 0.6212, 0.9077, 1.0, 0.1957, 0.7959, 0.6212, 0.8912, 1.0, 0.5485, 0.9942, 0.5485, 0.455, 1.0, \
-    0.6699, 0.5485, 0.275, 0.5972, 0.6212, 0.7555, 1.0, 0.5131, 0.8608, 0.7553, 0.6569, 0.3417, 1.0, 0.016, 0.9146, 0.7555, 0.2906, 0.4979, 0.5485, 0.5131, 
-    0.4979, 0.6869, 0.8528, 0.7643, 0.5325, 0.3417, 0.3417, 0.7643, 0.6434, 0.0092, 0.9331, 0.5325, 0.7272, 0.9708, 0.2905, 0.7272, 0.2957, 0.7918, 0.6434, 0.5062, \
-    0.7918, 0.4461, 0.4851, 0.4461, 0.3417, 0.6869, 0.2417, 0.5485, 0.0947, 0.9256, 0.5325, 0.8308, 0.1255, 0.7918, 0.2544, 0.4461, 0.4979, 0.6212, 0.7918, 0.4461
+    0.4979,
+    0.7959,
+    0.7553,
+    0.6569,
+    0.9481,
+    0.7147,
+    0.437,
+    0.6212,
+    0.9077,
+    1.0,
+    0.1957,
+    0.7959,
+    0.6212,
+    0.8912,
+    1.0,
+    0.5485,
+    0.9942,
+    0.5485,
+    0.455,
+    1.0,
+    0.6699,
+    0.5485,
+    0.275,
+    0.5972,
+    0.6212,
+    0.7555,
+    1.0,
+    0.5131,
+    0.8608,
+    0.7553,
+    0.6569,
+    0.3417,
+    1.0,
+    0.016,
+    0.9146,
+    0.7555,
+    0.2906,
+    0.4979,
+    0.5485,
+    0.5131,
+    0.4979,
+    0.6869,
+    0.8528,
+    0.7643,
+    0.5325,
+    0.3417,
+    0.3417,
+    0.7643,
+    0.6434,
+    0.0092,
+    0.9331,
+    0.5325,
+    0.7272,
+    0.9708,
+    0.2905,
+    0.7272,
+    0.2957,
+    0.7918,
+    0.6434,
+    0.5062,
+    0.7918,
+    0.4461,
+    0.4851,
+    0.4461,
+    0.3417,
+    0.6869,
+    0.2417,
+    0.5485,
+    0.0947,
+    0.9256,
+    0.5325,
+    0.8308,
+    0.1255,
+    0.7918,
+    0.2544,
+    0.4461,
+    0.4979,
+    0.6212,
+    0.7918,
+    0.4461,
 ]
+
 
 def calcHousden(seqs):
     """
@@ -1201,122 +1533,140 @@ def calcHousden(seqs):
     scores = []
     for seq in seqs:
         seq = seq.upper()
-        if "N" in seq: # cannot do Ns
+        if "N" in seq:  # cannot do Ns
             scores.append(-1.0)
             continue
 
-        assert(len(seq)==20)
-        nuclToIndex = {"A":0,"T":1,"C":2,"G":3}
+        assert len(seq) == 20
+        nuclToIndex = {"A": 0, "T": 1, "C": 2, "G": 3}
 
         score = 1.0
         for i in range(0, 20):
             nuclIndex = nuclToIndex[seq[i]]
-            idx = (nuclIndex*20)+i
+            idx = (nuclIndex * 20) + i
             score *= factors[idx]
-        score = -1*log10(score)
-        score = float("%0.1f" % score) # round to one decimal point
+        score = -1 * log10(score)
+        score = float("%0.1f" % score)  # round to one decimal point
         scores.append(score)
     return scores
 
+
 def calcAziInVitro(seqs):
-    " Another score: Azimuth trained on the Moreno-Mateos data, see README, received from J. Listgarden  "
+    "Another score: Azimuth trained on the Moreno-Mateos data, see README, received from J. Listgarden"
     import numpy
     import azimuth.model_comparison
+
     model_file = join(dirname(__file__), "bin/azimuthMoreno/moreno_model.pkl")
-    model = pickle.load(open(model_file, "rb"), encoding='bytes')
+    model = pickle.load(open(model_file, "rb"), encoding="bytes")
     res = []
     for seq in seqs:
         if "N" in seq:
-            res.append(-1) # can't do Ns
+            res.append(-1)  # can't do Ns
             continue
         # pam_audit = do not check for NGG PAM
         seq = seq.upper()
-        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False, model=model)
-        res.append(int(round(100*score)))
+        score = azimuth.model_comparison.predict(
+            numpy.array([seq]), None, None, pam_audit=False, model=model
+        )
+        res.append(int(round(100 * score)))
     return res
+
 
 def calcNajmScore(seqs):
-    " The score of the Najm 2018 paper, for SaCas9, using Azimuth "
+    "The score of the Najm 2018 paper, for SaCas9, using Azimuth"
     import numpy
     import azimuth.model_comparison
+
     model_file = join(dirname(__file__), "bin", "najm2018", "Saureus_model.pickle")
     model = pickle.load(open(model_file, "rb"))
-    #n = pickle.load(open(model_file))
-    #print len(n)
-    #print n[0]
-    #print n[1]
-    #adsf
+    # n = pickle.load(open(model_file))
+    # print len(n)
+    # print n[0]
+    # print n[1]
+    # adsf
     res = []
     for seq in seqs:
         if "N" in seq:
-            res.append(-1) # can't do Ns
+            res.append(-1)  # can't do Ns
             continue
         # pam_audit = do not check for NGG PAM
         seq = seq.upper()
-        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False, model=model)
-        res.append(int(round(100*score)))
+        score = azimuth.model_comparison.predict(
+            numpy.array([seq]), None, None, pam_audit=False, model=model
+        )
+        res.append(int(round(100 * score)))
     return res
 
+
 def calcRs3Scores(seqs):
-    " calc Doench RS3 scores, from https://github.com/gpp-rnd/rs3 "
+    "calc Doench RS3 scores, from https://github.com/gpp-rnd/rs3"
     from rs3.seq import predict_seq
+
     newSeqs = []
     for s in seqs:
-        assert(len(s)==30)
+        assert len(s) == 30
         if "N" in s or "n" in s:
             # this is a bad hack, but there are really very few Ns in genomes these days
             s = s.replace("N", "A")
         newSeqs.append(s)
-    scores = predict_seq(newSeqs, sequence_tracr='Hsu2013')
-    newScores = [int(100.0*s) for s in scores]
+    scores = predict_seq(newSeqs, sequence_tracr="Hsu2013")
+    newScores = [int(100.0 * s) for s in scores]
     return newScores
 
+
 def calcAziScore(seqs):
-    " the official implementation of the Doench2016 (aka Fusi) score from Microsoft "
+    "the official implementation of the Doench2016 (aka Fusi) score from Microsoft"
     import numpy
     import azimuth.model_comparison
+
     res = []
     for seq in seqs:
         if "N" in seq:
-            res.append(-1) # can't do Ns
+            res.append(-1)  # can't do Ns
             continue
 
         pam = seq[25:27]
         # pam_audit = do not check for NGG PAM
         seq = seq.upper()
-        score = azimuth.model_comparison.predict(numpy.array([seq]), None, None, pam_audit=False)[0]
-        res.append(int(round(100*score)))
+        score = azimuth.model_comparison.predict(
+            numpy.array([seq]), None, None, pam_audit=False
+        )[0]
+        res.append(int(round(100 * score)))
     return res
 
 
 def calcFusiDoench(seqs):
     import model_comparison
+
     """
     Input is a 30mer: 4bp 5', 20bp guide, 3bp PAM, 3bp 5'
     based on source code sent by John Doench.
     A slightly modified code is now called 'Azimuth', see calcAziScore
     """
     aa_cut = 0
-    per_peptide=0
-    f = open(join(fusiDir, 'saved_models/V3_model_nopos.pickle'), "rb")
-    model= pickle.load(f, encoding='bytes') # if this fails, install sklearn like this: pip install scikit-learn==0.16.1
+    per_peptide = 0
+    f = open(join(fusiDir, "saved_models/V3_model_nopos.pickle"), "rb")
+    model = pickle.load(
+        f, encoding="bytes"
+    )  # if this fails, install sklearn like this: pip install scikit-learn==0.16.1
     res = []
     for seq in seqs:
         if "N" in seq:
-            res.append(-1) # can't do Ns
+            res.append(-1)  # can't do Ns
             continue
 
         pam = seq[25:27]
-        if pam!="GG":
-            #res.append(-1)
-            #continue
+        if pam != "GG":
+            # res.append(-1)
+            # continue
             seq = list(seq)
             seq[25] = "G"
             seq[26] = "G"
             seq = "".join(seq)
         score = model_comparison.predict(seq, aa_cut, per_peptide, model=model)
-        res.append(int(round(100*score)))
+        res.append(int(round(100 * score)))
     return res
+
 
 def calcWuCrisprScore(seqs):
     """
@@ -1329,13 +1679,13 @@ def calcWuCrisprScore(seqs):
     """
 
     for s in seqs:
-        assert(len(s)==24)
+        assert len(s) == 24
 
-    #tempFh = open("/tmp/temp.fa", "w")
+    # tempFh = open("/tmp/temp.fa", "w")
     tempFh = tempfile.NamedTemporaryFile("wt")
 
     for s in seqs:
-        tempFh.write(">%s\n%s\n" %(s, s))
+        tempFh.write(">%s\n%s\n" % (s, s))
 
     tempFh.flush()
     tmpPath = abspath(tempFh.name)
@@ -1347,17 +1697,17 @@ def calcWuCrisprScore(seqs):
     os.chdir(wuCrispDir)
     cmd = "perl wu-crispr.pl -f %s > /dev/null 2> /dev/null" % tmpPath
     logging.debug("Running %s" % cmd)
-    assert(os.system(cmd)==0)
+    assert os.system(cmd) == 0
     os.chdir(oldCwd)
 
-    #seqId   Score   Sequence        Orientation     Position
-    #test    87      ggtgcagctcgagcaacagg    sense   1, 31
+    # seqId   Score   Sequence        Orientation     Position
+    # test    87      ggtgcagctcgagcaacagg    sense   1, 31
 
     # I modified the perl script to write to a .outTab file otherwise not
     # thread safe
-    outFname = tempFh.name+".outTab"
+    outFname = tempFh.name + ".outTab"
     # but stay compatible with the original perl script
-    if not isdir(tempFh.name+".outDir"):
+    if not isdir(tempFh.name + ".outDir"):
         outFname = join(wuCrispDir, "WU-CRISPR_V0.9_prediction_result.xls")
         logging.warning("The original version of the wu-crispr perl script is used.")
         logging.warning("Careful, don't multithread!")
@@ -1367,12 +1717,12 @@ def calcWuCrisprScore(seqs):
         if line.startswith("seqId"):
             continue
         seqId, score, seq, orient, pos = line.split("\t")
-        if pos=="":
+        if pos == "":
             # strange case that appeared a couple of times in the logs. e.g. 64lC1lFkH1uuKE2XZuRz
             continue
-        start = int(pos.split(",")[0])-1
-        if not (start == 0 and orient=="sense"):
-            #print "skipping, incorrect position"
+        start = int(pos.split(",")[0]) - 1
+        if not (start == 0 and orient == "sense"):
+            # print "skipping, incorrect position"
             continue
         scoreDict[seq] = int(score)
 
@@ -1387,49 +1737,57 @@ def calcWuCrisprScore(seqs):
         else:
             scores.append(scoreDict[seq])
 
-    shutil.rmtree(tempFh.name+".outDir")
+    shutil.rmtree(tempFh.name + ".outDir")
     os.remove(outFname)
     return scores
 
+
 def calcDeepCpf1Scores(seqs):
     import DeepCpf1
+
     return DeepCpf1.scoreSeqs(seqs)
+
 
 def calcCctopScore(seqs):
     import CCTop
+
     scores = []
     for seq in seqs:
         score = CCTop.getScore(seq)
-        scores.append(round(100*score))
+        scores.append(round(100 * score))
     return scores
 
+
 def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
-    """ run predictors that return the result of DSB repair. seqs is a list of 100bp long sequences.
+    """run predictors that return the result of DSB repair. seqs is a list of 100bp long sequences.
 
     returns dict with the score name as the key.
     Each value is a dict again. The keys are the name of the resulting score e.g. "oof" (out of frame score) and
     at least the key "seqs", a dict with seqId -> (score, sequence).
     """
     if enzyme is None:
-        enzyme="spcas9"
+        enzyme = "spcas9"
 
     if scoreNames is None:
         scoreNames = possibleMutScores[enzyme]
 
-    logging.debug("Calculating mutated sequences, models: %s, for enzyme %s" % (scoreNames, enzyme))
+    logging.debug(
+        "Calculating mutated sequences, models: %s, for enzyme %s"
+        % (scoreNames, enzyme)
+    )
     scores = {}
 
     for s in seqs:
-        if len(s)!=100:
+        if len(s) != 100:
             raise Exception("sequence %s is %d bp and not 100 bp long" % (s, len(s)))
 
     if inList(scoreNames, "oof"):
         logging.debug("Bae et al, OOF scores")
         baeRes = {}
         mhList, oofList, mhSeqs = calcAllBaeScores(trimSeqs(seqs, -30, 30))
-        #baeRes["oof"] = oofList
-        #baeRes["mh"] = mhList
-        assert(len(seqIds)==len(mhSeqs))
+        # baeRes["oof"] = oofList
+        # baeRes["mh"] = mhList
+        assert len(seqIds) == len(mhSeqs)
 
         seqDict = {}
         for seqId, oof, mhSeq in zip(seqIds, oofList, mhSeqs):
@@ -1442,27 +1800,29 @@ def calcMutSeqs(seqIds, seqs, enzyme=None, scoreNames=None):
         scores["lindel"] = mutSeqDict
     return scores
 
+
 # ----------- MAIN --------------
-if __name__=="__main__":
+if __name__ == "__main__":
     import cProfile
-    #cProfile.runctx('print runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])', globals(), locals())
-    #pr = cProfile.Profile()
-    #pr.enable()
-    #runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
-    #pr.disable()
-    #pr.print_stats(sort='tottime')
-    #sys.exit(0)
+
+    # cProfile.runctx('print runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])', globals(), locals())
+    # pr = cProfile.Profile()
+    # pr.enable()
+    # runLindel(["test"], ["CCCTGGCGGCCTAAGGACTCGGCGCGCCGGAAGTGGCCAGGGCGGGGGCGACCTCGGCTCACAG"])
+    # pr.disable()
+    # pr.print_stats(sort='tottime')
+    # sys.exit(0)
 
     args, options = parseArgs()
     if options.test:
         test()
         sys.exit(0)
 
-    #setBinDir("../crispor/bin")
+    # setBinDir("../crispor/bin")
     setBinDir("./bin")
     inFname = sys.argv[1]
     seqs = readSeqs(inFname)
-    if len(seqs)==0:
+    if len(seqs) == 0:
         logging.error("No sequences in input left")
     else:
         printScoreTabSep(seqs, options.all, options.enzyme)

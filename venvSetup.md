@@ -8,6 +8,18 @@
 - Here, the program is installed with python 3.9.25.
 - After testing, the outputs appear to be identical using both versions of python.
 
+# virtual environment for najm2018
+
+- see bin/najm2018
+
+```
+    pyenv shell 3.7.9
+    python3 -m venv venvNajm
+    source venvNajm/bin/activate
+    pip install scikit-learn==0.20.4 numpy==1.15.4 azimuth
+    deactivate
+```
+
 # virtual evironment for DeepBE
 
 - see https://github.com/NahyeKim/DeepBE
