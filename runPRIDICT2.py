@@ -53,14 +53,8 @@ MODES = {
     "": MODE_SINGLE,
     "none": MODE_SINGLE,
     "single": MODE_SINGLE,
-    "standard": MODE_SINGLE,
     "silentbystander": MODE_BYSTANDER,
-    "silent_bystander": MODE_BYSTANDER,
-    "bystander": MODE_BYSTANDER,
     "flexibleedit": MODE_FLEXIBLE,
-    "flexible_edit": MODE_FLEXIBLE,
-    "flexible": MODE_FLEXIBLE,
-    "flexiblemutation": MODE_FLEXIBLE,
     "flexible_mutations": MODE_FLEXIBLE,
 }
 
@@ -72,7 +66,7 @@ MIN_FLANK = 100
 # default is deliberately low: the addon modes design far more variants than
 # that (a 1bp edit gives ~190 silent bystander variants). Raise "maxSeqs"
 # together with the caller's timeout to score more of them.
-DEFAULT_MAX_SEQS = 4
+DEFAULT_MAX_SEQS = 5
 # One process is *faster* than several here: every extra process re-imports
 # torch and re-loads the models, which costs more than the prediction itself.
 DEFAULT_NUM_PROC = 1
@@ -148,8 +142,13 @@ def makeVariants(mode, seq, name, data):
     raise ValueError("Unknown mode %r, expected one of: %s" % (mode, ", ".join(sorted(set(MODES.values())))))
 
 
-def pegFromRow(pegDesc):
-    """Build the peg description that crispor.showPegTable() expects."""
+def pegFromRow(pegDesc, editposLeft, editposRight):
+    """Build the peg description that crispor.showPegTable() expects.
+
+    editposLeft/editposRight are the lengths of the input editseq before/after
+    the edit brackets (see flankLengths()) - crispor.py needs them, together
+    with "Editing_Position", to translate PRIDICT2's pegRNA-local coordinates
+    back into positions on its own target sequence."""
     oligos = [
         pegDesc["PCR-GG-Oligo1_Spacer"],
         pegDesc["PCR-GG-Oligo2_Extension"],
@@ -172,6 +171,8 @@ def pegFromRow(pegDesc):
         pegDesc["RT_mutated_location"],
         pegDesc["Editor_Variant"],
         oligos,
+        editposLeft,
+        editposRight,
     ]
 
 
@@ -250,7 +251,8 @@ def run(data):
             failed.append(varName)
             varInfos.append({"name": varName, "editseq": variant["editseq"], "pegCount": 0})
             continue
-        pegs = [pegFromRow(pegDesc) for _, pegDesc in df.iterrows()]
+        editposLeft, editposRight = flankLengths(variant["editseq"])
+        pegs = [pegFromRow(pegDesc, editposLeft, editposRight) for _, pegDesc in df.iterrows()]
         allPegs.extend(pegs)
         varInfos.append({"name": varName, "editseq": variant["editseq"], "pegCount": len(pegs)})
 

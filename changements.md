@@ -3194,13 +3194,92 @@ FORECasT-BE :
 
 ## global 
 
-- symlink des dépendances azimuth dans bin/najm2018/saureus_scoring*.py
+- symlink des dépendances azimuth dans bin/najm2018/saureus_scoring_V1.py
+- essai avec venv sous python 2.7.18 / azimuth 2016(voir venvSetup.md) -> erreur unpickling
+- essai sous python 3.6.15 / azimuth traduit python3 -> mauvaise version sklearn
+- essai sous python 3.9.25 / azimuth traduit python3 -> mauvaise version sklearn
+    -> abandon du score saCas9
+
 
 - si noPerfectMatch : pas d'extension de la séquence (sinon crash car PAMs non trouvés)
 - affichage de l'alignement dans printQueryNotFoundNote
 - correction de l'extension de la séquence si noPerfectMatch : obtention des coordonnées avec start + len(seq) au lien de int(cleanCigar)
 
+- ajout d'une fonction dédiée pour obtenir l'annotation de la séquence codante sélectionnée
+
+## prime editing
+
+- ajout d'un lien pour le re-design des pegRNAs avec mutations silencieuses (à partir de l'annotation sélectionnée)
+- ajout de mutatePegs : fonction pour re-design des pegRNAs (à terminer)
+
 ## à faire 
 
-- adapter taille séquence en fonction du code cigar (ne pas utiliser len(seq) )
-- venvNajm sous python 3.3+ (sans segfault ?)
+- adapter taille séquence en fonction du code cigar (ne pas utiliser len(seq) ) ?
+- terminer mutatePegs
+
+# 16/09/26
+
+## prime editing
+
+- correction de l'encodage des paramètres dans lien vers design avec mutations silencieuses
+
+- finalisation de mutPegs()
+    - lancement d'un worker
+    - affichage du menu de chargement
+    - écriture d'un json alternatif contenant les pegRNA avec mutations silencieuses
+        - 1 fichier par cadre de lecture
+        - avec nom correspondant à l'annotation sélectionnée
+    - lorsque json écrit -> redirection vers la page de résulats
+
+## global
+
+- modification de findPerfectMatch avec Claude :
+    -  prise en compte des codes CIGAR M et D uniquement
+    - pour substitutions, obtention des coodonnées correspondant aux deux blocs alignées
+        de part et d'autre de la substitution
+    - call de bwa une seule fois -> findPerfectMatch retourne posStr + noPerfectMatch=True si pas de perfect match
+    - extension de la séquence dans extendAndGetSeq si noPerfectMatch (à vérifier..)
+
+## à faire
+
+- filtrer les pegRNA avec mutations silencieuses dans kozak + sites d'épissage
+    - ou exclure directement ces régions dans PRIDICT2 pour gagner du temps de chargement ?
+        - mais dans ce cas, création de nombreux json pour un seul batchId..
+
+- à partir du cigar : 
+    - n'autoriser que les matches + substitutions
+    - si séquences de longueur égale -> OK
+    - affichage de l'alignement uniquement dans ce cas
+    - afficher l'alignement sur la séquence (comme des SNPs)
+
+- afficher l'annotation depuis genePred même si noPerfectMatch ??
+
+# 17/09/26
+
+
+## global
+
+- fix de findPerfectMatch avec Claude :
+    - correction des coordonnées pour insertions / délétions -> prise en compte de tous les blocs alignés par bwa
+    - test sur != insertions / délétions / combinaisons à un locus -> OK, mêmes coodonnées
+
+- modification de extendAndGetSeq() : 
+    - si pas de perfect match, la séquence génomique est uniquement utilisée pour l'extension (séquence query conservée)
+
+- modification du style des boutons de sélection du mode dans le menu principal
+
+## Prime Editing
+
+- modification de pridictInputFormat() :
+    - utilisation de extendAndGetSeq au lieu de getSeq + modif manuelle
+    - correction d'un bug : duplication de la séquence avant délétion
+
+- finalisation de filterMutPegs() :
+    - obtention des coordonnées kozak / sites d'épissage
+    - conversion des coordonnées pegRNA <> target seq (avec Claude)
+    - si mutation silencieurse dans kozak / splice -> skip du pegRNA
+
+## à faire
+
+- dans annotation manuelle, ajouter n° d'exon ? pour différencier kozak / sites d'épissage
+- optimiser PRIDICT2 : garder le modèle en mémoire (charger au lancement de startSubServers.sh)

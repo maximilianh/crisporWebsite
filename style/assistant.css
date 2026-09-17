@@ -46,7 +46,7 @@ min-width: 0;             /* allow the button to shrink below its content min-wi
 gap: 10px;
 padding: 16px 20px 14px;
 background: transparent;
-border:  border: 2px solid lightgrey;
+border: 1px solid transparent;
 border-bottom: 3px solid transparent;
 color: var(--crispor-muted);
 font-size: 28px;
@@ -54,19 +54,31 @@ font-weight: 500;
 font-family: inherit;
 cursor: pointer;
 position: relative;
-margin-bottom: -15px;
-transition: color 120ms ease, border-bottom-color 120ms ease;
+/* .assistantMenu has 12px of bottom padding before its border-bottom -
+   pull the button down by exactly that much so it sits flush with the
+   padding edge, but stops short of (never overlaps) the border itself. */
+margin-bottom: -12px;
+transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 button.assistantButton:hover {
 color: var(--crispor-ink);
 }
 
 button.mainMenu {
-min-width: 100px;
-border-left: 1px solid lightgrey;
-border-right: 1px solid lightgrey;
-border-top: 1px solid lightgrey;
-border-radius: 25px 25px 0px 0px;
+border-color: transparent;
+border-radius: 12px 12px 0 0;
+background: #fff;
+box-shadow:
+    0 -3px 10px -3px rgba(47, 129, 203, 0.10),
+    -3px 0 10px -3px rgba(47, 129, 203, 0.10),
+    3px 0 10px -3px rgba(47, 129, 203, 0.10);
+}
+button.mainMenu:hover {
+background: #fff;
+box-shadow:
+    0 -3px 16px -2px rgba(47, 129, 203, 0.13),
+    -3px 0 16px -2px rgba(47, 129, 203, 0.13),
+    3px 0 16px -2px rgba(47, 129, 203, 0.13);
 }
 
 /* Active tab — orange underline.
@@ -81,10 +93,10 @@ content: "";
 position: absolute;
 left: 0;
 right: 0;
-bottom: -1px;
-height: 3px;
+bottom: -3px;
+height: 3.5px;
 background: var(--crispor-orange);
-border-radius: 2px 2px 0 0;
+border-radius: 0px 0px 0 0;
 }
 
 /* Icon stroke colour follows the active state */

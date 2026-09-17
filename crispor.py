@@ -4803,9 +4803,6 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN, noPer
     #'AAGGAATGTAG'
     """
 
-    if noPerfectMatch:
-        return None
-
     assert (
         "|" not in chrom
     )  # we are using | to split info in BED files. | is not allowed in the fasta
@@ -4838,9 +4835,18 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN, noPer
     if strand == "-":
         seq = revComp(seq)
 
-    genomeSeq = seq[FLANKLEN: (FLANKLEN + len(oldSeq))].upper()
+    # Query and genome differ. In this case, oldSeq is kept.
+    # the genomic seq is only used for the extension
+    if noPerfectMatch:
+        logging.info("genomic seq : %s" % seq)
+        upExt = seq[:flank]
+        downExt = seq[-flank:]
+        seq = upExt + oldSeq + downExt
+        logging.info("seq with query: %s" % seq)
 
-    if oldSeq.upper() != genomeSeq and noPerfectMatch is None:
+    genomeSeq = seq[flank: (flank + len(oldSeq))].upper()
+
+    if oldSeq.upper() != genomeSeq:
         logging.warning(
             "Input sequence has SNPs compared to genome, not returning extended seq:"
         )
@@ -4850,6 +4856,7 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN, noPer
             "- Diff String    : %s" % highlightMismatches(oldSeq, genomeSeq, 0)
         )
         return None
+
     # ? make sure that user annotations, like added Ns, are retained in the long sequence
     # fixedSeq = seq[:100]+oldSeq+seq[-100:]
     # assert(len(fixedSeq)==len(seq))
@@ -5158,6 +5165,7 @@ def calcInsertDistance(
     else:
         guideWindowStart = guideStart
         guideWindowEnd = guideStart + 15
+
     if pamIsFirst:
         if strand == "+":
             cutPos = guideStart + 15
@@ -5364,6 +5372,53 @@ def calcFreqAtEdit(guideStart, pamStart, pamStrand, outcomes, insertIdx, stopPos
     return totalFreq
 
 
+def getSelCodingRegion(org, seq, strand, posStr, returnAnnotParams=False):
+
+    geneModels = getGeneModels(org)
+    annotParams = resolveAnnotationParams(org, seq, posStr)
+    selGeneModel, selTransId = annotParams.get("geneModelSelection"), annotParams.get("selTransId")
+    if selGeneModel != "manual":
+        if selGeneModel is None:
+            possibleGeneModels = [model for model, modelDesc in geneModels]
+            if "refSeqSelect" in possibleGeneModels:
+                selGeneModel = "refSeqSelect"
+            elif "refSeq" in possibleGeneModels:
+                selGeneModel = "refSeq"
+            elif "refGene" in possibleGeneModels:
+                selGeneModel = "refGene"
+            else:
+                selGeneModel = possibleGeneModels[0]
+        exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, posStr)
+
+        # select the first transcript if no transcript was selected
+        transcript = None
+        if selTransId == "allTrans" or selTransId is None and len(exonInfo) > 0:
+            selTransId = list(exonInfo.keys())[0][0]
+        # get the selected transcript
+        for transId, sym in exonInfo.keys():
+            if transId == selTransId:
+                transcript = exonInfo[(transId, sym)]
+                break
+    else:
+        manualExStart = annotParams.get("manualExStart", 0)
+        manualExEnd = annotParams.get("manualExEnd", len(seq))
+        manualExStrand = annotParams.get("manualExStrand", strand)
+        manualExFrame = annotParams.get("manualExFrame", 0)
+        transcript = [(
+                    1,
+                    int(manualExStart),
+                    int(manualExEnd),
+                    int(manualExFrame),
+                    int(manualExFrame),
+                    0,
+                    manualExStrand)]
+
+    if returnAnnotParams:
+        return transcript, annotParams
+    else:
+        return transcript
+
+
 def mergeGuideInfo(
     seq,
     startDict,
@@ -5437,44 +5492,8 @@ def mergeGuideInfo(
             for k, v in buildCodonTable(key="aa").items():
                 print(k, v, "<br>")
             """
-            geneModels = getGeneModels(org)
-            annotParams = resolveAnnotationParams(org, seq, posStr)
-            selGeneModel, selTransId = annotParams.get("geneModelSelection"), annotParams.get("selTransId")
-            if selGeneModel != "manual":
-                if selGeneModel is None:
-                    possibleGeneModels = [model for model, modelDesc in geneModels]
-                    if "refSeqSelect" in possibleGeneModels:
-                        selGeneModel = "refSeqSelect"
-                    elif "refSeq" in possibleGeneModels:
-                        selGeneModel = "refSeq"
-                    elif "refGene" in possibleGeneModels:
-                        selGeneModel = "refGene"
-                    else:
-                        selGeneModel = possibleGeneModels[0]
-                exonInfo, maxTransIdLen = getExonInfo(org, selGeneModel, inputPos)
+            transcript = getSelCodingRegion(org, seq, strand, posStr)
 
-                # select the first transcript if no transcript was selected
-                transcript = None
-                if selTransId == "allTrans" or selTransId is None and len(exonInfo) > 0:
-                    selTransId = list(exonInfo.keys())[0][0]
-                # get the selected transcript
-                for transId, sym in exonInfo.keys():
-                    if transId == selTransId:
-                        transcript = exonInfo[(transId, sym)]
-                        break
-            else:
-                manualExStart = annotParams.get("manualExStart", 0)
-                manualExEnd = annotParams.get("manualExEnd", len(seq))
-                manualExStrand = annotParams.get("manualExStrand", strand)
-                manualExFrame = annotParams.get("manualExFrame", 0)
-                transcript = [(
-                            1,
-                            int(manualExStart),
-                            int(manualExEnd),
-                            int(manualExFrame),
-                            int(manualExFrame),
-                            0,
-                            manualExStrand)]
             if transcript:
                 # dict of codons corresponding to each position in the sequence
                 codonPos = {}
@@ -5787,6 +5806,90 @@ def sortPegData(pegData, pegSortBy):
         errAbort("Unknown sorting value. This is a bug, please contact us.")
 
     pegData.sort(key=sortFunc, reverse=reverse)
+
+
+def rttPosToSeqPos(row, rttPos, rttLen, seqLen):
+    """
+    Maps a 0-based offset within a pegRNA's RT template (pegSeq[RTTstart:RTTend],
+    i.e. row[3]) back onto the corresponding 0-based position of crispor's own
+    target sequence "seq".
+    """
+    strand, editingPos = row[4], row[7]
+    editposLeft, editposRight = row[13], row[14]
+
+    editPos = editposLeft if strand == "Fw" else editposRight
+    nickPos = editPos - editingPos
+    currentFramePos = nickPos + (rttLen - 1 - rttPos)
+
+    extSeqLen = seqLen + 300
+    extPos = currentFramePos if strand == "Fw" else extSeqLen - 1 - currentFramePos
+
+    return extPos - 150
+
+
+def filterMutPegs(pegData, transcript, seq, insertIdx, insertSeq, kiType):
+    """
+    filters pegRNAs with silent bystander mutations in kozak consensus sequence
+    or splice sites, based on the selected annotation.
+    Note : how to take into account kozak / splice sites with manual annotations ?
+    """
+
+    # positions to skip if edited
+    skipPos = set()
+
+    for exNum, exStart, exEnd, exFrame, oldExFrame, nextFrame, exStrand in transcript:
+
+        if exFrame == -1:
+            continue
+        # flag every 6 bp upstream of an exon (splicing acceptor or kozak)
+        for pos in range(
+                exStart - 6 if exStart - 6 > 0 else 0,
+                exStart
+                ):
+            skipPos.add(pos)
+        # splicing donor site
+        if (nextFrame is not None or nextFrame != -1) and exEnd < len(seq):
+            for pos in range(
+                    exEnd,
+                    exEnd + 5 if exEnd + 5 <= len(seq) else len(seq)
+                    ):
+                skipPos.add(pos)
+
+    if not skipPos:
+        return pegData
+
+    editLen = len(insertSeq) if kiType in ("substitution", "replacement") else 1
+    editRange = range(insertIdx, insertIdx + editLen)
+
+    filtered = []
+    for row in pegData:
+
+        RTTrevComp = row[3]
+        pegStrand = row[4]
+
+        skip = False
+        for rttPos, base in enumerate(RTTrevComp):
+            if not base.islower():
+                continue
+            seqPos = rttPosToSeqPos(row, rttPos, len(RTTrevComp), len(seq))
+
+            seqBase = seq[seqPos].upper()
+            pegBase = RTTrevComp[rttPos].upper()
+            if pegStrand == "Fw":
+                pegBase = revComp(pegBase)
+
+            if seqPos in editRange:
+                continue
+            # everything between the silent mutation and the edit is flagged in lowercase
+            if seqPos in skipPos and pegBase != seqBase:
+                # print(seqPos, seqBase, pegBase, "<br>")
+                skip = True
+                break
+
+        if not skip:
+            filtered.append(row)
+
+    return filtered
 
 
 def printDownloadTableLinks(batchId, addTsv=False, nonClassicMode=None):
@@ -7184,7 +7287,7 @@ def showPairedGuidesTable(pairedGuides, annotParams, params, batchId):
     print("</table></div>")
 
 
-def showPegTable(batchId, seq, pegData, pegPams, kiType):
+def showPegTable(batchId, seq, pegData, pegPams, kiType, insertIdx, insertSeq, transcript, mutPegFname, annotParams):
     """Displays the table for pegRNAs designed with PRIDICT2"""
 
     pegSortBy = cgiParams.get("pegSortBy", "K562")
@@ -7199,6 +7302,48 @@ def showPegTable(batchId, seq, pegData, pegPams, kiType):
     for i, param in enumerate(allParams):
         print(i, param, "<br>")
     """
+
+    if "mutPeg" in cgiParams:
+        mutStr = " (with silent bystander mutations)"
+    else:
+        mutStr = ""
+    print("<div class='title'> pegRNAs for Prime Editing %s</div>" % mutStr)
+
+    if kiType in ["substitution", "replacement"]:
+
+        for exIdx, (_, exStart, exEnd, exFrame, _, _, exStrand) in enumerate(transcript):
+            if exFrame == -1:
+                continue
+            else:
+                exOffset = (3 - exFrame) % 3
+                orf = (exStart + exOffset) % 3
+
+                # several coding sequences ? should not happen
+                if exIdx + 1 != len(transcript):
+                    break
+                break
+
+        mutPegParams = {"batchId": batchId, "mutPeg": 1, "orf": orf}
+        mutPegParams.update(annotParams)
+        mutPegUrl = urllib.parse.urlencode(mutPegParams)
+
+        print("""
+        <p>
+        <a href='crispor.py?%s'>Re-design pegRNAs <strong>with silent bystander mutations</strong> based on the reading frame of the selected annotation.</a>
+        <img src='%simage/info-small.png' title='Silent bystander mutations can be introduced using the "silentbystander" module of PRIDICT2, to boost editing efficiency by evading mismatch repair (MMR) (see <a href="https://doi.org/10.1016/j.cell.2021.09.018">Chen et al. 2021</a>). The reading frame of the selected annotation will be used in this case. pegRNAs with mutations within the kozak consensus sequence and splice sites are discarded.' class='tooltipster'>
+              """ % (mutPegUrl, HTMLPREFIX))
+
+    if mutPegFname and isfile(mutPegFname):
+        pegData = json.load(open(mutPegFname))
+
+        # skip pegRNAs with mutations in the kozak consensus sequence or splice sites
+        pegData = filterMutPegs(pegData, transcript, seq, insertIdx, insertSeq, kiType)
+        sortPegData(pegData, pegSortBy)
+
+        print("""
+        <br><a href="crispor.py?batchId=%s">Show pegRNAs <strong>without silent bystander mutations</strong></a>
+        """ % batchId)
+    print("</p>")
 
     print("<table>")
 
@@ -7228,7 +7373,7 @@ def showPegTable(batchId, seq, pegData, pegPams, kiType):
         if nRow >= 50:
             continue
 
-        pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords, pbsCoords, rtCoords, editorVariant, primers = pegInfo
+        pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords, pbsCoords, rtCoords, editorVariant, primers, editposLeft, editposRight = pegInfo
 
         pamId = pegPams.get(pegSeq, "not found")
         print("<tr>")
@@ -8272,9 +8417,10 @@ def printHeader(batchId, title):
         '<link rel="stylesheet" type="text/css"  href="%sstyle/jquery-ui.css" />'
         % HTMLPREFIX
     )
+    assistantCssMtime = str(os.path.getmtime("style/assistant.css")).split(".")[0]
     print(
-        '<link rel="stylesheet" type="text/css"  href="%sstyle/assistant.css" />'
-        % HTMLPREFIX
+        '<link rel="stylesheet" type="text/css"  href="%sstyle/assistant.css?%s" />'
+        % (HTMLPREFIX, assistantCssMtime)
     )
 
     print('<script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>')
@@ -9213,7 +9359,7 @@ def calcMultiSaveEffScores(batchId, seq, extSeq, pam, queue, pamFullName, beFilt
             logging.info("the valid effscores are")
             logging.info(validEffScores)
             # these are slow algorithms, so store the results for later
-            queue.startStep(batchId, "outcome", "Calculating DSB repair outcomes")
+            queue.startStep(batchId, "outcome", "Predicting DSB repair outcomes")
             mutScores = crisporEffScores.calcMutSeqs(
                 validPamIds, validLongSeqs, enz, scoreNames=mutScoreNames
             )
@@ -9818,6 +9964,7 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     """
     batchInfo = readBatchAsDict(batchId)
 
+    noPerfectMatch = None
     if genome == "noGenome":
         posStr = "?"
     elif (
@@ -9830,20 +9977,17 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
             "bwasw",
             "Searching genome for one 100% identical match to input sequence",
         )
-        posStr = findPerfectMatch(batchId)
+        posStr, noPerfectMatch = findPerfectMatch(batchId)
 
-        # no perfect match found : use the best match instead
-        if posStr == "?":
-            noPerfectMatch = True
-            posStr = findPerfectMatch(batchId, noPerfectMatch=noPerfectMatch)
+        # no perfect match found : use the best (imperfect) match instead
+        if noPerfectMatch:
             wtSeq = getSeq(genome, posStr, maxlen=False)
             batchInfo["wtSeq"] = wtSeq
             batchInfo["noPerfectMatch"] = noPerfectMatch
-        else:
-            noPerfectMatch = None
 
     batchInfo["posStr"] = posStr
 
+    # should not happen anymore
     if posStr != "?":
         # get a 100bp-extended version of the input seq
         chrom, start, end, strand = parsePos(posStr)
@@ -9948,35 +10092,47 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
         return newEditData, newStopGuides
 
 
-def pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType):
+def pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType, noPerfectMatch, orf=None):
     """
     Formats the sequence for PRIDICT2 : extends 150bp up/downstream,
-    and flag the edit as NNN(WT/EDIT)NNN
+    and flag the edit as NNN(WT/EDIT)NNN.
+    If a transcript is provided, the returned sequence will be in frame
+    relative to the coding region (for the silent bystander module)
     """
 
     chrom, start, end, strand = parsePos(posStr)
 
-    logging.info(posStr)
-    # extend 150 bp in 5' and 3'
+    logging.info("POSSTR : %s " % posStr)
+
+    """
     if strand == "+":
         extPosStr = "%s:%d-%s:%s" % (chrom, start - 150, end + 150, strand)
     else:
         extPosStr = "%s:%d-%s:%s" % (chrom, start + 150, end - 150, strand)
 
     logging.info("EXTPOSSTR: %s" % extPosStr)
+    """
 
+    # extend 150 bp in 5' and 3' (minimum for PRIDICT2 = 100bp)
+    extSeq = extendAndGetSeq(genome, chrom, start, end, strand, seq, flank=150, noPerfectMatch=noPerfectMatch)
+
+    # need to shift orf if start couldn't be extended (should almost never happen ?)
+
+    """
     extendedSeq = getSeq(genome, extPosStr, maxlen=False)
-    if strand == "+":
-        extInsertIdx = insertIdx + 150
-    else:
-        extInsertIdx = insertIdx - 150
+    """
+    # extendAndGetSeq() always returns extSeq in the same orientation as seq
+    # (it reverse-complements the genomic flanks itself for strand == "-"),
+    # so extSeq[150:150+len(seq)] == seq regardless of strand, and insertIdx
+    # (an offset into seq) always shifts by the same +150 to land in extSeq.
+    extInsertIdx = insertIdx + 150
 
     if kiType == "substitution":
-        formatSeq = extendedSeq[0:extInsertIdx].upper() + "(" + extendedSeq[extInsertIdx].upper() + "/" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx + 1:].upper()
+        formatSeq = extSeq[0:extInsertIdx].upper() + "(" + extSeq[extInsertIdx].upper() + "/" + insertSeq.upper() + ")" + extSeq[extInsertIdx + 1:].upper()
     elif kiType == "replacement":
 
         # discard identical flanking bases ( e.g N(TGG/TAA)N -> NT(GG/AA)N )
-        wtSeq = extendedSeq[extInsertIdx: extInsertIdx + len(insertSeq)].upper()
+        wtSeq = extSeq[extInsertIdx: extInsertIdx + len(insertSeq)].upper()
         replSeq = insertSeq.upper()
         replStart, replEnd = extInsertIdx, extInsertIdx + len(insertSeq)
         while len(wtSeq) > 1 and wtSeq[0] == replSeq[0]:
@@ -9984,11 +10140,18 @@ def pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType):
         while len(wtSeq) > 1 and wtSeq[-1] == replSeq[-1]:
             wtSeq, replSeq, replEnd = wtSeq[:-1], replSeq[:-1], replEnd - 1
 
-        formatSeq = extendedSeq[0:replStart].upper() + "(" + wtSeq + "/" + replSeq + ")" + extendedSeq[replEnd:].upper()
+        formatSeq = extSeq[0:replStart].upper() + "(" + wtSeq + "/" + replSeq + ")" + extSeq[replEnd:].upper()
     elif kiType == "deletion":
-        formatSeq = extendedSeq[0:extInsertIdx].upper() + "(-" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx - len(insertSeq):].upper()
+        formatSeq = extSeq[0:extInsertIdx].upper() + "(-" + insertSeq.upper() + ")" + extSeq[extInsertIdx + len(insertSeq):].upper()
     elif kiType == "insertion":
-        formatSeq = extendedSeq[0:extInsertIdx].upper() + "(+" + insertSeq.upper() + ")" + extendedSeq[extInsertIdx:].upper()
+        formatSeq = extSeq[0:extInsertIdx].upper() + "(+" + insertSeq.upper() + ")" + extSeq[extInsertIdx:].upper()
+
+    if orf:
+        # for the silent bystander module
+        # make the extended sequence in frame relative to coding start
+        # the 5' and 3' extensions are in frame, they are not taken into account
+        # PRIDICT will use the 5 bases flanking the edit to introduce silent mutations
+        formatSeq = formatSeq[orf:]
 
     return formatSeq
 
@@ -10277,14 +10440,15 @@ def processMultiSeqSubmission(
         return bedFname, effScoresFname
 
 
-def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId, queue):
+def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId, queue, noPerfectMatch):
     """In KI mode :
     For each PAM in multiPamDesc, creates a fasta file containing guides for each sequence in multiseq.
     Then, search these files against genome, filter for pam matches and append to bedFName.
     optionally write status updates to work queue. Remove faFname.
     """
 
-    # allow up to 3 mismatches for offtarget search
+    # allow up to 4 mismatches for offtarget search
+    # will include high sensitivity mode (maxMMs = 5 and MAXOCC+)
     global maxMMs
     maxMMs = 4
     batchInfo = readBatchAsDict(batchId)
@@ -10292,8 +10456,6 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
     insertIdx = batchInfo["insertIdx"]
     kiType = batchInfo["kiType"]
     insertSeq = batchInfo["insertSeq"]
-    noPerfectMatch = batchInfo.get("noPerfectMatch")
-
     # kiType = batchInfo["kiType"]
 
     if seq is None and posStr is None:
@@ -10428,8 +10590,7 @@ def processMultiPamSubmission(genome, seq, posStr, multipam, batchBase, batchId,
         queue.startStep(batchId, "PE", "Designing and scoring pegRNAs with PRIDICT2")
         pegFname = batchBase + ".pegData.json"
 
-        # get the frame of the coding sequence to introduce silent bystander edits
-        formatSeq = pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType)
+        formatSeq = pridictInputFormat(genome, posStr, insertIdx, seq, insertSeq, kiType, noPerfectMatch)
 
         # inData = [batchId, formatSeq]
         logging.info("PRIDICT2 in : %s" % formatSeq)
@@ -11584,9 +11745,6 @@ def submitMultiSearch(batchId, org, pamDesc, mode):
         otBedFname = batchBase + ".bed.gz"
         effScoresFname = batchBase + ".effScores.tab"
 
-        # the results are there, nothing to submit. This page is reloaded on every refresh
-        # and on every change of a display option, re-submitting the job every time only
-        # made the workers run the batch again to find that its files are already there
         if isfile(otBedFname) and isfile(effScoresFname):
             return otBedFname, effScoresFname
 
@@ -11802,7 +11960,7 @@ def printStatus(batchId, msg):
     else:
         print('<meta http-equiv="refresh" content="10" >')
         """
-        if len(msg) != 0:
+        if len(msg) != 0 and msg != "mutPeg":
             print((msg + "<p>"))
         """
         print("CRISPOR job has been submitted.<p>")
@@ -11814,12 +11972,19 @@ def printStatus(batchId, msg):
 
     if not errorState:
         print("<p><small>This page will refresh every 10 seconds</small><br>")
-        print(
-            (
-                "<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>."
-                % contactEmail
+        if msg == "mutPeg":
+            print(
+                    ("<p><small>This will take a while. If you see this message for longer than 1 hour, please <a href='mailto:%s'>contact us</a>."
+                     % contactEmail
+                     )
             )
-        )
+        else:
+            print(
+                (
+                    "<p><small>If you see this message for longer than 5 minutes, please <a href='mailto:%s'>contact us</a>."
+                    % contactEmail
+                )
+            )
 
 
 def readVarDbs(db):
@@ -12898,7 +13063,7 @@ def classicResultsPage(
     )
 
 
-def KiResultsPage(params, batchId, download=False):
+def KiResultsPage(params, batchId, download=False, mutPegFname=None):
     """
     Parses and prints the results from Knock-in jobs.
     Optionnally returns the data formatted for downloadFile()
@@ -12927,6 +13092,9 @@ def KiResultsPage(params, batchId, download=False):
     extSeq = batchInfo.get("extSeq")
 
     noPerfectMatch = batchInfo.get("noPerfectMatch")
+
+    if noPerfectMatch:
+        printQueryNotFoundNote(dbInfo, batchInfo=batchInfo)
 
     if kiType:
         insertSeq = batchInfo["insertSeq"]
@@ -13636,7 +13804,11 @@ def KiResultsPage(params, batchId, download=False):
 
         if pegData:
             print("""<div name="guideTablePanel" id="peTable" >""")
-            showPegTable(batchId, seq, pegData, pegPams, kiType)
+
+            transcript, annotParams = None, None
+            if kiType in ["substitution", "replacement"]:
+                transcript, annotParams = getSelCodingRegion(org, seq, strand, posStr, returnAnnotParams=True)
+            showPegTable(batchId, seq, pegData, pegPams, kiType, insertIdx, insertSeq, transcript, mutPegFname, annotParams)
             print("</div>")
 
         print('<br><a class="neutral" href="crispor.py?expType=ki">')
@@ -18707,6 +18879,74 @@ def printBackLink(toDonorPage=False, returnUrl=False):
         print("<p><a href='%s'>&larr; %s </a></p>" % (url, linkText))
 
 
+def getMutPegFname(batchId, transcript):
+    """
+    Returns the name of the json file containing pegRNAs
+    with silent bystander edits, based on the current annotation
+    """
+
+    # old function to make a unique mutPeg file for each annotation
+    # unused anymore, since PRIDICT only cares about the reading frame of the whole sequence
+    # batchBase = join(batchDir, batchId)
+
+    """
+    # make a unique name based on the selected annotatin
+    transcriptStr = re.sub('[\[\]\s\',]', '', str(transcript))
+    transcriptStr = hashlib.sha1(transcriptStr.encode("latin1"))
+    transcriptStr = transcriptStr.digest()[0:5]
+    transcriptStr = base64.urlsafe_b64encode(transcriptStr).decode("latin1").translate(transTab)[:5]
+    pegFname = batchBase + ".mutPegData.%s.json" % transcriptStr
+
+    return pegFname, transcriptStr
+
+    """
+
+
+def mutatePegs(params):
+    """
+    Re-design pegRNAs with silent bystander edits
+    based on the reading frame of the selected annotation
+    """
+
+    batchId = params["batchId"]
+    batchBase = join(batchDir, batchId)
+
+    orf = int(params["orf"])
+    batchInfo = readBatchAsDict(batchId)
+
+    printBackLink()
+
+    org = batchInfo["org"]
+    seq = batchInfo["seq"]
+    posStr = batchInfo["posStr"]
+    insertIdx = batchInfo["insertIdx"]
+    insertSeq = batchInfo["insertSeq"]
+    kiType = batchInfo["kiType"]
+    noPerfectMatch = batchInfo.get("noPerfectMatch")
+
+    chrom, start, end, strand = parsePos(posStr)
+
+    pegFname = batchBase + ".mutPegData.orf%s.json" % orf
+
+    if isfile(pegFname):
+        return pegFname
+
+    formatSeq = pridictInputFormat(org, posStr, insertIdx, seq, insertSeq, kiType, noPerfectMatch, orf=orf)
+
+    # open the queue
+    q = JobQueue()
+    q.openSqlite()
+
+    ip = os.environ.get("REMOTE_ADDR", "noIp")
+    wasOk = q.addJob("mutPeg", batchId, "ip=%s,orf=%s,formatSeq=%s" % (ip, orf, formatSeq))
+
+    if not wasOk:
+        print("CRISPOR job %s - %s failed-running..." % batchId, orf)
+        pass
+
+    q.close()
+
+
 def microHomPage(params):
     "show the Bae et al microhomology sequences"
     printBackLink()
@@ -20344,12 +20584,14 @@ function clearEndSeq() {
                 <div style="display:flex; flex-direction: row; margin-top: 6px; gap: 4px; align-items: center;">
                     <small><a href="javascript:clearStartSeq()">Clear Box</a> - </small>
                     <small><a href="javascript:resetToExample()">Set a default example</a></small>
+                    <!--
                     <small>
                         <input style="margin-left: 24px;" type="checkbox" name="noPerfectMatch" value=1 />Allow mutations (e.g SNPs) in the target sequence
                         <img src=" %s image/info-small.png" class="tooltipsterInteract" title="By default, CRISPOR only aligns the target sequence to the selected genome if it is a perfect match. This allows to discriminate the on-target site from off-target sites.<br><br>By checking this option, you can use target sequences that differ from the selected genome (e.g, with SNPs). In this case, CRISPOR will use the best match in the selected genome as the on-target site. This option can be used to correct pathogenic mutations in disease models, for example.">
                     </small>
+                    -->
                 </div>
-                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target genomic sequence here. Uppercase / lowercase bases will be conserved. If the sequence is not identical to the selected reference genome, please check the box above." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <textarea name="startSeq" style="display: block;" rows="8" cols="108" placeholder="Paste the target genomic sequence here. Uppercase / lowercase bases will be conserved. You can use sequences that already contain mutations (e.g SNPs)." autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
         <div id="geneTarget" style="display: none;">
             <div style="margin-bottom:15px; margin-top:20px;">Select a transcript</div>
@@ -20706,7 +20948,15 @@ def printBody(params):
     elif "batchId" in params and "satMut" not in params:
         printCrisporBodyStart()
 
-        if "donorType" in params and submit:
+        if "mutPeg" in params:
+            mutPegDone = mutatePegs(params)
+            if mutPegDone is None:
+                printStatus(params["batchId"], "mutPeg")
+                return
+            else:
+                KiResultsPage(params, params["batchId"], mutPegFname=mutPegDone)
+
+        elif "donorType" in params and submit:
             (
                 HA5,
                 HA3,
@@ -21315,21 +21565,18 @@ def getPosAndSeq(org, seq, posStr, batchId):
     codonTable = buildCodonTable(key="aa")
     kiType = batchInfo.get("kiType")
 
-    noPerfectMatch = batchInfo.get("noPerfectMatch")
+    noPerfectMatch = None
 
     # input is a sequence
     if posStr is None and seq:
 
-        posStr = findPerfectMatch(batchId, seq, org, noPerfectMatch=noPerfectMatch)
-
-        if noPerfectMatch is None and posStr is None:
-            noPerfectMatch = True
-            batchInfo["noPerfectMatch"] = noPerfectMatch
-            posStr = findPerfectMatch(batchId, seq, org, noPerfectMatch=noPerfectMatch)
+        posStr, noPerfectMatch = findPerfectMatch(batchId, seq, org)
 
         if noPerfectMatch:
+            batchInfo["noPerfectMatch"] = noPerfectMatch
             wtSeq = getSeq(org, posStr)
             batchInfo["wtSeq"] = wtSeq
+
         batchInfo["posStr"] = posStr
 
     # input is a transcriptID
@@ -21780,34 +22027,32 @@ def getArmCoords(
                 exonStartPos = len(HA5) - (insertIdx - exonStart)
                 exonEndPos = len(HA5) - (insertIdx - exonEnd)
 
+                # need to get kozak relative to the START codon instead ?
                 if isUTR5:
                     UTR5coords.append((exonStartPos, exonEndPos - 6))
-                    kozakCoords.append((exonEndPos - 6, exonEndPos))
+                    if exonEndPos < len(seq):
+                        kozakCoords.append((exonEndPos - 6, exonEndPos))
                     continue
 
                 elif isUTR3:
                     UTR3coords.append((exonStartPos + 5, exonEndPos))
                     continue
 
-                # position of the splicing donor site
-                if exonNumber > 1:
-                    spliceDon = (
+                # position of the splicing acceptor site
+                if not (isUTR3 or isUTR5) and exonNumber > 1:
+                    spliceAcc = (
                         exonStartPos - 5 if exonStartPos - 5 > 0 else 0,
                         exonStartPos,
                     )
-                    spliceCoords.append(spliceDon)
+                    spliceCoords.append(spliceAcc)
 
-                # need a way to figure out the last exon : len(selExon) when exonFrame != -1 probably
-                # no, because selExon only contains the exons overlapping the input sequence
-                # just remove UTR coords from splicing coords
-
-                # position of the splicing acceptor site
+                # position of the splicing donor site
                 if exonNumber < codingExonLen:
-                    spliceAcc = (
+                    spliceDon = (
                         exonEndPos,
                         exonEndPos + 5 if exonEndPos + 5 < len(HA5) else len(HA5),
                     )
-                    spliceCoords.append(spliceAcc)
+                    spliceCoords.append(spliceDon)
 
                 exonOffset = (3 - exonFrame) % 3
                 for i in range(exonStartPos + exonOffset, exonEndPos, 3):
@@ -21835,28 +22080,29 @@ def getArmCoords(
 
                 if isUTR5:
                     UTR5coords.append((exonStartPos, exonEndPos - 6))
-                    kozakCoords.append((exonEndPos - 6, exonEndPos))
+                    if exonEndPos < len(seq):
+                        kozakCoords.append((exonEndPos - 6, exonEndPos))
                     continue
 
                 elif isUTR3:
                     UTR3coords.append((exonStartPos, exonEndPos))
                     continue
 
-                # position of the splicing donor site
-                if exonNumber > 1:
-                    spliceDon = (
+                # position of the splicing acceptor site
+                if not (isUTR3 or isUTR5) and exonNumber > 1:
+                    spliceAcc = (
                         exonStartPos - 5 if exonStartPos - 5 > 0 else 0,
                         exonStartPos,
                     )
-                    spliceCoords.append(spliceDon)
+                    spliceCoords.append(spliceAcc)
 
-                # position of the splicing acceptor site
+                # position of the splicing donor site
                 if exonNumber < codingExonLen:
-                    spliceAcc = (
+                    spliceDon = (
                         exonEndPos,
                         exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3),
                     )
-                    spliceCoords.append(spliceAcc)
+                    spliceCoords.append(spliceDon)
 
                 exonOffset = (3 - exonFrame) % 3
                 for i in range(exonStartPos + exonOffset, exonEndPos, 3):
@@ -21872,10 +22118,17 @@ def getArmCoords(
                     exonStartPos = len(HA5) - (insertIdx - exonStart)
                     exonEndPos = len(HA5)
 
-                    if exonNumber > 1:
-                        spliceDon = (
+                    if not (isUTR3 or isUTR5) and exonNumber > 1:
+                        spliceAcc = (
                             exonStartPos - 5 if exonStartPos - 5 > 0 else 0,
                             exonStartPos,
+                        )
+                        spliceCoords.append(spliceAcc)
+
+                    if exonNumber < codingExonLen:
+                        spliceDon = (
+                            exonEndPos,
+                            exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3),
                         )
                         spliceCoords.append(spliceDon)
 
@@ -21903,11 +22156,11 @@ def getArmCoords(
                     else:
                         exonEndPos = exonEnd - insertIdx
                     if exonNumber < codingExonLen:
-                        spliceAcc = (
+                        spliceDon = (
                             exonEndPos,
                             exonEndPos + 5 if exonEndPos + 5 < len(HA3) else len(HA3),
                         )
-                        spliceCoords.append(spliceAcc)
+                        spliceCoords.append(spliceDon)
 
                 if isUTR5:
                     UTR5coords.append((exonStartPos, exonEndPos - 6))
@@ -22529,12 +22782,20 @@ def coordsToPosStr(chrom, start, end, strand):
     return locStr
 
 
-def findPerfectMatch(batchId, seq=None, genome=None, noPerfectMatch=None):
-    """find best match for input sequence from batchId in genome and return as
-    a string chrom:start-end:strand or "?" if not found "
+# matches a single CIGAR operation, e.g. "34" and "M" out of "34M"
+cigarRe = re.compile(r"([0-9]+)([MIDNSHP=X])")
+
+
+def findPerfectMatch(batchId, seq=None, genome=None):
+    """find best match for input sequence from batchId in genome.
+    Returns a tuple (posStr, noPerfectMatch): posStr is a string
+    chrom:start-end:strand, or "?" if no match at all was found. If no 100%
+    identical (perfect) match was found but an imperfect one was, its
+    coordinates are returned and noPerfectMatch is True, otherwise
+    noPerfectMatch is None.
     """
     if skipAlign:
-        return "?"
+        return "?", None
 
     if seq is None and genome is None:
         batchInfo = readBatchAsDict(batchId)
@@ -22564,16 +22825,21 @@ def findPerfectMatch(batchId, seq=None, genome=None, noPerfectMatch=None):
     )
     runCmd(cmd)
 
-    chrom, start, end = None, None, None
     logging.debug("Parsing SAM file %s" % samFname)
-    matchByChrom = defaultdict(list)
+    # bwa sw splits an alignment across a mismatch, insertion or deletion
+    # into several SAM records, each soft-clipping the part of the query
+    # covered by the other record(s), e.g. a query with a 5bp insertion in
+    # the middle can come back as two lines "50M55S" and "55S50M" instead of
+    # a single "50M5I50M" line. Collect each record's own reference span
+    # first (ignoring soft clips), then merge same-locus records below.
+    piecesByChromStrand = defaultdict(list)
     for l in open(samFname):
         if l.startswith("@"):
             continue
         l = l.rstrip("\n")
         fs = l.split("\t")
         logging.debug("SAM input-line: %s" % repr(fs))
-        qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, seq, qual = fs[:11]
+        qName, flag, rName, pos, mapq, cigar, rnext, pnext, tlen, qSeq, qual = fs[:11]
         logging.debug(
             "qName=%s, flag=%s, rName=%s, pos=%s, mapq=%s, cigar=%s"
             % (qName, flag, rName, pos, mapq, cigar)
@@ -22582,70 +22848,103 @@ def findPerfectMatch(batchId, seq=None, genome=None, noPerfectMatch=None):
             strand = "-"
         else:
             strand = "+"
-        if not re.compile("[0-9]*").match(cigar):
-            logging.debug("CIGAR is not number")
-            continue
         if cigar == "*":
             logging.debug("CIGAR is *")
             continue
             # errAbort("Sequence not found in genome. Are you sure you have pasted the correct sequence and also selected the right genome?")
-        # Todo: why do we get soft clipped sequences from BWA? repeats?
-        if "S" in cigar and noPerfectMatch is None:
-            logging.debug("match found, but soft-clipped, cigar: %s" % cigar)
+
+        # parse the CIGAR into (length, operator) pairs and reject anything that
+        # is not entirely made of M/I/D/S operators, e.g. N (skipped ref bases,
+        # used for splicing) or X/=/P, which we do not expect from a genomic
+        # DNA alignment and do not know how to handle here
+        cigarOps = cigarRe.findall(cigar)
+        if not cigarOps or sum(len(op[0]) + len(op[1]) for op in cigarOps) != len(cigar):
+            logging.debug("match found, but cigar string could not be parsed: %s" % cigar)
             continue
-        # allow imperfect matches
-        if noPerfectMatch:
-            cleanCigar = re.sub('[D/H/I/M/N/P/S/X]', "", cigar)
-            logging.info("CLEANCIGAR : %s" % cleanCigar)
-            # using the length of cleanCigar here results in an large extension of the coordinates
-        else:
-            cleanCigar = cigar.replace("M", "")
-        if not cleanCigar.isdigit():
-            logging.debug("match found, but cigar string was %s" % cigar)
+        if not all(op in "MIDS" for _, op in cigarOps):
+            logging.debug("match found, but cigar string has unsupported operators: %s" % cigar)
             continue
-        if noPerfectMatch:
-            matchLen = len(seq)
-        else:
-            matchLen = int(cleanCigar)
-        chrom, start, end = (
-            rName,
-            int(pos) - 1,
-            int(pos) - 1 + matchLen,
-        )  # SAM is 1-based
+
+        # a perfect match is a single, ungapped, non-clipped match, e.g. "50M"
+        isPerfect = len(cigarOps) == 1 and cigarOps[0][1] == "M"
+
+        # matchLen = number of REFERENCE bases spanned by this record. Only
+        # M and D operators consume reference bases; I (insertion) and S
+        # (soft-clip) only consume query bases.
+        matchLen = sum(int(l) for l, op in cigarOps if op in "MD")
         assert (
-            "|" not in chrom
+            "|" not in rName
         )  # We do not allow '|' in chrom name. I use this char to sep. info fields in BED.
-        matchByChrom[chrom].append((chrom, start, end, strand))
+        start = int(pos) - 1  # SAM is 1-based
+        end = start + matchLen
+        piecesByChromStrand[(rName, strand)].append((start, end, isPerfect))
+
+    # merge records that likely belong to the same split alignment: pieces
+    # on the same chrom/strand that lie within one query-length of each
+    # other are assumed to be parts of the same underlying match, separated
+    # only by an indel/mismatch. Merging them onto their combined span means
+    # a query with an insertion or deletion gets the same start/end as a
+    # perfect-match query at the same locus -- only the sequence in between
+    # differs. A merged cluster is only "perfect" if it consists of a single
+    # unsplit, fully-matching record.
+    mergeGap = max(len(seq), 1)
+    matchByChrom = defaultdict(list)
+    for (chrom, strand), pieces in piecesByChromStrand.items():
+        pieces.sort()
+        clusterStart, clusterEnd, clusterIsPerfect, clusterSize = pieces[0] + (1,)
+        for pStart, pEnd, pIsPerfect in pieces[1:]:
+            if pStart - clusterEnd <= mergeGap:
+                clusterStart = min(clusterStart, pStart)
+                clusterEnd = max(clusterEnd, pEnd)
+                clusterIsPerfect = False
+                clusterSize += 1
+            else:
+                matchByChrom[chrom].append(
+                    (chrom, clusterStart, clusterEnd, strand, clusterIsPerfect and clusterSize == 1)
+                )
+                clusterStart, clusterEnd, clusterIsPerfect, clusterSize = pStart, pEnd, pIsPerfect, 1
+        matchByChrom[chrom].append(
+            (chrom, clusterStart, clusterEnd, strand, clusterIsPerfect and clusterSize == 1)
+        )
 
     # second pass, to handle the PAR matches properly
     matches = []
     for chrom, matchList in matchByChrom.items():
-        if isInPar(genome, chrom, start, end) is not None:
-            # only keep matches on chrY
-            if chrom == "chrX" and "chrY" in matchByChrom:
-                logging.debug("In PAR region, so skipping chrX")
-                continue
-        for m in matchList:
-            matches.append(m)
+        for chrom, start, end, strand, isPerfect in matchList:
+            if isInPar(genome, chrom, start, end) is not None:
+                # only keep matches on chrY
+                if chrom == "chrX" and "chrY" in matchByChrom:
+                    logging.debug("In PAR region, so skipping chrX")
+                    continue
+            matches.append((chrom, start, end, strand, isPerfect))
 
     # delete the temp files
     tmpSamFh.close()
     tmpFaFh.close()
 
-    if len(matches) == 0:
-        return "?"
+    # prefer a perfect match; fall back to the best imperfect match otherwise
+    perfectMatches = [m[:4] for m in matches if m[4]]
+    if perfectMatches:
+        candidates = perfectMatches
+        noPerfectMatch = None
+    else:
+        candidates = [m[:4] for m in matches]
+        noPerfectMatch = True
 
-    nonAltMatches = [x for x in matches if not isAltChrom(x[0])]
+    if len(candidates) == 0:
+        return "?", None
+
+    nonAltMatches = [x for x in candidates if not isAltChrom(x[0])]
     if len(nonAltMatches) != 0:
         bestMatch = nonAltMatches[0]
     else:
-        bestMatch = matches[0]
+        bestMatch = candidates[0]
 
     logging.debug(
         "Found %d best matches, %d on non-alts. matches: %s, best match %s"
-        % (len(matches), len(nonAltMatches), matches, bestMatch)
+        % (len(candidates), len(nonAltMatches), candidates, bestMatch)
     )
-    return "%s:%d-%d:%s" % (bestMatch)
+    return "%s:%d-%d:%s" % (bestMatch), noPerfectMatch
 
 
 def maskLowercase(seq):
@@ -24517,7 +24816,7 @@ def donorDesignPage(params):
             </div>
             <div id="templateStrandDisplay" style="margin-left: 5%%; margin-right:5%%; border: 0.5px dashed; border-color: grey; padding:8px; border-radius: 8px; display: none;">
                 Select which strand to use as template <img src=" %(htmlprefix)s image/info-small.png" title="By default, the positive strand is used as a template for guides that introduce a DSB downstream of the editing site, and the negative strand is used if the DSB occurs upstream of this position.<br>
-                If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template. In this case, the strand of the input sequence is selected by default.<br> Otherwise, selecting a template strand ensures that the 3' homology arm is complementary to the 3' end at site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>.<br>
+                If the distance between the cut site and insertion site is less than ~10bp, both strands can be used as a template. In this case, the strand of the input sequence is selected by default.<br> Otherwise, selecting a template strand ensures that the 3' homology arm is complementary to the 3' end at the site of the DSB. For more information, see <a href='https://doi.org/10.1073/pnas.1711979114' target='blank'>Paix et al. 2017</a>.<br>
                 For designs relying on a double nicking strategy with a pair of guides, there is no evidence for strand preference (<a href='https://doi.org/10.1038/s41598-021-98965-y' target='blank'>Schubert et al. 2021</a>), so the strand of the target sequence is selected by default." class="tooltipsterInteract"><br>
 
                 <input type="radio" form="main" %(senseChecked)s name="polarity" value="positive" autocomplete="off"/>positive strand %(positiveStrandStr)s <br>
@@ -25063,7 +25362,7 @@ def runQueueWorker(noFork):
                 try:
                     seq, posStr, noPerfectMatch = getPosAndSeq(org, seq, position, batchId)
                     processMultiPamSubmission(
-                        org, seq, posStr, multipam, batchBase, batchId, q
+                        org, seq, posStr, multipam, batchBase, batchId, q, noPerfectMatch
                     )
                     logging.info("executed processMultiPamSubmission()")
                 except:
@@ -25100,6 +25399,41 @@ def runQueueWorker(noFork):
                 except:
                     print(" - COULD NOT MARK JOB AS DONE -")
                     print(traceback.format_exc())
+
+        elif jobType == "mutPeg":
+            try:
+                q.startStep(batchId, "PE", "Re-designing pegRNAs with silent bystander edits.")
+                batchBase = join(batchDir, batchId)
+
+                ip, orf, formatSeq = [param.split('=')[1] for param in paramStr.split(',')]
+
+                pegData = callSubServer("runPRIDICT2", {"seq": formatSeq, "mode": "silentbystander"}, timeout=3600)
+
+                if len(pegData) == 0:
+                    logging.error("Could not score any pegRNA")
+
+                pegFname = batchBase + ".mutPegData.orf%s.json" % orf
+                pegFh = open(pegFname, "w")
+                json.dump(pegData["out"], pegFh)
+                pegFh.close()
+
+            except:
+                exStr = traceback.format_exc()
+                print(" - WORKER CRASHED WITH EXCEPTION -")
+                print(exStr)
+                try:
+                    q.startStep(batchId, "crash", exStr.replace("\n", "///"))
+                except:
+                    print(" - ALSO COULD NOT UPDATE DB WITH CRASH STATUS -")
+                    print(traceback.format_exc())
+                jobError = True
+            if not jobError:
+                try:
+                    q.jobDone(batchId)
+                except:
+                    print(" - COULD NOT MARK JOB AS DONE -")
+                    print(traceback.format_exc())
+
 
         elif jobType is None:
             logging.debug("No job")
@@ -25486,11 +25820,7 @@ def printAssistant(params):
                 <button type="submit" name="mode" value="classic"
                         class="%s"
                         style="
-                            min-width: 100px;
-                            border-left: 1px solid lightgrey;
-                            border-right: 1px solid lightgrey;
-                            border-top: 1px solid lightgrey;
-                            border-radius: 25px 25px 0px 0px;
+                        min-width: 100px;
                         "
                         title="Original mode : enter a sequence to find guides.">
                     <span style="text-align: center;">
@@ -25501,7 +25831,7 @@ def printAssistant(params):
 
                 <button type="submit" name="expType" value="ko"
                         class="%s"
-                        style="min-width: 400px; border-left: 1px solid lightgrey; border-right: 1px solid lightgrey; border-top: 1px solid lightgrey; border-radius: 25px 25px 0px 0px;"
+                        style="min-width: 400px;"
                         title="Assistant for knock-out experiments. Select a transcript and find guides to inactivate its product using different methods, including the introduction of indels resulting from Non-Homologous End Joining (NHEJ), substitutions with Base Editing (BE), or edits with Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span style="text-align: center;">
@@ -25514,7 +25844,7 @@ def printAssistant(params):
 
                 <button type="submit" name="expType" value="ki"
                         class="%s"
-                        style="min-width: 275px; border-left: 1px solid lightgrey; border-right: 1px solid lightgrey; border-top: 1px solid lightgrey; border-radius: 25px 25px 0px 0px;""
+                        style="min-width: 275px;"
                         title="Assistant to edit a sequence in multiple ways, including insertion, deletion, substitution, replacement, or protein tagging. Depending on the intended modification, multiple editing strategies are suggested, including Homology-Directed Repair (HDR) based editing with donor DNA design, Base Editing (BE) or Prime Editing (PE) <i>(not implemented yet)</i>.">
                     <span style="display: flex; flex-direction: row; gap: 10px;">
                         <span style="text-align: center;">

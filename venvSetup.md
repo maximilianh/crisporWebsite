@@ -9,14 +9,15 @@
 - After testing, the outputs appear to be identical using both versions of python.
 
 # virtual environment for najm2018
-
+# unused anymore
+# used as an attempt to fix this score
 - see bin/najm2018
 
 ```
-    pyenv shell 3.7.9
+    pyenv shell 2.7.18
     python3 -m venv venvNajm
     source venvNajm/bin/activate
-    pip install scikit-learn==0.20.4 numpy==1.15.4 azimuth
+    pip install numpy==1.16.6 scipy==1.2.3 scikit-learn==0.17.1 pandas==0.23.4 matplotlib==2.2.5 biopython==1.76
     deactivate
 ```
 

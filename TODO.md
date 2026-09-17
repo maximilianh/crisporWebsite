@@ -18,10 +18,10 @@
 
 ## KI
 
-- adapt donor design rules for Cas12a (Schubert et al. 2021)
 - si chargement de la page de résultats trop longue :
     - tableaux vides -> si clic affichage : requête -> AJAX -> remplissage du tableau
 - add CDS replacement ? https://doi.org/10.1038/s41467-023-42036-5
+- for hg19 / hg38, add a mode to fetch sequences from clinVar
 
 ## notes 02/09/26
 
@@ -29,7 +29,7 @@
 - Biblio KI / Double nicking
 - Renommer mode "Sequence not in referece genome" : ajouter alignement + message d'alerte + ajouter en mode classic
 - RPE1 genome
-- vérifier sécurité IA
+- vérifier sécurité -> injections + surcharge du serveur
 - captcha ?
 - tuto
 - manuel
