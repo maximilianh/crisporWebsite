@@ -22,6 +22,7 @@
     - tableaux vides -> si clic affichage : requête -> AJAX -> remplissage du tableau
 - add CDS replacement ? https://doi.org/10.1038/s41467-023-42036-5
 - for hg19 / hg38, add a mode to fetch sequences from clinVar
+- simplify the display of the results page (above the sequence viewer)
 
 ## notes 02/09/26
 

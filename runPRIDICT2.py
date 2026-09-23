@@ -40,9 +40,13 @@ baseDir = dirname(__file__)
 pridictDir = join(baseDir, "bin/PRIDICT2")
 sys.path.insert(0, pridictDir)
 
-from pridict2_pegRNA_design import predict_batch_sequences
+from pridict2_pegRNA_design import predict_batch_sequences, load_pridict_model
 from addons.flexible_mutations import flexible_mutation_sequences
 from addons.silentbystander import silent_bystander_sequences
+
+# loaded ONCE at subserver startup (see startSubServer.py) and reused for every
+# prediction, instead of reloading it on every request
+MODELS_LIST = load_pridict_model()
 
 MODE_SINGLE = "single"
 MODE_BYSTANDER = "silentbystander"
@@ -66,7 +70,7 @@ MIN_FLANK = 100
 # default is deliberately low: the addon modes design far more variants than
 # that (a 1bp edit gives ~190 silent bystander variants). Raise "maxSeqs"
 # together with the caller's timeout to score more of them.
-DEFAULT_MAX_SEQS = 5
+DEFAULT_MAX_SEQS = 3
 # One process is *faster* than several here: every extra process re-imports
 # torch and re-loads the models, which costs more than the prediction itself.
 DEFAULT_NUM_PROC = 1
@@ -128,7 +132,7 @@ def makeVariants(mode, seq, name, data):
             name=name,
             silent=str(getOpt(data, "silent", default="yes")),
             change_edit_bases=str(getOpt(data, "changeEditBases", "change_edit_bases", default="no")),
-            ORF_start=int(getOpt(data, "orfStart", "ORF_start", "orf_start", default=0)),
+            ORF_start=int(getOpt(data, "orf", default=0)),
             silent_surrounding_AA_nr=int(
                 getOpt(data, "surroundingAA", "silent_surrounding_AA_nr", default=2)
             ),
@@ -237,7 +241,7 @@ def run(data):
     variants = variants[:maxSeqs]
 
     try:
-        results = predict_batch_sequences(variants, num_proc=numProc)
+        results = predict_batch_sequences(variants, num_proc=numProc, models_list=MODELS_LIST)
     except Exception as e:
         return errorResult(mode, "pegRNA design failed: %s" % e)
 

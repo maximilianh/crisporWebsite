@@ -3279,7 +3279,84 @@ FORECasT-BE :
     - conversion des coordonnées pegRNA <> target seq (avec Claude)
     - si mutation silencieurse dans kozak / splice -> skip du pegRNA
 
+## knock-out mode
+
+- ajout du mode "prime editing" :
+    - dans processMultiSeqSubmission, lancement de PRIDICT2 "flexibleedit" avec
+        - insertion de tous les codons STOP possibles
+        - délétions in-frame de 1/2bp
+- à terminer
+
 ## à faire
 
 - dans annotation manuelle, ajouter n° d'exon ? pour différencier kozak / sites d'épissage
 - optimiser PRIDICT2 : garder le modèle en mémoire (charger au lancement de startSubServers.sh)
+- scoring de tous les guides possibles en mode KI / BE
+
+# 21/09/26
+
+# Base editing
+
+- correction d'un bug lors de l'écriture des guides à PAMs alternatifs (NGN / NNN..)
+    - pamStarts identiques sur brins +/- pour PAMs non spécifiques -> overwrite
+    - écriture du brin dans findPams()
+
+## Knock-in mode
+
+- modification du CSS des feux vert / jaune / orange / rouge en feux de signalisation
+- correction d'un bug : crash si sous-serveur PRIDICT2 non démarré (dans ce cas, skip PE)
+- correction d'un bug : pas d'affichage du tableau BE si scores non écrits
+
+## knock-out mode
+
+- ajout de tooltips + textes descriptifs de chaque méthode pour le KO
+- correction de l'écriture du JSON pegData dans processMultiSeqSubmission()
+- batchId unique en fonction de la méthode sélectionnée
+- adaptation de koResultsPage au mode "primeEditing" -> chargement de pegData + showPegTable
+- ajout d'insertions (C) out of frame
+
+## à faire
+
+- si substitution -> alignement de la séquence comme variants
+
+# 22/09/26
+
+## global
+
+- si noPerfectMatch : affichage d'un aligment query / ref sur le sequence viewer
+    - uniquement si substitutions / insertions
+    - modification de showNoPerfectMatch : retourne optionellement le html de l'alignement à afficher sur le sequence viewer
+    - prise en compte des remplacements de longeur != entre query / ref
+ 
+## prime editing
+
+- modification de runPRIDICT2 avec Claude : chargement du modèle lors du démarrage du subserver
+    - utilisation du modèle en mémoire pour chaque prédiction
+
+## knock-out mode
+
+- ajout de pushTopPegRows avec Claude 
+    - écriture des top 100 pegRNAs uniquement
+    - évite de conserver pegData en mémoire
+
+- extension de la séquence de 150bp en mode PE -> affichage de tous les PAMs correspondant aux pegRNAs
+    - scroll automatic au centre de la séquence sur le sequence viewer
+- prise en compte du cadre de lecture de chaque exon pour insertion d'un STOP in-frame
+- correction d'un bug dans assignement de l'efficacité BE dans mergeGuideInfo
+
+## à faire
+
+- silent bystanders pegRNA sur brin inverse ?
+- RTT pegRNA sur sequence viewer
+
+# 24/09/26
+
+## Prime editing
+
+- Reformatage du tableau : affichage spacer / RTT / PBS
+- obtention des coordonnées (sur la séquence target) du RTT dans showPegTable
+- ajout d'une fonction JS pour surligner le RTT sur la séquence depuis le tableau
+
+## à faire
+
+- ajouter option mutation pegRNAs en mode KO ? -> loop / exon

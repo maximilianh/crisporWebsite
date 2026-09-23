@@ -1712,11 +1712,16 @@ def predict_single_sequence(
     ngsprimer=False,
     use_5folds=False,
     run_ids=None,
+    models_list=None,
 ):
-    """Convenience wrapper for direct module usage without multiprocessing or file I/O."""
-    if run_ids is None:
-        run_ids = list(range(5)) if use_5folds else [0]
-    models_list = load_pridict_model(run_ids=run_ids)
+    """Convenience wrapper for direct module usage without multiprocessing or file I/O.
+
+    ``models_list`` can be passed in (as returned by :func:`load_pridict_model`)
+    to reuse an already-loaded model instead of loading it again."""
+    if models_list is None:
+        if run_ids is None:
+            run_ids = list(range(5)) if use_5folds else [0]
+        models_list = load_pridict_model(run_ids=run_ids)
     row = {"sequence_name": sequence_name, "editseq": editseq}
     return pegRNAfinder(
         row,
@@ -1741,6 +1746,7 @@ def predict_batch_sequences(
     out_dir=None,
     combine=False,
     default_name="sequence",
+    models_list=None,
 ):
     """Convenience wrapper for batch mode without file I/O.
 
@@ -1752,6 +1758,13 @@ def predict_batch_sequences(
 
         seqs = silent_bystander_sequences(pridict_input, name="cftr")
         results = predict_batch_sequences(seqs)
+
+    ``models_list``, as returned by :func:`load_pridict_model`, can be passed
+    in to reuse an already-loaded model instead of loading it again - useful
+    for a caller that predicts many small batches over its lifetime (e.g. a
+    long-running server) and wants to load the model once. Only used when
+    ``num_proc <= 1``: the parallel path loads its own models in each of its
+    worker processes.
 
     Returns a dict {sequence_name: DataFrame} (``None`` for sequences whose
     design failed), or one concatenated DataFrame when ``combine=True``.
@@ -1786,7 +1799,9 @@ def predict_batch_sequences(
         )
     else:
         # single process: load the models once and reuse them for all sequences
-        models_list = load_pridict_model(run_ids=run_ids)
+        # (or reuse the models the caller already loaded)
+        if models_list is None:
+            models_list = load_pridict_model(run_ids=run_ids)
         results = {}
         for _, row in batchsequencedf.iterrows():
             results[row["sequence_name"]] = pegRNAfinder(
