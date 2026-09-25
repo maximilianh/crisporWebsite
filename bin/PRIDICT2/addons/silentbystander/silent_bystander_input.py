@@ -33,6 +33,9 @@ __all__ = [
     "process_contexts",
     "handle_duplicate_sequences",
     "isDNA",
+    "revcomp_keep_case",
+    "revcomp_pridict_input",
+    "pridict_input_length",
     "primesequenceparsing",
     "bystander_creation_for_pridict",
     "silent_bystander_sequences",
@@ -138,6 +141,50 @@ def isDNA(sequence):
         print(sequence)
         raise ValueError
     return onlyDNA
+
+# lowercase included on purpose: this module marks edited bases by their case,
+# and that marking has to survive a strand flip
+_COMPLEMENT = {
+    'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N',
+    'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n',
+}
+
+def revcomp_keep_case(sequence):
+    """ Reverse complement a plain sequence, keeping the case of every base. """
+    try:
+        return ''.join(_COMPLEMENT[base] for base in reversed(sequence))
+    except KeyError:
+        raise ValueError('Non-DNA base found in sequence: %s' % sequence)
+
+def split_pridict_input(sequence):
+    """ Split a PRIDICT input into (left context, edit before, edit after, right context). """
+    if sequence.count('(') != 1 or sequence.count(')') != 1:
+        raise ValueError('Expected exactly one edit in brackets, e.g. NNN(A/G)NNN.')
+    left_context, rest = sequence.split('(', 1)
+    edit, right_context = rest.split(')', 1)
+    if '/' not in edit:
+        raise ValueError('Only replacement edits, e.g. NNN(A/G)NNN, are supported here.')
+    edit_before, edit_after = edit.split('/', 1)
+    return left_context, edit_before, edit_after, right_context
+
+def pridict_input_length(sequence):
+    """ Number of bases of the unedited sequence, edit markup aside. """
+    left_context, edit_before, _, right_context = split_pridict_input(sequence)
+    return len(left_context) + len(edit_before) + len(right_context)
+
+def revcomp_pridict_input(sequence):
+    """ Reverse complement a PRIDICT input sequence, brackets included.
+
+    NNN(A/G)MMM becomes revcomp(MMM)(T/C)revcomp(NNN): the edit stays an edit
+    and keeps its place in the sequence. Only replacements are handled, which
+    is all that bystander_creation_for_pridict() accepts anyway. """
+    left_context, edit_before, edit_after, right_context = split_pridict_input(sequence)
+    return '%s(%s/%s)%s' % (
+        revcomp_keep_case(right_context),
+        revcomp_keep_case(edit_before),
+        revcomp_keep_case(edit_after),
+        revcomp_keep_case(left_context),
+    )
 
 def primesequenceparsing(sequence: str) -> object:
     """
@@ -415,7 +462,7 @@ def bystander_creation_for_pridict(pridict_input_original, silent_surrounding_AA
 
 
 def silent_bystander_sequences(pridict_input, name="bystander", silent="yes",
-                               change_edit_bases="no", ORF_start=0,
+                               change_edit_bases="no", ORF_start=0, strand="+",
                                silent_surrounding_AA_nr=DEFAULT_SILENT_SURROUNDING_AA_NR,
                                total_edit_limit=DEFAULT_TOTAL_EDIT_LIMIT,
                                max_edit_length=DEFAULT_MAX_EDIT_LENGTH,
@@ -427,13 +474,43 @@ def silent_bystander_sequences(pridict_input, name="bystander", silent="yes",
     (with 150 bp context on both sides of the edit) and returns the rows that
     the notebook would have written to a csv file, as a list of dictionaries.
 
+    ``ORF_start`` is the phase of the reading frame *in the coordinates of the
+    input sequence*: codons start at the positions that are equal to ORF_start
+    modulo 3. ``strand`` says which strand of the input is the coding one, so
+    that a gene on the reverse strand is handled correctly; ORF_start keeps
+    meaning the same thing in both cases, as a codon occupies three contiguous
+    bases whichever strand carries it.
+
+    Unlike bystander_creation_for_pridict(), the sequences returned here always
+    keep the flanking lengths of ``pridict_input``, so the caller can map
+    positions back onto its own sequence without knowing about ORF_start.
+
     With ``full_records=False`` (default) each dict holds only
     ``sequence_name`` and ``editseq`` - the two columns PRIDICT2.0 batch mode
     needs.  Set ``full_records=True`` to also get the bystander annotation
     columns.
     """
+    strand = str(strand)
+    if strand not in ('+', '-'):
+        raise ValueError('strand has to be "+" or "-"!')
+    ORF_start = int(ORF_start)
+    if ORF_start not in (0, 1, 2):
+        raise ValueError('ORF_start has to be 0, 1 or 2!')
+
+    # bystander_creation_for_pridict() only ever reads the sequence left to
+    # right, so a gene on the reverse strand is flipped, designed, and flipped
+    # back. Without this the bystanders are synonymous on the wrong strand:
+    # GGA->GGG keeps Gly reading forward, but the coding strand of that same
+    # change reads TCC->CCC, Ser->Pro.
+    design_input = pridict_input
+    if strand == '-':
+        design_input = revcomp_pridict_input(pridict_input)
+        # a codon covering input positions [c, c+2] covers positions
+        # [L-3-c, L-1-c] once flipped, so its start moves to (L-c) % 3
+        ORF_start = (pridict_input_length(pridict_input) - ORF_start) % 3
+
     df = bystander_creation_for_pridict(
-        pridict_input,
+        design_input,
         silent_surrounding_AA_nr,
         ORF_start,
         name,
@@ -446,6 +523,18 @@ def silent_bystander_sequences(pridict_input, name="bystander", silent="yes",
     )
     if deduplicate:
         df = handle_duplicate_sequences(df, verbose=verbose)
+
+    df = df.copy()
+    # bystander_creation_for_pridict() slices ORF_start bases off the front to
+    # get in frame. Put them back, so that a caller mapping pegRNA positions
+    # onto its own target sequence does not have to correct for the shift, and
+    # so that flipping back below cannot move the shift to the other side.
+    trimmed = design_input[:ORF_start].upper()
+    if trimmed:
+        df["editseq"] = trimmed + df["editseq"]
+    if strand == '-':
+        df["editseq"] = df["editseq"].map(revcomp_pridict_input)
+
     if not full_records:
         df = df[["sequence_name", "editseq"]]
     return df.to_dict("records")

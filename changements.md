@@ -3349,14 +3349,81 @@ FORECasT-BE :
 - silent bystanders pegRNA sur brin inverse ?
 - RTT pegRNA sur sequence viewer
 
-# 24/09/26
+# 23/09/26
 
 ## Prime editing
 
 - Reformatage du tableau : affichage spacer / RTT / PBS
 - obtention des coordonnées (sur la séquence target) du RTT dans showPegTable
-- ajout d'une fonction JS pour surligner le RTT sur la séquence depuis le tableau
+- ajout d'une fonction JS pour surligner le RTT et le PBS sur la séquence depuis le tableau
+- conservation des paramètres d'annotation si retour aux pegRNA non mutés
+
+- prise en compte des transcrits sur le brin invserse pour bystander silencieux avec Claude
+    - cadre de lecture depuis exonEnd
+    - modification de bin/PRIDICT2/addons/silent_bystander_input.py
+        - revComp -> prédiction -> revComp
+    - dans filterMutPegs, filtre des pegRNAs contenant des mutations non-silencieuses
+
+## base editing
+
+- correction d'un bug dans silentBystander() avec Claude :
+    - correction de la position des codons pour transcrits sur le brin inverse (+ annotation manuelle)
+
+## knock-in mode
 
 ## à faire
 
 - ajouter option mutation pegRNAs en mode KO ? -> loop / exon
+- filtrer PAMs si sélection tableau PE en mode KI
+- en mode KO, filtrer pegRNA nickDist > 5 DONE
+- regrouper pegRNA par spacer -> meilleur peg DONE
+- download primers + seq + texte clonage
+- afficher bases flanking edit DONE
+
+# 24/09/22
+
+## prime editing
+
+- augmentation du nb. max de pegRNA dans JSON de 100 à 10000 (6Mb JSON)
+- link des pegRNA <-> pamIds par spacer (au lieu de pegSeq)
+
+## knock-out mode
+
+- en mode PE, ajout d'un filtre à PRIDICT2 : les pegRNA ayant une distance de > 5bp entre edit / nick ne sont plus pris en compte
+    - réduction de l'extension de l'exon de 150bp à 14bp (les pegRNA en dehors de cet intervalle sont filtrés)
+
+- en mode PE, seul le meilleur pegRNA pour chaque combinaison de spacer / type d'edit est affiché
+
+## knock-in mode
+
+- en mode PE, affichage des top 5 pegRNAs par spacer
+
+## à faire
+
+- retirer / réduire extension en mode KO / PE (car filtre nickDist 5bp -> ext 14bp) DONE
+- ajouter extension epegRNA
+- téléchargement des données complètes
+- clearHighlight sur toutes les séquences d'exons DONE
+
+# 25/09/26
+
+## prime editing
+
+- ajout de downloadPegData() : téléchargement du tableau pegData au format Excela
+
+## base editing
+
+- ajout d'un lien pour téléchargement du tableau BE
+
+## knock out mode
+
+- correction de l'écriture de la séuquence des exons en FASTA : un heaeder / exon
+
+## knock-in mode
+
+- ajout de liens pour téléchargement du tableau HDR - double nicking
+- ajout d'un en-tête indiquant le type d'edit / méthode sélectionnée dans tableau à télécharger
+
+## à faire
+
+- masquer un modèle en mode BE réinitialise le filtre / exon

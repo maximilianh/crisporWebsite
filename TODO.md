@@ -15,6 +15,7 @@
 ## KO 
 
 - add removal of an out of frame exon
+- add an option to set the number of maximum edits to design pegRNAs from 
 
 ## KI
 
@@ -23,13 +24,17 @@
 - add CDS replacement ? https://doi.org/10.1038/s41467-023-42036-5
 - for hg19 / hg38, add a mode to fetch sequences from clinVar
 - simplify the display of the results page (above the sequence viewer)
+- adapt donor synthesis constaints to the new twist standards
+    - GC 50bp window 10-90%
+    - 200bp direct repeats
+    - 100bp hairpin forming repeats
+    - 30bp homopolymers (all nucleotides)
+    - 300-7000bp total length
 
 ## notes 02/09/26
 
 - Ajouter prime editing dans mode KO
 - Biblio KI / Double nicking
-- Renommer mode "Sequence not in referece genome" : ajouter alignement + message d'alerte + ajouter en mode classic
-- RPE1 genome
 - vérifier sécurité -> injections + surcharge du serveur
 - captcha ?
 - tuto

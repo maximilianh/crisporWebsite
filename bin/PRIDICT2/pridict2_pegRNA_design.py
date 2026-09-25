@@ -26,6 +26,11 @@ RToverhanglengthrange = range(3, 20)
 # set maximum distance of edit to PAM; longer distance leads to longer prediction time; default 25
 windowsize_max = 25
 
+# maximum distance of the edit to the nick that is still scored in KO mode
+# (pegRNAfinder(koMode=True)); a knockout only needs the edit close to the nick,
+# so the other pegRNAs are not designed at all, which cuts most of the runtime
+koMode_max_edit_to_nick = 5
+
 # run number to run
 run_num = 0
 
@@ -676,6 +681,7 @@ def parallel_batch_analysis(
     save_outputs=True,
     return_dfs=False,
     write_log=True,
+    koMode=False,
 ):
     """Perform pegRNA predictions in batch-mode.
 
@@ -714,6 +720,7 @@ def parallel_batch_analysis(
                         log_entries,
                         save_outputs=save_outputs,
                         return_dfs=return_dfs,
+                        koMode=koMode,
                     )
                 except Exception as e:
                     print(f"Exception: {e}")
@@ -808,6 +815,7 @@ def pegRNAfinder(
     RTseqoverhang_variants=RToverhanglengthrange,
     save_outputs=True,
     return_df=False,
+    koMode=False,
 ):
     """Find pegRNAs and prediction scores for a set desired edit.
 
@@ -816,6 +824,11 @@ def pegRNAfinder(
     writing any CSV files.  When ``return_df=True`` and a ``queue`` is given (batch mode
     run in separate processes), the DataFrame is put on the queue as third element of
     the ``(pindx, error_message, dataframe)`` tuple.
+
+    ``koMode=True`` only designs and scores the pegRNAs whose nick is less than
+    ``koMode_max_edit_to_nick`` bp away from the edit, instead of all the ones
+    within ``windowsize``. Knockouts do not depend on a precise edit, so the
+    distant nicks are not worth their prediction time.
     """
     error_message = None
     result_df = None
@@ -1030,6 +1043,10 @@ def pegRNAfinder(
                     xindex = xindex + 1
                     XPAM = X_int + editposition + numberN
                     start = XPAM + (len(PAM) - 7) - 3
+                    # X_int - 3 is the distance of the edit to the nick (see
+                    # mutation_position_to_nicklist below)
+                    if koMode and abs(X_int - 3) > koMode_max_edit_to_nick:
+                        continue
                     if X_int in editingWindow:
                         # start coordinates of RT correspond to nick position within protospacer (based on start of input sequence)
                         RTseq = {}
@@ -1427,8 +1444,9 @@ def pegRNAfinder(
 
         if len(pegdataframe) < 1:
             print("\n***\nNo PAM (NGG) found in proximity of edit!\n***\n")
+            maxNickDist = koMode_max_edit_to_nick if koMode else windowsize_max
             raise ValueError(
-                f"No PAM (NGG) sequence found within the specified proximity to the edit (where nick position is maximum {windowsize_max} bases away from edit)."
+                f"No PAM (NGG) sequence found within the specified proximity to the edit (where nick position is maximum {maxNickDist} bases away from edit)."
             )
 
         start_time = time.time()
@@ -1580,6 +1598,7 @@ def run_processing_parallel(
     log_entries,
     save_outputs=True,
     return_dfs=False,
+    koMode=False,
 ):
     """Run the pegRNA design for every row of ``df`` in separate processes.
 
@@ -1616,6 +1635,7 @@ def run_processing_parallel(
             ngsprimer=ngsprimer,
             save_outputs=save_outputs,
             return_df=return_dfs,
+            koMode=koMode,
         )
         q_processes.append(q_process)
         spawn_q_process(q_process)
@@ -1658,6 +1678,7 @@ def run_processing_parallel(
                 ngsprimer=ngsprimer,
                 save_outputs=save_outputs,
                 return_df=return_dfs,
+                koMode=koMode,
             )
 
             q_processes.append(q_process)
@@ -1697,11 +1718,12 @@ def create_q_process(
     ngsprimer,
     save_outputs=True,
     return_df=False,
+    koMode=False,
 ):
     return mp.Process(
         target=pegRNAfinder,
         args=(dfrow, models_list, queue, pindx, pred_dir, nicking, ngsprimer),
-        kwargs={"save_outputs": save_outputs, "return_df": return_df},
+        kwargs={"save_outputs": save_outputs, "return_df": return_df, "koMode": koMode},
     )
 
 
@@ -1713,6 +1735,7 @@ def predict_single_sequence(
     use_5folds=False,
     run_ids=None,
     models_list=None,
+    koMode=False,
 ):
     """Convenience wrapper for direct module usage without multiprocessing or file I/O.
 
@@ -1733,6 +1756,7 @@ def predict_single_sequence(
         ngsprimer=ngsprimer,
         save_outputs=False,
         return_df=True,
+        koMode=koMode,
     )
 
 
@@ -1747,6 +1771,7 @@ def predict_batch_sequences(
     combine=False,
     default_name="sequence",
     models_list=None,
+    koMode=False,
 ):
     """Convenience wrapper for batch mode without file I/O.
 
@@ -1765,6 +1790,10 @@ def predict_batch_sequences(
     long-running server) and wants to load the model once. Only used when
     ``num_proc <= 1``: the parallel path loads its own models in each of its
     worker processes.
+
+    ``koMode=True`` restricts the design to the pegRNAs that nick less than
+    ``koMode_max_edit_to_nick`` bp from the edit (see :func:`pegRNAfinder`),
+    which is much faster and enough for a knockout.
 
     Returns a dict {sequence_name: DataFrame} (``None`` for sequences whose
     design failed), or one concatenated DataFrame when ``combine=True``.
@@ -1796,6 +1825,7 @@ def predict_batch_sequences(
             log_entries=[],
             save_outputs=save_outputs,
             return_dfs=True,
+            koMode=koMode,
         )
     else:
         # single process: load the models once and reuse them for all sequences
@@ -1814,6 +1844,7 @@ def predict_batch_sequences(
                 ngsprimer=ngsprimer,
                 save_outputs=save_outputs,
                 return_df=True,
+                koMode=koMode,
             )
 
     if combine:

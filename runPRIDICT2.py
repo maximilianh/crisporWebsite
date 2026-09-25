@@ -17,7 +17,12 @@ The data posted by crispor.callSubServer("runPRIDICT2", data) is either
                      ~150bp of context on both sides - the bystander edits
                      widen the edit and therefore eat into the flanking context.
                      Options: silent ("yes"/"no"), changeEditBases ("no"/"yes"),
-                     orfStart (0/1/2), surroundingAA (default 2)
+                     orf (0/1/2), strand ("+"/"-"), surroundingAA (default 2).
+                     "orf" is the phase of the reading frame in the coordinates
+                     of the given sequence, "strand" says which of its strands
+                     is the coding one - a gene on the reverse strand needs
+                     both, or the bystanders come out silent on the wrong
+                     strand.
 
   "flexibleedit"     design one variant per possible position of an insertion
                      or deletion (bin/PRIDICT2/addons/flexible_mutations).
@@ -27,7 +32,12 @@ The data posted by crispor.callSubServer("runPRIDICT2", data) is either
                      Options: editType ("insertion"/"deletion"), insert (the
                      inserted bases, IUPAC codes allowed), delLength, step
 
-Options shared by all modes: name, maxSeqs, maxPegs, numProc.
+Options shared by all modes: name, maxSeqs, maxPegs, numProc, koMode.
+
+"koMode" (default False) is for knockout designs: PRIDICT2 then only designs and
+scores the pegRNAs whose nick is less than 5bp away from the edit, instead of all
+the ones within 25bp. A knockout does not need a precise edit position, so this
+saves most of the prediction time.
 
 Every mode returns the same structure, so a caller that only reads "out" does
 not have to know which mode was used.
@@ -70,7 +80,7 @@ MIN_FLANK = 100
 # default is deliberately low: the addon modes design far more variants than
 # that (a 1bp edit gives ~190 silent bystander variants). Raise "maxSeqs"
 # together with the caller's timeout to score more of them.
-DEFAULT_MAX_SEQS = 3
+DEFAULT_MAX_SEQS = 250
 # One process is *faster* than several here: every extra process re-imports
 # torch and re-loads the models, which costs more than the prediction itself.
 DEFAULT_NUM_PROC = 1
@@ -133,6 +143,7 @@ def makeVariants(mode, seq, name, data):
             silent=str(getOpt(data, "silent", default="yes")),
             change_edit_bases=str(getOpt(data, "changeEditBases", "change_edit_bases", default="no")),
             ORF_start=int(getOpt(data, "orf", default=0)),
+            strand=str(getOpt(data, "strand", "exonStrand", "exon_strand", default="+")),
             silent_surrounding_AA_nr=int(
                 getOpt(data, "surroundingAA", "silent_surrounding_AA_nr", default=2)
             ),
@@ -174,6 +185,9 @@ def pegFromRow(pegDesc, editposLeft, editposRight):
         pegDesc["PBSlocation"],
         pegDesc["RT_mutated_location"],
         pegDesc["Editor_Variant"],
+        pegDesc["Mutation_Type"],
+        pegDesc["Correction_Type"],
+        pegDesc["Correction_Length"],
         oligos,
         editposLeft,
         editposRight,
@@ -212,6 +226,7 @@ def run(data):
     maxSeqs = int(getOpt(data, "maxSeqs", "max_seqs", default=DEFAULT_MAX_SEQS))
     maxPegs = getOpt(data, "maxPegs", "max_pegs")
     numProc = int(getOpt(data, "numProc", "num_proc", "cores", default=DEFAULT_NUM_PROC))
+    koMode = str(getOpt(data, "koMode", "ko_mode", default="")).lower() in ("1", "true", "yes", "on")
 
     try:
         variants = makeVariants(mode, seq, name, data)
@@ -241,7 +256,9 @@ def run(data):
     variants = variants[:maxSeqs]
 
     try:
-        results = predict_batch_sequences(variants, num_proc=numProc, models_list=MODELS_LIST)
+        results = predict_batch_sequences(
+            variants, num_proc=numProc, models_list=MODELS_LIST, koMode=koMode
+        )
     except Exception as e:
         return errorResult(mode, "pegRNA design failed: %s" % e)
 
