@@ -33,7 +33,6 @@
 
 ## notes 02/09/26
 
-- Ajouter prime editing dans mode KO
 - Biblio KI / Double nicking
 - vérifier sécurité -> injections + surcharge du serveur
 - captcha ?

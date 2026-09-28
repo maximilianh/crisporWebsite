@@ -2056,7 +2056,7 @@ def getSpliceSites(seq, exStart, exEnd):
     return spliceBases
 
 
-def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadStopGuides=None):
+def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadStopGuides=None, customBeWin=None):
     """create text that draws exons, input is transId -> (exonNumber, exStart, exEnd, exFrame).
     returns a list of (transId (=label), symbol (=mouseover), ASCII-line)"""
     lines = []
@@ -2132,7 +2132,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadS
                     spliceBases = getSpliceSites(seq, exStart, exEnd)
                     # print(spliceBases)
                     for spliceBase, pos in spliceBases:
-                        isStop, newStopGuides = checkStopCodons(spliceBase, pos, editData, possibleSpliceEdits, stopGuides, splice=True)
+                        isStop, newStopGuides = checkStopCodons(spliceBase, pos, editData, possibleSpliceEdits, stopGuides, splice=True, customBeWin=customBeWin)
                         # print(stopGuides)
                         if len(newStopGuides) > 0:
                             stopGuides.update(newStopGuides)
@@ -2229,6 +2229,7 @@ def makeExonLines(exonInfo, seq, selTransId, koMethod=None, editInfo=None, loadS
                                         editData,
                                         possibleStops,
                                         stopGuides,
+                                        customBeWin=customBeWin,
                                     )
 
                                     if len(newStopGuides) > 0:
@@ -2291,12 +2292,18 @@ def enzymeCoversMutPos(enzyme, mutPos):
     return any(m["win"][0] <= mutPos < m["win"][1] for m in allBeModels[enzyme])
 
 
-def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, splice=False, limit=None):
+def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, splice=False, limit=None, customBeWin=None):
     """
     returns True if a guide in editData can be used to change the codon into a STOP codon
     also returns the list of guides for which isStop is True
     if splice is False, feature is a codon and possibleEdits is a dict of codons that can be changed to a STOP
     if splice is True, feature is a splice site and possibleEdits is a dict of possible substitutions
+
+    With a custom base editing window (customBeWin), editData was built using that
+    window directly (not the union of all enzymes' windows), so every position in
+    it is already a legitimate edit: skip the enzymeCoversMutPos() check, which
+    would otherwise re-narrow results back down to the built-in enzymes' fixed
+    windows and hide the wider set of guides a broader custom window should reveal.
     """
 
     # need to do this before calling showExonAndPams and showGuideTable to filter possible guides early
@@ -2318,7 +2325,7 @@ def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, sp
                 newStopGuides = {
                     tpl[0]: (editPos, enzyme)
                     for tpl in list(editData.values())[0]
-                    if enzymeCoversMutPos(enzyme, tpl[3])
+                    if customBeWin or enzymeCoversMutPos(enzyme, tpl[3])
                 }
                 isStop = len(newStopGuides) > 0
 
@@ -2328,7 +2335,7 @@ def checkStopCodons(feature, featurePos, editData, possibleEdits, stopGuides, sp
                 newStopGuides = {
                     tpl[0]: (editPos, enzyme)
                     for tpl in list(editData.values())[0]
-                    if enzymeCoversMutPos(enzyme, tpl[3])
+                    if customBeWin or enzymeCoversMutPos(enzyme, tpl[3])
                 }
                 isStop = len(newStopGuides) > 0
 
@@ -2610,12 +2617,19 @@ def makeEditLines(
     enzyme="CBE",
     extSeq=None,
     loadJson=False,
-    pam=None
+    pam=None,
+    customBeWin=None,
+    allEditData=None
 ):
     """
     Create the lines that show the possible baseEditor edits.
     Can be called to generate JSON data of potential edits,
     or draw the edit lines from existing JSON data (if loadJson is True).
+
+    In customBeWin mode, editData is never written to the JSON file on disk
+    (it is not scored, so it's not worth persisting): if loadJson is True,
+    the already-built in-memory editData is passed in as allEditData instead
+    of being re-read from the batch's editData.json.
     """
 
     editInfos = []
@@ -2629,6 +2643,10 @@ def makeEditLines(
         substPamIds = []
 
     upSeq = seq.upper()
+
+    # custon editing window mode : don't use a model to score the guides
+    if customBeWin:
+        winStart, winEnd = getBeWin(customBeWin)
 
     for pamId, pamStart, guideStart, strand, guideSeq, pamSeq, pamPlusSeq in pamSeqs:
 
@@ -2699,7 +2717,7 @@ def makeEditLines(
                 # in KO mode, calculate the scores only in the second call
                 # Should move this outside of the loop and pass the list of guides as input
                 # for now, the speed is OK
-                if doScore or stopGuides is not None:
+                if doScore or stopGuides is not None and customBeWin is None:
 
                     stopPos = None
                     if stopGuides is not None:
@@ -2709,10 +2727,12 @@ def makeEditLines(
                         toNucl = editsTo[enzyme][1]
                         stopPos = stopGuides[pamId][0]
 
-                    effs, outcomes = calcBeScoresServer(
-                        seq, guideSeq, pamSeq, pamId, extGuideStart, extGuideEnd, guideStart, pamStart,
-                        insertIdx, stopPos, strand, enzyme, extSeq=extSeq, pam=pam
-                    )
+                    effs, outcomes = -1, []
+                    if customBeWin is None:
+                        effs, outcomes = calcBeScoresServer(
+                            seq, guideSeq, pamSeq, pamId, extGuideStart, extGuideEnd, guideStart, pamStart,
+                            insertIdx, stopPos, strand, enzyme, extSeq=extSeq, pam=pam
+                        )
 
                     # list of base editors that can be used to mutate this position
                     if stopGuides is not None:
@@ -2728,7 +2748,7 @@ def makeEditLines(
                             "%s - %s" % (m["tool"], m["model"])
                             for m in allBeModels[enzyme]
                             if m["win"][0] <= mutPos < m["win"][1]
-                        }
+                            }
 
                         # Debug: log models returned by subservers and the possible models
                         try:
@@ -2738,9 +2758,12 @@ def makeEditLines(
                         logging.debug("Returned BE models: %s; Possible models: %s; pamId=%s; mutPos=%s; enzyme=%s",
                                       returnedModels, possibleModels, pamId, mutPos, enzyme)
                     # discard the models that can't result in an edit at this position
-                    effs = [(modelStr, eff) for modelStr, eff in effs if modelStr in possibleModels]
-                    outcomes = [(modelStr, outcome) for modelStr, outcome in outcomes if modelStr in possibleModels]
+                    if customBeWin is None:
+                        effs = [(modelStr, eff) for modelStr, eff in effs if modelStr in possibleModels]
+                        outcomes = [(modelStr, outcome) for modelStr, outcome in outcomes if modelStr in possibleModels]
 
+                elif customBeWin:
+                    effs, outcomes = -1, ['not available']
                 else:
                     effs, outcomes = 0, []
 
@@ -2763,7 +2786,13 @@ def makeEditLines(
         editLines.append([" "] * len(seq))
 
     # rearrange into lines of text + JSON
-    if loadJson:
+    if loadJson and customBeWin:
+        # customBeWin editData is never written to the batch's editData.json (it's
+        # not scored, so not worth persisting): use the in-memory data built earlier
+        # in the same request instead of reading it back from disk.
+        jsonData = allEditData if allEditData is not None else {}
+        editItems = list(jsonData.get(exonId, {}).items())
+    elif loadJson:
         # the function was colled from the results page : load jsonData from its file
         batchBase = join(batchDir, batchId)
         editFname = batchBase + ".editData.json"
@@ -3072,7 +3101,8 @@ def showExonAndPams(
     exonSelect=None,
     stopGuides=None,
     allEditData=None,
-    pegPams=None
+    pegPams=None,
+    customBeWin=None
 ):
     # in prime editing KO mode, only show PAMs that have a corresponding pegRNA
     keepPamIds = set(pegPams.values()) if pegPams is not None else None
@@ -3187,7 +3217,9 @@ def showExonAndPams(
             exonId,
             stopGuides=stopGuides,
             batchId=batchId,
-            loadJson=True
+            loadJson=True,
+            customBeWin=customBeWin,
+            allEditData=allEditData
         )
         lines, maxY = distrOnLines(
             seq.upper(), startDict, len(pam), pam, exonId, stopGuides=stopGuides
@@ -5476,7 +5508,8 @@ def mergeGuideInfo(
     allEditData=None,
     beFilter=None,
     strand=None,
-    posStr=None
+    posStr=None,
+    customBeWin=None
 ):
     """
     merges guide information from the sequence, the efficiency scores and the off-targets.
@@ -5503,8 +5536,12 @@ def mergeGuideInfo(
     if allEditData:
         editData = buildEditData(allEditData)
 
-        # get a list of all models in base editor mode to sort by model
-        usedBeModels = getUsedBeModels(editData)
+        if customBeWin is not None:
+            usedBeModels = []
+
+       # get a list of all models in base editor mode to sort by model
+        else:
+            usedBeModels = getUsedBeModels(editData)
 
         # in KI mode, freqAtEdit is recalculated to include silent bystanders
         # This is done here so that the score changes based on the selected coding sequence
@@ -5580,8 +5617,12 @@ def mergeGuideInfo(
         beScoring = {}
         beOutcomes = {}
 
+        if editData and customBeWin:
+            beScoring['not available'] = -1
+            beOutcomes['not available'] = -1
+
         # in Ki mode, HDR and BE tables share the same guideData
-        if editData and pamId in editData:
+        if editData and pamId in editData and customBeWin is None:
             edits = editData[pamId]
             newEffs = {}
             # sorting by outcome is not needed : just add the models for the current guide
@@ -5863,7 +5904,7 @@ def buildCodonGrid(transcript, seqLen, centerPos=None, window=60):
     return codonGrid
 
 
-def filterMutPegs(pegData, transcript, seq, insertIdx, insertSeq, kiType):
+def filterMutPegs(org, pegData, transcript, seq, insertIdx, insertSeq, kiType):
     """
     filters pegRNAs designed with silent bystander mutations, based on the
     selected annotation:
@@ -5881,6 +5922,14 @@ def filterMutPegs(pegData, transcript, seq, insertIdx, insertSeq, kiType):
 
     # positions to skip if edited
     skipPos = set()
+
+    # load codon frequency table
+    codonFreqFname = "%s_codonFrequency.json" % org
+    codonFreqFile = join(genomesDir, org, codonFreqFname)
+
+    if isfile(codonFreqFile):
+        with open(codonFreqFile) as jsonData:
+            codonFreq = json.load(jsonData)
 
     for exNum, exStart, exEnd, exFrame, oldExFrame, nextFrame, exStrand in transcript:
 
@@ -5949,19 +5998,23 @@ def filterMutPegs(pegData, transcript, seq, insertIdx, insertSeq, kiType):
         # an amino acid. Changes that fall outside of any coding exon cannot, the
         # splice and kozak positions above are what guards those.
         if not skip:
+            changedCodons = []
             editedCodons = set(codonGrid[pos] for pos in changes if pos in codonGrid)
             for codonStart, exStrand in editedCodons:
                 wtCodon = editedSeq[codonStart:codonStart + 3].upper()
                 mutCodon = "".join(
                     changes.get(codonStart + i, wtBase) for i, wtBase in enumerate(wtCodon)
                 )
+                wtFreq, mutFreq = codonFreq.get(wtCodon)[2], codonFreq.get(mutCodon)[2]
                 if exStrand == "-":
                     wtCodon, mutCodon = revComp(wtCodon), revComp(mutCodon)
                 if codonTable.get(wtCodon) != codonTable.get(mutCodon):
                     skip = True
                     break
+                changedCodons.append((wtCodon, wtFreq, mutCodon, mutFreq))
 
         if not skip:
+            row.append(changedCodons)
             filtered.append(row)
 
     return filtered
@@ -6076,34 +6129,39 @@ def getTableColumnWidths(pam, pamFullName, scoreNames, mutScoreNames, usedBeMode
     }
 
 
-def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam):
+def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam, customBeWin=None):
     """Yield (dataColId, widthPx) for every visual column, in body-row order.
-    Used both for emitting the shared <colgroup> and for computing total width."""
+    Used both for emitting the shared <colgroup> and for computing total width.
+
+    In customBeWin mode, guides aren't scored by base editing models: show the
+    classic (non-BE) score columns instead of the BE eff/outcome ones, same as
+    if there were no editData at all."""
+    layoutEditData = None if customBeWin else editData
     yield ("pos", colWidths["pos"])
 
-    if pamFullName and ((multipam and multipam != "20bp-NGG") or editData):
+    if pamFullName and ((multipam and multipam != "20bp-NGG") or layoutEditData):
         yield ("ez", colWidths["ez"])
     yield ("guide", colWidths["guide"])
-    if pamFullName and editData is None:
+    if pamFullName and layoutEditData is None:
         yield ("distance", colWidths["distance"])
     # no global / MIT score in the base editing table
-    if editData is None:
+    if layoutEditData is None:
         yield ("global", colWidths["globalScore"])
         if not pamIsCpf1(pam):
             yield ("mit", colWidths["mitSpec"])
     if "cfdGuideScore" in showColumns:
         yield ("cfd", colWidths["cfdSpec"])
-    if editData is None:
+    if layoutEditData is None:
         for scoreName in scoreNames:
             if scoreName in ("oof", "proxGc"):
                 continue
             yield ("eff-" + scoreName, colWidths["effCol"])
     if "proxGc" in scoreNames:
         yield ("proxGc", colWidths["effCol"])
-    if not baseEditor and editData is None and not pamFullName:
+    if not baseEditor and layoutEditData is None and not pamFullName:
         for mutScoreName in mutScoreNames:
             yield ("outcome-" + mutScoreName, colWidths["outcomeCol"])
-    if editData is not None and usedBeModels is not None:
+    if layoutEditData is not None and usedBeModels:
         for model in usedBeModels:
             yield ("beEff-" + re.sub(r"\s+", "", model), colWidths["beEffCol"])
         yield ("beOutcome", colWidths["beOutcome"])
@@ -6112,7 +6170,7 @@ def _visualColumns(pam, pamFullName, showColumns, scoreNames, mutScoreNames, edi
 
 
 def printOtColgroup(
-    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None
+    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None, customBeWin=None
 ):
     """Emit the <colgroup> that both the header and body tables share.
     Widths are emitted as *percentages* of the design total, not pixels: both
@@ -6122,11 +6180,11 @@ def printOtColgroup(
     data-base-pct keeps the design ratio around for resizeOtTables()."""
     cols = list(
         _visualColumns(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam, customBeWin=customBeWin
         )
     )
     total = float(getOtTableTotalWidth(
-        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels
+        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels, customBeWin=customBeWin
     )) or 1.0
     print("<colgroup>")
     for colId, width in cols:
@@ -6139,7 +6197,7 @@ def printOtColgroup(
 
 
 def getOtTableTotalWidth(
-    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None
+    pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=None, customBeWin=None
 ):
     """sum of all per-column design widths. This is only the denominator that turns
     the px design widths into percentages in printOtColgroup() — the rendered table
@@ -6147,7 +6205,7 @@ def getOtTableTotalWidth(
     return sum(
         w
         for _, w in _visualColumns(
-            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
+            pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam, customBeWin=customBeWin
         )
     )
 
@@ -6165,12 +6223,17 @@ def printTableHead(
     nonClassicMode=None,
     editData=None,
     usedBeModels=None,
+    customBeWin=None,
     downloadParams=None
 ):
     "print guide score table description and columns"
     # one row per guide sequence
 
-    if editData:
+    # in customBeWin mode, guides aren't scored by BE models: lay out the header
+    # like the classic (non-BE) table instead of the BE eff/outcome one.
+    layoutEditData = None if customBeWin else editData
+
+    if layoutEditData:
         print(
             """<div class='substep'>Ranked by default from highest to lowest editing frequency at intended position. Click on a column title to rank by a specific score.<br>"""
         )
@@ -6672,7 +6735,7 @@ def printTableHead(
     print(
         '<table id="otTableHeader" style="background:white; table-layout:fixed; width: 100%; border-collapse: collapse;">'
     )
-    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels, customBeWin=customBeWin)
 
     print("""<thead style="position:sticky;">""")
     print(
@@ -6741,7 +6804,7 @@ def printTableHead(
     else:
         isDefaultText = " (default)"
     # no global / MIT score in the base editing table
-    if editData is None:
+    if layoutEditData is None:
         print(
             """<th data-col-id="global" style="top: 0; z-index:2;  box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none;">
             <a href="crispor.py?batchId=%s&sortBy=main" class="tooltipster" title="Click to sort the table by this score%s. Hover over the (i) bubble on the right to get more information about how this score is calculated.">Global Score</a>"""
@@ -6824,7 +6887,7 @@ def printTableHead(
             "The CFD specificity score, inspired by guidescan.com, behaves like the MIT specificity score, but it is based on the more accurate CFD off-target model, from <a href='http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html'>Doench 2016</a>, which is also used by Crispor to rank the off-targets. The CFD specificity score takes into account the identity of mismatches, and correlates better than the MIT score with the total off-target cleavage fraction of a guide, see <a target=_blank href='https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6731277/'>Tycko et al, Nat Comm 2019</a> and also the <a target=_blank href='/manual/#faq'>CRISPOR manual</a>."
         )
         print("</th>")
-    if editData is None:
+    if layoutEditData is None:
         if (
             len(scoreNames) == 2
             or pamIsCpf1(pam)
@@ -6836,7 +6899,7 @@ def printTableHead(
                 % (colWidths["effTotal"], len(scoreNames))
             )
         else:
-            if editData is None:
+            if layoutEditData is None:
                 effColName = "Predicted Efficiency"
             else:
                 effColName = "Predicted Nuclease Efficiency"
@@ -6870,7 +6933,7 @@ def printTableHead(
         print("</th>")
 
     mhColName = "Outcome"
-    if not baseEditor and editData is None and not pamFullName:
+    if not baseEditor and layoutEditData is None and not pamFullName:
         if len(mutScoreNames) <= 1:
             mhColName = ""
 
@@ -6883,7 +6946,7 @@ def printTableHead(
         # print "<small>%s</small>" % oofDesc
         print("</th>")
 
-    if editData and usedBeModels:
+    if layoutEditData and usedBeModels:
         print('<th data-col-id="beEffs" colspan="%d" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; height: 325px; border-bottom:none">' % (len(usedBeModels), colWidths["beEffTotal"]))
         print('Predicted editing frequency at intended position')
         if pamFullName:
@@ -7012,7 +7075,7 @@ def printTableHead(
     emptyTh = '<th data-col-id="%s" style="position: sticky; top: 125px; z-index:25; box-shadow: inset -1px 0 black; border-top:none"></th>'
 
     for colId, colWidth in _visualColumns(
-        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam
+        pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, usedBeModels, colWidths, multipam, customBeWin=customBeWin
     ):
         if colId.startswith("eff-") and colId[len("eff-"):] in scoreDescs:
             scoreName = colId[len("eff-"):]
@@ -7495,7 +7558,7 @@ def pegPamLabel(pamId, koMode, sep=" <br> "):
     return "%s / %s" % (pamPos, pamStrand)
 
 
-def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotParams, kiInfo=None, koMode=False):
+def showPegTable(batchId, org, seq, pegData, pegPams, transcript, mutPegFname, annotParams, kiInfo=None, koMode=False):
     """Displays the table for pegRNAs designed with PRIDICT2"""
 
     if kiInfo:
@@ -7504,7 +7567,6 @@ def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotP
 
     pegSortBy = cgiParams.get("pegSortBy", "K562")
     sortPegData(pegData, pegSortBy)
-
     # startDict, endSet = findAllPams(seq, "NGG")
 
     headerCss = """style = "background-color:#F0F0F0;" """
@@ -7644,7 +7706,7 @@ def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotP
     if mutPegFname and isfile(mutPegFname):
         pegData = json.load(open(mutPegFname))
         # skip pegRNAs with mutations in the kozak consensus sequence or splice sites
-        pegData = filterMutPegs(pegData, transcript, seq, insertIdx, insertSeq, kiType)
+        pegData = filterMutPegs(org, pegData, transcript, seq, insertIdx, insertSeq, kiType)
         # use this data for download. Only the suffix of the file name is sent
         # (e.g. ".mutPegData.orf0fw.json"), the annotation params are needed
         # to filter the pegRNAs with the same transcript
@@ -7666,7 +7728,7 @@ def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotP
     print("</p>")
 
     # link to download the results
-    print('<a href="crispor.py?%s">Download pegRNAs as Excel table</a> (includes oligonucleotides for Golden Gate assembly and primers)' % urllib.parse.urlencode(downloadParams))
+    print('<a href="crispor.py?%s">Download pegRNAs as Excel table</a> (including oligonucleotides for Golden Gate assembly and primers)' % urllib.parse.urlencode(downloadParams))
     # print('<a href="crispor.py?batchId=%s&downloadAllPegData=1">Download as tsv table</a>')
 
     # otTable id is added so that the table is targeted by the filtering JS functions
@@ -7689,6 +7751,17 @@ def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotP
         <span style="background-color: rgba(0, 255, 255, 0.4)">Flanking bases</span><br>
     </th>
     <th %(headerCss)s >Primer Binding Site</th>
+    """ % locals())
+
+    if mutPegFname and isfile(mutPegFname):
+        print("""
+        <th %(headerCss)s >
+        Mutated codons<br>
+        <small>WT (freq.) &#8594 Mutated (freq.)</small>
+        </th>
+        """ % locals())
+
+    print("""
     <th %(headerCss)s >pegRNA strand</th>
     <th %(headerCss)s >Prime Editor</th>
     <th %(headerCss)s ><a href="crispor.py?batchId=%(batchId)s&pegSortBy=K562">Predicted Efficiency (PRIDICT2 - K562)</a></th>
@@ -7704,10 +7777,22 @@ def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotP
 
     for pegInfo, pamId in iterShownPegs(pegData, pegPams, koMode):
 
+        """
         (
                 pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords,
                 pbsCoords, rtCoords, editorVariant, mutationType, correctionType, correctionLength, primers, editposLeft, editposRight
         ) = pegInfo
+        """
+        (
+                pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score,
+                HEKscore, editToNick, editorVariant, correctionType, correctionLength, primers
+        ) = (
+                pegInfo[0], pegInfo[1], pegInfo[2], pegInfo[3], pegInfo[4], pegInfo[5],
+                pegInfo[6], pegInfo[7], pegInfo[11], pegInfo[13], pegInfo[14], pegInfo[15]
+            )
+
+        if mutPegFname and isfile(mutPegFname):
+            changedCodons = pegInfo[-1]
 
         classStr = "guideRow"
         if koMode:
@@ -7788,6 +7873,11 @@ def showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotP
         print('<td style="font-family: Source Code Pro; font-size: 1em; margin: 0 0;">')
         print(pegSeq[RTTend:])
         print('</td>')
+        if mutPegFname and isfile(mutPegFname):
+            print('<td>')
+            for wtCodon, wtFreq, mutCodon, mutFreq in changedCodons:
+                print("<small>%s (%s) &#8594 %s (%s)</small><br>" % (wtCodon, round(wtFreq, 2), mutCodon, round(mutFreq, 2)))
+            print('</td>')
         print("<td>%s</td>" % ("+" if strand == "Fw" else "-"))
         print("<td>%s</td>" % editorVariant)
         print("<td>%s</td>" % round(K562score, 2))
@@ -7824,9 +7914,15 @@ def showGuideTable(
     annotParams=None,
     editData=None,
     stopGuides=None,
+    customBeWin=None,
     exonId=None
 ):
     "shows table of all PAM motif matches"
+    # in customBeWin mode, guides aren't scored by BE models: lay out the table
+    # like the classic (non-BE) one instead of the BE eff/outcome one, while
+    # still using editData to filter rows to the guides that can introduce an edit.
+    layoutEditData = None if customBeWin else editData
+
     if pamFullName:
         batchInfo = readBatchAsDict(batchId)
         multipam = batchInfo["multipam"]
@@ -7889,8 +7985,10 @@ def showGuideTable(
     downloadParams = None
     if editData:
         # get a list of all models in base editor mode to get the number of columns to display
-        usedBeModels = getUsedBeModels(editData)
-
+        if customBeWin is None: 
+            usedBeModels = getUsedBeModels(editData)
+        else:
+            usedBeModels = []
         # download the base editing table with the same sorting as this page.
         # In KI mode, the editing frequencies depend on the selected annotation
         downloadParams = {"beTable": 1}
@@ -7924,7 +8022,7 @@ def showGuideTable(
     if pamIsSpCas9(pam) or (pamFullName and multipam == "20bp-NGG"):
         showColumns.add("cfdGuideScore")
 
-    if pamFullName is None and editData is None:
+    if pamFullName is None and layoutEditData is None:
         showPamWarning(pam)
     showNoGenomeWarning(dbInfo)
     printTableHead(
@@ -7940,6 +8038,7 @@ def showGuideTable(
         nonClassicMode=nonClassicMode,
         editData=editData,
         usedBeModels=usedBeModels,
+        customBeWin=customBeWin,
         downloadParams=downloadParams
     )
 
@@ -7965,7 +8064,7 @@ def showGuideTable(
     print(
         '<table id="otTable" style="table-layout: fixed; width: 100%; border-collapse: collapse;">'
     )
-    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels)
+    printOtColgroup(pam, pamFullName, showColumns, scoreNames, mutScoreNames, editData, colWidths, multipam, usedBeModels=usedBeModels, customBeWin=customBeWin)
     print("<tbody>")
 
     for guideIdx, guideRow in enumerate(guideData):
@@ -8020,7 +8119,7 @@ def showGuideTable(
             inExon = None
         pamStart = guideRow[3]
 
-        if len(highlightedGuidesIds) >= 3 or koMethod is None or editData:
+        if len(highlightedGuidesIds) >= 3 or koMethod is None or layoutEditData:
             highlight = False
         else:
             # In KO mode, define Cas9 occupancy region to highlight the best 3 non-overlapping guides
@@ -8287,7 +8386,7 @@ def showGuideTable(
             print("</td>")
 
         # Global Score, not in the base editing table
-        if editData is None:
+        if layoutEditData is None:
             print(
                 """ <td style="width:%dpx; background-color:%s;"> """
                 % (colWidths["globalScore"], backgroundColor)
@@ -8299,7 +8398,7 @@ def showGuideTable(
             print("</td>")
 
         # off-target score, aka specificity score aka MIT score, not in the base editing table
-        if not pamIsCpf1(pam) and editData is None:
+        if not pamIsCpf1(pam) and layoutEditData is None:
             print(
                 """ <td style="width:%dpx; background-color:%s;"> """
                 % (colWidths["mitSpec"], backgroundColor)
@@ -8331,7 +8430,7 @@ def showGuideTable(
             htmlHelp(
                 "The efficiency scores require some flanking sequence<br>This guide does not have enough flanking sequence in your input sequence and could not be extended as it was not found in the genome.<br>"
             )
-        elif editData is None:
+        elif layoutEditData is None:
             for scoreName in scoreNames:
                 # out-of-frame and prox. gc need special treatment
                 if scoreName in ["oof", "proxGc"]:
@@ -8418,7 +8517,7 @@ def showGuideTable(
         # print sub-columns for each Base editor model (of there is no model for the current guide, shows "-")
 
         # new method : BE scores are stored in guideData
-        if editData:
+        if layoutEditData:
             for model, beEff in beScoring.items():
                 modelHtml = re.sub(r"\s+", "", model)
                 if beEff == -1:
@@ -8682,7 +8781,7 @@ def showGuideTable(
 
     printDownloadTableLinks(batchId, addTsv=True, nonClassicMode=nonClassicMode, downloadParams=downloadParams)
 
-    if editData is None:
+    if layoutEditData is None:
         printNoEffScoreFoundWarn(effScoresCount, pam)
 
 
@@ -10405,7 +10504,7 @@ def processSubmission(faFname, genome, pamDesc, bedFname, batchBase, batchId, qu
     return bedFname
 
 
-def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonPosStr, stopGuides, limit=None):
+def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonPosStr, stopGuides, customBeWin=None, limit=None):
     """
     To be used in KO / STOP mode, called in a loop for each exon :
     Searches for guides that can introduce STOP codons in the current exon.
@@ -10435,20 +10534,28 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
         beWinStart = min(win[0] for win in wins)
         beWinEnd = max(win[1] for win in wins)
 
+        # custom window : overwrite winStart / end
+        if customBeWin:
+            beWinStart, beWinEnd = getBeWin(customBeWin)
+
         # get a list of potential edits
         _, editData = makeEditLines(
-            seq, pamSeqs, beWinStart, beWinEnd, None, exonId
+            seq, pamSeqs, beWinStart, beWinEnd, None, exonId, customBeWin=customBeWin
         )
         # logging.info("Edit Data : %s" % editData)
         editInfo = (pam, editData)
 
-        # get guides that can introduce a STOP codon
-        _, newStopGuides = makeExonLines(exonInfo, seq, selTransId, koMethod, editInfo=editInfo)
+        # get guides that can introduce a STOP codon. With a custom window, the
+        # editData positions already reflect that (broadened or narrowed) window,
+        # so pass customBeWin through to skip the fixed-model-window check that
+        # would otherwise cap the result to the built-in enzymes' windows.
+        _, newStopGuides = makeExonLines(
+            exonInfo, seq, selTransId, koMethod, editInfo=editInfo, customBeWin=customBeWin
+        )
 
         # score at most limit guides within the current exon
         if limit:
             newStopGuides = {pamId: editInfo for i, (pamId, editInfo) in enumerate(newStopGuides.items()) if i < limit}
-
         if len(newStopGuides) > 0:
             # calculate the scores
             editLines, newEditData = makeEditLines(
@@ -10460,7 +10567,8 @@ def getStopEditData(genome, seq, pam, batchId, koMethod, koGeneId, exonId, exonP
                 exonId,
                 stopGuides=newStopGuides,
                 batchId=batchId,
-                pam=pam
+                pam=pam,
+                customBeWin=customBeWin
             )
         else:
             newEditData = {}
@@ -13037,7 +13145,7 @@ def linkPegToPams(seq, pegData, guideData):
     # duplicate spacers, so the pegRNAs it shows aren't necessarily the first 50
     for pegInfo in pegData:
 
-        pegSeq, pegSpacer, pegStrand = pegInfo[0], pegInfo[1].upper(), pegInfo[4]
+        pegSpacer, pegStrand = pegInfo[1].upper(), pegInfo[4]
         wantStrand = strandForPegStrand.get(pegStrand)
 
         for guideRow in guideData:
@@ -14393,7 +14501,7 @@ def KiResultsPage(params, batchId, download=False, mutPegFname=None, beTable=Fal
             transcript, annotParams = None, None
             if kiType in ["substitution", "replacement"]:
                 transcript, annotParams = getSelCodingRegion(org, seq, strand, posStr, returnAnnotParams=True)
-            showPegTable(batchId, seq, pegData, pegPams, transcript, mutPegFname, annotParams, kiInfo=(kiType, insertIdx, insertSeq))
+            showPegTable(batchId, org, seq, pegData, pegPams, transcript, mutPegFname, annotParams, kiInfo=(kiType, insertIdx, insertSeq))
             print("</div>")
 
         print('<br><a class="neutral" href="crispor.py?expType=ki">')
@@ -16653,6 +16761,11 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
 
     minFreq, varDb = checkOtherArgs(params)
 
+    # rebuild base editing guides
+    customBeWin = params.get("beWin")
+    if customBeWin:
+        stopGuides, allEditData = {}, {}
+
     allGuideData = []
     allGuideScores = {}
     allPamIdToSeq = {}
@@ -16801,7 +16914,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
         startDict, endSet = findAllPams(uppSeq, pam, exonId)
         chrom, start, end, strand = parsePos(posStr)
 
-        if koMethod == "stop" and str(exonId) not in allEditData.keys():
+        if koMethod == "stop" and str(exonId) not in allEditData.keys() and customBeWin is None:
             continue
 
         if not download:
@@ -16842,13 +16955,16 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
                               """
                         )
                     print(
-                        """Hover on an edit to show the top three guides to edit the corresponding base, or click on it to nagivate to the table.<br>
+                        """Hover on an edit to show the top three guides to edit the corresponding base, or click on it to navigate to the table.<br>
                         """
                     )
 
-                    '''
-                    print("Base Editor modification window:")
-                    selBeWin = "%s-%s" % (beWinStart, beWinEnd)
+                    print(
+                        """Show the position of guides with the following editing window
+                          <img src="%simage/info-small.png" title="You can use this option to show to display guides for base editors with different editing windows. Note that the efficiency and outcome frequencies can't be predicted for these guides, as ForeCasT-BE and DeepBE were trained on data from base editors with specific editing windows. The Nuclease efficiency is shown instead." class="tooltipsterInteract">
+                          """ % HTMLPREFIX)
+                    selBeWinStart, selBeWinEnd = getBeWin(params.get("beWin", DEFAULTBEWIN))
+                    selBeWin = "%s-%s" % (selBeWinStart, selBeWinEnd)
                     print(
                         (
                             """<input type="text" name="beWin" size="10" value="%s">"""
@@ -16858,8 +16974,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
                     print(
                         """<input style="height:18px;margin:0px;font-size:10px;line-height:normal" type="submit" name="submit" value="Update">"""
                     )
-                    '''
-
+                    if params.get("beWin") is not None:
+                        print("""<br><a href=crispor.py?batchId=%s>Show guides with predicted efficiencies and outcome sequences</a>""" % batchId)
                     print("</p>")
                     print("</details>")
 
@@ -16921,6 +17037,12 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
                 print("""<div id="displayDownstream" style="display: none;"> """)
                 # print("<h2>Guides in the downstream region</h2>")
 
+        if customBeWin:
+            newEditData, newStopGuides = getStopEditData(org, seq, pam, batchId, koMethod, koGeneId, exonId, posStr, stopGuides, customBeWin=customBeWin)
+            if len(newStopGuides) > 0:
+                allEditData.update(newEditData)
+                stopGuides.update(newStopGuides)
+
         guideData, guideScores, hasNotFound, pamIdToSeq = mergeGuideInfo(
             uppSeq,
             startDict,
@@ -16933,7 +17055,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
             exonId=exonId,
             globEffScore=globEffScore,
             stopGuides=stopGuides,
-            allEditData=allEditData
+            allEditData=allEditData,
+            customBeWin=customBeWin
         )
         if koMethod in ["excision", "promoter"]:
             sortGuideData(guideData, sortBy)
@@ -16976,7 +17099,9 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
                 selTransId=selTransId,
                 exonSelect=exonSelect,
                 stopGuides=stopGuides,
+                allEditData=allEditData,
                 pegPams=exonPegPams,
+                customBeWin=customBeWin
             )
 
             # for methods requiring a pair of guides, two tables are shown
@@ -17013,7 +17138,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
     if download is False and koMethod == "primeEditing":
         print("<br>")
         pegPams = linkPegToPams(seq, pegData, allGuideData)
-        showPegTable(batchId, seq, pegData, pegPams, None, None, None, koMode=True)
+        showPegTable(batchId, org, seq, pegData, pegPams, None, None, None, koMode=True)
 
     elif download is False and koMethod not in ["excision", "promoter", "primeEditing"]:
         sortGuideData(allGuideData, sortBy)
@@ -17030,7 +17155,8 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
             koMethod=koMethod,
             exonSelect=exonSelect,
             editData=pamEditData,
-            stopGuides=stopGuides
+            stopGuides=stopGuides,
+            customBeWin=customBeWin
         )
 
     if download is False:
@@ -19840,7 +19966,7 @@ def downloadAllPegData(params):
         # same filter as in showPegTable(), with the annotation from the URL
         chrom, start, end, strand = parsePos(batchInfo["posStr"])
         transcript = getSelCodingRegion(org, seq, strand, batchInfo["posStr"])
-        pegData = filterMutPegs(pegData, transcript, seq, batchInfo["insertIdx"], batchInfo["insertSeq"], kiType)
+        pegData = filterMutPegs(org, pegData, transcript, seq, batchInfo["insertIdx"], batchInfo["insertSeq"], kiType)
     else:
         pegData = json.load(open(batchBase + ".pegData.json"))
 
@@ -19864,10 +19990,14 @@ def downloadAllPegData(params):
 
     rows = []
     for pegInfo, pamId in iterShownPegs(pegData, pegPams, koMode):
+
         (
-                pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score, HEKscore, editToNick, spacerCoords,
-                pbsCoords, rtCoords, editorVariant, mutationType, correctionType, correctionLength, primers, editposLeft, editposRight
-        ) = pegInfo
+                pegSeq, spacer, PBSrevComp, RTTrevComp, strand, K562score,
+                HEKscore, editToNick, editorVariant, correctionType, correctionLength, primers
+        ) = (
+                pegInfo[0], pegInfo[1], pegInfo[2], pegInfo[3], pegInfo[4], pegInfo[5],
+                pegInfo[6], pegInfo[7], pegInfo[11], pegInfo[13], pegInfo[14], pegInfo[15]
+            )
 
         # need to add epeg extension here
 
@@ -19875,6 +20005,7 @@ def downloadAllPegData(params):
 
         RTTstart = len(pegSeq) - len(PBSrevComp) - len(RTTrevComp)
         RTTend = RTTstart + len(RTTrevComp)
+
         rowList = [
             pegPamLabel(pamId, koMode, sep=" "), pegSeq,
             "+" if strand == "Fw" else "-", editorVariant, round(K562score, 2), round(HEKscore, 2), editToNick,
@@ -27098,6 +27229,7 @@ def mainCgi():
     if "downloadPeg" in params:
         downloadPegSeqs(params)
         return
+
     if "downloadAllPegData" in params:
         downloadAllPegData(params)
         return

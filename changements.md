@@ -3374,10 +3374,10 @@ FORECasT-BE :
 ## à faire
 
 - ajouter option mutation pegRNAs en mode KO ? -> loop / exon
-- filtrer PAMs si sélection tableau PE en mode KI
+- filtrer PAMs si sélection tableau PE en mode KI DONE
 - en mode KO, filtrer pegRNA nickDist > 5 DONE
 - regrouper pegRNA par spacer -> meilleur peg DONE
-- download primers + seq + texte clonage
+- download primers + seq + texte clonage DONE
 - afficher bases flanking edit DONE
 
 # 24/09/22
@@ -3402,7 +3402,7 @@ FORECasT-BE :
 
 - retirer / réduire extension en mode KO / PE (car filtre nickDist 5bp -> ext 14bp) DONE
 - ajouter extension epegRNA
-- téléchargement des données complètes
+- téléchargement des données complètes DONE
 - clearHighlight sur toutes les séquences d'exons DONE
 
 # 25/09/26
@@ -3410,6 +3410,7 @@ FORECasT-BE :
 ## prime editing
 
 - ajout de downloadPegData() : téléchargement du tableau pegData au format Excela
+- si introduction de mutations silencieuses, afifchage du codon WT -> recodé avec fréquence dans le tableau
 
 ## base editing
 
@@ -3427,3 +3428,17 @@ FORECasT-BE :
 ## à faire
 
 - masquer un modèle en mode BE réinitialise le filtre / exon
+- prendre en compte la fréquence d'utilisation des codons dans PRIDICT2 - silenbystander DONE
+
+# 28/09/26
+
+## base editing
+
+- ré-introduction de l'input "beWin" -> affichage des guides en fonction de la fenêtre d'édition sélectionnée
+    - passage de customBeWin -> re-construction de editData (sans lecture du JSON)
+    - pas d'affichage des scores / outcomes
+
+## à faire
+
+- adapter showGuideTable / printTableHead
+- adapter KI mode / customBeWin
