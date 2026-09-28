@@ -11,7 +11,7 @@ import subprocess, tempfile, optparse, logging, atexit, glob, shutil, signal, pd
 import http.cookies, time, sys, cgi, re, random, platform, os, pipes, html
 import hashlib, base64, string, logging, operator, urllib.request, urllib.parse, urllib.error, time
 import traceback, json, pwd, gzip, zlib, heapq
-import math, difflib
+import math, difflib, ipaddress
 
 from io import StringIO
 from collections import defaultdict, namedtuple
@@ -467,6 +467,9 @@ MAXSEQLEN_NOGENOME = 25000
 MAXSEQLEN2 = 600
 # maximum input size for NNN SpRY or similar PAMs
 MAXSEQLEN3 = 150
+
+# maximum number of jobs (waiting or running) that one IP address can have in the queue
+MAXJOBSPERIP = 10
 
 # BWA: allow up to X mismatches
 maxMMs = 4
@@ -994,6 +997,30 @@ def setupPamInfo(pam):
     return pam
 
 
+def clientKey(ip):
+    """return the key used to count the jobs of a client. IPv4: the address itself.
+    IPv6: the /64 network, as one household or computer usually gets a whole /64 and can
+    use any address in it. IPv4-mapped IPv6 addresses (::ffff:1.2.3.4) are treated as IPv4.
+    >>> clientKey("1.2.3.4")
+    '1.2.3.4'
+    >>> clientKey("2001:db8:1:2:aaaa::1") == clientKey("2001:db8:1:2:bbbb::2")
+    True
+    >>> clientKey("2001:db8:1:2::1") == clientKey("2001:db8:1:3::1")
+    False
+    >>> clientKey("::ffff:1.2.3.4")
+    '1.2.3.4'
+    """
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+    if addr.version == 6:
+        if addr.ipv4_mapped:
+            return str(addr.ipv4_mapped)
+        return str(ipaddress.ip_network("%s/64" % addr, strict=False))
+    return str(addr)
+
+
 # ==== CLASSES =====
 class JobQueue:
     """
@@ -1081,9 +1108,16 @@ class JobQueue:
             # if the file was created by other job, we can't chmod, as we're the CGI. Just silently ignore this
             pass
 
-    def addJob(self, jobType, jobId, paramStr):
-        "create a new job, returns False if not successful"
+    def addJob(self, jobType, jobId, paramStr, ip=None):
+        """create a new job, returns False if not successful.
+        If ip is set, abort if this IP address already has MAXJOBSPERIP jobs in the queue.
+        A jobId that is already in the queue is never refused, whatever the IP.
+        """
         self._chmodJobDb()
+
+        if ip is not None and ip != "noIp":
+            self._addJobLimited(jobType, jobId, paramStr, ip)
+            return True
 
         sql = (
             "INSERT INTO queue (jobType, jobId, isRunning, lastUpdate, "
@@ -1110,6 +1144,50 @@ class JobQueue:
             # job already in queue (e.g. resubmit, or daemon restart) - that's fine
             return True
         except SQLITEERROR:
+            errAbort(
+                "Cannot open DB file %s. Please contact %s"
+                % (self.dbName, contactEmail)
+            )
+
+    def ipJobCount(self, ip):
+        """return number of jobs of an IP address in the queue, IPv6 addresses are grouped by /64,
+        see clientKey(). Crashed jobs are never removed, so they are not counted"""
+        key = clientKey(ip)
+        sql = "SELECT paramStr FROM queue WHERE paramStr LIKE 'ip=%' AND stepName!='crash'"
+        count = 0
+        for (paramStr,) in self.conn.execute(sql):
+            jobIp = paramStr.split(",")[0][len("ip="):]
+            if clientKey(jobIp) == key:
+                count += 1
+        return count
+
+    def _addJobLimited(self, jobType, jobId, paramStr, ip):
+        "add a job unless the IP address has too many jobs in the queue. Check and insert in one transaction"
+        try:
+            self.conn.execute("BEGIN IMMEDIATE")
+            row = self.conn.execute("SELECT 1 FROM queue WHERE jobId=?", (jobId,)).fetchone()
+            if row is not None:
+                # job already in queue, e.g. a reload of the page: that's fine
+                self.conn.commit()
+                return
+            jobCount = self.ipJobCount(ip)
+            if jobCount >= MAXJOBSPERIP:
+                self.conn.rollback()
+                errAbort(
+                    "Your IP address (for IPv6: your /64 network) already has %d jobs waiting or running on CRISPOR, the maximum is %d. "
+                    "Please wait until some of them are done and then reload this page: the job will be "
+                    "added to the queue then. If many people share your IP address, e.g. in an institute "
+                    "network, and you need a higher limit, please contact us." % (jobCount, MAXJOBSPERIP)
+                )
+            now = "%.3f" % time.time()
+            sql = (
+                "INSERT INTO queue (jobType, jobId, isRunning, lastUpdate, stepTimes, paramStr, "
+                "stepName, stepLabel, startTime) VALUES (?, ?, 0, ?, '', ?, 'wait', 'Waiting', ?)"
+            )
+            self.conn.execute(sql, (jobType, jobId, now, paramStr, now))
+            self.conn.commit()
+        except SQLITEERROR:
+            self.conn.rollback()
             errAbort(
                 "Cannot open DB file %s. Please contact %s"
                 % (self.dbName, contactEmail)
@@ -1299,12 +1377,57 @@ def errAbort(msg, isWarn=False):
 
 
 # allow only dashes, digits, characters, underscores and colons in the CGI parameters
-# and + / []
-notOkChars = re.compile(r"[^+[]a-zA-Z0-9/:\n\r_. -]")
+# and + / []. The brackets must be escaped: an unescaped "]" closes the character set
+notOkChars = re.compile(r"[^+\[\]a-zA-Z0-9/:\n\r_. -]")
+
+# free text, sequences and json-encoded lists / dicts (see printHiddenFields) need more
+# characters than notOkChars allows, e.g. ">" in fasta headers or quotes in json.
+# They are only checked for characters used in shell or html injections
+freeTextParams = set([
+    "seq",
+    "name",
+    "koGeneId",
+    "customseq",
+    "insertSeq",
+    "globEffScore",
+    "linkerseq",
+    "tagseq",
+    "markerseq",
+    "qTag",
+    "expressionSeq",
+    "exonInfo",
+    "guideInfo",
+    "geneModel",
+    "tagNames",
+    "revGuideInfo",
+    "fwGuideInfo",
+    "multiseq",
+    "pegPams",
+    "primers",
+])
+notOkFreeTextChars = re.compile(r"[`$;|&\\<\x00]")
+
+# the only other parameters that can contain line breaks (textareas).
+# A line break in a shell command starts a new command.
+multiLineParams = set(["geneIds", "addSeq", "startSeq", "endSeq", "replaceInsertSeq"])
 
 
 def checkVal(key, inStr):
     """remove special characters from input string, to protect against injection attacks"""
+    if key in freeTextParams:
+        if len(inStr) > 1000000:
+            errAbort("input parameter %s is too long" % key)
+        matchObj = notOkFreeTextChars.search(inStr)
+        if matchObj != None:
+            errAbort(
+                "input parameter %s contains an invalid character %s (ASCII %d)"
+                % (key, html.escape(repr(matchObj.group())), ord(matchObj.group()))
+            )
+        return inStr
+
+    if key not in multiLineParams and ("\n" in inStr or "\r" in inStr):
+        errAbort("input parameter %s must not contain line breaks" % key)
+
     if key != "geneIds":
         if len(inStr) > 10000:
             errAbort("input parameter %s is too long" % key)
@@ -1336,28 +1459,7 @@ def cgiGetParams():
         if val != None:
             # "seq" is cleaned by cleanSeq later
             val = urllib.parse.unquote(val)
-            """
-            if key not in [
-                "seq",
-                "name",
-                "koGeneId",
-                "customseq",
-                "insertSeq",
-                "globEffScore",
-                "linkerseq",
-                "tagseq",
-                "markerseq",
-                "qTag",
-                "expressionSeq",
-                "exonInfo",
-                "guideInfo",
-                "geneModel",
-                "tagNames",
-                "revGuideInfo",
-                "fwGuideInfo",
-                "multiseq"
-            ]:
-            """
+            # free text parameters are checked less strictly, see freeTextParams
             checkVal(key, val)
             cgiParams[key] = val
 
@@ -1374,6 +1476,21 @@ def cgiGetParams():
         batchId = cgiParams["batchId"]
         if not batchId.isalnum() or len(batchId) > 30:
             errAbort("Invalid batchId")
+
+    # these parameters end up in shell commands or file paths
+    if "temperature" in cgiParams:
+        temperature = cgiParams["temperature"]
+        if not temperature.isdigit() or int(temperature) > 100:
+            errAbort("The temperature must be a number between 0 and 100")
+
+    if "guideSeq" in cgiParams:
+        if not re.fullmatch(r"[ACGTUNacgtun]+", cgiParams["guideSeq"]):
+            errAbort("Invalid guide sequence, only A, C, G, T, U and N are allowed")
+
+    if "org" in cgiParams:
+        org = cgiParams["org"]
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", org) or ".." in org:
+            errAbort("Invalid genome name")
 
     return cgiParams
 
@@ -1539,17 +1656,16 @@ def getFreeEnergy(seq, temperature=37):
     "calculate the minimum free energy of a given RNA sequence"
     # temporary solution, should it use the viennarna python package instead ?
 
-    progDir = binDir
-    cmd = "echo %s | %s/RNAfold -T %s --noPS" % (seq.lower(), progDir, temperature)
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
-    vienna = proc.stdout.read()
-    proc.wait()  # useless in this case ?
+    # no shell: seq and temperature can come from the CGI parameters
+    cmd = [join(binDir, "RNAfold"), "-T", str(int(temperature)), "--noPS"]
+    proc = subprocess.run(cmd, input=seq.lower() + "\n", stdout=subprocess.PIPE, encoding="utf8")
+    vienna = proc.stdout
     viennaouts = [out for out in vienna.split(" ")]
     deltaG = viennaouts.pop()
     # structure (unused for now, needs to be displayed with a monospaced font)
     # seqStructure = ''.join(viennaouts)
     if proc.returncode != 0:
-        errAbort("Could not run '%s'. Return code %s" % (cmd, str(proc.returncode)))
+        errAbort("Could not run '%s'. Return code %s" % (" ".join(cmd), str(proc.returncode)))
         print("ERR")
     else:
         return float(deltaG.strip().replace(")", "").replace("(", ""))
@@ -1639,14 +1755,21 @@ def showSecondaryStructure(params, donorSeq=None):
         RNAfoldCmd = os.path.join(progDir, "RNAfold")
         RNAplotCmd = os.path.join(progDir, "RNAplot")
 
-        cmd = "echo %s | %s -p -T %s | %s -o svg" % (
-            strSeq.upper(),
-            RNAfoldCmd,
-            temperature,
-            RNAplotCmd,
+        # no shell: strSeq and temperature can come from the CGI parameters
+        foldProc = subprocess.run(
+            [RNAfoldCmd, "-p", "-T", str(int(temperature))],
+            input=strSeq.upper() + "\n",
+            cwd=tmpdir,
+            capture_output=True,
+            encoding="utf8",
         )
-
-        subprocess.run(cmd, shell=True, cwd=tmpdir, capture_output=True)
+        subprocess.run(
+            [RNAplotCmd, "-o", "svg"],
+            input=foldProc.stdout,
+            cwd=tmpdir,
+            capture_output=True,
+            encoding="utf8",
+        )
 
         files = os.listdir(tmpdir)
         for file in files:
@@ -2868,11 +2991,15 @@ def makeEditLines(
                 style = "color: rgb(102, 102, 102)"
                 mOverLink = "<d>%s</d>" % nucl
 
-            pamIdLink = selPamId
+            pamIdLink = ""
+            # only link the edit to a pamId in KO mode
+            if substInfo is None:
+                pamIdLink = """href="#%s" % selPamId"""
+
             yPos = altNucls.index(nucl)
 
             editLines[yPos][pos] = (
-                """<a href="#%s" name="editBase" style="%s" onclick="showBeTable('beTable')">%s</a>"""
+                """<a %s name="editBase" style="%s" onclick="showBeTable('beTable')">%s</a>"""
                 % (pamIdLink, style, mOverLink)
             )
 
@@ -4885,15 +5012,19 @@ def extendAndGetSeq(db, chrom, start, end, strand, oldSeq, flank=FLANKLEN, noPer
     twoBitFname = "%(genomeDir)s/%(db)s/%(db)s.2bit" % locals()
     progDir = binDir
     genome = db
-    cmd = (
-        "%(progDir)s/twoBitToFa %(genomeDir)s/%(genome)s/%(genome)s.2bit stdout -seq='%(chrom)s' -start=%(start)s -end=%(end)s"
-        % locals()
-    )
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, encoding="utf8")
+    cmd = [
+        join(progDir, "twoBitToFa"),
+        twoBitFname,
+        "stdout",
+        "-seq=" + chrom,
+        "-start=" + str(start),
+        "-end=" + str(end),
+    ]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding="utf8")
     seqStr = proc.stdout.read()
     proc.wait()
     if proc.returncode != 0:
-        errAbort("Could not run '%s'. Return code %s" % (cmd, str(proc.returncode)))
+        errAbort("Could not run '%s'. Return code %s" % (" ".join(cmd), str(proc.returncode)))
     faFile = StringIO(seqStr)
     seqs = parseFasta(faFile)
     assert len(seqs) == 1
@@ -7728,7 +7859,7 @@ def showPegTable(batchId, org, seq, pegData, pegPams, transcript, mutPegFname, a
     print("</p>")
 
     # link to download the results
-    print('<a href="crispor.py?%s">Download pegRNAs as Excel table</a> (including oligonucleotides for Golden Gate assembly and primers)' % urllib.parse.urlencode(downloadParams))
+    print('<a href="crispor.py?%s">Download pegRNAs as Excel table</a> (including primers for Golden Gate assembly)' % urllib.parse.urlencode(downloadParams))
     # print('<a href="crispor.py?batchId=%s&downloadAllPegData=1">Download as tsv table</a>')
 
     # otTable id is added so that the table is targeted by the filtering JS functions
@@ -12352,7 +12483,7 @@ def submitMultiSearch(batchId, org, pamDesc, mode, peOnly=False):
         q.openSqlite()
         ip = os.environ.get("REMOTE_ADDR", "noIp")
 
-        wasOk = q.addJob(mode, batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc))
+        wasOk = q.addJob(mode, batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc), ip=ip)
 
         if not wasOk:
             print("CRISPOR job %s failed-running..." % batchId)
@@ -12404,7 +12535,7 @@ def getOfftargets(seq, org, pamDesc, batchId, startDict, queue):
                 errAbort("IP address blocked.")
 
             wasOk = q.addJob(
-                "search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc)
+                "search", batchId, "ip=%s,org=%s,pam=%s" % (ip, org, pamDesc), ip=ip
             )
             if not wasOk:
                 print("CRISPOR job %s failed-running..." % batchId)
@@ -16961,7 +17092,7 @@ def KoResultsPage(params, batchId, koGeneId, download=False, beTable=False):
 
                     print(
                         """Show the position of guides with the following editing window
-                          <img src="%simage/info-small.png" title="You can use this option to show to display guides for base editors with different editing windows. Note that the efficiency and outcome frequencies can't be predicted for these guides, as ForeCasT-BE and DeepBE were trained on data from base editors with specific editing windows. The Nuclease efficiency is shown instead." class="tooltipsterInteract">
+                          <img src="%simage/info-small.png" title="You can use this option to modify the base editing window. Note that the efficiency and outcome frequencies can't be predicted for these guides, as ForeCasT-BE and DeepBE were trained on data from base editors with specific editing windows." class="tooltipsterInteract">
                           """ % HTMLPREFIX)
                     selBeWinStart, selBeWinEnd = getBeWin(params.get("beWin", DEFAULTBEWIN))
                     selBeWin = "%s-%s" % (selBeWinStart, selBeWinEnd)
@@ -20144,7 +20275,7 @@ def mutatePegs(params):
     q.openSqlite()
 
     ip = os.environ.get("REMOTE_ADDR", "noIp")
-    wasOk = q.addJob("mutPeg", batchId, "ip=%s,orf=%s,strand=%s,formatSeq=%s" % (ip, orf, strandCode, formatSeq))
+    wasOk = q.addJob("mutPeg", batchId, "ip=%s,orf=%s,strand=%s,formatSeq=%s" % (ip, orf, strandCode, formatSeq), ip=ip)
 
     if not wasOk:
         print("CRISPOR job %s - %s failed-running..." % batchId, orf)

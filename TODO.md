@@ -4,13 +4,16 @@
     - for introduction of silent mutations on donor DNA
     - for taking into account silent bystander edits in precision editing mode
 - adding human cell lines reference genomes RPE1, K562, HAP1, HEK293T, cancer cell lines..
-- adding base editing specific off-target scores (https://doi.org/10.1038/s41467-023-41004-3 - but the repo was deleted)
 - adding the Jacquere library (https://doi.org/10.1016/j.xgen.2026.101190)
+- adding base editing specific off-target scores (https://doi.org/10.1038/s41467-023-41004-3 - but the repo was deleted)
 - staggered cut for eSpOT-ON (pam NGG-22) 
 - in crisporAddGenome, replacement of gene models for NCBI and ENSEMBL genomes
 - add custom PAM in all modes
 - Finish custom tracks
 - add "custom base editor" mode (without scoring)
+- create an agent to generate results from a prompt : https://www.nature.com/articles/s41586-026-11044-y 
+- write the manual
+- Add pegRNA design with OptiPrime : https://www.nature.com/articles/s41587-026-03261-7 - https://github.com/alvin-hsu/optiprime-src
 
 ## KO 
 
@@ -19,8 +22,7 @@
 
 ## KI
 
-- si chargement de la page de résultats trop longue :
-    - tableaux vides -> si clic affichage : requête -> AJAX -> remplissage du tableau
+- load results for the HDR / BE / PE tables with AJAX to reduce loading time
 - add CDS replacement ? https://doi.org/10.1038/s41467-023-42036-5
 - for hg19 / hg38, add a mode to fetch sequences from clinVar
 - simplify the display of the results page (above the sequence viewer)
@@ -30,11 +32,4 @@
     - 100bp hairpin forming repeats
     - 30bp homopolymers (all nucleotides)
     - 300-7000bp total length
-
-## notes 02/09/26
-
-- Biblio KI / Double nicking
-- vérifier sécurité -> injections + surcharge du serveur
-- captcha ?
-- tuto
-- manuel
+- add an option to trim the donor DNA sequence to remove undesired features (e.g homopolymers) (only for double stranded donors)

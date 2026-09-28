@@ -3409,7 +3409,7 @@ FORECasT-BE :
 
 ## prime editing
 
-- ajout de downloadPegData() : téléchargement du tableau pegData au format Excela
+- ajout de downloadPegData() : téléchargement du tableau pegData au format Excel
 - si introduction de mutations silencieuses, afifchage du codon WT -> recodé avec fréquence dans le tableau
 
 ## base editing
@@ -3418,7 +3418,7 @@ FORECasT-BE :
 
 ## knock out mode
 
-- correction de l'écriture de la séuquence des exons en FASTA : un heaeder / exon
+- correction de l'écriture de la séquence des exons en FASTA : un heaeder / exon
 
 ## knock-in mode
 
@@ -3432,13 +3432,16 @@ FORECasT-BE :
 
 # 28/09/26
 
+## sécurité
+
+- fix sécurité avec Claude : voir SECURITY_FIXES.md
+    - fix du regex des caractères interdits
+    - plus d'utilisation de commandes en shell=True
+    - limiation de 10 jobs par IP (IPv6 groupés)
+
 ## base editing
 
 - ré-introduction de l'input "beWin" -> affichage des guides en fonction de la fenêtre d'édition sélectionnée
-    - passage de customBeWin -> re-construction de editData (sans lecture du JSON)
+    - passage de customBeWin -> reconstruction de editData (sans lecture du JSON)
     - pas d'affichage des scores / outcomes
-
-## à faire
-
-- adapter showGuideTable / printTableHead
-- adapter KI mode / customBeWin
+- dans makeEditLines(), pas de sélection de pamId si click sur edit en mode KI

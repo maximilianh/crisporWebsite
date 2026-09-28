@@ -80,7 +80,7 @@ MIN_FLANK = 100
 # default is deliberately low: the addon modes design far more variants than
 # that (a 1bp edit gives ~190 silent bystander variants). Raise "maxSeqs"
 # together with the caller's timeout to score more of them.
-DEFAULT_MAX_SEQS = 25
+DEFAULT_MAX_SEQS = 150
 # One process is *faster* than several here: every extra process re-imports
 # torch and re-loads the models, which costs more than the prediction itself.
 DEFAULT_NUM_PROC = 1
