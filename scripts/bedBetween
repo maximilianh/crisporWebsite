@@ -85,6 +85,9 @@ def output(fh, left, right, upstream, limit, type, chromSizes=None):
     elif right==None:
         chrom = left.chrom
         start = left.end
+        if left.chrom not in chromSizes:
+            sys.stderr.write("Error: %s is in BED but not in chrom.sizes file\n" % left.chrom)
+            sys.exit(10)
         end = chromSizes[left.chrom]
         if start > end:
             print("Error: %s - start position %d beyond chromSize" % (repr(left), start))
@@ -330,46 +333,87 @@ else:
 sizeMissing=0
 lastLeft=None
 included = 0
-# output flank around first feature
-output(outf, None, beds[0], upstream, limit, "ig", chromSize)
-# these are the main iterator variables for the following loop
-left = None
-right = None
 
-# iterate over all bed features from input file
-for i in range(0, len(beds)-1):
-    left = beds[i]
-    right = beds[i+1]
+# group the (sorted) input features by chromosome. Using a dict preserves the
+# order in which chromosomes are first seen (python 3.7+), which is fine because
+# the whole output is sorted again by bedSort downstream.
+bedsByChrom = {}
+for b in beds:
+    bedsByChrom.setdefault(b.chrom, []).append(b)
 
-    # generate features "on the edges" and break where chrom ends or starts
-    if left.chrom != right.chrom:
-        if chromSize!=None:
-            output(outf, left, None, upstream, limit, "ig", chromSize)
-        else:
-            sizeMissing+=1
-        output(outf, None, right, upstream, limit, "ig", chromSize)
-        lastLeft = left
+# the complete list of chromosomes to segment. When a chrom.sizes file is given
+# we drive the loop from it, so that chromosomes without a single gene still get
+# a segment. Chromosomes that only appear in the BED (not in chrom.sizes) are
+# appended, so they are not silently lost.
+if chromSize is not None:
+    chromList = list(chromSize.keys())
+    for chrom in bedsByChrom:
+        if chrom not in chromSize:
+            chromList.append(chrom)
+else:
+    chromList = list(bedsByChrom.keys())
+
+# iterate over all chromosomes, creating the features between the genes of each
+for chrom in chromList:
+    # honor --skipInvalidChroms: drop everything on chroms absent from chrom.sizes
+    if skipInvalidChroms and chromSize is not None and chrom not in chromSize:
+        invalidChromCount += len(bedsByChrom.get(chrom, []))
         continue
 
-    assert(not left.overlaps(right)) # features cannot overlap
+    chromFeats = bedsByChrom.get(chrom, [])
 
-    # sanity check
-    if left.start > right.start:
-        stderr.write("error: bed file does not seem to be sorted\n")
-        stderr.write("check these features: %s \n<->\n %s\n" % (left, right))
-        exit(1)
+    # a chromosome without a single gene: emit one intergenic segment that
+    # covers the entire chromosome. This needs the chrom.sizes file for the
+    # length and does not apply to the strand-specific upstream mode.
+    if len(chromFeats)==0:
+        if chromSize is not None and not upstream:
+            if doAll:
+                name = "ig:Gap|Gap"
+            else:
+                name = "Gap|Gap"
+            outf.write("%s\t%d\t%d\t%s\n" % (chrom, 0, chromSize[chrom], name))
+            outCount += 1
+        continue
 
-    if left.name==right.name:
-        rangeType = "in"
-    else:
-        rangeType = "ig"
-    output(outf, left, right, upstream, limit, rangeType, chromSize)
+    # flank between the start of the chromosome and its first feature
+    output(outf, None, chromFeats[0], upstream, limit, "ig", chromSize)
 
+    # regions between consecutive features on this chromosome
+    for i in range(0, len(chromFeats)-1):
+        left = chromFeats[i]
+        right = chromFeats[i+1]
+
+        assert(not left.overlaps(right)) # features cannot overlap
+
+        # sanity check
+        if left.start > right.start:
+            stderr.write("error: bed file does not seem to be sorted\n")
+            stderr.write("check these features: %s \n<->\n %s\n" % (left, right))
+            exit(1)
+
+        if left.name==right.name:
+            rangeType = "in"
+        else:
+            rangeType = "ig"
+        output(outf, left, right, upstream, limit, rangeType, chromSize)
+
+        if doAll:
+            outf.write("%s\t%d\t%d\tex:%s\n" % (left.chrom, left.start, left.end, left.name))
+
+        lastLeft = left
+
+    # the last feature of the chromosome: emit its own exon and the flank down to
+    # the end of the chromosome. Both were previously missing for the last gene
+    # of every chromosome.
+    last = chromFeats[-1]
     if doAll:
-        outf.write("%s\t%d\t%d\tex:%s\n" % (left.chrom, left.start, left.end, left.name))
+        outf.write("%s\t%d\t%d\tex:%s\n" % (last.chrom, last.start, last.end, last.name))
+    if chromSize is not None:
+        output(outf, last, None, upstream, limit, "ig", chromSize)
+    else:
+        sizeMissing+=1
+    lastLeft = last
 
-    lastLeft = left
-    
 # write some overall statistics to stderr
 stderr.write("%d features written\n" % outCount)
 stderr.write("%d genes/exons were dropped because one includes the other\n" % included)

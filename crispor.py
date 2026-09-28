@@ -511,6 +511,11 @@ batchName = ""
 pamIsFirst = None
 saCas9Mode = False
 
+# is the current PAM a custom PAM with Cas12a (Cpf1) cutting behaviour?
+# set by setupPamInfo(), see pamIsCas12a()
+customPam = False
+customCas12a = False
+
 # Highly-sensitive mode (not for CLI mode):
 # MAXOCC is increased in processSubmission() and in the html UI if only one
 # guide seq is run
@@ -909,10 +914,12 @@ def setupPamInfo(pam):
     global saCas9Mode
     global mutScoreNames
     global isSpg
+    global customCas12a
 
     baseEditor = None
     saCas9Mode = False
     isSpg = False
+    customCas12a = False
 
     PAMLEN = len(pam)
 
@@ -937,8 +944,10 @@ def setupPamInfo(pam):
         PAMLEN = len(pam)
         GUIDELEN = int(pamstr[2])
         ezType = pamstr[1]
+        customPam = True
         if ezType == "Cas12a":
             pamIsFirst = True
+            customCas12a = True
             scoreNames = cpf1ScoreNames
         elif ezType in ["CBE", "ABE"]:
             baseEditor = True
@@ -1543,6 +1552,11 @@ def makeTempFile(prefix, suffix):
             mode="wt", dir=TEMPDIR, prefix="primer3In", suffix=".txt"
         )
     return fh
+
+
+def pamIsCas12a(pam):
+    "True for Cpf1 PAMs and for custom PAMs with Cas12a behaviour, setupPamInfo() must have been called before"
+    return pamIsCpf1(pam) or customCas12a
 
 
 def pamIsCpf1(pam):
@@ -4509,8 +4523,7 @@ def makeAlnStr(org, seq1, seq2, pam, mitScore, cfdScore, posStr, chromDist):
         "<small><pre>guide:      %s<br>off-target: %s<br>            %s</pre>"
         % (lines[0], lines[1], lines[2])
     )
-
-    if pamIsCpf1(pam) or pamIsCasX(pam):
+    if pamIsCas12a(pam) or pamIsCasX(pam):
         htmlText2 = "Cpf1/CasX: No off-target scores available</small>"
     elif saCas9Mode:
         htmlText2 = "SaCas9 Tycko Score: %s" % mitScore
@@ -4596,7 +4609,7 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
     # for each edit distance, get the off targets and iterate over them
     foundOneOntarget = False
     isSaCas9 = pamIsSaCas9(pam)
-    isCpf1 = pamIsCpf1(pam)
+    isCpf1 = pamIsCas12a(pam)
 
     for editDist in range(0, maxMMs + 1):
         # print countDict,"<p>"
@@ -4720,7 +4733,7 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
         otCounts.append(str(otCount))
 
     # calculate the guide scores
-    if pamIsCpf1(pam):
+    if isCpf1:
         guideScore = -1
         guideCfdScore = -1
     else:
@@ -4747,7 +4760,7 @@ def annotateOfftargets(org, countDict, guideSeq, pam, inputPos):
         otDescStr = "&thinsp;-&thinsp;".join(otCounts)
         last12DescStr = "&thinsp;-&thinsp;".join(last12MmCounts)
 
-    if pamIsCpf1(pam):
+    if isCpf1:
         # sort by edit dist if using Cfp1
         posList.sort(key=operator.itemgetter(3))
     else:
@@ -7152,9 +7165,13 @@ def printTableHead(
     )
 
     print("</th>")
+    otColText = "Genome Browser links to matches sorted by CFD off-target score"
+    if pamIsCas12a(pam) or customCas12a:
+        otColText = "Genome Browser links to matches sorted by number of mismatches"
+
     print(
-        '<th data-col-id="browser" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">Genome Browser links to matches sorted by CFD off-target score'
-        % colWidths["browser"]
+        '<th data-col-id="browser" style="top: 0; z-index:2; box-shadow: inset -1px 0 black; width:%dpx; border-bottom:none">%s'
+        % (colWidths["browser"], otColText)
     )
     htmlHelp(
         "For each off-target the number of mismatches is indicated and linked to a genome browser. <br>Matches are ranked by CFD off-target score (see Doench 2016 et al) from most to least likely.<br>Matches can be filtered to show only off-targets in exons or on the same chromosome as the input sequence.<br>On most organisms, you can click the links below to open a window with a genome browser at this position."
@@ -7303,10 +7320,10 @@ def scoreToColor(guideScore):
 def hexToRgb(hexCode):
     "convert hex color to RGB in UCSC format, https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python"
     hexCode = hexCode.lstrip("#")
-    return ",".join(tuple(str(int(hexCode[i : i + 2], 16)) for i in (0, 2, 4)))
+    return ",".join(tuple(str(int(hexCode[i: i + 2], 16)) for i in (0, 2, 4)))
 
 
-def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
+def makeOtBrowserLinks(otData, chrom, dbInfo, pamId, sortByScore):
     "return a list with the html texts of the offtarget links"
     links = []
 
@@ -7331,20 +7348,35 @@ def makeOtBrowserLinks(otData, chrom, dbInfo, pamId):
     return links
 
 
-def filterOts(otDatas, minScore):
+def filterOts(otDatas, minScore, sortByScore):
     "remove all offtargets with score < minScore"
     newList = []
     for otData in otDatas:
-        score = otData[1]
-        if score > minScore:
-            newList.append(otData)
+        if sortByScore:
+            # CFD
+            score = otData[1]
+            if score > minScore:
+                newList.append(otData)
+        else:
+            # nb. of MMs
+            score = otData[3]
+            if score <= minScore:
+                newList.append(otData)
+
     return newList
 
 
-def findOtCutoff(otData):
+def findOtCutoff(otData, sortByScore):
     "try cutoffs 0.5, 1.0, 2.0, 3.0 until not more than 20 offtargets left"
-    for cutoff in [0.3, 0.5, 1.0, 2.0, 3.0, 10.0, 99.9]:
-        otData = filterOts(otData, cutoff)
+
+    if sortByScore:
+        cutoffs = [0.3, 0.5, 1.0, 2.0, 3.0, 10.0, 99.9]
+    else:
+        # cutoffs = [8, 7, 6, 5, 4, 3, 2, 1, 0]
+        # cutoffs = [4, 3, 2, 1, 0]
+        cutoffs = [0, 1, 2, 3, 4]
+    for cutoff in cutoffs:
+        otData = filterOts(otData, cutoff, sortByScore)
         if len(otData) <= 30:
             return otData, cutoff
 
@@ -8135,7 +8167,7 @@ def showGuideTable(
 
     global scoreNames
     if geneId and not pamFullName:
-        if pamIsCpf1(pam):
+        if pamIsCas12a(pam):
             scoreNames = cpf1ScoreNames
         elif pamIsSaCas9(pam):
             scoreNames = saCas9ScoreNames
@@ -8785,8 +8817,12 @@ def showGuideTable(
             % (colWidths["browser"], backgroundColor)
         )
         if otData != None:
+            # sort by CFD score, or by number of MMs for Cas12a (no off-target scores)
+            sortByScore = not pamIsCas12a(pam)
+            if not sortByScore:
+                otData.sort(key=lambda x: x[3])
             if len(otData) > 500 and len(guideData) > 1:
-                otData, cutoff = findOtCutoff(otData)
+                otData, cutoff = findOtCutoff(otData, sortByScore)
                 if cutoff == None:
                     print(
                         "More than 1000 off-targets, showing only top "
@@ -8802,7 +8838,7 @@ def showGuideTable(
                     "This guide sequence has a high number of off-targets, its use is discouraged.<br>To show all off-targets, paste only the guide sequence into the input sequence box."
                 )
 
-            otLinks = makeOtBrowserLinks(otData, chrom, dbInfo, pamId)
+            otLinks = makeOtBrowserLinks(otData, chrom, dbInfo, pamId, sortByScore)
 
             print("\n".join(otLinks[:3]))
             if len(otLinks) > 3:
@@ -9804,7 +9840,7 @@ def calcSaveEffScores(
         global scoreNames
         enz = None
 
-        if pamIsCpf1(pam) and not pam == "NGTN":
+        if pamIsCpf1(pam) and not pam == "NGTN" or customCas12a:
             enz = "cpf1"
             scoreNames = cpf1ScoreNames
         elif pamIsSaCas9(pam):
@@ -9821,7 +9857,7 @@ def calcSaveEffScores(
             longSeqs, enzyme=enz, scoreNames=scoreNames
         )
 
-        if not stopGuides:
+        if not stopGuides and not customPam:
 
             # these are slow algorithms, so store the results for later
             queue.startStep(batchId, "outcome", "Predicting DSB repair outcomes")

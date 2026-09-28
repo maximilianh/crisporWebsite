@@ -62,6 +62,8 @@ ENSGRELEASE = "42"
 
 smallCutoff = 500000
 
+skipInvalidChroms = False
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser(
     """usage: %prog [options] ens|ucsc|fasta|ncbi <taxId1> <taxId2> ... - add genome to crispr site
@@ -161,6 +163,8 @@ parser.add_option(
 )
 # parser.add_option("-f", "--file", dest="file", action="store", help="run on file")
 # parser.add_option("", "--test", dest="test", action="store_true", help="do something")
+parser.add_option("", "--skipInvalidChroms", dest="skipInvalidChroms", action="store_true", help="remove invalid chroms from the GFF file")
+
 (options, args) = parser.parse_args()
 
 if options.debug:
@@ -537,9 +541,13 @@ def geneToSegment(geneTmp, accToSymTmp, sizesTmp, segTmp):
     "convert genes to segments"
     printMsg("Downloading gene models to segments")
     # the awk command translates spaces to underscores. genePredToBed cannot deal with these.
-    cmd = f"""cat {geneTmp} | cut -f2- | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | {scriptDir}/lstOp replace stdin {accToSymTmp} | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {sizesTmp} | {binDir}/bedSort stdin {segTmp}"""
+    skipOpt = ""
+    if skipInvalidChroms:
+        skipOpts = "--skipInvalidChroms"
+
+    cmd = f"""cat {geneTmp} | cut -f2- | awk 'BEGIN {{FS=OFS="\t";}} // {{ gsub(" " , "_", $1); gsub(" ", "_", $12); print }}' | {binDir}/genePredToBed stdin stdout | {binDir}/bedToExons stdin stdout | {scriptDir}/lstOp replace stdin {accToSymTmp} | sort -u | {binDir}/bedSort stdin stdout | {scriptDir}/bedOverlapMerge /dev/stdin /dev/stdout | {scriptDir}/bedBetween stdin /dev/stdout -a -s {sizesTmp} {skipOpts}| {binDir}/bedSort stdin {segTmp}"""
     runCmd(cmd)
-    assert getsize(segTmp) != 0  # no segments - email Max!
+    assert os.path.getsize(segTmp) != 0  # no segments - email Max!
 
 
 def indexLocalGenome(dbInfo, geneTable):
@@ -1371,7 +1379,7 @@ def getFastaAndGff(genomeRows, gff3Fname, options):
             useAltGffConv = False
             if options.altGff:
                 useAltGffConv = True
-            convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv)
+            convertGff3(sizesTmp, gff3Fname, gpTmp, segTmp, useAltGffConv, skipNonChromGenes=skipInvalidChroms)
             outFnames.extend([gpTmp, segTmp])
 
         moveToDest(outFnames, finalDbDir)
@@ -1723,6 +1731,8 @@ if options.debug:
     debugMode = True
 if options.force:
     FORCE = True
+if options.skipInvalidChroms:
+    skipInvalidChroms = True
 
 crisprGenomeDir = options.baseDir
 

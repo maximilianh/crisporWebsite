@@ -3432,6 +3432,11 @@ FORECasT-BE :
 
 # 28/09/26
 
+## classic mode 
+
+- ajout d'une variable globale pour customPAM 
+    - si customPAM, pas de calcul des scores oof / lindel
+    - si customPAM + Cas12a, tri des offtargets par nb. mismatches
 ## sécurité
 
 - fix sécurité avec Claude : voir SECURITY_FIXES.md
