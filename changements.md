@@ -3450,3 +3450,41 @@ FORECasT-BE :
     - passage de customBeWin -> reconstruction de editData (sans lecture du JSON)
     - pas d'affichage des scores / outcomes
 - dans makeEditLines(), pas de sélection de pamId si click sur edit en mode KI
+
+# 29/09/26
+
+## knock-in mode
+
+- dans pridictnInputFormat(), prise en compte du mode protein tagging
+- si pegRNAs avec mutations silencieuses, mise à jour de la couleur du feu en fonction du nouveau score max.
+
+## prime editing
+
+- affichage de la longueur du PBS (au lieu de la séquence)
+- ajout de tooltips pour les scores
+- correction du surlignage de l'edit pour pegRNAs introduisant des délétions
+
+# 30/09/26
+
+## global
+
+- reformatage du code avec black
+- simplification des textes "base editing" et "annotation"
+- correction d'erreurs de frappe avec Claude
+
+## knock-out mode
+
+- surlignage des codons M en mode primeEditing
+
+## knock-in mode
+
+- simplification du texte "Legend and results summary"
+- filtre des PAMs / tableau selong distance DSB / edit en Javascript -> plus de rechargement de la page si sélection d'une autre technique
+- Si sélection du tableau PE, filtre des PAMs correspondants sur le sequence viewer
+- affichage de l'edit en gras sur la séquence
+- adaptation de printKiSteps() : si PE disponible, affichage de "Choose a pegRNA design"
+- affichage des nouveaux strandads de synthèse de Twist dans la page de design du donneur
+
+## à faire
+
+- frame EF1-alpha promoter ?
