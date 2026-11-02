@@ -12423,6 +12423,7 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
 
     org = cgiGetStr(params, "org", "")
     term = cgiGetStr(params, "term", "").lower()
+    koMethod = cgiGetStr(params, "koMethod", "").lower()
 
     if not org or not term:
         print(json.dumps({"results": []}))
@@ -12475,7 +12476,10 @@ def dbsearchGene(params, onlySymbol=False, commonExons=False):
                 # get the length of all exons
                 exStarts = cols[8].strip("\n").split(",")[0:-1]
                 exEnds = cols[9].strip("\n").split(",")[0:-1]
-                if coding:
+                # show coding exons only in Ko mode
+                # should add a flag for coding / non-coding exons in classic mode
+                koMethod = None
+                if coding and koMethod is not None:
                     # get coding exons
                     exLengths = [
                         min(cdsEnd, int(end)) - max(cdsStart, int(start))
@@ -12913,7 +12917,7 @@ $(document).ready(function() {
                 j = i+1;
 
                 if (codingTrans === true) {
-                    var codingText = "coding ";
+                    var codingText = ""; // "coding "
                 } else {
                     var codingText = "";
                 }
@@ -23776,7 +23780,7 @@ def printBody(params):
             if "seq" in params:
                 params.pop("seq")
             try:
-                multiseq, _ = getExonsFromID(koGeneId, org, pam, method="allExons")
+                multiseq, _ = getExonsFromID(koGeneId, org, pam, method="allExons", onlyCoding=False)
                 exonIds = [seqInfo[0] for seqInfo in multiseq]
                 if exonSelect in exonIds:
                     for seqInfo in multiseq:  # seqInfo is (exonId, posStr)
@@ -24090,9 +24094,10 @@ def getInsertSeq(linkerSeq, tagSeq, markerSeq, expressionSeq, qTag, insertPos):
     return tagNames, insertSeq
 
 
-def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
+def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None, onlyCoding=True):
     """from a geneId, returns a list of tuples [(exonId, exonPosStr)]
-    and the gene model (only within the cds)"""
+    and the gene model (only within the cds).
+    By default, non-coding regions are trimmed. If onlyCoding is False, this is not the case."""
 
     if targetLen is None and (method == "excision" or method == "promoter"):
         raise ValueError("targetLen needs to be set for this method")
@@ -24110,7 +24115,7 @@ def getExonsFromID(geneId, org, pam, method, targetLen=None, exonSelect=None):
     else:
         maxLen = MAXSEQLEN
 
-    chrom, strand, allExons = getGenePos(geneId, org, method, targetLen)
+    chrom, strand, allExons = getGenePos(geneId, org, method, targetLen, onlyCoding=onlyCoding)
     if method in ["frameshift", "stop", "splicing", "primeEditing"]:
         if len(allExons) == 0:
             return None, None
@@ -24160,7 +24165,7 @@ def getGeneModel(allExons, strand):
 commonExonMinShare = 0.8
 
 
-def getGenePos(geneID, org, method, targetLen):
+def getGenePos(geneID, org, method, targetLen, onlyCoding=True):
 
     genomeDir = genomesDir
     twoBitFname = getTwoBitFname(org)
@@ -24341,11 +24346,12 @@ def getGenePos(geneID, org, method, targetLen):
         cdsEnd = geneInfo["cdsEnd"]
         exonStarts = geneInfo["exonStarts"]
         exonEnds = geneInfo["exonEnds"]
-
-        if cdsEnd - cdsStart <= 1:
-            # a purely non-coding gene: there is no CDS to clip to, so target the exons
+        
+        # in classic mode, don't trim non-coding regions
+        if cdsEnd - cdsStart <= 1 or onlyCoding is False:
             featureList = [(start, end) for start, end in zip(exonStarts, exonEnds)]
         else:
+            # remove non-coding regions
             for start, end in zip(exonStarts, exonEnds):
                 if end <= cdsStart or start >= cdsEnd:
                     continue
