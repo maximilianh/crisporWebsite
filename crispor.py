@@ -11828,8 +11828,9 @@ def processMultiSeqSubmission(
                 queue.startStep(
                     batchId, "PE", "Scoring pegRNAs introducing STOP codons"
                 )
-                # insert STOP codons at the best position
 
+                # insert STOP codons at the best position
+                # only choose one codon instead ?
                 for codon in ["TAA", "TAG", "TGA"]:
                     pegData = callSubServer(
                         "runPRIDICT2",
@@ -18751,7 +18752,7 @@ def printGeneModel(
     """
     Displays the gene model, from CDS start to CDS end
     Optionally make target exons as buttons"""
-
+    
     if koMethod in ["frameshift", "stop", "primeEditing"] and exonSeqs:
         thirdLen = 0
         for feature in geneModel:
@@ -19046,7 +19047,7 @@ function toggleExonSeq(selectedValue) {
 
             if (isSplittedExon or isTargetExon) and (
                 (showExons is None and featureId in exonSeqs.keys())
-                or str(featureId) in showExons
+                or (showExons is not None and str(featureId) in showExons)
             ):
 
                 # don't make a button for exons in which no guide sequences were found
@@ -23277,6 +23278,13 @@ function changeSeqCase(value) {
     textarea.setRangeText(modText, start, end, 'select');
 }
 
+// Function to highlight uppercase / lowercase regions in the edited sequence textarea
+// May also highlight homologies between target and edited sequences
+/*
+$(document).ready(function()) {
+const endSeq = document.getElementById('endSeq');
+}
+*/
 </script>
     """
     )

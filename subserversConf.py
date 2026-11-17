@@ -4,7 +4,7 @@ to its port and the venv directory whose python3 binary should host it."""
 
 SUBSERVERS = {
     "runDeepBe":     {"port": 8001, "venv": "venvDeepBe"},
-    "runForecastBe": {"port": 8002, "venv": "venvForecastBe"},
+    "runForecastBe": {"port": 8004, "venv": "venvForecastBe"},
     "runPRIDICT2": {"port": 8003, "venv": "venvPRIDICT2"}
     # "runCrisprOnBe": {"port": 8003, "venv": "venvCrisprOnBe"}
 }

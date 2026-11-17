@@ -9,26 +9,43 @@ Usage: startSubServer.py PORT [ONLY]
 
 import sys, os, json, importlib, traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from subserversConf import SUBSERVERS
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8001
 ONLY = sys.argv[2] if len(sys.argv) > 2 else None
-
+HOST = "127.0.0.1"
+MAX_BODY = 1024 * 1024
 
 class Handler(BaseHTTPRequestHandler):
+
+    timeout = 30
+
     def log_message(self, fmt, *args):
         sys.stderr.write((fmt % args) + "\n")
 
     def do_POST(self):
         name = self.path.strip("/").removesuffix(".py")
-        if ONLY and name != ONLY:
-            return self._reply(404, {"error": f"this server only serves {ONLY!r}"})
-        length = int(self.headers.get("Content-Length", 0))
+
+        if name not in SUBSERVERS or (ONLY and name != ONLY):
+            return self._reply(404, {"error": "unknown subserver"})
+        try:
+            length = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            return self._reply(411, {"error": "Content-Length required"})
+        if length < 0 or length > MAX_BODY:
+            return self._reply(413, {"error": "request body too large or invalid"})
+
         try:
             data = json.loads(self.rfile.read(length)) if length else {}
+        except (ValueError, RecursionError):
+            return self._reply(400, {"error": "invalid JSON"})
+        try:
             result = importlib.import_module(name).run(data)
             self._reply(200, result)
-        except Exception as e:
-            self._reply(500, {"error": str(e), "trace": traceback.format_exc()})
+        except Exception:
+            # the traceback goes to the subserver log, never to the client
+            traceback.print_exc()
+            self._reply(500, {"error": "internal error, see the subserver log"})
 
     def _reply(self, code, payload):
         body = json.dumps(payload).encode("utf-8")
@@ -44,5 +61,6 @@ if __name__ == "__main__":
     # Eager-load the model so the first request is fast.
     if ONLY:
         importlib.import_module(ONLY)
-    print(f"Serving {ONLY or 'any module'} on port {PORT}", file=sys.stderr)
-    HTTPServer(("", PORT), Handler).serve_forever()
+
+    print(f"Serving {ONLY or 'any module'} on {HOST}:{PORT}", file=sys.stderr)
+    HTTPServer((HOST, PORT), Handler).serve_forever()
